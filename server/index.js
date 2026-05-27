@@ -15,7 +15,14 @@ const SEC_USER_AGENT = process.env.SEC_USER_AGENT || "EdgeStockApp/4.0 contact@e
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || "http://localhost:5173" }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://edge-ez91jd761-henrylongggs-projects.vercel.app"
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
 app.use(express.json());
 app.use(morgan("dev"));
 
