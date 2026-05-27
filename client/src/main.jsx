@@ -75,13 +75,13 @@ function App() {
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
-    const clean = (overrideSymbol || symbol).trim().toUpperCase();
-    if (!clean) return null;
-    setSymbol(clean);
+    const ticker = (overrideSymbol || symbol).trim().toUpperCase();
+    if (!ticker) return null;
+    setSymbol(ticker);
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/api/analyze/${clean}`);
+      const res = await fetch(`${API}/api/analyze/${ticker}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Could not analyze this ticker.");
       setData(json);
@@ -95,13 +95,13 @@ function App() {
   }
 
   async function addTicker(ticker = symbol) {
-    const clean = ticker.trim().toUpperCase();
-    if (!clean) return;
-    const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
+    const ticker = ticker.trim().toUpperCase();
+    if (!ticker) return;
+    const analyzed = data?.symbol === ticker ? data : await analyze(null, ticker);
     if (!analyzed) return;
     const item = {
-      symbol: clean,
-      name: analyzed.profile?.name || clean,
+      symbol: ticker,
+      name: analyzed.profile?.name || ticker,
       score: score10(analyzed.grades?.edgeScore),
       rawScore: analyzed.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed.grades?.edgeScore),
@@ -109,7 +109,7 @@ function App() {
       price: analyzed.quote?.c ?? null,
       updatedAt: new Date().toISOString()
     };
-    const next = [item, ...watchlist.filter(x => x.symbol !== clean)].sort((a,b)=>(b.score || 0)-(a.score || 0));
+    const next = [item, ...watchlist.filter(x => x.symbol !== ticker)].sort((a,b)=>(b.score || 0)-(a.score || 0));
     setWatchlist(next);
     saveWatchlist(next);
   }
@@ -266,10 +266,10 @@ function AssistantPage({ current, watchlist, onBack }) {
 
   async function ask(e) {
     e.preventDefault();
-    const clean = question.trim();
-    if (!clean) return;
+    const ticker = question.trim();
+    if (!ticker) return;
 
-    const userMessage = { role: "user", content: clean };
+    const userMessage = { role: "user", content: ticker };
     setMessages((prev) => [...prev, userMessage]);
     setQuestion("");
     setLoading(true);
@@ -278,7 +278,7 @@ function AssistantPage({ current, watchlist, onBack }) {
       const res = await fetch(`${API}/api/assistant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: clean, current, watchlist })
+        body: JSON.stringify({ question: ticker, current, watchlist })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Assistant error.");
