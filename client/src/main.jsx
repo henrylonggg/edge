@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5050";
+const API = import.meta.env.VITE_API_URL || "https://edge-1-6dtw.onrender.com";
 const STORAGE_KEY = "edge-watchlist-v8";
 
 function rawScore(v) {
