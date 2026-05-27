@@ -264,7 +264,6 @@ function App() {
           <img src="/edge-logo.svg" alt="Edge logo" />
           <div>
             <h1>Edge</h1>
-            <span>Stock intelligence made simple</span>
           </div>
         </div>
 
