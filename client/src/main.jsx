@@ -25,17 +25,10 @@ import {
 import "./styles.css";
 
 /*
-  FRONTEND: Vercel
-  BACKEND: Render
-
-  Add this Environment Variable in Vercel:
-  Name: VITE_API_URL
-  Value: https://edge-1-6dtw.onrender.com
+  HARD-CODED RENDER BACKEND URL
+  This avoids Vercel environment variable problems.
 */
-
-const API =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "https://edge-1-6dtw.onrender.com";
+const API = "https://edge-1-6dtw.onrender.com";
 
 const STORAGE_KEY = "edge-watchlist-v8";
 
@@ -138,7 +131,6 @@ function App() {
     e?.preventDefault();
 
     const clean = (overrideSymbol || symbol).trim().toUpperCase();
-
     if (!clean) return null;
 
     setSymbol(clean);
@@ -146,10 +138,13 @@ function App() {
     setError("");
 
     try {
-      const res = await fetch(`${API}/api/analyze/${clean}`, {
+      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
+
+      const res = await fetch(url, {
         method: "GET",
+        mode: "cors",
         headers: {
-          "Content-Type": "application/json",
+          Accept: "application/json",
         },
       });
 
@@ -159,7 +154,7 @@ function App() {
         throw new Error(
           json?.error ||
             json?.message ||
-            `Could not analyze this ticker. Backend returned ${res.status}.`
+            `Could not analyze ${clean}. Backend returned ${res.status}.`
         );
       }
 
@@ -168,7 +163,7 @@ function App() {
     } catch (err) {
       setError(
         err.message ||
-          "Could not connect to the Render backend. Check VITE_API_URL and CORS."
+          "Failed to fetch from Render. Check Render logs and browser console."
       );
       return null;
     } finally {
@@ -178,11 +173,9 @@ function App() {
 
   async function addTicker(ticker = symbol) {
     const clean = ticker.trim().toUpperCase();
-
     if (!clean) return;
 
     const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
-
     if (!analyzed) return;
 
     const item = {
@@ -219,10 +212,11 @@ function App() {
 
     for (const item of watchlist) {
       try {
-        const res = await fetch(`${API}/api/analyze/${item.symbol}`, {
+        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
           method: "GET",
+          mode: "cors",
           headers: {
-            "Content-Type": "application/json",
+            Accept: "application/json",
           },
         });
 
@@ -323,13 +317,16 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            {data ? <Report data={data} onAdd={() => addTicker(data.symbol)} /> : <EmptyReport />}
+            {data ? (
+              <Report data={data} onAdd={() => addTicker(data.symbol)} />
+            ) : (
+              <EmptyReport />
+            )}
           </div>
 
           <Watchlist
             items={watchlist}
             symbol={symbol}
-            setSymbol={setSymbol}
             onAdd={addTicker}
             onRemove={removeTicker}
             onAnalyze={(ticker) => analyze(null, ticker)}
@@ -445,7 +442,6 @@ function AssistantPage({ current, watchlist, onBack }) {
     e.preventDefault();
 
     const clean = question.trim();
-
     if (!clean) return;
 
     const userMessage = { role: "user", content: clean };
@@ -457,8 +453,10 @@ function AssistantPage({ current, watchlist, onBack }) {
     try {
       const res = await fetch(`${API}/api/assistant`, {
         method: "POST",
+        mode: "cors",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
           question: clean,
