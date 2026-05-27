@@ -66,7 +66,8 @@ function scoreProfitability(roe, netMargin) {
   let marginScore = 6;
 
   if (r !== null) {
-    if (r >= 60) roeScore = 9.5;
+    if (r >= 65) roeScore = 9.4;
+    else if (r >= 50) roeScore = 9.2;
     else if (r >= 35) roeScore = 9;
     else if (r >= 27.5) roeScore = 8.5;
     else if (r >= 20) roeScore = 8;
@@ -80,7 +81,8 @@ function scoreProfitability(roe, netMargin) {
   }
 
   if (m !== null) {
-    if (m >= 35) marginScore = 9.5;
+    if (m >= 45) marginScore = 9.6;
+    else if (m >= 35) marginScore = 9.3;
     else if (m >= 25) marginScore = 9.1;
     else if (m >= 15) marginScore = 8.3;
     else if (m >= 11.5) marginScore = 7.7;
@@ -130,12 +132,13 @@ function scoreValuation(peRatio, revenueGrowth, roe, netMargin) {
 
   let score;
 
-  if (pe <= 12) score = 9.5;
-  else if (pe <= 18) score = 8.5;
-  else if (pe <= 25) score = 7.5;
-  else if (pe <= 35) score = 6.5;
-  else if (pe <= 50) score = 5.5;
-  else if (pe <= 75) score = 4.5;
+  if (pe <= 10) score = 9.6;
+  else if (pe <= 12) score = 9.4;
+  else if (pe <= 16) score = 8.8;
+  else if (pe <= 20) score = 7.9;
+  else if (pe <= 33) score = 6.8;
+  else if (pe <= 50) score = 5.4;
+  else if (pe <= 75) score = 4.6;
   else score = 3.5;
 
   // Premium companies deserve a valuation cushion if quality/growth is strong.
