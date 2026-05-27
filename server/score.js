@@ -244,20 +244,20 @@ export async function buildStockAnalysis(symbol) {
   /*
     Better weighting for high-quality companies:
 
-    Growth: 25%
-    Profitability: 25%
+    Growth: 23.75%
+    Profitability: 23.75%
     Financial Health: 20%
-    Valuation: 12%
+    Valuation: 14.5%
     Momentum: 10%
     Pullback: 8%
 
     This means a great company can still score high even if valuation is expensive.
   */
   const edgeScore =
-    growthScore * 0.25 +
-    profitabilityScore * 0.25 +
+    growthScore * 0.2375 +
+    profitabilityScore * 0.2375 +
     healthScore * 0.2 +
-    valuationScore * 0.12 +
+    valuationScore * 0.145 +
     momentumScore * 0.1 +
     reversalScore * 0.08;
 
