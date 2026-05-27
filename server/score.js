@@ -66,8 +66,8 @@ function scoreProfitability(roe, netMargin) {
   let marginScore = 6;
 
   if (r !== null) {
-    if (r >= 65) roeScore = 9.4;
-    else if (r >= 50) roeScore = 9.2;
+    if (r >= 70) roeScore = 9.4;
+    else if (r >= 52) roeScore = 9.2;
     else if (r >= 35) roeScore = 9;
     else if (r >= 27.5) roeScore = 8.5;
     else if (r >= 20) roeScore = 8;
@@ -81,7 +81,8 @@ function scoreProfitability(roe, netMargin) {
   }
 
   if (m !== null) {
-    if (m >= 45) marginScore = 9.6;
+    if (m >= 60) marginScore = 9.6;
+    else if (m >= 45) marginScore = 9.4;
     else if (m >= 35) marginScore = 9.3;
     else if (m >= 25) marginScore = 9.1;
     else if (m >= 15) marginScore = 8.3;
@@ -93,7 +94,7 @@ function scoreProfitability(roe, netMargin) {
     else marginScore = 3.3;
   }
 
-  return Number(((roeScore * 0.55) + (marginScore * 0.45)).toFixed(1));
+  return Number(((roeScore * 0.5325) + (marginScore * 0.4675)).toFixed(1));
 }
 
 function scoreFinancialHealth(debtToEquity, marketCapM) {
@@ -103,7 +104,7 @@ function scoreFinancialHealth(debtToEquity, marketCapM) {
   let debtScore = 7;
 
   if (d !== null) {
-    if (d <= 0.3) debtScore = 10;
+    if (d <= 0.3) debtScore = 9.6;
     else if (d <= 0.7) debtScore = 9.1;
     else if (d <= 1.2) debtScore = 8.2;
     else if (d <= 2.0) debtScore = 6.4;
@@ -114,9 +115,9 @@ function scoreFinancialHealth(debtToEquity, marketCapM) {
   let sizeBonus = 0;
 
   if (cap !== null) {
-    if (cap >= 500000) sizeBonus = 0.75;
-    else if (cap >= 100000) sizeBonus = 0.45;
-    else if (cap >= 10000) sizeBonus = 0.175;
+    if (cap >= 500000) sizeBonus = 0.65;
+    else if (cap >= 100000) sizeBonus = 0.425;
+    else if (cap >= 10000) sizeBonus = 0.155;
   }
 
   return Number(clamp(debtScore + sizeBonus).toFixed(1));
@@ -193,9 +194,11 @@ function getRiskLabel(beta, debtToEquity) {
   const b = safeNumber(beta) ?? 1;
   const d = safeNumber(debtToEquity) ?? 0;
 
+  if (b >= 2.2 || d >= 4.5) return "Very High";
   if (b >= 1.8 || d >= 3) return "High";
   if (b >= 1.25 || d >= 1.5) return "Medium";
-  return "Low";
+  if (b >= 0.95 || d >= 0.75) return "Low";
+  return "Very Low";
 }
 
 export async function buildStockAnalysis(symbol) {
@@ -255,21 +258,21 @@ export async function buildStockAnalysis(symbol) {
     Better weighting for high-quality companies:
 
     Growth: 23.75%
-    Profitability: 23.75%
-    Financial Health: 20%
-    Valuation: 14.5%
-    Momentum: 10%
-    Pullback: 8%
+    Profitability: 23.50%
+    Financial Health: 19%
+    Valuation: 16%
+    Momentum: 10.25%
+    Pullback: 7.5%
 
     This means a great company can still score high even if valuation is expensive.
   */
   const edgeScore =
     growthScore * 0.2375 +
-    profitabilityScore * 0.2375 +
-    healthScore * 0.2 +
-    valuationScore * 0.145 +
-    momentumScore * 0.1 +
-    reversalScore * 0.08;
+    profitabilityScore * 0.2350 +
+    healthScore * 0.19 +
+    valuationScore * 0.16 +
+    momentumScore * 0.1025 +
+    reversalScore * 0.075;
 
   const riskLabel = getRiskLabel(beta, debtToEquity);
 
