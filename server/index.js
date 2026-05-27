@@ -1,5 +1,4 @@
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
@@ -11,20 +10,43 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 /*
-  EMERGENCY CORS FIX:
-  This allows your Vercel site, Render site, localhost, and preview links.
-  Once everything works, you can lock it down later.
-*/
-app.use(
-  cors({
-    origin: true,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
-    credentials: false,
-  })
-);
+  CORS FIX FOR VERCEL → RENDER
 
-app.options("*", cors());
+  This manually adds the Access-Control-Allow-Origin header.
+  Your browser error said this header was missing, so this fixes that directly.
+*/
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://edge-cd9xfrhhk-henrylongggs-projects.vercel.app",
+    "https://edge-ez91jd761-henrylongggs-projects.vercel.app",
+  ];
+
+  const isAllowedVercelPreview =
+    origin && origin.endsWith(".vercel.app");
+
+  if (allowedOrigins.includes(origin) || isAllowedVercelPreview) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    res.header("Access-Control-Allow-Origin", "*");
+  }
+
+  res.header("Vary", "Origin");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Authorization"
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 
 app.use(
   helmet({
@@ -92,12 +114,6 @@ app.post("/api/assistant", async (req, res) => {
       });
     }
 
-    /*
-      This route will work even without OpenAI.
-      If OPENAI_API_KEY exists, it uses AI.
-      If not, it returns a basic fallback answer instead of breaking your app.
-    */
-
     if (!process.env.OPENAI_API_KEY) {
       const symbol = current?.symbol || "the selected stock";
       const score = current?.grades?.edgeScore ?? "N/A";
@@ -123,29 +139,32 @@ Watchlist:
 ${JSON.stringify(watchlist || [], null, 2)}
 `;
 
-    const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful stock education assistant. Keep answers simple, practical, and beginner friendly. Do not claim to be a financial advisor.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.4,
-        max_tokens: 500,
-      }),
-    });
+    const openAiResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a helpful stock education assistant. Keep answers simple, practical, and beginner friendly. Do not claim to be a financial advisor.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          temperature: 0.4,
+          max_tokens: 500,
+        }),
+      }
+    );
 
     const openAiJson = await openAiResponse.json();
 
