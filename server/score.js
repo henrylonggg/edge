@@ -46,15 +46,16 @@ async function fetchFinnhub(path, params = {}) {
 function scoreGrowth(revenueGrowth) {
   const g = safeNumber(revenueGrowth);
 
-  if (g === null) return 6;
-  if (g >= 40) return 10;
-  if (g >= 25) return 9;
-  if (g >= 15) return 8;
-  if (g >= 8) return 7;
-  if (g >= 3) return 6;
-  if (g >= 0) return 5;
-  if (g >= -5) return 4;
-  return 3;
+  if (g === null) return 5.9;
+  if (g >= 40) return 9.5;
+  if (g >= 25) return 8.8;
+  if (g >= 15) return 7.6;
+  if (g >= 8) return 6.1;
+  if (g >= 3) return 5.4;
+  if (g >= 0) return 4.7;
+  if (g >= -2.5) return 4.1;
+  if (g >= -5) return 3.8;
+  return 3.2;
 }
 
 function scoreProfitability(roe, netMargin) {
@@ -65,23 +66,29 @@ function scoreProfitability(roe, netMargin) {
   let marginScore = 6;
 
   if (r !== null) {
-    if (r >= 60) roeScore = 10;
+    if (r >= 60) roeScore = 9.5;
     else if (r >= 35) roeScore = 9;
+    else if (r >= 27.5) roeScore = 8.5;
     else if (r >= 20) roeScore = 8;
+    else if (r >= 16) roeScore = 7.5;
     else if (r >= 12) roeScore = 7;
+    else if (r >= 8.5) roeScore = 6.5;
     else if (r >= 5) roeScore = 6;
+    else if (r >= 2.5) roeScore = 5.5;
     else if (r >= 0) roeScore = 5;
-    else roeScore = 3;
+    else roeScore = 3.3;
   }
 
   if (m !== null) {
-    if (m >= 35) marginScore = 10;
-    else if (m >= 25) marginScore = 9;
-    else if (m >= 15) marginScore = 8;
-    else if (m >= 8) marginScore = 7;
-    else if (m >= 3) marginScore = 6;
-    else if (m >= 0) marginScore = 5;
-    else marginScore = 3;
+    if (m >= 35) marginScore = 9.5;
+    else if (m >= 25) marginScore = 9.1;
+    else if (m >= 15) marginScore = 8.3;
+    else if (m >= 11.5) marginScore = 7.7;
+    else if (m >= 8) marginScore = 7.1;
+    else if (m >= 5) marginScore = 6.3;
+    else if (m >= 3) marginScore = 5.5;
+    else if (m >= 0) marginScore = 4.8;
+    else marginScore = 3.3;
   }
 
   return Number(((roeScore * 0.55) + (marginScore * 0.45)).toFixed(1));
@@ -95,19 +102,19 @@ function scoreFinancialHealth(debtToEquity, marketCapM) {
 
   if (d !== null) {
     if (d <= 0.3) debtScore = 10;
-    else if (d <= 0.7) debtScore = 9;
-    else if (d <= 1.2) debtScore = 8;
-    else if (d <= 2.0) debtScore = 6;
-    else if (d <= 3.0) debtScore = 4;
-    else debtScore = 2;
+    else if (d <= 0.7) debtScore = 9.1;
+    else if (d <= 1.2) debtScore = 8.2;
+    else if (d <= 2.0) debtScore = 6.4;
+    else if (d <= 3.0) debtScore = 4.3;
+    else debtScore = 2.2;
   }
 
   let sizeBonus = 0;
 
   if (cap !== null) {
-    if (cap >= 500000) sizeBonus = 0.8;
-    else if (cap >= 100000) sizeBonus = 0.5;
-    else if (cap >= 10000) sizeBonus = 0.2;
+    if (cap >= 500000) sizeBonus = 0.75;
+    else if (cap >= 100000) sizeBonus = 0.45;
+    else if (cap >= 10000) sizeBonus = 0.175;
   }
 
   return Number(clamp(debtScore + sizeBonus).toFixed(1));
