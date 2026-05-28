@@ -212,7 +212,7 @@ button { cursor: pointer; }
 }
 @media (max-width: 680px) {
   .app-shell { padding: 16px; }
-  .brand img { width: 68px; height: 68px; }
+  .brand img { width: 80px; height: 80px; }
   .brand h1 { font-size: 52px; letter-spacing: -2.4px; }
   .searchbar, .snapshot-grid, .grade-grid, .metric-grid, .chat-input, .assistant-page-head { grid-template-columns: 1fr; }
   .ai-nav-btn { width: 100%; }
