@@ -1,371 +1,771 @@
-// client/src/main.jsx
-
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  Search,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Send,
+  Sparkles,
+  Activity,
+  Building2,
+  ShieldCheck,
+  Target,
+  TrendingUp,
+  BarChart3,
+  LineChart,
+  Zap,
+  BrainCircuit,
+  Star,
+  AlertTriangle,
+  Info,
+  Gauge,
+  ArrowLeft,
+} from "lucide-react";
 import "./styles.css";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5050";
+/*
+  HARD-CODED RENDER BACKEND URL
+  This avoids Vercel environment variable problems.
+*/
+const API = "https://edge-1-6dtw.onrender.com";
 
-function formatNumber(value, decimals = 2) {
-  const num = Number(value);
+const STORAGE_KEY = "edge-watchlist-v8";
 
-  if (!Number.isFinite(num)) return "N/A";
+function rawScore(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
+  const n = Number(v);
+  return n <= 10 ? n : n / 10;
+}
 
-  return num.toLocaleString(undefined, {
-    maximumFractionDigits: decimals,
+function score10(v) {
+  const n = rawScore(v);
+  return n === null ? null : Number(n.toFixed(1));
+}
+
+function scoreText(v) {
+  const n = score10(v);
+  return n === null ? "N/A" : n.toFixed(1);
+}
+
+function scoreTone(v) {
+  const n = score10(v);
+  if (n === null) return "neutral";
+  if (n < 5.5) return "red";
+  if (n < 7.5) return "yellow";
+  return "green";
+}
+
+function gradeFrom10(v) {
+  const n = score10(v);
+  if (n === null) return "N/A";
+  if (n >= 9.3) return "A";
+  if (n >= 8.5) return "B+";
+  if (n >= 7.5) return "B";
+  if (n >= 6.5) return "C+";
+  if (n >= 5.5) return "C";
+  if (n >= 4.5) return "D";
+  return "F";
+}
+
+function fmt(v, suffix = "") {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
+  return `${Number(v).toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  })}${suffix}`;
+}
+
+function money(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
+  return Number(v).toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
   });
 }
 
-function formatMoney(value) {
-  const num = Number(value);
+function compactMoney(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
+  const n = Number(v);
 
-  if (!Number.isFinite(num)) return "N/A";
-
-  if (Math.abs(num) >= 1_000_000_000_000) {
-    return `$${(num / 1_000_000_000_000).toFixed(2)}T`;
-  }
-
-  if (Math.abs(num) >= 1_000_000_000) {
-    return `$${(num / 1_000_000_000).toFixed(2)}B`;
-  }
-
-  if (Math.abs(num) >= 1_000_000) {
-    return `$${(num / 1_000_000).toFixed(2)}M`;
-  }
-
-  return `$${num.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  })}`;
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}T`;
+  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}B`;
+  return `$${n.toFixed(0)}M`;
 }
 
-function MetricCard({ label, value, suffix = "" }) {
-  return (
-    <div className="metric-card">
-      <p>{label}</p>
-      <strong>
-        {value === null || value === undefined || value === "N/A"
-          ? "N/A"
-          : `${value}${suffix}`}
-      </strong>
-    </div>
-  );
+function readWatchlist() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
-function ScoreBreakdown({ title, data }) {
-  if (!data) return null;
+function saveWatchlist(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
 
-  const score = data.score;
-
+function categoryLabel(key) {
   return (
-    <div className="breakdown-card">
-      <div className="breakdown-top">
-        <span>{title}</span>
-        <strong>{score === null ? "N/A" : `${(score / 10).toFixed(1)}`}</strong>
-      </div>
-
-      <div className="score-bar">
-        <div
-          className="score-fill"
-          style={{
-            width: `${score === null ? 0 : Math.max(0, Math.min(100, score))}%`,
-          }}
-        />
-      </div>
-
-      <div className="used-skipped">
-        <p>
-          <b>Used:</b>{" "}
-          {data.used?.length ? data.used.join(", ") : "No valid metrics"}
-        </p>
-
-        {data.skipped?.length > 0 && (
-          <p>
-            <b>Skipped:</b> {data.skipped.join(", ")}
-          </p>
-        )}
-      </div>
-    </div>
+    {
+      growth: "Growth",
+      profitability: "Profitability",
+      financialHealth: "Financial Health",
+      valuation: "Valuation",
+      momentum: "Momentum",
+      reversal: "Pullback",
+    }[key] || key
   );
 }
 
 function App() {
-  const [ticker, setTicker] = useState("");
-  const [analysis, setAnalysis] = useState(null);
-  const [investmentAmount, setInvestmentAmount] = useState("");
-  const [recommendation, setRecommendation] = useState(null);
+  const [symbol, setSymbol] = useState("AAPL");
+  const [data, setData] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [recommendLoading, setRecommendLoading] = useState(false);
+  const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
+  const [view, setView] = useState("dashboard");
 
-  const cleanTicker = useMemo(() => {
-    return ticker.trim().toUpperCase().replace(/[^A-Z.-]/g, "").slice(0, 12);
-  }, [ticker]);
+  async function analyze(e, overrideSymbol) {
+    e?.preventDefault();
 
-  async function analyzeStock() {
-    if (!cleanTicker) {
-      setError("Enter a ticker first.");
-      return;
-    }
+    const clean = (overrideSymbol || symbol).trim().toUpperCase();
+    if (!clean) return null;
 
+    setSymbol(clean);
     setLoading(true);
     setError("");
-    setAnalysis(null);
-    setRecommendation(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/analyze/${cleanTicker}`);
+      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
 
-      const data = await response.json();
+      const res = await fetch(url, {
+        method: "GET",
+        mode: "cors",
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error(data.error || "Stock analysis failed.");
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(
+          json?.error ||
+            json?.message ||
+            `Could not analyze ${clean}. Backend returned ${res.status}.`
+        );
       }
 
-      setAnalysis(data);
+      setData(json);
+      return json;
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(
+        err.message ||
+          "Failed to fetch from Render. Check Render logs and browser console."
+      );
+      return null;
     } finally {
       setLoading(false);
     }
   }
 
-  async function calculateRecommendation() {
-    if (!cleanTicker) {
-      setError("Analyze a ticker first.");
-      return;
+  async function addTicker(ticker = symbol) {
+    const clean = ticker.trim().toUpperCase();
+    if (!clean) return;
+
+    const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
+    if (!analyzed) return;
+
+    const item = {
+      symbol: clean,
+      name: analyzed.profile?.name || clean,
+      score: score10(analyzed.grades?.edgeScore),
+      rawScore: analyzed.grades?.edgeScore ?? null,
+      grade: gradeFrom10(analyzed.grades?.edgeScore),
+      risk: analyzed.grades?.riskLabel || "N/A",
+      price: analyzed.quote?.c ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const next = [item, ...watchlist.filter((x) => x.symbol !== clean)].sort(
+      (a, b) => (b.score || 0) - (a.score || 0)
+    );
+
+    setWatchlist(next);
+    saveWatchlist(next);
+  }
+
+  function removeTicker(ticker) {
+    const next = watchlist.filter((x) => x.symbol !== ticker);
+    setWatchlist(next);
+    saveWatchlist(next);
+  }
+
+  async function refreshWatchlist() {
+    if (!watchlist.length) return;
+
+    setWatchLoading(true);
+
+    const refreshed = [];
+
+    for (const item of watchlist) {
+      try {
+        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
+          method: "GET",
+          mode: "cors",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json) {
+          refreshed.push({
+            ...item,
+            name: json.profile?.name || item.name,
+            score: score10(json.grades?.edgeScore),
+            rawScore: json.grades?.edgeScore ?? null,
+            grade: gradeFrom10(json.grades?.edgeScore),
+            risk: json.grades?.riskLabel || item.risk,
+            price: json.quote?.c ?? item.price,
+            updatedAt: new Date().toISOString(),
+          });
+        } else {
+          refreshed.push(item);
+        }
+      } catch {
+        refreshed.push(item);
+      }
     }
 
-    if (!investmentAmount || Number(investmentAmount) <= 0) {
-      setError("Enter a valid investment amount.");
-      return;
-    }
+    const next = refreshed.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-    setRecommendLoading(true);
-    setError("");
+    setWatchlist(next);
+    saveWatchlist(next);
+    setWatchLoading(false);
+  }
+
+  useEffect(() => {
+    const saved = readWatchlist().sort(
+      (a, b) => (b.score || 0) - (a.score || 0)
+    );
+
+    setWatchlist(saved);
+    analyze(null, "AAPL");
+  }, []);
+
+  return (
+    <main className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <img src="/edge-logo.svg" alt="Edge logo" />
+          <div>
+            <h1>Edge</h1>
+            <span>Stock intelligence made simple</span>
+          </div>
+        </div>
+
+        <form onSubmit={analyze} className="searchbar">
+          <button
+            type="button"
+            className="ai-nav-btn"
+            onClick={() => setView("assistant")}
+            title="Open Edge Assistant"
+          >
+            <BrainCircuit size={21} />
+          </button>
+
+          <div>
+            <label>Stock ticker</label>
+            <input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              placeholder="AAPL"
+            />
+          </div>
+
+          <button disabled={loading}>
+            {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
+            Analyze
+          </button>
+
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={() => addTicker(symbol)}
+          >
+            <Plus size={18} /> Add
+          </button>
+        </form>
+      </header>
+
+      {error && (
+        <div className="error-banner">
+          <AlertTriangle size={18} /> {error}
+        </div>
+      )}
+
+      {view === "assistant" ? (
+        <AssistantPage
+          current={data}
+          watchlist={watchlist}
+          onBack={() => setView("dashboard")}
+        />
+      ) : (
+        <section className="layout">
+          <div className="content">
+            {data ? (
+              <Report data={data} onAdd={() => addTicker(data.symbol)} />
+            ) : (
+              <EmptyReport />
+            )}
+          </div>
+
+          <Watchlist
+            items={watchlist}
+            symbol={symbol}
+            onAdd={addTicker}
+            onRemove={removeTicker}
+            onAnalyze={(ticker) => analyze(null, ticker)}
+            onRefresh={refreshWatchlist}
+            loading={watchLoading}
+          />
+        </section>
+      )}
+    </main>
+  );
+}
+
+function EmptyReport() {
+  return (
+    <section className="empty-report">
+      Type a ticker like AAPL, MSFT, or NVDA and click Analyze.
+    </section>
+  );
+}
+
+function Watchlist({
+  items,
+  symbol,
+  onAdd,
+  onRemove,
+  onAnalyze,
+  onRefresh,
+  loading,
+}) {
+  const [manual, setManual] = useState("");
+
+  return (
+    <aside className="watch-panel">
+      <div className="panel-head">
+        <div>
+          <h2>
+            <Star size={18} /> Watchlist
+          </h2>
+          <p>Saved in this browser · best score first</p>
+        </div>
+
+        <button
+          className="icon-btn"
+          onClick={onRefresh}
+          disabled={loading}
+          title="Refresh scores"
+        >
+          <RefreshCw size={16} className={loading ? "spin" : ""} />
+        </button>
+      </div>
+
+      <form
+        className="watch-add"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onAdd(manual || symbol);
+          setManual("");
+        }}
+      >
+        <input
+          value={manual}
+          onChange={(e) => setManual(e.target.value.toUpperCase())}
+          placeholder="Add ticker"
+        />
+        <button>
+          <Plus size={16} />
+        </button>
+      </form>
+
+      <div className="watch-list">
+        {items.length === 0 ? (
+          <div className="watch-empty">
+            Add stocks here to compare their 0.0–10.0 Edge Scores.
+          </div>
+        ) : (
+          items.map((item) => (
+            <div className="watch-row" key={item.symbol}>
+              <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
+                <strong>{item.symbol}</strong>
+                <span>{item.name}</span>
+              </button>
+
+              <div className={`watch-score ${scoreTone(item.score)}`}>
+                <b>{scoreText(item.score)}</b>
+                <small>
+                  {item.grade} · {item.risk}
+                </small>
+              </div>
+
+              <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </aside>
+  );
+}
+
+function AssistantPage({ current, watchlist, onBack }) {
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Ask me anything stock-related — comparisons, metrics, valuation, risk, or beginner investing questions. I’ll keep it simple and practical.",
+    },
+  ]);
+  const [loading, setLoading] = useState(false);
+
+  async function ask(e) {
+    e.preventDefault();
+
+    const clean = question.trim();
+    if (!clean) return;
+
+    const userMessage = { role: "user", content: clean };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setQuestion("");
+    setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/recommend`, {
+      const res = await fetch(`${API}/api/assistant`, {
         method: "POST",
+        mode: "cors",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
-          ticker: cleanTicker,
-          amount: Number(investmentAmount),
+          question: clean,
+          current,
+          watchlist,
         }),
       });
 
-      const data = await response.json();
+      const json = await res.json().catch(() => null);
 
-      if (!response.ok) {
-        throw new Error(data.error || "Recommendation failed.");
+      if (!res.ok) {
+        throw new Error(
+          json?.error ||
+            json?.message ||
+            `Assistant error. Backend returned ${res.status}.`
+        );
       }
 
-      setRecommendation(data.recommendation);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: json?.answer || "I could not create a response.",
+        },
+      ]);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            err.message ||
+            "Could not connect to the Render assistant endpoint.",
+        },
+      ]);
     } finally {
-      setRecommendLoading(false);
+      setLoading(false);
     }
   }
 
   return (
-    <div className="page">
-      <header className="hero">
-        <div className="brand-row">
-          <div className="logo-mark">SE</div>
+    <section className="assistant-page">
+      <div className="assistant-shell">
+        <div className="assistant-page-head">
+          <button className="back-btn" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
           <div>
-            <h1>StockEdgeAI</h1>
-            <p>Advanced stock scoring using quality metrics only when valid data exists.</p>
+            <div className="assistant-kicker">
+              <BrainCircuit size={16} /> Edge Assistant
+            </div>
+            <h2>Ask stock questions in plain English.</h2>
+            <p>
+              Compare stocks, understand metrics, ask about risk, or get a
+              beginner-friendly breakdown before making a decision.
+            </p>
           </div>
         </div>
 
-        <div className="search-card">
-          <input
-            value={ticker}
-            maxLength={12}
-            onChange={(e) => setTicker(e.target.value)}
-            placeholder="Enter ticker"
-          />
+        <div className="chat-panel">
+          <div className="chat-messages">
+            {messages.map((msg, index) => (
+              <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
+                <span>{msg.role === "user" ? "You" : "Edge AI"}</span>
+                <p>{msg.content}</p>
+              </div>
+            ))}
 
-          <button onClick={analyzeStock} disabled={loading}>
-            {loading ? "Analyzing..." : "Analyze"}
-          </button>
+            {loading && (
+              <div className="chat-bubble assistant">
+                <span>Edge AI</span>
+                <p>Thinking through that question...</p>
+              </div>
+            )}
+          </div>
+
+          <form className="chat-input" onSubmit={ask}>
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Example: Is AAPL a better buy than NVDA if NVDA has the higher Edge Score?"
+              rows="3"
+            />
+            <button disabled={loading}>
+              {loading ? <RefreshCw className="spin" size={17} /> : <Send size={17} />}
+              Ask
+            </button>
+          </form>
         </div>
 
-        {error && <div className="error-box">{error}</div>}
-      </header>
+        <p className="fineprint center">
+          Educational only. Edge Assistant helps explain investing ideas, but it
+          is not a licensed financial advisor.
+        </p>
+      </div>
+    </section>
+  );
+}
 
-      {analysis && (
-        <main className="dashboard">
-          <section className="score-section">
-            <div className="company-card">
-              <div className="company-top">
-                {analysis.logo && (
-                  <img src={analysis.logo} alt="" className="company-logo" />
-                )}
+function Report({ data, onAdd }) {
+  const cats = data?.grades?.categories || {};
+  const metrics = data?.metrics || {};
+  const edge = score10(data.grades?.edgeScore);
+  const tone = scoreTone(edge);
 
-                <div>
-                  <h2>{analysis.companyName}</h2>
-                  <p>
-                    {analysis.ticker} · {analysis.exchange} · {analysis.industry}
-                  </p>
-                </div>
-              </div>
+  const strongest = useMemo(
+    () =>
+      Object.entries(cats)
+        .filter(([, v]) => v != null)
+        .sort((a, b) => score10(b[1]) - score10(a[1]))[0],
+    [cats]
+  );
 
-              <p className="company-description">{analysis.description}</p>
+  const weakest = useMemo(
+    () =>
+      Object.entries(cats)
+        .filter(([, v]) => v != null)
+        .sort((a, b) => score10(a[1]) - score10(b[1]))[0],
+    [cats]
+  );
 
-              <div className="price-row">
-                <span>Current Price</span>
-                <strong>{formatMoney(analysis.currentPrice)}</strong>
-              </div>
+  const rows = [
+    [
+      "P/E Ratio",
+      metrics.peRatio,
+      "Price compared to earnings. Lower can mean cheaper, but growth stocks often look expensive.",
+    ],
+    [
+      "ROE",
+      metrics.roe,
+      "How well the company turns shareholder money into profit.",
+    ],
+    [
+      "Debt-to-Equity",
+      metrics.debtToEquity,
+      "How much debt the company has compared with owner value.",
+    ],
+    ["Net Margin", metrics.netMargin, "How much sales money becomes profit."],
+    [
+      "Revenue Growth",
+      metrics.revenueGrowth,
+      "Whether the company is selling more over time.",
+    ],
+    [
+      "Beta",
+      metrics.beta,
+      "How jumpy the stock usually is compared with the market.",
+    ],
+  ];
+
+  return (
+    <>
+      <section className="hero-card">
+        <div className="score-panel">
+          <div
+            className={`score-ring ${tone}`}
+            style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
+          >
+            <div className="score-core">
+              <span>EDGE SCORE</span>
+              <strong>{scoreText(edge)}</strong>
             </div>
+          </div>
+        </div>
 
-            <div className="power-card">
-              <p className="small-label">Power Score</p>
+        <div className="company-panel">
+          <div className="eyebrow">
+            <Sparkles size={15} /> Current stock report
+          </div>
 
-              <div className="power-score">
-                {analysis.score?.powerScore ?? "N/A"}
-              </div>
+          <h2>{data.profile?.name || data.symbol}</h2>
+          <p className="subline">
+            {data.symbol} · {data.profile?.finnhubIndustry || "Public company"}
+          </p>
 
-              <div className="rating-pill">
-                {analysis.score?.rating || "N/A"}
-              </div>
+          <div className="hero-actions">
+            <button onClick={onAdd}>
+              <Plus size={17} /> Add to Watchlist
+            </button>
 
-              <p className="risk-text">
-                Risk Level: <b>{analysis.score?.riskLabel || "N/A"}</b>
-              </p>
+            {data.profile?.weburl && (
+              <a href={data.profile.weburl} target="_blank" rel="noreferrer">
+                Company site
+              </a>
+            )}
+          </div>
+        </div>
 
-              <div className="invest-box">
-                <h3>Investment Amount Recommendation</h3>
-                <p>
-                  Enter how much money you are considering investing. The model will suggest how much to invest right now based on Power Score, risk, valuation, profitability, growth, and financial strength.
-                </p>
+        <div className="snapshot-grid">
+          <MiniStat icon={<Activity size={17} />} label="Price" value={money(data.quote?.c)} />
+          <MiniStat icon={<ShieldCheck size={17} />} label="Risk" value={data.grades.riskLabel} />
+          <MiniStat
+            icon={<Building2 size={17} />}
+            label="Market Cap"
+            value={compactMoney(data.grades.context?.marketCapM)}
+          />
+        </div>
+      </section>
 
-                <div className="invest-input-row">
-                  <input
-                    type="number"
-                    min="0"
-                    value={investmentAmount}
-                    onChange={(e) => setInvestmentAmount(e.target.value)}
-                    placeholder="Example: 1000"
-                  />
+      <section className="summary-grid">
+        <div className="story-card big">
+          <div className="section-title">
+            <Building2 size={17} /> What this company does
+          </div>
+          <p>{data.companyDescription}</p>
+        </div>
 
-                  <button onClick={calculateRecommendation} disabled={recommendLoading}>
-                    {recommendLoading ? "Calculating..." : "Calculate"}
-                  </button>
-                </div>
+        <div className="story-card">
+          <div className="section-title">
+            <Target size={17} /> Fast read
+          </div>
+          <p>
+            <b>Strongest:</b>{" "}
+            {strongest
+              ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})`
+              : "N/A"}
+          </p>
+          <p>
+            <b>Weakest:</b>{" "}
+            {weakest
+              ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})`
+              : "N/A"}
+          </p>
+          <p>
+            <b>Grade:</b> {gradeFrom10(edge)}
+          </p>
+        </div>
+      </section>
 
-                {recommendation && (
-                  <div className="recommend-result">
-                    {recommendation.available ? (
-                      <>
-                        <div>
-                          <span>Recommended Amount</span>
-                          <strong>
-                            {formatMoney(recommendation.recommendedDollarAmount)}
-                          </strong>
-                        </div>
+      <section className="summary-card">
+        <div className="section-title">
+          <Info size={17} /> Simple evaluation
+        </div>
+        <p>{data.evaluationSummary}</p>
+      </section>
 
-                        <div>
-                          <span>Suggested Allocation</span>
-                          <strong>{recommendation.recommendedPercent}%</strong>
-                        </div>
+      <section className="grade-grid">
+        <Grade name="Growth" value={cats.growth} icon={<TrendingUp size={18} />} />
+        <Grade name="Profitability" value={cats.profitability} icon={<BarChart3 size={18} />} />
+        <Grade
+          name="Financial Health"
+          value={cats.financialHealth}
+          icon={<ShieldCheck size={18} />}
+        />
+        <Grade name="Valuation" value={cats.valuation} icon={<Target size={18} />} />
+        <Grade name="Momentum" value={cats.momentum} icon={<LineChart size={18} />} />
+        <Grade name="Pullback" value={cats.reversal} icon={<Zap size={18} />} />
+      </section>
 
-                        <p>{recommendation.explanation}</p>
+      <section className="metrics-card">
+        <div className="section-title">
+          <Gauge size={17} /> Key metrics
+        </div>
 
-                        {recommendation.skippedMetrics?.length > 0 && (
-                          <p className="tiny-note">
-                            Missing metrics skipped:{" "}
-                            {recommendation.skippedMetrics.join(", ")}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p>{recommendation.explanation}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
+        <div className="metric-grid">
+          {rows.map(([label, item, help]) => (
+            <Metric key={label} label={label} item={item} help={help} />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
 
-          <section className="metrics-section">
-            <h2>Key Metrics</h2>
+function MiniStat({ icon, label, value }) {
+  return (
+    <div className="mini-stat">
+      <span>
+        {icon}
+        {label}
+      </span>
+      <b>{value}</b>
+    </div>
+  );
+}
 
-            <div className="metric-grid">
-              <MetricCard label="Market Cap" value={analysis.displayMetrics?.marketCap} />
-              <MetricCard label="Revenue" value={analysis.displayMetrics?.revenue} />
-              <MetricCard label="Net Income" value={analysis.displayMetrics?.netIncome} />
-              <MetricCard label="Operating Income" value={analysis.displayMetrics?.operatingIncome} />
-              <MetricCard label="EBITDA" value={analysis.displayMetrics?.ebitda} />
-              <MetricCard label="Free Cash Flow" value={analysis.displayMetrics?.freeCashFlow} />
+function Grade({ name, value, icon }) {
+  const s = score10(value);
+  const tone = scoreTone(s);
 
-              <MetricCard label="P/E" value={formatNumber(analysis.metrics?.peTTM)} />
-              <MetricCard label="P/S" value={formatNumber(analysis.metrics?.psTTM)} />
-              <MetricCard label="P/B" value={formatNumber(analysis.metrics?.pbAnnual)} />
-              <MetricCard label="EV/EBITDA" value={formatNumber(analysis.metrics?.evToEbitda)} />
+  return (
+    <div className="grade-card">
+      <div className="grade-head">
+        <span>{icon}</span>
+        <h3>{name}</h3>
+      </div>
 
-              <MetricCard label="Gross Margin" value={formatNumber(analysis.metrics?.grossMargin)} suffix="%" />
-              <MetricCard label="Operating Margin" value={formatNumber(analysis.metrics?.operatingMargin)} suffix="%" />
-              <MetricCard label="Net Margin" value={formatNumber(analysis.metrics?.netMargin)} suffix="%" />
-              <MetricCard label="ROE" value={formatNumber(analysis.metrics?.roe)} suffix="%" />
-              <MetricCard label="ROA" value={formatNumber(analysis.metrics?.roa)} suffix="%" />
+      <div className="grade-line">
+        <span className={tone} style={{ width: `${(s || 0) * 10}%` }} />
+      </div>
 
-              <MetricCard label="Revenue Growth" value={formatNumber(analysis.metrics?.revenueGrowth)} suffix="%" />
-              <MetricCard label="EPS Growth" value={formatNumber(analysis.metrics?.epsGrowth)} suffix="%" />
-              <MetricCard label="EBITDA CAGR 5Y" value={formatNumber(analysis.metrics?.ebitdaCagr5Y)} suffix="%" />
+      <strong className={tone}>{scoreText(s)}</strong>
+    </div>
+  );
+}
 
-              <MetricCard label="Current Ratio" value={formatNumber(analysis.metrics?.currentRatio)} />
-              <MetricCard label="Quick Ratio" value={formatNumber(analysis.metrics?.quickRatio)} />
-              <MetricCard label="Debt/Equity" value={formatNumber(analysis.metrics?.debtToEquity)} />
-              <MetricCard label="Beta" value={formatNumber(analysis.metrics?.beta)} />
+function Metric({ label, item, help }) {
+  return (
+    <div className="metric-tile">
+      <div>
+        <h3>{label}</h3>
+        <span>{item?.source || "Unavailable"}</span>
+      </div>
 
-              <MetricCard label="1Y Momentum" value={formatNumber(analysis.metrics?.priceMomentum1Y)} suffix="%" />
-              <MetricCard label="Volatility" value={formatNumber(analysis.metrics?.volatility)} suffix="%" />
-              <MetricCard label="Max Drawdown" value={formatNumber(analysis.metrics?.maxDrawdown)} suffix="%" />
-              <MetricCard label="Trend Strength" value={formatNumber(analysis.metrics?.trendStrength)} suffix="%" />
-            </div>
-          </section>
+      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
+      <p>{help}</p>
 
-          <section className="breakdown-section">
-            <h2>Score Breakdown</h2>
-
-            <div className="breakdown-grid">
-              <ScoreBreakdown
-                title="Valuation"
-                data={analysis.score?.categories?.valuation}
-              />
-
-              <ScoreBreakdown
-                title="Profitability"
-                data={analysis.score?.categories?.profitability}
-              />
-
-              <ScoreBreakdown
-                title="Growth"
-                data={analysis.score?.categories?.growth}
-              />
-
-              <ScoreBreakdown
-                title="Financial Strength"
-                data={analysis.score?.categories?.financialStrength}
-              />
-
-              <ScoreBreakdown
-                title="Momentum"
-                data={analysis.score?.categories?.momentum}
-              />
-
-              <ScoreBreakdown
-                title="Risk Control"
-                data={analysis.score?.categories?.risk}
-              />
-            </div>
-          </section>
-        </main>
-      )}
+      {item?.formula && <small>{item.formula}</small>}
     </div>
   );
 }
