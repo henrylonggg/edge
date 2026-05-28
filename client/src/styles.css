@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #060913;
+  --bg: #020711;
   --panel: rgba(255,255,255,.072);
   --panel-strong: rgba(255,255,255,.105);
   --line: rgba(255,255,255,.115);
@@ -12,6 +12,8 @@
   --yellow: #ffd66b;
   --red: #ff5f73;
   --blue: #6f8cff;
+  --cyan: #15e7ff;
+  --purple: #9f5cff;
   --shadow: 0 22px 70px rgba(0,0,0,.34);
 }
 
@@ -24,8 +26,26 @@ body {
   margin: 0;
   color: var(--text);
   font-family: 'Oxanium', sans-serif !important;
-  background: #000000;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.18), transparent 32%),
+    radial-gradient(circle at 72% 18%, rgba(133,215,19,.14), transparent 34%),
+    radial-gradient(circle at 88% 46%, rgba(159,92,255,.18), transparent 35%),
+    radial-gradient(circle at 42% 92%, rgba(21,231,255,.08), transparent 38%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%);
+  background-attachment: fixed;
   min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.045), transparent 28%),
+    radial-gradient(circle at 18% 78%, rgba(133,215,19,.055), transparent 34%),
+    radial-gradient(circle at 83% 74%, rgba(159,92,255,.07), transparent 35%);
+  z-index: -1;
 }
 
 button,
@@ -61,9 +81,12 @@ button {
 }
 
 .brand img {
-  width: 100px;
-  height: 100px;
-  filter: drop-shadow(0 18px 36px rgba(133,215,19,.28));
+  width: 114px;
+  height: 114px;
+  filter:
+    drop-shadow(0 18px 36px rgba(133,215,19,.28))
+    drop-shadow(0 0 28px rgba(21,231,255,.16))
+    drop-shadow(0 0 34px rgba(159,92,255,.12));
 }
 
 .brand h1 {
@@ -834,8 +857,8 @@ button {
   }
 
   .brand img {
-    width: 80px;
-    height: 80px;
+    width: 92px;
+    height: 92px;
   }
 
   .brand h1 {
