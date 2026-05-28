@@ -102,10 +102,10 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #061018;
+  color: #050505;
   font-weight: 900;
-  background: var(--green);
-  box-shadow: 0 16px 36px rgba(133,215,19,.18);
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(255,255,255,.12);
 }
 
 .searchbar .ghost-btn, .back-btn {
@@ -130,10 +130,10 @@ button { cursor: pointer; }
   height: 56px;
   padding: 0 !important;
   border-radius: 18px !important;
-  background: var(--green) !important;
-  color: #071018 !important;
+  background: #ffffff !important;
+  color: #050505 !important;
   align-self: end;
-  box-shadow: 0 16px 36px rgba(133,215,19,.18) !important;
+  box-shadow: 0 16px 36px rgba(255,255,255,.12) !important;
 }
 
 .error-banner {
@@ -200,12 +200,28 @@ button { cursor: pointer; }
 .score-core {
   height: 100%;
   border-radius: 50%;
-  background: rgba(0,0,0,.18);
+  background: rgba(0,0,0,.22);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255,255,255,.1);
+}
+
+.score-ring.green .score-core {
+  background: rgba(25,45,5,.92);
+}
+
+.score-ring.yellow .score-core {
+  background: rgba(58,45,4,.92);
+}
+
+.score-ring.red .score-core {
+  background: rgba(55,8,16,.92);
+}
+
+.score-ring.neutral .score-core {
+  background: rgba(10,16,45,.92);
 }
 
 .score-core span {
@@ -480,6 +496,8 @@ button { cursor: pointer; }
 .watch-add button {
   padding: 0;
   width: 47px;
+  background: #ffffff;
+  color: #050505;
 }
 
 .watch-list {
@@ -643,7 +661,11 @@ button { cursor: pointer; }
   line-height: 1.5;
 }
 
-.chat-input button { min-height: 54px; }
+.chat-input button {
+  min-height: 54px;
+  background: #ffffff;
+  color: #050505;
+}
 
 .fineprint {
   color: var(--soft);
