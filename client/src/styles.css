@@ -95,17 +95,17 @@ button { cursor: pointer; }
 }
 
 .searchbar button, .hero-actions button, .watch-add button, .chat-input button {
-  border: 0;
+  border: 1px solid rgba(255,255,255,.12);
   border-radius: 16px;
   padding: 15px 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #050505;
+  color: var(--text);
   font-weight: 900;
-  background: #ffffff;
-  box-shadow: 0 16px 36px rgba(255,255,255,.12);
+  background: rgba(255,255,255,.1);
+  box-shadow: none;
 }
 
 .searchbar .ghost-btn, .back-btn {
@@ -130,10 +130,11 @@ button { cursor: pointer; }
   height: 56px;
   padding: 0 !important;
   border-radius: 18px !important;
-  background: #ffffff !important;
-  color: #050505 !important;
+  background: rgba(255,255,255,.1) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
   align-self: end;
-  box-shadow: 0 16px 36px rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
 }
 
 .error-banner {
@@ -208,9 +209,7 @@ button { cursor: pointer; }
   border: 1px solid rgba(255,255,255,.1);
 }
 
-.score-core span {
-  display: none;
-}
+.score-core span { display: none; }
 
 .score-core strong {
   font-size: 82px;
@@ -480,8 +479,6 @@ button { cursor: pointer; }
 .watch-add button {
   padding: 0;
   width: 47px;
-  background: #ffffff;
-  color: #050505;
 }
 
 .watch-list {
@@ -515,13 +512,9 @@ button { cursor: pointer; }
   letter-spacing: .04em;
 }
 
-.watch-info span {
-  display: none;
-}
+.watch-info span { display: none; }
 
-.watch-score {
-  display: none;
-}
+.watch-score { display: none; }
 
 .watch-score-ring {
   width: 68px;
@@ -661,11 +654,7 @@ button { cursor: pointer; }
   line-height: 1.5;
 }
 
-.chat-input button {
-  min-height: 54px;
-  background: #ffffff;
-  color: #050505;
-}
+.chat-input button { min-height: 54px; }
 
 .fineprint {
   color: var(--soft);
