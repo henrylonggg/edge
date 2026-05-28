@@ -6,7 +6,7 @@
   --text: #f8fbff;
   --muted: rgba(248,251,255,.66);
   --soft: rgba(248,251,255,.43);
-  --green: #b6ff00;
+  --green: #7ed112;
   --yellow: #ffd66b;
   --red: #ff5f73;
   --blue: #6f8cff;
@@ -41,7 +41,7 @@ button { cursor: pointer; }
 .brand img {
   width: 100px;
   height: 100px;
-  filter: drop-shadow(0 18px 36px rgba(182,255,0,.28));
+  filter: drop-shadow(0 18px 36px rgba(126,209,18,.28));
 }
 
 .brand h1 {
@@ -105,7 +105,7 @@ button { cursor: pointer; }
   color: #061018;
   font-weight: 900;
   background: var(--green);
-  box-shadow: 0 16px 36px rgba(182,255,0,.18);
+  box-shadow: 0 16px 36px rgba(126,209,18,.18);
 }
 
 .searchbar .ghost-btn, .back-btn {
@@ -133,7 +133,7 @@ button { cursor: pointer; }
   background: var(--green) !important;
   color: #071018 !important;
   align-self: end;
-  box-shadow: 0 16px 36px rgba(182,255,0,.18) !important;
+  box-shadow: 0 16px 36px rgba(126,209,18,.18) !important;
 }
 
 .error-banner {
@@ -189,7 +189,7 @@ button { cursor: pointer; }
   border-radius: 50%;
   padding: 15px;
   background: conic-gradient(var(--ring) var(--score-angle), rgba(255,255,255,.09) 0deg);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 24px 70px rgba(0,0,0,.34), 0 0 50px rgba(182,255,0,.10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 24px 70px rgba(0,0,0,.34), 0 0 50px rgba(126,209,18,.10);
 }
 
 .score-ring.green { --ring: var(--green); }
@@ -200,18 +200,20 @@ button { cursor: pointer; }
 .score-core {
   height: 100%;
   border-radius: 50%;
-  background: rgba(0,0,0,.18);
+  background:
+    radial-gradient(circle at 50% 32%, rgba(126,209,18,.14), transparent 45%),
+    rgba(0,0,0,.34);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.14);
 }
 
 .score-core span {
   font-size: 11px;
   letter-spacing: .18em;
-  color: var(--soft);
+  color: rgba(248,251,255,.70);
   font-weight: 900;
 }
 
@@ -219,6 +221,8 @@ button { cursor: pointer; }
   font-size: 68px;
   line-height: .95;
   letter-spacing: -3px;
+  color: #ffffff;
+  text-shadow: 0 0 22px rgba(126,209,18,.18);
 }
 
 .company-panel {
@@ -625,8 +629,8 @@ button { cursor: pointer; }
 
 .chat-bubble.assistant {
   justify-self: start;
-  background: rgba(182,255,0,.08);
-  border-color: rgba(182,255,0,.18);
+  background: rgba(126,209,18,.08);
+  border-color: rgba(126,209,18,.18);
 }
 
 .chat-input {
