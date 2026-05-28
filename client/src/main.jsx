@@ -405,14 +405,15 @@ function Watchlist({
             <div className="watch-row" key={item.symbol}>
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
-                <span>{item.name}</span>
               </button>
 
-              <div className={`watch-score ${scoreTone(item.score)}`}>
-                <b>{scoreText(item.score)}</b>
-                <small>
-                  {item.grade} · {item.risk}
-                </small>
+              <div
+                className={`watch-score-ring ${scoreTone(item.score)}`}
+                style={{
+                  "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
+                }}
+              >
+                <strong>{scoreText(item.score)}</strong>
               </div>
 
               <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
