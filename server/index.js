@@ -1,45 +1,36 @@
+// server/index.js
+
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { buildStockAnalysis } from "./score.js";
+import { buildStockAnalysis, buildInvestmentRecommendation } from "./score.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5050;
 
-/*
-  CORS FIX FOR VERCEL → RENDER
+app.use(helmet());
+app.use(express.json());
+app.use(morgan("dev"));
 
-  This manually adds the Access-Control-Allow-Origin header.
-  Your browser error said this header was missing, so this fixes that directly.
-*/
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.CLIENT_ORIGIN,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+].filter(Boolean);
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://edge-cd9xfrhhk-henrylongggs-projects.vercel.app",
-    "https://edge-ez91jd761-henrylongggs-projects.vercel.app",
-  ];
-
-  const isAllowedVercelPreview =
-    origin && origin.endsWith(".vercel.app");
-
-  if (allowedOrigins.includes(origin) || isAllowedVercelPreview) {
-    res.header("Access-Control-Allow-Origin", origin);
-  } else {
-    res.header("Access-Control-Allow-Origin", "*");
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
   }
 
-  res.header("Vary", "Origin");
-  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Accept, Authorization"
-  );
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
@@ -48,157 +39,267 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-  })
-);
+const FINNHUB_BASE = "https://finnhub.io/api/v1";
+const SEC_COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json";
 
-app.use(express.json({ limit: "1mb" }));
-app.use(morgan("dev"));
+let tickerCikCache = null;
+const analysisCache = new Map();
 
-app.get("/", (req, res) => {
-  res.status(200).json({
-    ok: true,
-    message: "Edge Render backend is running.",
-    routes: {
-      health: "/api/health",
-      analyzeExample: "/api/analyze/AAPL",
-      assistant: "/api/assistant",
+function requireEnv(name) {
+  const value = process.env[name];
+
+  if (!value || value.includes("PUT_YOUR")) {
+    throw new Error(`Missing ${name}. Add it in Render environment variables.`);
+  }
+
+  return value;
+}
+
+function normalizeTicker(ticker) {
+  return String(ticker || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z.-]/g, "");
+}
+
+function getCache(key) {
+  const item = analysisCache.get(key);
+
+  if (!item) return null;
+
+  const ageMs = Date.now() - item.createdAt;
+  const maxAgeMs = 1000 * 60 * 10;
+
+  if (ageMs > maxAgeMs) {
+    analysisCache.delete(key);
+    return null;
+  }
+
+  return item.data;
+}
+
+function setCache(key, data) {
+  analysisCache.set(key, {
+    createdAt: Date.now(),
+    data,
+  });
+}
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Request failed: ${response.status} ${text.slice(0, 120)}`);
+  }
+
+  return response.json();
+}
+
+async function fetchFinnhub(path, params = {}) {
+  const apiKey = requireEnv("FINNHUB_API_KEY");
+
+  const url = new URL(`${FINNHUB_BASE}${path}`);
+
+  Object.entries({
+    ...params,
+    token: apiKey,
+  }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return fetchJson(url);
+}
+
+async function getTickerCikMap() {
+  if (tickerCikCache) return tickerCikCache;
+
+  const userAgent =
+    process.env.SEC_USER_AGENT ||
+    "StockEdgeAI contact@example.com";
+
+  const data = await fetchJson(SEC_COMPANY_TICKERS_URL, {
+    headers: {
+      "User-Agent": userAgent,
+      Accept: "application/json",
     },
   });
-});
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    ok: true,
-    service: "edge-backend",
-    status: "live",
-    time: new Date().toISOString(),
+  const map = new Map();
+
+  Object.values(data).forEach((company) => {
+    if (company?.ticker && company?.cik_str) {
+      const ticker = String(company.ticker).toUpperCase();
+      const cik = String(company.cik_str).padStart(10, "0");
+      map.set(ticker, cik);
+    }
+  });
+
+  tickerCikCache = map;
+  return map;
+}
+
+async function fetchSecFacts(ticker) {
+  try {
+    const map = await getTickerCikMap();
+    const cik = map.get(ticker);
+
+    if (!cik) return null;
+
+    const userAgent =
+      process.env.SEC_USER_AGENT ||
+      "StockEdgeAI contact@example.com";
+
+    const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+
+    return await fetchJson(url, {
+      headers: {
+        "User-Agent": userAgent,
+        Accept: "application/json",
+      },
+    });
+  } catch (error) {
+    console.warn("SEC facts unavailable:", error.message);
+    return null;
+  }
+}
+
+async function fetchCandles(ticker) {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const oneYearAgo = now - 365 * 24 * 60 * 60;
+
+    const data = await fetchFinnhub("/stock/candle", {
+      symbol: ticker,
+      resolution: "D",
+      from: oneYearAgo,
+      to: now,
+    });
+
+    if (data?.s !== "ok" || !Array.isArray(data.c)) {
+      return [];
+    }
+
+    return data.c.map((close, index) => ({
+      time: data.t?.[index],
+      open: data.o?.[index],
+      high: data.h?.[index],
+      low: data.l?.[index],
+      close,
+      volume: data.v?.[index],
+    }));
+  } catch (error) {
+    console.warn("Candles unavailable:", error.message);
+    return [];
+  }
+}
+
+async function fetchAnalysis(ticker) {
+  const cacheKey = `analysis:${ticker}`;
+  const cached = getCache(cacheKey);
+
+  if (cached) return cached;
+
+  const [profile, quote, metricData, secFacts, candles] = await Promise.all([
+    fetchFinnhub("/stock/profile2", { symbol: ticker }).catch(() => null),
+    fetchFinnhub("/quote", { symbol: ticker }).catch(() => null),
+    fetchFinnhub("/stock/metric", { symbol: ticker, metric: "all" }).catch(() => null),
+    fetchSecFacts(ticker),
+    fetchCandles(ticker),
+  ]);
+
+  if (!profile || Object.keys(profile).length === 0) {
+    throw new Error("Ticker not found or Finnhub did not return company data.");
+  }
+
+  const analysis = buildStockAnalysis({
+    ticker,
+    profile,
+    quote,
+    metricData,
+    secFacts,
+    candles,
+  });
+
+  setCache(cacheKey, analysis);
+
+  return analysis;
+}
+
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    app: "StockEdgeAI API",
   });
 });
 
-app.get("/api/analyze/:symbol", async (req, res) => {
-  try {
-    const symbol = String(req.params.symbol || "")
-      .trim()
-      .toUpperCase();
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+  });
+});
 
-    if (!symbol) {
+app.get("/api/analyze/:ticker", async (req, res) => {
+  try {
+    const ticker = normalizeTicker(req.params.ticker);
+
+    if (!ticker) {
       return res.status(400).json({
-        error: "Missing ticker symbol.",
+        error: "Ticker is required.",
       });
     }
 
-    const analysis = await buildStockAnalysis(symbol);
+    const analysis = await fetchAnalysis(ticker);
 
-    return res.status(200).json(analysis);
+    res.json(analysis);
   } catch (error) {
-    console.error("Analyze route failed:", error);
+    console.error(error);
 
-    return res.status(500).json({
-      error:
-        error?.message ||
-        "Could not analyze this ticker. Check API keys and backend logs.",
+    res.status(500).json({
+      error: error.message || "Failed to analyze stock.",
     });
   }
 });
 
-app.post("/api/assistant", async (req, res) => {
+app.post("/api/recommend", async (req, res) => {
   try {
-    const { question, current, watchlist } = req.body || {};
+    const ticker = normalizeTicker(req.body.ticker);
+    const amount = Number(req.body.amount);
 
-    if (!question || !String(question).trim()) {
+    if (!ticker) {
       return res.status(400).json({
-        error: "Missing assistant question.",
+        error: "Ticker is required.",
       });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      const symbol = current?.symbol || "the selected stock";
-      const score = current?.grades?.edgeScore ?? "N/A";
-      const risk = current?.grades?.riskLabel || "N/A";
-
-      return res.status(200).json({
-        answer: `For ${symbol}, the current Edge Score is ${score} and the risk label is ${risk}. Your question was: "${question}". The assistant AI key is not connected on the backend yet, but the stock analysis route is working.`,
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({
+        error: "Enter a valid investment amount.",
       });
     }
 
-    const prompt = `
-You are Edge Assistant, a simple stock-analysis helper.
-Do not give licensed financial advice.
-Explain clearly and briefly.
+    const analysis = await fetchAnalysis(ticker);
 
-User question:
-${question}
+    const recommendation = buildInvestmentRecommendation({
+      amount,
+      analysis,
+    });
 
-Current stock data:
-${JSON.stringify(current || {}, null, 2)}
-
-Watchlist:
-${JSON.stringify(watchlist || [], null, 2)}
-`;
-
-    const openAiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a helpful stock education assistant. Keep answers simple, practical, and beginner friendly. Do not claim to be a financial advisor.",
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          temperature: 0.4,
-          max_tokens: 500,
-        }),
-      }
-    );
-
-    const openAiJson = await openAiResponse.json();
-
-    if (!openAiResponse.ok) {
-      console.error("OpenAI error:", openAiJson);
-
-      return res.status(200).json({
-        answer:
-          "The stock data loaded, but the AI assistant could not respond right now. Check your OPENAI_API_KEY on Render.",
-      });
-    }
-
-    return res.status(200).json({
-      answer:
-        openAiJson?.choices?.[0]?.message?.content ||
-        "I could not create a response.",
+    res.json({
+      ticker,
+      recommendation,
     });
   } catch (error) {
-    console.error("Assistant route failed:", error);
+    console.error(error);
 
-    return res.status(500).json({
-      error: error?.message || "Assistant route failed.",
+    res.status(500).json({
+      error: error.message || "Failed to calculate recommendation.",
     });
   }
-});
-
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found.",
-    path: req.originalUrl,
-    availableRoutes: ["/", "/api/health", "/api/analyze/AAPL", "/api/assistant"],
-  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Edge server running on port ${PORT}`);
+  console.log(`StockEdgeAI server running on port ${PORT}`);
 });
