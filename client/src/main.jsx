@@ -263,7 +263,7 @@ function App() {
         <div className="brand">
           <img src="/stock-edge-ai-logo.png" alt="StockEdgeAI logo" />
           <div>
-            <h1>StockEdge</h1>
+            <h1>Eval AI</h1>
           </div>
         </div>
 
@@ -272,13 +272,13 @@ function App() {
             type="button"
             className="ai-nav-btn"
             onClick={() => setView("assistant")}
-            title="Open Edge Assistant"
+            title="Eval AI Assistant"
           >
-            <BrainCircuit size={21} />
+            <BrainCircuit size={23} />
           </button>
 
           <div>
-            <label>Stock ticker</label>
+            <label>Stock Ticker</label>
             <input
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
@@ -341,7 +341,7 @@ function App() {
 function EmptyReport() {
   return (
     <section className="empty-report">
-      Type a ticker like AAPL, MSFT, or NVDA and click Analyze.
+      Type a ticker like AAPL, MSFT, or NVDA & click Analyze.
     </section>
   );
 }
