@@ -261,7 +261,7 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <img src="/stock-edge-ai-logo.png" alt="StockEdgeAI logo" />
+          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
           <div>
             <h1>Eval AI</h1>
           </div>
@@ -398,7 +398,7 @@ function Watchlist({
       <div className="watch-list">
         {items.length === 0 ? (
           <div className="watch-empty">
-            Add stocks here to compare their 0.0–10.0 Edge Scores.
+            Add stocks here to compare their 0.0–10.0 Eval Scores.
           </div>
         ) : (
           items.map((item) => (
@@ -507,7 +507,7 @@ function AssistantPage({ current, watchlist, onBack }) {
 
           <div>
             <div className="assistant-kicker">
-              <BrainCircuit size={16} /> Edge Assistant
+              <BrainCircuit size={16} /> Eval AI Assistant
             </div>
             <h2>Ask stock questions in plain English.</h2>
             <p>
@@ -521,14 +521,14 @@ function AssistantPage({ current, watchlist, onBack }) {
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
-                <span>{msg.role === "user" ? "You" : "Edge AI"}</span>
+                <span>{msg.role === "user" ? "You" : "Eval AI"}</span>
                 <p>{msg.content}</p>
               </div>
             ))}
 
             {loading && (
               <div className="chat-bubble assistant">
-                <span>Edge AI</span>
+                <span>Eval AI</span>
                 <p>Thinking through that question...</p>
               </div>
             )}
@@ -538,7 +538,7 @@ function AssistantPage({ current, watchlist, onBack }) {
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Example: Is AAPL a better buy than NVDA if NVDA has the higher Edge Score?"
+              placeholder="Example: Is AAPL a better buy than NVDA if NVDA has the higher Eval Score?"
               rows="3"
             />
             <button disabled={loading}>
@@ -549,7 +549,7 @@ function AssistantPage({ current, watchlist, onBack }) {
         </div>
 
         <p className="fineprint center">
-          Educational only. Edge Assistant helps explain investing ideas, but it
+          Educational only. Eval AI Assistant helps explain investing ideas, but it
           is not a licensed financial advisor.
         </p>
       </div>
@@ -617,7 +617,7 @@ function Report({ data, onAdd }) {
             style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
           >
             <div className="score-core">
-              <span>EDGE SCORE</span>
+              <span>EVAL SCORE</span>
               <strong>{scoreText(edge)}</strong>
             </div>
           </div>
