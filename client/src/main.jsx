@@ -263,7 +263,7 @@ function App() {
         <div className="brand">
           <img src="/stock-edge-ai-logo.png" alt="StockEdgeAI logo" />
           <div>
-            <h1>StockEdge AI</h1>
+            <h1>StockEdge</h1>
           </div>
         </div>
 
