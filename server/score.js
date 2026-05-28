@@ -1,683 +1,314 @@
-// server/score.js
+const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 
-function isValidNumber(value) {
-  return typeof value === "number" && Number.isFinite(value);
+function clamp(value, min = 0, max = 10) {
+  return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
-function cleanNumber(value) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
+function safeNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
-function clamp(value, min, max) {
-  if (!isValidNumber(value)) return null;
-  return Math.max(min, Math.min(max, value));
-}
-
-function percent(value) {
-  const num = cleanNumber(value);
-  if (num === null) return null;
-  return num;
-}
-
-function scoreHigherBetter(value, excellent, poor) {
-  const num = cleanNumber(value);
-  if (num === null) return null;
-
-  if (excellent === poor) return null;
-
-  const score = ((num - poor) / (excellent - poor)) * 100;
-  return clamp(score, 0, 100);
-}
-
-function scoreLowerBetter(value, excellent, poor) {
-  const num = cleanNumber(value);
-  if (num === null) return null;
-
-  if (excellent === poor) return null;
-
-  const score = ((poor - num) / (poor - excellent)) * 100;
-  return clamp(score, 0, 100);
-}
-
-function weightedAverage(items) {
-  const validItems = items.filter(
-    (item) => isValidNumber(item.score) && isValidNumber(item.weight) && item.weight > 0
-  );
-
-  if (validItems.length === 0) {
-    return {
-      score: null,
-      used: [],
-      skipped: items.map((item) => item.name),
-    };
-  }
-
-  const totalWeight = validItems.reduce((sum, item) => sum + item.weight, 0);
-
-  const score =
-    validItems.reduce((sum, item) => sum + item.score * item.weight, 0) / totalWeight;
-
+function metric(value, suffix = "", source = "Finnhub", formula = "") {
   return {
-    score: clamp(score, 0, 100),
-    used: validItems.map((item) => item.name),
-    skipped: items
-      .filter((item) => !isValidNumber(item.score))
-      .map((item) => item.name),
+    value: safeNumber(value),
+    suffix,
+    source,
+    formula,
   };
 }
 
-function formatMoney(value) {
-  const num = cleanNumber(value);
-  if (num === null) return "N/A";
+async function fetchFinnhub(path, params = {}) {
+  const apiKey = process.env.FINNHUB_API_KEY;
 
-  if (Math.abs(num) >= 1_000_000_000_000) {
-    return `$${(num / 1_000_000_000_000).toFixed(2)}T`;
+  if (!apiKey) {
+    throw new Error("Missing FINNHUB_API_KEY in Render environment variables.");
   }
 
-  if (Math.abs(num) >= 1_000_000_000) {
-    return `$${(num / 1_000_000_000).toFixed(2)}B`;
-  }
+  const url = new URL(`${FINNHUB_BASE_URL}${path}`);
 
-  if (Math.abs(num) >= 1_000_000) {
-    return `$${(num / 1_000_000).toFixed(2)}M`;
-  }
-
-  return `$${num.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-function getMetric(metricData, key) {
-  const value = metricData?.metric?.[key];
-  return cleanNumber(value);
-}
-
-function getSecFact(secFacts, possibleTags) {
-  if (!secFacts?.facts?.["us-gaap"]) return null;
-
-  const gaap = secFacts.facts["us-gaap"];
-
-  for (const tag of possibleTags) {
-    const item = gaap[tag];
-    if (!item?.units) continue;
-
-    const unitKeys = Object.keys(item.units);
-
-    for (const unit of unitKeys) {
-      const values = item.units[unit];
-      if (!Array.isArray(values)) continue;
-
-      const validValues = values
-        .filter((v) => cleanNumber(v.val) !== null && v.fy && v.fp)
-        .sort((a, b) => {
-          const aDate = new Date(a.end || a.filed || 0).getTime();
-          const bDate = new Date(b.end || b.filed || 0).getTime();
-          return bDate - aDate;
-        });
-
-      if (validValues.length > 0) {
-        return cleanNumber(validValues[0].val);
-      }
+  Object.entries({ ...params, token: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, value);
     }
-  }
-
-  return null;
-}
-
-function calculatePriceMomentum(candles) {
-  if (!Array.isArray(candles) || candles.length < 30) return null;
-
-  const first = cleanNumber(candles[0]?.close);
-  const last = cleanNumber(candles[candles.length - 1]?.close);
-
-  if (first === null || last === null || first <= 0) return null;
-
-  return ((last - first) / first) * 100;
-}
-
-function calculateVolatility(candles) {
-  if (!Array.isArray(candles) || candles.length < 30) return null;
-
-  const returns = [];
-
-  for (let i = 1; i < candles.length; i++) {
-    const prev = cleanNumber(candles[i - 1]?.close);
-    const curr = cleanNumber(candles[i]?.close);
-
-    if (prev && curr) {
-      returns.push((curr - prev) / prev);
-    }
-  }
-
-  if (returns.length < 20) return null;
-
-  const avg = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-
-  const variance =
-    returns.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / returns.length;
-
-  const dailyVolatility = Math.sqrt(variance);
-  const annualizedVolatility = dailyVolatility * Math.sqrt(252);
-
-  return annualizedVolatility * 100;
-}
-
-function calculateMaxDrawdown(candles) {
-  if (!Array.isArray(candles) || candles.length < 30) return null;
-
-  let peak = cleanNumber(candles[0]?.close);
-  let maxDrawdown = 0;
-
-  if (peak === null) return null;
-
-  for (const candle of candles) {
-    const price = cleanNumber(candle.close);
-    if (price === null) continue;
-
-    if (price > peak) peak = price;
-
-    const drawdown = ((peak - price) / peak) * 100;
-    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-  }
-
-  return maxDrawdown;
-}
-
-function calculateTrendStrength(candles) {
-  if (!Array.isArray(candles) || candles.length < 60) return null;
-
-  const closes = candles.map((c) => cleanNumber(c.close)).filter((v) => v !== null);
-
-  if (closes.length < 60) return null;
-
-  const latest = closes[closes.length - 1];
-  const sma50 =
-    closes.slice(-50).reduce((sum, price) => sum + price, 0) / 50;
-
-  if (!latest || !sma50) return null;
-
-  return ((latest - sma50) / sma50) * 100;
-}
-
-function calculateMetrics({ ticker, profile, quote, metricData, secFacts, candles }) {
-  const marketCap = cleanNumber(profile?.marketCapitalization)
-    ? cleanNumber(profile.marketCapitalization) * 1_000_000
-    : null;
-
-  const currentPrice = cleanNumber(quote?.c);
-
-  const peTTM = getMetric(metricData, "peNormalizedAnnual") ?? getMetric(metricData, "peTTM");
-  const psTTM = getMetric(metricData, "psTTM");
-  const pbAnnual = getMetric(metricData, "pbAnnual");
-  const evToEbitda = getMetric(metricData, "evToEbitdaTTM");
-  const grossMargin = getMetric(metricData, "grossMarginTTM");
-  const operatingMargin = getMetric(metricData, "operatingMarginTTM");
-  const netMargin = getMetric(metricData, "netProfitMarginTTM");
-  const roe = getMetric(metricData, "roeTTM");
-  const roa = getMetric(metricData, "roaTTM");
-  const currentRatio = getMetric(metricData, "currentRatioAnnual");
-  const quickRatio = getMetric(metricData, "quickRatioAnnual");
-  const debtToEquity = getMetric(metricData, "totalDebt/totalEquityAnnual");
-  const revenueGrowth = getMetric(metricData, "revenueGrowthTTMYoy");
-  const epsGrowth = getMetric(metricData, "epsGrowthTTMYoy");
-  const ebitdaCagr5Y = getMetric(metricData, "ebitdaCagr5Y");
-  const beta = getMetric(metricData, "beta");
-  const dividendYield = getMetric(metricData, "dividendYieldIndicatedAnnual");
-
-  const revenue = getSecFact(secFacts, [
-    "Revenues",
-    "RevenueFromContractWithCustomerExcludingAssessedTax",
-    "SalesRevenueNet",
-  ]);
-
-  const netIncome = getSecFact(secFacts, [
-    "NetIncomeLoss",
-    "ProfitLoss",
-  ]);
-
-  const operatingIncome = getSecFact(secFacts, [
-    "OperatingIncomeLoss",
-  ]);
-
-  const ebitda = getSecFact(secFacts, [
-    "EarningsBeforeInterestTaxesDepreciationAndAmortization",
-    "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
-  ]);
-
-  const freeCashFlow = getSecFact(secFacts, [
-    "FreeCashFlow",
-    "NetCashProvidedByUsedInOperatingActivities",
-  ]);
-
-  const priceMomentum1Y = calculatePriceMomentum(candles);
-  const volatility = calculateVolatility(candles);
-  const maxDrawdown = calculateMaxDrawdown(candles);
-  const trendStrength = calculateTrendStrength(candles);
-
-  return {
-    ticker,
-    companyName: profile?.name || ticker,
-    description:
-      profile?.finnhubIndustry
-        ? `${profile.name || ticker} operates in the ${profile.finnhubIndustry} industry.`
-        : "N/A",
-    industry: profile?.finnhubIndustry || "N/A",
-    exchange: profile?.exchange || "N/A",
-    logo: profile?.logo || null,
-    currentPrice,
-    marketCap,
-    peTTM,
-    psTTM,
-    pbAnnual,
-    evToEbitda,
-    grossMargin,
-    operatingMargin,
-    netMargin,
-    roe,
-    roa,
-    currentRatio,
-    quickRatio,
-    debtToEquity,
-    revenueGrowth,
-    epsGrowth,
-    ebitdaCagr5Y,
-    beta,
-    dividendYield,
-    revenue,
-    netIncome,
-    operatingIncome,
-    ebitda,
-    freeCashFlow,
-    priceMomentum1Y,
-    volatility,
-    maxDrawdown,
-    trendStrength,
-  };
-}
-
-function buildScore(metrics) {
-  const valuation = weightedAverage([
-    {
-      name: "P/E Ratio",
-      score: scoreLowerBetter(metrics.peTTM, 12, 45),
-      weight: 0.25,
-    },
-    {
-      name: "Price/Sales",
-      score: scoreLowerBetter(metrics.psTTM, 2, 15),
-      weight: 0.2,
-    },
-    {
-      name: "Price/Book",
-      score: scoreLowerBetter(metrics.pbAnnual, 2, 18),
-      weight: 0.15,
-    },
-    {
-      name: "EV/EBITDA",
-      score: scoreLowerBetter(metrics.evToEbitda, 8, 35),
-      weight: 0.25,
-    },
-    {
-      name: "Market Cap Stability",
-      score: scoreHigherBetter(metrics.marketCap, 250_000_000_000, 1_000_000_000),
-      weight: 0.15,
-    },
-  ]);
-
-  const profitability = weightedAverage([
-    {
-      name: "Gross Margin",
-      score: scoreHigherBetter(metrics.grossMargin, 65, 15),
-      weight: 0.2,
-    },
-    {
-      name: "Operating Margin",
-      score: scoreHigherBetter(metrics.operatingMargin, 30, 0),
-      weight: 0.2,
-    },
-    {
-      name: "Net Margin",
-      score: scoreHigherBetter(metrics.netMargin, 25, -5),
-      weight: 0.2,
-    },
-    {
-      name: "ROE",
-      score: scoreHigherBetter(metrics.roe, 30, 0),
-      weight: 0.2,
-    },
-    {
-      name: "ROA",
-      score: scoreHigherBetter(metrics.roa, 15, 0),
-      weight: 0.1,
-    },
-    {
-      name: "EBITDA",
-      score: scoreHigherBetter(metrics.ebitda, 50_000_000_000, 0),
-      weight: 0.1,
-    },
-  ]);
-
-  const growth = weightedAverage([
-    {
-      name: "Revenue Growth",
-      score: scoreHigherBetter(metrics.revenueGrowth, 25, -10),
-      weight: 0.35,
-    },
-    {
-      name: "EPS Growth",
-      score: scoreHigherBetter(metrics.epsGrowth, 25, -15),
-      weight: 0.35,
-    },
-    {
-      name: "EBITDA Growth",
-      score: scoreHigherBetter(metrics.ebitdaCagr5Y, 20, -10),
-      weight: 0.15,
-    },
-    {
-      name: "Price Momentum",
-      score: scoreHigherBetter(metrics.priceMomentum1Y, 40, -30),
-      weight: 0.15,
-    },
-  ]);
-
-  const financialStrength = weightedAverage([
-    {
-      name: "Current Ratio",
-      score: scoreHigherBetter(metrics.currentRatio, 2.5, 0.7),
-      weight: 0.25,
-    },
-    {
-      name: "Quick Ratio",
-      score: scoreHigherBetter(metrics.quickRatio, 1.8, 0.5),
-      weight: 0.2,
-    },
-    {
-      name: "Debt/Equity",
-      score: scoreLowerBetter(metrics.debtToEquity, 0.3, 3),
-      weight: 0.25,
-    },
-    {
-      name: "Free Cash Flow",
-      score: scoreHigherBetter(metrics.freeCashFlow, 20_000_000_000, -1_000_000_000),
-      weight: 0.15,
-    },
-    {
-      name: "Net Income",
-      score: scoreHigherBetter(metrics.netIncome, 25_000_000_000, -1_000_000_000),
-      weight: 0.15,
-    },
-  ]);
-
-  const momentum = weightedAverage([
-    {
-      name: "1Y Price Momentum",
-      score: scoreHigherBetter(metrics.priceMomentum1Y, 45, -35),
-      weight: 0.35,
-    },
-    {
-      name: "Trend vs SMA50",
-      score: scoreHigherBetter(metrics.trendStrength, 15, -15),
-      weight: 0.25,
-    },
-    {
-      name: "Volatility Control",
-      score: scoreLowerBetter(metrics.volatility, 18, 70),
-      weight: 0.2,
-    },
-    {
-      name: "Drawdown Control",
-      score: scoreLowerBetter(metrics.maxDrawdown, 12, 60),
-      weight: 0.2,
-    },
-  ]);
-
-  const risk = weightedAverage([
-    {
-      name: "Beta",
-      score: scoreLowerBetter(Math.abs((metrics.beta ?? 1) - 1), 0.05, 1.5),
-      weight: 0.25,
-    },
-    {
-      name: "Volatility",
-      score: scoreLowerBetter(metrics.volatility, 18, 75),
-      weight: 0.3,
-    },
-    {
-      name: "Max Drawdown",
-      score: scoreLowerBetter(metrics.maxDrawdown, 10, 65),
-      weight: 0.25,
-    },
-    {
-      name: "Debt Risk",
-      score: scoreLowerBetter(metrics.debtToEquity, 0.4, 3.5),
-      weight: 0.2,
-    },
-  ]);
-
-  const finalScore = weightedAverage([
-    {
-      name: "Valuation",
-      score: valuation.score,
-      weight: 0.18,
-    },
-    {
-      name: "Profitability",
-      score: profitability.score,
-      weight: 0.22,
-    },
-    {
-      name: "Growth",
-      score: growth.score,
-      weight: 0.2,
-    },
-    {
-      name: "Financial Strength",
-      score: financialStrength.score,
-      weight: 0.17,
-    },
-    {
-      name: "Momentum",
-      score: momentum.score,
-      weight: 0.13,
-    },
-    {
-      name: "Risk Control",
-      score: risk.score,
-      weight: 0.1,
-    },
-  ]);
-
-  const powerScore = finalScore.score === null ? null : Number((finalScore.score / 10).toFixed(1));
-
-  let rating = "N/A";
-  let riskLabel = "N/A";
-
-  if (powerScore !== null) {
-    if (powerScore >= 8.5) rating = "Strong Buy";
-    else if (powerScore >= 7.3) rating = "Buy";
-    else if (powerScore >= 6.2) rating = "Hold";
-    else if (powerScore >= 5.0) rating = "Weak Hold";
-    else rating = "Avoid";
-  }
-
-  if (risk.score !== null) {
-    if (risk.score >= 75) riskLabel = "Low Risk";
-    else if (risk.score >= 55) riskLabel = "Medium Risk";
-    else riskLabel = "High Risk";
-  }
-
-  return {
-    powerScore,
-    rating,
-    riskLabel,
-    categories: {
-      valuation,
-      profitability,
-      growth,
-      financialStrength,
-      momentum,
-      risk,
-    },
-    finalUsedCategories: finalScore.used,
-    finalSkippedCategories: finalScore.skipped,
-  };
-}
-
-export function buildInvestmentRecommendation({ amount, analysis }) {
-  const investmentAmount = cleanNumber(amount);
-
-  if (investmentAmount === null || investmentAmount <= 0 || !analysis?.score?.powerScore) {
-    return {
-      available: false,
-      recommendedPercent: null,
-      recommendedDollarAmount: null,
-      explanation: "Enter a valid amount to calculate a recommendation.",
-    };
-  }
-
-  const powerScore = analysis.score.powerScore;
-  const riskScore = analysis.score.categories?.risk?.score;
-  const valuationScore = analysis.score.categories?.valuation?.score;
-  const profitabilityScore = analysis.score.categories?.profitability?.score;
-  const growthScore = analysis.score.categories?.growth?.score;
-  const momentumScore = analysis.score.categories?.momentum?.score;
-  const financialStrengthScore = analysis.score.categories?.financialStrength?.score;
-
-  const allocationScore = weightedAverage([
-    {
-      name: "Power Score",
-      score: powerScore * 10,
-      weight: 0.3,
-    },
-    {
-      name: "Risk Control",
-      score: riskScore,
-      weight: 0.2,
-    },
-    {
-      name: "Valuation",
-      score: valuationScore,
-      weight: 0.15,
-    },
-    {
-      name: "Profitability",
-      score: profitabilityScore,
-      weight: 0.15,
-    },
-    {
-      name: "Growth",
-      score: growthScore,
-      weight: 0.1,
-    },
-    {
-      name: "Financial Strength",
-      score: financialStrengthScore,
-      weight: 0.1,
-    },
-    {
-      name: "Momentum",
-      score: momentumScore,
-      weight: 0.05,
-    },
-  ]);
-
-  if (allocationScore.score === null) {
-    return {
-      available: false,
-      recommendedPercent: null,
-      recommendedDollarAmount: null,
-      explanation: "Not enough valid metrics were available to calculate an investment recommendation.",
-    };
-  }
-
-  let recommendedPercent;
-
-  if (allocationScore.score >= 85) recommendedPercent = 70;
-  else if (allocationScore.score >= 75) recommendedPercent = 55;
-  else if (allocationScore.score >= 65) recommendedPercent = 40;
-  else if (allocationScore.score >= 55) recommendedPercent = 25;
-  else if (allocationScore.score >= 45) recommendedPercent = 12;
-  else recommendedPercent = 5;
-
-  if (analysis.score.riskLabel === "High Risk") {
-    recommendedPercent *= 0.65;
-  }
-
-  if (valuationScore !== null && valuationScore < 35) {
-    recommendedPercent *= 0.75;
-  }
-
-  recommendedPercent = Math.round(recommendedPercent);
-
-  const recommendedDollarAmount = investmentAmount * (recommendedPercent / 100);
-
-  return {
-    available: true,
-    recommendedPercent,
-    recommendedDollarAmount: Number(recommendedDollarAmount.toFixed(2)),
-    usedMetrics: allocationScore.used,
-    skippedMetrics: allocationScore.skipped,
-    explanation: `Based on the current Power Score, risk level, valuation, profitability, growth, and financial strength, the suggested allocation is ${recommendedPercent}% of the amount entered.`,
-  };
-}
-
-export function buildStockAnalysis({ ticker, profile, quote, metricData, secFacts, candles }) {
-  const metrics = calculateMetrics({
-    ticker,
-    profile,
-    quote,
-    metricData,
-    secFacts,
-    candles,
   });
 
-  const score = buildScore(metrics);
+  const response = await fetch(url);
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Finnhub request failed: ${response.status}`);
+  }
+
+  return data;
+}
+
+function scoreGrowth(revenueGrowth) {
+  const g = safeNumber(revenueGrowth);
+
+  if (g === null) return 6;
+  if (g >= 40) return 10;
+  if (g >= 25) return 9;
+  if (g >= 15) return 8;
+  if (g >= 8) return 7;
+  if (g >= 3) return 6;
+  if (g >= 0) return 5;
+  if (g >= -5) return 4;
+  return 3;
+}
+
+function scoreProfitability(roe, netMargin) {
+  const r = safeNumber(roe);
+  const m = safeNumber(netMargin);
+
+  let roeScore = 6;
+  let marginScore = 6;
+
+  if (r !== null) {
+    if (r >= 60) roeScore = 10;
+    else if (r >= 35) roeScore = 9;
+    else if (r >= 20) roeScore = 8;
+    else if (r >= 12) roeScore = 7;
+    else if (r >= 5) roeScore = 6;
+    else if (r >= 0) roeScore = 5;
+    else roeScore = 3;
+  }
+
+  if (m !== null) {
+    if (m >= 35) marginScore = 10;
+    else if (m >= 25) marginScore = 9;
+    else if (m >= 15) marginScore = 8;
+    else if (m >= 8) marginScore = 7;
+    else if (m >= 3) marginScore = 6;
+    else if (m >= 0) marginScore = 5;
+    else marginScore = 3;
+  }
+
+  return Number(((roeScore * 0.55) + (marginScore * 0.45)).toFixed(1));
+}
+
+function scoreFinancialHealth(debtToEquity, marketCapM) {
+  const d = safeNumber(debtToEquity);
+  const cap = safeNumber(marketCapM);
+
+  let debtScore = 7;
+
+  if (d !== null) {
+    if (d <= 0.3) debtScore = 10;
+    else if (d <= 0.7) debtScore = 9;
+    else if (d <= 1.2) debtScore = 8;
+    else if (d <= 2.0) debtScore = 6;
+    else if (d <= 3.0) debtScore = 4;
+    else debtScore = 2;
+  }
+
+  let sizeBonus = 0;
+
+  if (cap !== null) {
+    if (cap >= 500000) sizeBonus = 0.8;
+    else if (cap >= 100000) sizeBonus = 0.5;
+    else if (cap >= 10000) sizeBonus = 0.2;
+  }
+
+  return Number(clamp(debtScore + sizeBonus).toFixed(1));
+}
+
+function scoreValuation(peRatio, revenueGrowth, roe, netMargin) {
+  const pe = safeNumber(peRatio);
+  const g = safeNumber(revenueGrowth);
+  const r = safeNumber(roe);
+  const m = safeNumber(netMargin);
+
+  if (pe === null || pe <= 0) return 6;
+
+  let score;
+
+  if (pe <= 12) score = 9.5;
+  else if (pe <= 18) score = 8.5;
+  else if (pe <= 25) score = 7.5;
+  else if (pe <= 35) score = 6.5;
+  else if (pe <= 50) score = 5.5;
+  else if (pe <= 75) score = 4.5;
+  else score = 3.5;
+
+  // Premium companies deserve a valuation cushion if quality/growth is strong.
+  if (g !== null && g >= 20) score += 1.2;
+  else if (g !== null && g >= 10) score += 0.7;
+
+  if (r !== null && r >= 25) score += 0.7;
+  if (m !== null && m >= 20) score += 0.5;
+
+  // Keep valuation from destroying great companies completely.
+  return Number(clamp(score, 3, 10).toFixed(1));
+}
+
+function scoreMomentum(dayChangePercent, beta) {
+  const dp = safeNumber(dayChangePercent);
+  const b = safeNumber(beta);
+
+  let score = 6;
+
+  if (dp !== null) {
+    if (dp >= 4) score = 9;
+    else if (dp >= 2) score = 8;
+    else if (dp >= 0.5) score = 7;
+    else if (dp >= -0.5) score = 6;
+    else if (dp >= -2) score = 5;
+    else if (dp >= -4) score = 4;
+    else score = 3;
+  }
+
+  // Very high beta adds risk, so slight penalty.
+  if (b !== null && b > 1.8) score -= 0.5;
+
+  return Number(clamp(score).toFixed(1));
+}
+
+function scorePullback(dayChangePercent) {
+  const dp = safeNumber(dayChangePercent);
+
+  if (dp === null) return 6;
+
+  // Pullback score means "buy-the-dip opportunity," not overall quality.
+  if (dp <= -5) return 8.5;
+  if (dp <= -3) return 8;
+  if (dp <= -1.5) return 7;
+  if (dp <= 0) return 6.5;
+  if (dp <= 2) return 6;
+  if (dp <= 5) return 5;
+  return 4;
+}
+
+function getRiskLabel(beta, debtToEquity) {
+  const b = safeNumber(beta) ?? 1;
+  const d = safeNumber(debtToEquity) ?? 0;
+
+  if (b >= 1.8 || d >= 3) return "High";
+  if (b >= 1.25 || d >= 1.5) return "Medium";
+  return "Low";
+}
+
+export async function buildStockAnalysis(symbol) {
+  const cleanSymbol = String(symbol || "").trim().toUpperCase();
+
+  if (!cleanSymbol) {
+    throw new Error("Missing ticker symbol.");
+  }
+
+  const [profile, quote, metricsRaw] = await Promise.all([
+    fetchFinnhub("/stock/profile2", { symbol: cleanSymbol }),
+    fetchFinnhub("/quote", { symbol: cleanSymbol }),
+    fetchFinnhub("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
+  ]);
+
+  if (!profile || !profile.ticker) {
+    throw new Error(`No company profile found for ${cleanSymbol}.`);
+  }
+
+  const m = metricsRaw?.metric || {};
+
+  const peRatio = safeNumber(
+    m.peNormalizedAnnual ||
+      m.peTTM ||
+      m.peBasicExclExtraTTM
+  );
+
+  const roe = safeNumber(m.roeTTM || m.roeRfy);
+
+  const debtToEquity = safeNumber(
+    m["totalDebt/totalEquityAnnual"] ||
+      m["totalDebt/totalEquityQuarterly"]
+  );
+
+  const netMargin = safeNumber(
+    m.netProfitMarginTTM ||
+      m.netProfitMarginAnnual
+  );
+
+  const revenueGrowth = safeNumber(
+    m.revenueGrowthTTMYoy ||
+      m.revenueGrowthQuarterlyYoy
+  );
+
+  const beta = safeNumber(m.beta);
+  const marketCapM = safeNumber(profile.marketCapitalization);
+  const dayChangePercent = safeNumber(quote.dp);
+
+  const growthScore = scoreGrowth(revenueGrowth);
+  const profitabilityScore = scoreProfitability(roe, netMargin);
+  const healthScore = scoreFinancialHealth(debtToEquity, marketCapM);
+  const valuationScore = scoreValuation(peRatio, revenueGrowth, roe, netMargin);
+  const momentumScore = scoreMomentum(dayChangePercent, beta);
+  const reversalScore = scorePullback(dayChangePercent);
+
+  /*
+    Better weighting for high-quality companies:
+
+    Growth: 25%
+    Profitability: 25%
+    Financial Health: 20%
+    Valuation: 12%
+    Momentum: 10%
+    Pullback: 8%
+
+    This means a great company can still score high even if valuation is expensive.
+  */
+  const edgeScore =
+    growthScore * 0.25 +
+    profitabilityScore * 0.25 +
+    healthScore * 0.2 +
+    valuationScore * 0.12 +
+    momentumScore * 0.1 +
+    reversalScore * 0.08;
+
+  const riskLabel = getRiskLabel(beta, debtToEquity);
 
   return {
-    ticker,
-    companyName: metrics.companyName,
-    description: metrics.description,
-    industry: metrics.industry,
-    exchange: metrics.exchange,
-    logo: metrics.logo,
-    currentPrice: metrics.currentPrice,
-    score,
+    symbol: cleanSymbol,
+    profile,
+    quote,
+
+    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${
+      profile.finnhubIndustry || "market"
+    } industry.`,
+
+    evaluationSummary: `${cleanSymbol} has an Edge Score of ${edgeScore.toFixed(
+      1
+    )} out of 10. The score weighs growth, profitability, financial health, valuation, momentum, and pullback opportunity. Expensive valuations reduce the score, but they do not completely overpower strong company quality.`,
+
     metrics: {
-      marketCap: metrics.marketCap,
-      currentPrice: metrics.currentPrice,
-      peTTM: metrics.peTTM,
-      psTTM: metrics.psTTM,
-      pbAnnual: metrics.pbAnnual,
-      evToEbitda: metrics.evToEbitda,
-      grossMargin: metrics.grossMargin,
-      operatingMargin: metrics.operatingMargin,
-      netMargin: metrics.netMargin,
-      roe: metrics.roe,
-      roa: metrics.roa,
-      currentRatio: metrics.currentRatio,
-      quickRatio: metrics.quickRatio,
-      debtToEquity: metrics.debtToEquity,
-      revenueGrowth: metrics.revenueGrowth,
-      epsGrowth: metrics.epsGrowth,
-      ebitdaCagr5Y: metrics.ebitdaCagr5Y,
-      beta: metrics.beta,
-      dividendYield: metrics.dividendYield,
-      revenue: metrics.revenue,
-      netIncome: metrics.netIncome,
-      operatingIncome: metrics.operatingIncome,
-      ebitda: metrics.ebitda,
-      freeCashFlow: metrics.freeCashFlow,
-      priceMomentum1Y: metrics.priceMomentum1Y,
-      volatility: metrics.volatility,
-      maxDrawdown: metrics.maxDrawdown,
-      trendStrength: metrics.trendStrength,
+      peRatio: metric(peRatio, "", "Finnhub", "Price / Earnings"),
+      roe: metric(roe, "%", "Finnhub", "Net Income / Shareholder Equity"),
+      debtToEquity: metric(
+        debtToEquity,
+        "",
+        "Finnhub",
+        "Total Debt / Total Equity"
+      ),
+      netMargin: metric(netMargin, "%", "Finnhub", "Net Income / Revenue"),
+      revenueGrowth: metric(
+        revenueGrowth,
+        "%",
+        "Finnhub",
+        "Revenue growth year over year"
+      ),
+      beta: metric(beta, "", "Finnhub", "Volatility compared with market"),
     },
-    displayMetrics: {
-      marketCap: formatMoney(metrics.marketCap),
-      revenue: formatMoney(metrics.revenue),
-      netIncome: formatMoney(metrics.netIncome),
-      operatingIncome: formatMoney(metrics.operatingIncome),
-      ebitda: formatMoney(metrics.ebitda),
-      freeCashFlow: formatMoney(metrics.freeCashFlow),
+
+    grades: {
+      edgeScore: Number(edgeScore.toFixed(1)),
+      riskLabel,
+      categories: {
+        growth: growthScore,
+        profitability: profitabilityScore,
+        financialHealth: healthScore,
+        valuation: valuationScore,
+        momentum: momentumScore,
+        reversal: reversalScore,
+      },
+      context: {
+        marketCapM,
+      },
     },
   };
 }
