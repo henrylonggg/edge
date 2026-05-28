@@ -263,8 +263,7 @@ function App() {
         <div className="brand">
           <img src="/edge-logo.svg" alt="Edge logo" />
           <div>
-            <h1>Edge</h1>
-            <span>Stock intelligence made simple</span>
+            <h1>StockEdge AI</h1>
           </div>
         </div>
 
