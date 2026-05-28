@@ -200,28 +200,12 @@ button { cursor: pointer; }
 .score-core {
   height: 100%;
   border-radius: 50%;
-  background: rgba(0,0,0,.22);
+  background: rgba(0,0,0,.18);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255,255,255,.1);
-}
-
-.score-ring.green .score-core {
-  background: rgba(25,45,5,.92);
-}
-
-.score-ring.yellow .score-core {
-  background: rgba(58,45,4,.92);
-}
-
-.score-ring.red .score-core {
-  background: rgba(55,8,16,.92);
-}
-
-.score-ring.neutral .score-core {
-  background: rgba(10,16,45,.92);
 }
 
 .score-core span {
@@ -502,17 +486,17 @@ button { cursor: pointer; }
 
 .watch-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .watch-row {
   display: grid;
-  grid-template-columns: 1fr 82px 36px;
-  gap: 8px;
+  grid-template-columns: 1fr 76px 38px;
+  gap: 12px;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(255,255,255,.09);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(0,0,0,.18);
 }
 
@@ -522,37 +506,53 @@ button { cursor: pointer; }
   color: var(--text);
   text-align: left;
   min-width: 0;
+  padding: 0;
 }
 
 .watch-info strong {
   display: block;
-  font-size: 16px;
+  font-size: 18px;
+  letter-spacing: .04em;
 }
 
 .watch-info span {
-  display: block;
-  color: var(--soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 12px;
+  display: none;
 }
 
-.watch-score { text-align: right; }
-
-.watch-score b {
-  display: block;
-  font-size: 20px;
+.watch-score {
+  display: none;
 }
 
-.watch-score small {
-  color: var(--soft);
-  font-size: 11px;
+.watch-score-ring {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  padding: 6px;
+  background: conic-gradient(var(--watch-ring) var(--watch-score-angle), rgba(255,255,255,.10) 0deg);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 28px rgba(0,0,0,.28);
 }
 
-.watch-score.green b { color: var(--green); }
-.watch-score.yellow b { color: var(--yellow); }
-.watch-score.red b { color: var(--red); }
+.watch-score-ring.green { --watch-ring: var(--green); }
+.watch-score-ring.yellow { --watch-ring: var(--yellow); }
+.watch-score-ring.red { --watch-ring: var(--red); }
+.watch-score-ring.neutral { --watch-ring: var(--blue); }
+
+.watch-score-ring strong {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0,0,0,.18);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.6px;
+  text-align: center;
+}
 
 .watch-empty {
   padding: 18px;
@@ -741,6 +741,19 @@ button { cursor: pointer; }
   }
 
   .score-core strong { font-size: 68px; }
+
+  .watch-row {
+    grid-template-columns: 1fr 70px 38px;
+  }
+
+  .watch-score-ring {
+    width: 64px;
+    height: 64px;
+  }
+
+  .watch-score-ring strong {
+    font-size: 17px;
+  }
 
   .chat-bubble { max-width: 100%; }
 }
