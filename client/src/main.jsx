@@ -261,7 +261,7 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <img src="/edge-logo.svg" alt="Edge logo" />
+          <img src="/stock-edge-ai-logo.png" alt="StockEdgeAI logo" />
           <div>
             <h1>StockEdge AI</h1>
           </div>
