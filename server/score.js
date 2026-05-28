@@ -140,7 +140,7 @@ function scoreProfitability(roe, netMargin) {
    else if (m >= -10) marginScore = 3.0;
    else if (m >= -15) marginScore = 2.5;
    else marginScore = 2.0;
-  }
+}
 
   return Number(((roeScore * 0.55) + (marginScore * 0.45)).toFixed(1));
 }
@@ -176,7 +176,7 @@ function scoreFinancialHealth(debtToEquity, marketCapM) {
    else if (d <= 8.00) debtScore = 3.0;
    else if (d <= 10.00) debtScore = 2.5;
    else debtScore = 2.0;
-  }
+ }
 
   let sizeBonus = 0;
 
@@ -192,7 +192,7 @@ function scoreFinancialHealth(debtToEquity, marketCapM) {
    else if (cap >= 50000) sizeBonus = 0.1;
    else if (cap >= 10000) sizeBonus = 0.05;
    else sizeBonus = 0.0;
-  }
+ }
 
   return Number(clamp(debtScore + sizeBonus).toFixed(1));
 }
@@ -228,7 +228,6 @@ function scoreValuation(peRatio, revenueGrowth, roe, netMargin) {
   else if (pe <= 150) score = 4.0;
   else if (pe <= 200) score = 3.5;
   else score = 3.0;
-}
 
   // Premium companies deserve a valuation cushion if quality/growth is strong.
   if (g !== null && g >= 20) score += 1.2;
@@ -395,7 +394,7 @@ export async function buildStockAnalysis(symbol) {
   const edgeScore =
     growthScore * 0.2425 +
     profitabilityScore * 0.2350 +
-    healthScore * 0.20.25 +
+    healthScore * 0.2025 +
     valuationScore * 0.14 +
     momentumScore * 0.1 +
     reversalScore * 0.075;
