@@ -260,7 +260,16 @@ function App() {
   }, []);
 
   if (view === "landing") {
-    return <LandingPage onContinue={() => setView("dashboard")} />;
+    return <LandingPage onContinue={() => setView("auth")} />;
+  }
+
+  if (view === "auth") {
+    return (
+      <AuthPage
+        onBack={() => setView("landing")}
+        onSuccess={() => setView("dashboard")}
+      />
+    );
   }
 
   return (
@@ -458,6 +467,183 @@ function LandingPage({ onContinue }) {
         <p className="landing-footnote">
           *Eval AI provides educational explanations only and is not financial advice.
         </p>
+      </section>
+    </main>
+  );
+}
+
+
+function AuthPage({ onBack, onSuccess }) {
+  const [mode, setMode] = useState("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [captcha, setCaptcha] = useState(false);
+  const [message, setMessage] = useState("");
+
+  function submitAuth(e) {
+    e.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      setMessage("Enter an email and password to continue.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (!captcha) {
+      setMessage("Complete the robot check before continuing.");
+      return;
+    }
+
+    setMessage("");
+    onSuccess();
+  }
+
+  function socialAuth(provider) {
+    if (!captcha) {
+      setMessage("Complete the robot check before using social sign in.");
+      return;
+    }
+
+    setMessage("");
+    onSuccess();
+  }
+
+  return (
+    <main className="auth-page">
+      <div className="landing-orb landing-orb-one" />
+      <div className="landing-orb landing-orb-two" />
+      <div className="landing-grid-glow" />
+
+      <section className="auth-shell">
+        <button type="button" className="auth-back-btn" onClick={onBack}>
+          <ArrowLeft size={17} /> Back
+        </button>
+
+        <div className="auth-brand-block">
+          <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+          <div>
+            <h1>Eval</h1>
+            <p>Secure access to your stock research dashboard.</p>
+          </div>
+        </div>
+
+        <div className="auth-grid">
+          <div className="auth-copy-card">
+            <div className="landing-kicker">
+              <ShieldCheck size={16} /> Protected sign in
+            </div>
+            <h2>Save your watchlist and start analyzing faster.</h2>
+            <p>
+              Create an account or sign in to continue into Eval. The login page
+              helps keep automated traffic away from the dashboard while keeping
+              the experience simple for real users.
+            </p>
+
+            <div className="auth-benefits">
+              <div>
+                <CheckCircle2 size={17} />
+                <span>Secure email and password entry</span>
+              </div>
+              <div>
+                <CheckCircle2 size={17} />
+                <span>Google or Apple sign-in options</span>
+              </div>
+              <div>
+                <CheckCircle2 size={17} />
+                <span>Captcha-style robot protection</span>
+              </div>
+            </div>
+          </div>
+
+          <form className="auth-card" onSubmit={submitAuth}>
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={mode === "signup" ? "active" : ""}
+                onClick={() => setMode("signup")}
+              >
+                Sign up
+              </button>
+              <button
+                type="button"
+                className={mode === "login" ? "active" : ""}
+                onClick={() => setMode("login")}
+              >
+                Log in
+              </button>
+            </div>
+
+            <div className="auth-card-head">
+              <h2>{mode === "signup" ? "Create your account" : "Welcome back"}</h2>
+              <p>
+                {mode === "signup"
+                  ? "Use email and password or continue with Google or Apple."
+                  : "Log in to access the Eval dashboard."}
+              </p>
+            </div>
+
+            <label className="auth-field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </label>
+
+            <label className="auth-field">
+              <span>Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 6 characters"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              />
+            </label>
+
+            <label className={`captcha-box ${captcha ? "checked" : ""}`}>
+              <input
+                type="checkbox"
+                checked={captcha}
+                onChange={(e) => setCaptcha(e.target.checked)}
+              />
+              <span className="captcha-checkmark">{captcha ? "✓" : ""}</span>
+              <span>
+                <b>I'm not a robot</b>
+                <small>Human verification required before entering Eval.</small>
+              </span>
+            </label>
+
+            {message && <div className="auth-message">{message}</div>}
+
+            <button type="submit" className="auth-submit-btn">
+              {mode === "signup" ? "Create account" : "Log in"} <ArrowRight size={18} />
+            </button>
+
+            <div className="auth-divider"><span>or continue with</span></div>
+
+            <div className="social-auth-grid">
+              <button type="button" onClick={() => socialAuth("google")}>
+                <span className="social-mark">G</span> Google
+              </button>
+              <button type="button" onClick={() => socialAuth("apple")}>
+                <span className="social-mark apple-mark"></span> Apple
+              </button>
+            </div>
+
+            <p className="auth-note">
+              For full production security, connect this page to Firebase, Supabase,
+              Auth0, Clerk, or another real auth provider with server-side captcha verification.
+            </p>
+          </form>
+        </div>
       </section>
     </main>
   );
