@@ -20,9 +20,9 @@ import {
   CheckCircle2,
   Star,
   AlertTriangle,
+  Info,
   Gauge,
   ArrowLeft,
-  ArrowRight,
 } from "lucide-react";
 import "./styles.css";
 
@@ -127,7 +127,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState("landing");
+  const [view, setView] = useState("dashboard");
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -259,10 +259,6 @@ function App() {
     analyze(null, "AAPL");
   }, []);
 
-  if (view === "landing") {
-    return <LandingPage onContinue={() => setView("dashboard")} />;
-  }
-
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -353,113 +349,6 @@ function App() {
           />
         </section>
       )}
-    </main>
-  );
-}
-
-
-function LandingPage({ onContinue }) {
-  const productPoints = [
-    {
-      icon: <Gauge size={20} />,
-      title: "One simple Eval Score",
-      text: "Type a ticker and get a clean 0–10 score that summarizes the stock’s overall setup.",
-    },
-    {
-      icon: <BarChart3 size={20} />,
-      title: "Breakdowns that make sense",
-      text: "See growth, profitability, financial health, valuation, momentum, and pullback in plain English.",
-    },
-    {
-      icon: <ShieldCheck size={20} />,
-      title: "Risk made easier",
-      text: "Eval AI turns volatility, debt, valuation, and business strength into a quick risk read.",
-    },
-    {
-      icon: <BrainCircuit size={20} />,
-      title: "Ask questions instantly*",
-      text: "Ask the assistant to compare stocks, explain metrics, and translate market data into clear, beginner-friendly answers.",
-    },
-  ];
-
-  return (
-    <main className="landing-page">
-      <div className="landing-orb landing-orb-one" />
-      <div className="landing-orb landing-orb-two" />
-      <div className="landing-grid-glow" />
-
-      <section className="landing-shell">
-        <div className="landing-brand-row">
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-          <div>
-            <h1>getstockeval.com</h1>
-            <p>Powered by Eval AI</p>
-          </div>
-        </div>
-
-        <div className="landing-hero">
-          <div className="landing-copy">
-            <div className="landing-kicker">
-              <Sparkles size={16} /> Built for faster stock decisions
-            </div>
-
-            <h2>Turn complicated stock data into one clear answer.</h2>
-
-            <p>
-              Eval AI helps users understand stocks without digging through confusing
-              spreadsheets, finance terms, or long reports. Enter any ticker to get a
-              simple Eval Score, risk rating, company summary, key metrics, watchlist,
-              and plain-English explanations designed to be quick, readable, and useful.
-            </p>
-
-            <div className="landing-actions">
-              <button type="button" className="landing-continue-btn" onClick={onContinue}>
-                Continue <ArrowRight size={20} />
-              </button>
-              <span>Open the dashboard and start analyzing stocks.</span>
-            </div>
-          </div>
-
-          <div className="landing-score-preview" aria-label="Eval AI preview card">
-            <div className="preview-topline">
-              <span>Live-style report preview</span>
-              <b>NVDA</b>
-            </div>
-
-            <div className="preview-score-ring">
-              <strong>9.0</strong>
-            </div>
-
-            <div className="preview-bars">
-              <div><span>Profitability</span><b style={{ width: "92%" }} /></div>
-              <div><span>Financial Health</span><b style={{ width: "81%" }} /></div>
-              <div><span>Momentum</span><b style={{ width: "74%" }} /></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="landing-points">
-          {productPoints.map((point) => (
-            <article className="landing-point-card" key={point.title}>
-              <div>{point.icon}</div>
-              <h3>{point.title}</h3>
-              <p>{point.text}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="landing-bottom-strip">
-          <span>Eval Score</span>
-          <span>Risk Rating</span>
-          <span>Company Breakdown</span>
-          <span>Watchlist</span>
-          <span>AI Assistant</span>
-        </div>
-
-        <p className="landing-footnote">
-          *Eval AI provides educational explanations only and is not financial advice.
-        </p>
-      </section>
     </main>
   );
 }
@@ -555,27 +444,46 @@ function Watchlist({
 
 
 function PlansPage({ onBack }) {
-  const plan = {
-    name: "Eval Pro",
-    price: "$9.99/mo",
-    yearly: "$99.99/yr",
-    description:
-      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
-    features: [
-      "Expanded Eval Score with more quality fundamentals",
-      "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
-      "Intrinsic value, WACC, and DCF-style valuation support",
-      "Margin of safety and percent difference from intrinsic value",
-      "News sentiment score from recent company headlines",
-      "AI summaries that explain what the news means",
-      "More detailed metric explanations in plain English",
-      "Expanded Eval AI Assistant access for stock questions",
-    ],
-  };
+  const plans = [
+    {
+      name: "Eval Pro",
+      price: "$9.99/mo",
+      yearly: "$99.99/yr",
+      tone: "pro",
+      description:
+        "Unlock limited access to Eval AI Assistant and a deeper metrics dashboard that adds EBIT, EBITDA, and other fundamentals for a more accurate evaluation.",
+      features: [
+        "Limited Eval AI Assistant access",
+        "EBIT and EBITDA included in the evaluation",
+        "Expanded income-statement metric calculations",
+        "Cash-flow and balance-sheet metric expansion",
+        "Additional profitability and operating-efficiency metrics",
+        "More accurate Eval Score interpretation",
+      ],
+    },
+    {
+      name: "Eval Platinum",
+      price: "$24.99/mo",
+      yearly: "$224.99/yr",
+      tone: "platinum",
+      description:
+        "Get the full Eval Score system with advanced valuation, news sentiment, and complete assistant access.",
+      features: [
+        "Full Eval AI Assistant access",
+        "Full Eval Score with even more metrics",
+        "Intrinsic value, WACC, and DCF support",
+        "Percent difference between current price and intrinsic value",
+        "Warren Buffett-style Margin of Safety interpretation",
+        "News sentiment rating",
+        "AI summaries that grade news articles",
+        "Recent news grades converted into a sentiment score",
+      ],
+    },
+  ];
 
   return (
     <section className="plans-page">
-      <div className="plans-shell pro-only-shell">
+      <div className="plans-shell">
         <div className="plans-page-head">
           <button className="back-btn" onClick={onBack}>
             <ArrowLeft size={18} /> Dashboard
@@ -583,58 +491,59 @@ function PlansPage({ onBack }) {
 
           <div>
             <div className="plans-kicker">
-              <Crown size={16} /> Eval Pro
+              <Crown size={16} /> Eval AI Plans
             </div>
-            <h2>One plan. Deeper stock research.</h2>
+            <h2>Upgrade the stock research engine.</h2>
             <p>
-              Eval Pro keeps the upgrade simple: stronger scoring, more company
-              metrics, valuation tools, news sentiment, and cleaner AI-powered
-              explanations for one price.
+              Choose a plan for deeper company fundamentals, more market data,
+              stronger Eval scoring, and expanded AI-powered explanations.
             </p>
           </div>
         </div>
 
-        <div className="plans-grid pro-only-grid">
-          <article className="plan-card pro pro-only-card">
-            <div className="plan-glow" />
+        <div className="plans-grid">
+          {plans.map((plan) => (
+            <article className={`plan-card ${plan.tone}`} key={plan.name}>
+              <div className="plan-glow" />
 
-            <div className="plan-top pro-only-top">
-              <div>
-                <span>{plan.name}</span>
-                <h3>{plan.price}</h3>
-                <p>{plan.yearly}</p>
-              </div>
-
-              <div className="plan-icon">
-                <Crown size={28} />
-              </div>
-            </div>
-
-            <p className="plan-description">{plan.description}</p>
-
-            <div className="plan-features pro-only-features">
-              {plan.features.map((feature) => (
-                <div className="plan-feature" key={feature}>
-                  <CheckCircle2 size={16} />
-                  <span>{feature}</span>
+              <div className="plan-top">
+                <div>
+                  <span>{plan.name}</span>
+                  <h3>{plan.price}</h3>
+                  <p>{plan.yearly}</p>
                 </div>
-              ))}
-            </div>
 
-            <button
-              type="button"
-              className="plan-select-btn"
-              onClick={() => {}}
-              title="Eval Pro website coming soon"
-            >
-              Upgrade to Eval Pro
-            </button>
-          </article>
+                <div className="plan-icon">
+                  <Crown size={24} />
+                </div>
+              </div>
+
+              <p className="plan-description">{plan.description}</p>
+
+              <div className="plan-features">
+                {plan.features.map((feature) => (
+                  <div className="plan-feature" key={feature}>
+                    <CheckCircle2 size={16} />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="plan-select-btn"
+                onClick={() => {}}
+                title={`${plan.name} website coming soon`}
+              >
+                {plan.name}
+              </button>
+            </article>
+          ))}
         </div>
 
         <p className="fineprint center">
-          Plan button is a placeholder for now. Connect it later to the live Pro
-          checkout page when it is ready.
+          Plan buttons are placeholders for now. Connect them later to the live
+          Pro and Platinum web apps when those versions are ready.
         </p>
       </div>
     </section>
@@ -776,7 +685,6 @@ function Report({ data, onAdd }) {
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
   const tone = scoreTone(edge);
-  const [openScoreHelp, setOpenScoreHelp] = useState(null);
 
   const strongest = useMemo(
     () =>
@@ -801,39 +709,6 @@ function Report({ data, onAdd }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-  };
-
-  const categoryMetrics = {
-    growth: [
-      metricLine("Revenue Growth", metrics.revenueGrowth),
-      metricLine("Sales / earnings expansion", metrics.earningsGrowth),
-      metricLine("Growth trend quality", metrics.growthTrend),
-    ],
-    profitability: [
-      metricLine("ROE", metrics.roe),
-      metricLine("Net Margin", metrics.netMargin),
-      metricLine("Operating efficiency", metrics.operatingMargin),
-    ],
-    financialHealth: [
-      metricLine("Debt-to-Equity", metrics.debtToEquity),
-      metricLine("Balance-sheet strength", metrics.currentRatio),
-      metricLine("Cash / debt pressure", metrics.cashDebtCoverage),
-    ],
-    valuation: [
-      metricLine("P/E Ratio", metrics.peRatio),
-      metricLine("Price-to-Sales", metrics.priceToSales),
-      metricLine("Price-to-Book", metrics.priceToBook),
-    ],
-    momentum: [
-      metricLine("Beta", metrics.beta),
-      metricLine("Recent price trend", metrics.priceMomentum),
-      metricLine("Market strength", metrics.relativeStrength),
-    ],
-    reversal: [
-      metricLine("Pullback from highs", metrics.pullbackFromHigh),
-      metricLine("Distance from moving average", metrics.movingAverageDistance),
-      metricLine("Oversold / recovery setup", metrics.reversalSetup),
-    ],
   };
 
   const rows = [
@@ -905,22 +780,7 @@ function Report({ data, onAdd }) {
 
         <div className="snapshot-grid">
           <MiniStat icon={<Activity size={17} />} label="Price" value={money(data.quote?.c)} />
-          <MiniStat
-            icon={<ShieldCheck size={17} />}
-            label="Risk"
-            value={data.grades.riskLabel}
-            helpTitle="Risk metrics used"
-            metricsUsed={[
-              "Beta",
-              "Debt-to-Equity",
-              "Financial Health score",
-              "Profitability score",
-              "Valuation pressure",
-              "Market-cap stability",
-            ]}
-            isOpen={openScoreHelp === "risk"}
-            onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
-          />
+          <MiniStat icon={<ShieldCheck size={17} />} label="Risk" value={data.grades.riskLabel} />
           <MiniStat
             icon={<Building2 size={17} />}
             label="Market Cap"
@@ -934,7 +794,7 @@ function Report({ data, onAdd }) {
           <div className="section-title">
             <Building2 size={17} /> What this company does
           </div>
-          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
+          <p>{data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
         </div>
 
         <div className="story-card">
@@ -961,80 +821,40 @@ function Report({ data, onAdd }) {
 
       <section className="grade-grid">
         <Grade
-          id="growth"
           name="Growth"
           value={cats.growth}
           icon={<TrendingUp size={18} />}
           description={gradeDescriptions.growth}
-          metricsUsed={categoryMetrics.growth}
-          isOpen={openScoreHelp === "growth"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
-          }
         />
         <Grade
-          id="profitability"
           name="Profitability"
           value={cats.profitability}
           icon={<BarChart3 size={18} />}
           description={gradeDescriptions.profitability}
-          metricsUsed={categoryMetrics.profitability}
-          isOpen={openScoreHelp === "profitability"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "profitability" ? null : "profitability"
-            )
-          }
         />
         <Grade
-          id="financialHealth"
           name="Financial Health"
           value={cats.financialHealth}
           icon={<ShieldCheck size={18} />}
           description={gradeDescriptions.financialHealth}
-          metricsUsed={categoryMetrics.financialHealth}
-          isOpen={openScoreHelp === "financialHealth"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "financialHealth" ? null : "financialHealth"
-            )
-          }
         />
         <Grade
-          id="valuation"
           name="Valuation"
           value={cats.valuation}
           icon={<Target size={18} />}
           description={gradeDescriptions.valuation}
-          metricsUsed={categoryMetrics.valuation}
-          isOpen={openScoreHelp === "valuation"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
-          }
         />
         <Grade
-          id="momentum"
           name="Momentum"
           value={cats.momentum}
           icon={<LineChart size={18} />}
           description={gradeDescriptions.momentum}
-          metricsUsed={categoryMetrics.momentum}
-          isOpen={openScoreHelp === "momentum"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
-          }
         />
         <Grade
-          id="reversal"
           name="Pullback"
           value={cats.reversal}
           icon={<Zap size={18} />}
           description={gradeDescriptions.reversal}
-          metricsUsed={categoryMetrics.reversal}
-          isOpen={openScoreHelp === "reversal"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
-          }
         />
       </section>
 
@@ -1053,85 +873,24 @@ function Report({ data, onAdd }) {
   );
 }
 
-function metricLine(label, item) {
-  if (!item) return { label, value: "Used when available", source: "Score model" };
-
-  if (typeof item === "object" && "value" in item) {
-    return {
-      label,
-      value: fmt(item.value, item.suffix || ""),
-      source: item.source || "Score model",
-    };
-  }
-
-  return {
-    label,
-    value: item === null || item === undefined ? "N/A" : String(item),
-    source: "Score model",
-  };
-}
-
-function MiniStat({
-  icon,
-  label,
-  value,
-  helpTitle,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-}) {
+function MiniStat({ icon, label, value }) {
   return (
-    <div className={`mini-stat ${isOpen ? "popup-active" : ""}`}>
+    <div className="mini-stat">
       <span>
         {icon}
         {label}
       </span>
-
-      <div className="mini-stat-value-row">
-        <b>{value}</b>
-        {metricsUsed.length > 0 && (
-          <button
-            type="button"
-            className="score-help-btn mini-risk-help-btn"
-            onClick={onToggle}
-            aria-label={helpTitle || `${label} metrics used`}
-            title={helpTitle || `${label} metrics used`}
-          >
-            <span className="info-letter">?</span>
-          </button>
-        )}
-      </div>
-
-      {isOpen && (
-        <div className="score-popup mini-stat-popup">
-          <div className="score-popup-title">{helpTitle || "Metrics used"}</div>
-          <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric}>
-                <span>{metric}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <b>{value}</b>
     </div>
   );
 }
 
-function Grade({
-  name,
-  value,
-  icon,
-  description,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-}) {
+function Grade({ name, value, icon, description }) {
   const s = score10(value);
   const tone = scoreTone(s);
 
   return (
-    <div className={`grade-card ${isOpen ? "popup-active" : ""}`}>
+    <div className="grade-card">
       <div className="grade-head">
         <span>{icon}</span>
         <h3>{name}</h3>
@@ -1141,32 +900,7 @@ function Grade({
         <span className={tone} style={{ width: `${(s || 0) * 10}%` }} />
       </div>
 
-      <div className="grade-score-row">
-        <strong className={tone}>{scoreText(s)}</strong>
-        <button
-          type="button"
-          className="score-help-btn"
-          onClick={onToggle}
-          aria-label={`${name} metrics used`}
-          title={`${name} metrics used`}
-        >
-          <span className="info-letter">?</span>
-        </button>
-      </div>
-
-      {isOpen && (
-        <div className="score-popup">
-          <div className="score-popup-title">Metrics used</div>
-          <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric.label}>
-                <span>{metric.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
+      <strong className={tone}>{scoreText(s)}</strong>
       <p className="grade-description">{description}</p>
     </div>
   );
