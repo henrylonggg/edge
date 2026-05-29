@@ -53,8 +53,8 @@ function scoreText(v) {
 function scoreTone(v) {
   const n = score10(v);
   if (n === null) return "neutral";
-  if (n < 5.5) return "red";
-  if (n < 7.5) return "yellow";
+  if (n <= 6.4) return "red";
+  if (n <= 7.4) return "yellow";
   return "green";
 }
 
