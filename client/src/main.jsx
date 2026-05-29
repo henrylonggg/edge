@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Gauge,
   ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import "./styles.css";
 
@@ -126,7 +127,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState("landing");
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -258,6 +259,10 @@ function App() {
     analyze(null, "AAPL");
   }, []);
 
+  if (view === "landing") {
+    return <LandingPage onContinue={() => setView("dashboard")} />;
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -348,6 +353,109 @@ function App() {
           />
         </section>
       )}
+    </main>
+  );
+}
+
+
+function LandingPage({ onContinue }) {
+  const productPoints = [
+    {
+      icon: <Gauge size={20} />,
+      title: "One simple Eval Score",
+      text: "Type a ticker and get a clean 0–10 score that summarizes the stock’s overall setup.",
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      title: "Breakdowns that make sense",
+      text: "See growth, profitability, financial health, valuation, momentum, and pullback in plain English.",
+    },
+    {
+      icon: <ShieldCheck size={20} />,
+      title: "Risk made easier",
+      text: "Eval AI turns volatility, debt, valuation, and business strength into a quick risk read.",
+    },
+    {
+      icon: <BrainCircuit size={20} />,
+      title: "Ask questions instantly",
+      text: "Use the assistant to compare stocks, understand metrics, and get beginner-friendly explanations.",
+    },
+  ];
+
+  return (
+    <main className="landing-page">
+      <div className="landing-orb landing-orb-one" />
+      <div className="landing-orb landing-orb-two" />
+      <div className="landing-grid-glow" />
+
+      <section className="landing-shell">
+        <div className="landing-brand-row">
+          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
+          <div>
+            <span>Stock research made simple</span>
+            <h1>Eval AI</h1>
+          </div>
+        </div>
+
+        <div className="landing-hero">
+          <div className="landing-copy">
+            <div className="landing-kicker">
+              <Sparkles size={16} /> Built for faster stock decisions
+            </div>
+
+            <h2>Turn complicated stock data into one clear answer.</h2>
+
+            <p>
+              Eval AI helps users understand stocks without digging through confusing
+              spreadsheets, finance terms, or long reports. Enter any ticker to get a
+              simple Eval Score, risk rating, company summary, key metrics, watchlist,
+              and plain-English explanations.
+            </p>
+
+            <div className="landing-actions">
+              <button type="button" className="landing-continue-btn" onClick={onContinue}>
+                Continue <ArrowRight size={20} />
+              </button>
+              <span>Open the dashboard and start analyzing stocks.</span>
+            </div>
+          </div>
+
+          <div className="landing-score-preview" aria-label="Eval AI preview card">
+            <div className="preview-topline">
+              <span>Live-style report preview</span>
+              <b>NVDA</b>
+            </div>
+
+            <div className="preview-score-ring">
+              <strong>9.0</strong>
+            </div>
+
+            <div className="preview-bars">
+              <div><span>Profitability</span><b style={{ width: "92%" }} /></div>
+              <div><span>Financial Health</span><b style={{ width: "81%" }} /></div>
+              <div><span>Momentum</span><b style={{ width: "74%" }} /></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="landing-points">
+          {productPoints.map((point) => (
+            <article className="landing-point-card" key={point.title}>
+              <div>{point.icon}</div>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="landing-bottom-strip">
+          <span>Eval Score</span>
+          <span>Risk Rating</span>
+          <span>Company Breakdown</span>
+          <span>Watchlist</span>
+          <span>AI Assistant</span>
+        </div>
+      </section>
     </main>
   );
 }
