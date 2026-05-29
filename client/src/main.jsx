@@ -474,43 +474,294 @@ function LandingPage({ onContinue }) {
 
 
 function AuthPage({ onBack, onSuccess }) {
-  const [mode, setMode] = useState("signup");
+  const [authView, setAuthView] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [code, setCode] = useState("");
   const [captcha, setCaptcha] = useState(false);
   const [message, setMessage] = useState("");
+  const [loadingAuth, setLoadingAuth] = useState(false);
 
-  function submitAuth(e) {
-    e.preventDefault();
+  const isLogin = authView === "login";
+  const isSignupEmail = authView === "signupEmail";
+  const isSignupCode = authView === "signupCode";
+  const isSignupPassword = authView === "signupPassword";
+  const isForgotEmail = authView === "forgotEmail";
+  const isForgotCode = authView === "forgotCode";
+  const isForgotPassword = authView === "forgotPassword";
 
-    if (!email.trim() || !password.trim()) {
-      setMessage("Enter an email and password to continue.");
-      return;
+  function resetInputs(nextView = "login") {
+    setPassword("");
+    setConfirmPassword("");
+    setCode("");
+    setCaptcha(false);
+    setMessage("");
+    setAuthView(nextView);
+  }
+
+  async function authFetch(path, body) {
+    const res = await fetch(`${API}${path}`, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(json?.error || json?.message || "Authentication failed.");
     }
 
-    if (password.length < 6) {
-      setMessage("Password must be at least 6 characters.");
+    return json || {};
+  }
+
+  function validateEmail() {
+    const clean = email.trim().toLowerCase();
+    if (!clean || !clean.includes("@")) {
+      setMessage("Enter a valid email address.");
+      return null;
+    }
+    return clean;
+  }
+
+  function validatePasswordPair() {
+    if (password.length < 8) {
+      setMessage("Password must be at least 8 characters.");
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage("Both passwords must match.");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean) return;
+
+    if (!password.trim()) {
+      setMessage("Enter your password.");
       return;
     }
 
     if (!captcha) {
-      setMessage("Complete the robot check before continuing.");
+      setMessage("Complete the robot check before logging in.");
       return;
     }
 
+    setLoadingAuth(true);
     setMessage("");
-    onSuccess();
+
+    try {
+      await authFetch("/api/auth/login", {
+        email: clean,
+        password,
+        captchaConfirmed: captcha,
+      });
+      onSuccess();
+    } catch (err) {
+      setMessage(err.message || "Login failed.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function startSignup(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean) return;
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/signup/start", { email: clean });
+      setEmail(clean);
+      setAuthView("signupCode");
+      setMessage("Verification code sent. Check your email.");
+    } catch (err) {
+      setMessage(err.message || "Could not send verification code.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function verifySignupCode(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean) return;
+
+    if (!code.trim()) {
+      setMessage("Enter the verification code from your email.");
+      return;
+    }
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/signup/verify", {
+        email: clean,
+        code: code.trim(),
+      });
+      setCode("");
+      setAuthView("signupPassword");
+      setMessage("Email verified. Create your password now.");
+    } catch (err) {
+      setMessage(err.message || "Invalid verification code.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function finishSignup(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean || !validatePasswordPair()) return;
+
+    if (!captcha) {
+      setMessage("Complete the robot check before creating your account.");
+      return;
+    }
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/signup/finish", {
+        email: clean,
+        password,
+        confirmPassword,
+        captchaConfirmed: captcha,
+      });
+      resetInputs("login");
+      setEmail(clean);
+      setMessage("Account created. Log in with your new password.");
+    } catch (err) {
+      setMessage(err.message || "Could not create account.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function startPasswordReset(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean) return;
+
+    if (!captcha) {
+      setMessage("Complete the robot check before sending a reset code.");
+      return;
+    }
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/password/start", {
+        email: clean,
+        captchaConfirmed: captcha,
+      });
+      setEmail(clean);
+      setCaptcha(false);
+      setAuthView("forgotCode");
+      setMessage("If that email has an account, a reset code was sent.");
+    } catch (err) {
+      setMessage(err.message || "Could not send reset code.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function verifyResetCode(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean) return;
+
+    if (!code.trim()) {
+      setMessage("Enter the reset code from your email.");
+      return;
+    }
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/password/verify", {
+        email: clean,
+        code: code.trim(),
+      });
+      setCode("");
+      setAuthView("forgotPassword");
+      setMessage("Code verified. Create a new password.");
+    } catch (err) {
+      setMessage(err.message || "Invalid reset code.");
+    } finally {
+      setLoadingAuth(false);
+    }
+  }
+
+  async function finishPasswordReset(e) {
+    e.preventDefault();
+
+    const clean = validateEmail();
+    if (!clean || !validatePasswordPair()) return;
+
+    setLoadingAuth(true);
+    setMessage("");
+
+    try {
+      await authFetch("/api/auth/password/finish", {
+        email: clean,
+        password,
+        confirmPassword,
+      });
+      resetInputs("login");
+      setEmail(clean);
+      setMessage("Password reset. Log in with your new password.");
+    } catch (err) {
+      setMessage(err.message || "Could not reset password.");
+    } finally {
+      setLoadingAuth(false);
+    }
   }
 
   function socialAuth(provider) {
-    if (!captcha) {
-      setMessage("Complete the robot check before using social sign in.");
-      return;
-    }
-
-    setMessage("");
-    onSuccess();
+    setMessage(`${provider} sign-in UI is ready, but OAuth still needs to be connected in the backend.`);
   }
+
+  const formTitle =
+    isLogin ? "Log in to Eval" :
+    isSignupEmail ? "Create your account" :
+    isSignupCode ? "Verify your email" :
+    isSignupPassword ? "Create your password" :
+    isForgotEmail ? "Reset your password" :
+    isForgotCode ? "Enter your reset code" :
+    "Create a new password";
+
+  const formText =
+    isLogin ? "Enter your email, password, and robot check to access the dashboard." :
+    isSignupEmail ? "Start with your email. Eval will send you a verification code." :
+    isSignupCode ? "Type the code sent to your email before creating a password." :
+    isSignupPassword ? "Use a strong password, type it twice, then complete the robot check." :
+    isForgotEmail ? "Enter the email you used for Eval and request a new verification code." :
+    isForgotCode ? "Type the reset code from your email to continue." :
+    "Type your new password twice. After saving it, you will return to the login screen.";
 
   return (
     <main className="auth-page">
@@ -518,7 +769,7 @@ function AuthPage({ onBack, onSuccess }) {
       <div className="landing-orb landing-orb-two" />
       <div className="landing-grid-glow" />
 
-      <section className="auth-shell">
+      <section className="auth-shell advanced-auth-shell">
         <button type="button" className="auth-back-btn" onClick={onBack}>
           <ArrowLeft size={17} /> Back
         </button>
@@ -534,56 +785,63 @@ function AuthPage({ onBack, onSuccess }) {
         <div className="auth-grid">
           <div className="auth-copy-card">
             <div className="landing-kicker">
-              <ShieldCheck size={16} /> Protected sign in
+              <ShieldCheck size={16} /> Secure account flow
             </div>
-            <h2>Save your watchlist and start analyzing faster.</h2>
+            <h2>Real sign-in logic before users enter Eval.</h2>
             <p>
-              Create an account or sign in to continue into Eval. The login page
-              helps keep automated traffic away from the dashboard while keeping
-              the experience simple for real users.
+              Users verify their email, create a password, complete a robot check,
+              and then return to the login screen. Password resets use a fresh email
+              code before the new password can be saved.
             </p>
 
             <div className="auth-benefits">
               <div>
                 <CheckCircle2 size={17} />
-                <span>Secure email and password entry</span>
+                <span>Email verification code before signup</span>
               </div>
               <div>
                 <CheckCircle2 size={17} />
-                <span>Google or Apple sign-in options</span>
+                <span>Password match check and protected login</span>
               </div>
               <div>
                 <CheckCircle2 size={17} />
-                <span>Captcha-style robot protection</span>
+                <span>Forgot-password code and reset flow</span>
               </div>
             </div>
           </div>
 
-          <form className="auth-card" onSubmit={submitAuth}>
+          <form
+            className="auth-card advanced-auth-card"
+            onSubmit={
+              isLogin ? handleLogin :
+              isSignupEmail ? startSignup :
+              isSignupCode ? verifySignupCode :
+              isSignupPassword ? finishSignup :
+              isForgotEmail ? startPasswordReset :
+              isForgotCode ? verifyResetCode :
+              finishPasswordReset
+            }
+          >
             <div className="auth-tabs">
               <button
                 type="button"
-                className={mode === "signup" ? "active" : ""}
-                onClick={() => setMode("signup")}
+                className={authView.startsWith("signup") ? "active" : ""}
+                onClick={() => resetInputs("signupEmail")}
               >
                 Sign up
               </button>
               <button
                 type="button"
-                className={mode === "login" ? "active" : ""}
-                onClick={() => setMode("login")}
+                className={authView === "login" ? "active" : ""}
+                onClick={() => resetInputs("login")}
               >
                 Log in
               </button>
             </div>
 
             <div className="auth-card-head">
-              <h2>{mode === "signup" ? "Create your account" : "Welcome back"}</h2>
-              <p>
-                {mode === "signup"
-                  ? "Use email and password or continue with Google or Apple."
-                  : "Log in to access the Eval dashboard."}
-              </p>
+              <h2>{formTitle}</h2>
+              <p>{formText}</p>
             </div>
 
             <label className="auth-field">
@@ -594,53 +852,117 @@ function AuthPage({ onBack, onSuccess }) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
+                disabled={isSignupCode || isSignupPassword || isForgotCode || isForgotPassword}
               />
             </label>
 
-            <label className="auth-field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              />
-            </label>
+            {(isLogin || isSignupPassword || isForgotPassword) && (
+              <label className="auth-field">
+                <span>{isForgotPassword ? "New password" : "Password"}</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 8 characters"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
+                />
+              </label>
+            )}
 
-            <label className={`captcha-box ${captcha ? "checked" : ""}`}>
-              <input
-                type="checkbox"
-                checked={captcha}
-                onChange={(e) => setCaptcha(e.target.checked)}
-              />
-              <span className="captcha-checkmark">{captcha ? "✓" : ""}</span>
-              <span>
-                <b>I'm not a robot</b>
-                <small>Human verification required before entering Eval.</small>
-              </span>
-            </label>
+            {(isSignupPassword || isForgotPassword) && (
+              <label className="auth-field">
+                <span>Confirm password</span>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Type password again"
+                  autoComplete="new-password"
+                />
+              </label>
+            )}
+
+            {(isSignupCode || isForgotCode) && (
+              <label className="auth-field code-field">
+                <span>Verification code</span>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6-digit code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                />
+              </label>
+            )}
+
+            {(isLogin || isSignupPassword || isForgotEmail) && (
+              <label className={`captcha-box ${captcha ? "checked" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={captcha}
+                  onChange={(e) => setCaptcha(e.target.checked)}
+                />
+                <span className="captcha-checkmark">{captcha ? "✓" : ""}</span>
+                <span>
+                  <b>I'm not a robot</b>
+                  <small>Robot protection required for account access.</small>
+                </span>
+              </label>
+            )}
 
             {message && <div className="auth-message">{message}</div>}
 
-            <button type="submit" className="auth-submit-btn">
-              {mode === "signup" ? "Create account" : "Log in"} <ArrowRight size={18} />
+            <button type="submit" className="auth-submit-btn" disabled={loadingAuth}>
+              {loadingAuth ? <RefreshCw className="spin" size={18} /> : null}
+              {isLogin ? "Log in" :
+               isSignupEmail ? "Send verification code" :
+               isSignupCode ? "Verify email" :
+               isSignupPassword ? "Create account" :
+               isForgotEmail ? "Send reset code" :
+               isForgotCode ? "Verify reset code" :
+               "Save new password"}
+              <ArrowRight size={18} />
             </button>
 
-            <div className="auth-divider"><span>or continue with</span></div>
+            {isLogin && (
+              <button
+                type="button"
+                className="forgot-password-btn"
+                onClick={() => resetInputs("forgotEmail")}
+              >
+                Forgot your password?
+              </button>
+            )}
 
-            <div className="social-auth-grid">
-              <button type="button" onClick={() => socialAuth("google")}>
-                <span className="social-mark">G</span> Google
+            {isLogin && (
+              <>
+                <div className="auth-divider"><span>or continue with</span></div>
+
+                <div className="social-auth-grid">
+                  <button type="button" onClick={() => socialAuth("Google")}>
+                    <span className="social-mark">G</span> Google
+                  </button>
+                  <button type="button" onClick={() => socialAuth("Apple")}>
+                    <span className="social-mark apple-mark"></span> Apple
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(isForgotEmail || isForgotCode || isForgotPassword) && (
+              <button
+                type="button"
+                className="forgot-password-btn"
+                onClick={() => resetInputs("login")}
+              >
+                Back to login
               </button>
-              <button type="button" onClick={() => socialAuth("apple")}>
-                <span className="social-mark apple-mark"></span> Apple
-              </button>
-            </div>
+            )}
 
             <p className="auth-note">
-              For full production security, connect this page to Firebase, Supabase,
-              Auth0, Clerk, or another real auth provider with server-side captcha verification.
+              Production captcha should use Cloudflare Turnstile, hCaptcha, or reCAPTCHA
+              with server-side verification.
             </p>
           </form>
         </div>
