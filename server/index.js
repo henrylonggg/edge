@@ -9,6 +9,127 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+
+function stripHtml(html = "") {
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanAboutText(text = "") {
+  const cleaned = stripHtml(text)
+    .replace(/\b(skip to main content|cookie policy|privacy policy|terms of use|all rights reserved)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned || cleaned.length < 60) return null;
+  return cleaned.length > 620 ? `${cleaned.slice(0, 620).trim()}...` : cleaned;
+}
+
+function getMetaContent(html, names = []) {
+  for (const name of names) {
+    const patterns = [
+      new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+      new RegExp(`<meta[^>]+property=["']${name}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+      new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${name}["'][^>]*>`, "i"),
+      new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${name}["'][^>]*>`, "i"),
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match?.[1]) return cleanAboutText(match[1]);
+    }
+  }
+
+  return null;
+}
+
+function findAboutUrl(homeUrl, html) {
+  const matches = [...String(html).matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+  const aboutMatch = matches.find((match) => {
+    const href = String(match[1] || "");
+    const label = stripHtml(match[2] || "").toLowerCase();
+    return /\babout\b|company|who we are|our story/.test(label) || /about|company|who-we-are|our-story/i.test(href);
+  });
+
+  if (!aboutMatch) return null;
+
+  try {
+    return new URL(aboutMatch[1], homeUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractAboutSection(html) {
+  const sectionPatterns = [
+    /<section[^>]*(?:about|company|who-we-are|our-story)[^>]*>([\s\S]{120,5000}?)<\/section>/i,
+    /<div[^>]*(?:about|company|who-we-are|our-story)[^>]*>([\s\S]{120,5000}?)<\/div>/i,
+    /<main[^>]*>([\s\S]{120,6000}?)<\/main>/i,
+  ];
+
+  for (const pattern of sectionPatterns) {
+    const match = html.match(pattern);
+    const cleaned = match?.[1] ? cleanAboutText(match[1]) : null;
+    if (cleaned) return cleaned;
+  }
+
+  return null;
+}
+
+async function fetchWebsiteHtml(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6500);
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 EvalAIAboutFetcher/1.0",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return null;
+    return await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchCompanyWebsiteAbout(profile = {}) {
+  const home = profile?.weburl || profile?.website || profile?.url;
+  if (!home) return null;
+
+  const homeUrl = /^https?:\/\//i.test(home) ? home : `https://${home}`;
+  const homeHtml = await fetchWebsiteHtml(homeUrl);
+  if (!homeHtml) return null;
+
+  const homeMeta = getMetaContent(homeHtml, ["description", "og:description", "twitter:description"]);
+  const aboutUrl = findAboutUrl(homeUrl, homeHtml);
+
+  if (aboutUrl && aboutUrl !== homeUrl) {
+    const aboutHtml = await fetchWebsiteHtml(aboutUrl);
+    const aboutSection = aboutHtml ? extractAboutSection(aboutHtml) : null;
+    const aboutMeta = aboutHtml ? getMetaContent(aboutHtml, ["description", "og:description", "twitter:description"]) : null;
+    return aboutSection || aboutMeta || homeMeta;
+  }
+
+  return extractAboutSection(homeHtml) || homeMeta;
+}
+
 async function fetchFinnhubAbout(symbol) {
   const token = process.env.FINNHUB_API_KEY || process.env.FINNHUB_KEY;
   if (!token) return null;
@@ -138,6 +259,17 @@ app.get("/api/analyze/:symbol", async (req, res) => {
       analysis.profile = {
         ...(analysis.profile || {}),
         description: finnhubAbout,
+      };
+    }
+
+    const websiteAbout = await fetchCompanyWebsiteAbout(analysis.profile || {});
+
+    if (websiteAbout) {
+      analysis.websiteAbout = websiteAbout;
+      analysis.companyDescription = websiteAbout;
+      analysis.profile = {
+        ...(analysis.profile || {}),
+        description: websiteAbout,
       };
     }
 
