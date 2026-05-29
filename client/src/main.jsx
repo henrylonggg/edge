@@ -298,18 +298,17 @@ function App() {
             />
           </div>
 
-          <button disabled={loading} aria-label="Search stock" title="Search stock">
+          <button disabled={loading}>
             {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
+            Analyze
           </button>
 
           <button
             type="button"
             className="ghost-btn"
             onClick={() => addTicker(symbol)}
-            aria-label="Add to watchlist"
-            title="Add to watchlist"
           >
-            <Plus size={18} />
+            <Plus size={18} /> Add
           </button>
         </form>
       </header>
@@ -356,7 +355,7 @@ function App() {
 function EmptyReport() {
   return (
     <section className="empty-report">
-      Type a ticker like AAPL, MSFT, or NVDA & click the search icon.
+      Type a ticker like AAPL, MSFT, or NVDA & click Analyze.
     </section>
   );
 }
@@ -754,8 +753,8 @@ function Report({ data, onAdd }) {
           </p>
 
           <div className="hero-actions">
-            <button onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
-              <Plus size={17} />
+            <button onClick={onAdd}>
+              <Plus size={17} /> Add to Watchlist
             </button>
 
             {data.profile?.weburl && (
