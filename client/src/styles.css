@@ -2902,3 +2902,37 @@ button:active,
     font-size: 12px;
   }
 }
+
+
+/* =========================
+   QUESTION MARK INFO BUTTON CLEANUP
+   Removes skipped-data note and centers ? inside every circular help button
+========================= */
+.score-help-btn {
+  position: relative !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+.info-letter {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  transform: none !important;
+  text-align: center !important;
+  pointer-events: none !important;
+}
+
+.score-popup small,
+.mini-stat-popup small {
+  display: none !important;
+}
