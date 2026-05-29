@@ -9,6 +9,46 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+async function fetchFinnhubAbout(symbol) {
+  const token = process.env.FINNHUB_API_KEY || process.env.FINNHUB_KEY;
+  if (!token) return null;
+
+  try {
+    const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${token}`;
+    const res = await fetch(url);
+    const profile = await res.json().catch(() => null);
+
+    if (!res.ok || !profile || Object.keys(profile).length === 0) {
+      return null;
+    }
+
+    const about =
+      profile.description ||
+      profile.businessSummary ||
+      profile.businessDescription ||
+      profile.summary ||
+      profile.about ||
+      null;
+
+    if (about && String(about).trim()) {
+      return String(about).trim();
+    }
+
+    const pieces = [
+      profile.name ? `${profile.name} is a publicly traded company` : null,
+      profile.finnhubIndustry ? `in the ${profile.finnhubIndustry} industry` : null,
+      profile.country ? `based in ${profile.country}` : null,
+      profile.exchange ? `and listed on the ${profile.exchange}` : null,
+    ].filter(Boolean);
+
+    if (!pieces.length) return null;
+    return `${pieces.join(" ")}.`;
+  } catch (error) {
+    console.error("Finnhub about lookup failed:", error?.message || error);
+    return null;
+  }
+}
+
 /*
   CORS FIX FOR VERCEL → RENDER
 
@@ -91,6 +131,15 @@ app.get("/api/analyze/:symbol", async (req, res) => {
     }
 
     const analysis = await buildStockAnalysis(symbol);
+    const finnhubAbout = await fetchFinnhubAbout(symbol);
+
+    if (finnhubAbout) {
+      analysis.companyDescription = finnhubAbout;
+      analysis.profile = {
+        ...(analysis.profile || {}),
+        description: finnhubAbout,
+      };
+    }
 
     return res.status(200).json(analysis);
   } catch (error) {
