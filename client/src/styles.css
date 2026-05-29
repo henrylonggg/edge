@@ -1885,3 +1885,125 @@ button:active,
     min-height: auto;
   }
 }
+
+/* =========================
+   SCORE HELP POPUPS
+========================= */
+.grade-card {
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.grade-card:hover,
+.grade-card:has(.score-popup) {
+  z-index: 20;
+}
+
+.grade-score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.score-help-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  background: rgba(255,255,255,.095) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.score-help-btn:hover {
+  background: rgba(255,255,255,.15) !important;
+  box-shadow:
+    0 0 22px rgba(21,231,255,.18),
+    0 0 34px rgba(133,255,71,.10),
+    0 10px 24px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-popup {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 98px;
+  z-index: 50;
+  padding: 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 36%),
+    radial-gradient(circle at 88% 100%, rgba(159,92,255,.16), transparent 42%),
+    rgba(3,8,18,.96);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 30px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  animation: popupIn .18s ease both;
+}
+
+.score-popup-title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: .03em;
+}
+
+.score-popup ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.score-popup li {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  color: rgba(248,251,255,.78);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.score-popup li span {
+  color: rgba(248,251,255,.76);
+  font-weight: 700;
+}
+
+.score-popup li b {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.score-popup small {
+  display: block;
+  margin-top: 11px;
+  color: rgba(248,251,255,.48);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
