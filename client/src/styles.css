@@ -3476,3 +3476,74 @@ button:active,
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================
+   ADVANCED AUTH FLOW UPDATE
+========================= */
+.advanced-auth-shell {
+  max-width: 1250px;
+}
+
+.advanced-auth-card {
+  min-height: 620px;
+}
+
+.auth-field input:disabled {
+  opacity: .72;
+  cursor: not-allowed;
+  background: rgba(255,255,255,.045);
+}
+
+.code-field input {
+  text-align: center;
+  letter-spacing: .34em;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.auth-submit-btn:disabled {
+  opacity: .72;
+  cursor: wait;
+}
+
+.forgot-password-btn {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 13px 16px;
+  color: rgba(248,251,255,.86);
+  font-weight: 800;
+  background: rgba(255,255,255,.065);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+
+.forgot-password-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.11);
+  border-color: rgba(255,255,255,.20);
+  box-shadow: 0 16px 34px rgba(0,0,0,.22), 0 0 22px rgba(21,231,255,.08);
+}
+
+.advanced-auth-card .auth-card-head h2 {
+  font-size: clamp(28px, 3.2vw, 42px);
+  letter-spacing: -1.7px;
+}
+
+.advanced-auth-card .auth-note {
+  margin-top: 16px;
+}
+
+@media (max-width: 680px) {
+  .advanced-auth-card {
+    min-height: auto;
+  }
+
+  .code-field input {
+    font-size: 22px;
+    letter-spacing: .24em;
+  }
+}
