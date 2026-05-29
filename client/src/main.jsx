@@ -1097,7 +1097,7 @@ function MiniStat({
             aria-label={helpTitle || `${label} metrics used`}
             title={helpTitle || `${label} metrics used`}
           >
-            <span className="info-letter">i</span>
+            <span className="info-letter">?</span>
           </button>
         )}
       </div>
@@ -1112,7 +1112,6 @@ function MiniStat({
               </li>
             ))}
           </ul>
-          <small>Only available metrics are used. Missing metrics are skipped.</small>
         </div>
       )}
     </div>
@@ -1151,7 +1150,7 @@ function Grade({
           aria-label={`${name} metrics used`}
           title={`${name} metrics used`}
         >
-          <span className="info-letter">i</span>
+          <span className="info-letter">?</span>
         </button>
       </div>
 
@@ -1165,7 +1164,6 @@ function Grade({
               </li>
             ))}
           </ul>
-          <small>Only available metrics are used. Missing metrics are skipped.</small>
         </div>
       )}
 
