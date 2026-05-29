@@ -2848,3 +2848,57 @@ button:active,
     font-size: 66px;
   }
 }
+
+/* =========================
+   LANDING PAGE TITLE / COPY POLISH
+========================= */
+
+.landing-brand-row {
+  align-items: center;
+  gap: 20px;
+}
+
+.landing-brand-row h1 {
+  margin: 0;
+  font-size: clamp(38px, 5.2vw, 74px);
+  line-height: .88;
+  letter-spacing: -3.1px;
+  word-break: break-word;
+}
+
+.landing-brand-row p {
+  margin: 10px 0 0;
+  color: rgba(248,251,255,.70);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.landing-copy p {
+  max-width: 800px;
+}
+
+.landing-point-card h3 {
+  letter-spacing: -.25px;
+}
+
+.landing-footnote {
+  margin: 14px 0 0;
+  text-align: center;
+  color: rgba(248,251,255,.46);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  .landing-brand-row h1 {
+    font-size: clamp(30px, 10vw, 48px);
+    letter-spacing: -1.8px;
+  }
+
+  .landing-brand-row p {
+    font-size: 12px;
+  }
+}
