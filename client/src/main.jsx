@@ -702,6 +702,15 @@ function Report({ data, onAdd }) {
     [cats]
   );
 
+  const gradeDescriptions = {
+    growth: "Shows how fast the company is expanding sales and earnings. Higher means the business is growing stronger over time.",
+    profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
+    financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
+    valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
+    momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
+    reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
+  };
+
   const rows = [
     [
       "P/E Ratio",
@@ -810,24 +819,43 @@ function Report({ data, onAdd }) {
         </div>
       </section>
 
-      <section className="summary-card">
-        <div className="section-title">
-          <Info size={17} /> Simple evaluation
-        </div>
-        <p>{data.evaluationSummary}</p>
-      </section>
-
       <section className="grade-grid">
-        <Grade name="Growth" value={cats.growth} icon={<TrendingUp size={18} />} />
-        <Grade name="Profitability" value={cats.profitability} icon={<BarChart3 size={18} />} />
+        <Grade
+          name="Growth"
+          value={cats.growth}
+          icon={<TrendingUp size={18} />}
+          description={gradeDescriptions.growth}
+        />
+        <Grade
+          name="Profitability"
+          value={cats.profitability}
+          icon={<BarChart3 size={18} />}
+          description={gradeDescriptions.profitability}
+        />
         <Grade
           name="Financial Health"
           value={cats.financialHealth}
           icon={<ShieldCheck size={18} />}
+          description={gradeDescriptions.financialHealth}
         />
-        <Grade name="Valuation" value={cats.valuation} icon={<Target size={18} />} />
-        <Grade name="Momentum" value={cats.momentum} icon={<LineChart size={18} />} />
-        <Grade name="Pullback" value={cats.reversal} icon={<Zap size={18} />} />
+        <Grade
+          name="Valuation"
+          value={cats.valuation}
+          icon={<Target size={18} />}
+          description={gradeDescriptions.valuation}
+        />
+        <Grade
+          name="Momentum"
+          value={cats.momentum}
+          icon={<LineChart size={18} />}
+          description={gradeDescriptions.momentum}
+        />
+        <Grade
+          name="Pullback"
+          value={cats.reversal}
+          icon={<Zap size={18} />}
+          description={gradeDescriptions.reversal}
+        />
       </section>
 
       <section className="metrics-card">
@@ -857,7 +885,7 @@ function MiniStat({ icon, label, value }) {
   );
 }
 
-function Grade({ name, value, icon }) {
+function Grade({ name, value, icon, description }) {
   const s = score10(value);
   const tone = scoreTone(s);
 
@@ -873,6 +901,7 @@ function Grade({ name, value, icon }) {
       </div>
 
       <strong className={tone}>{scoreText(s)}</strong>
+      <p className="grade-description">{description}</p>
     </div>
   );
 }
