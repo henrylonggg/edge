@@ -83,8 +83,8 @@ button {
 }
 
 .brand img {
-  width: 114px;
-  height: 114px;
+  width: 132px;
+  height: 132px;
   filter:
     drop-shadow(0 18px 36px rgba(133,215,19,.28))
     drop-shadow(0 0 28px rgba(21,231,255,.16))
@@ -93,9 +93,9 @@ button {
 
 .brand h1 {
   margin: 0 0 5px;
-  font-size: clamp(54px, 6vw, 82px);
-  line-height: .82;
-  letter-spacing: -3px;
+  font-size: clamp(70px, 7vw, 110px);
+  line-height: .80;
+  letter-spacing: -4.8px;
   font-weight: 800;
 }
 
@@ -965,13 +965,13 @@ button {
   }
 
   .brand img {
-    width: 92px;
-    height: 92px;
+    width: 104px;
+    height: 104px;
   }
 
   .brand h1 {
-    font-size: 52px;
-    letter-spacing: -2.4px;
+    font-size: 64px;
+    letter-spacing: -3px;
   }
 
   .searchbar,
@@ -2466,8 +2466,8 @@ button:active,
 }
 
 .landing-brand-row img {
-  width: 92px;
-  height: 92px;
+  width: 132px;
+  height: 132px;
   filter:
     drop-shadow(0 18px 36px rgba(133,255,71,.25))
     drop-shadow(0 0 30px rgba(21,231,255,.15));
@@ -2484,9 +2484,9 @@ button:active,
 
 .landing-brand-row h1 {
   margin: 4px 0 0;
-  font-size: clamp(48px, 6vw, 86px);
-  line-height: .82;
-  letter-spacing: -3.4px;
+  font-size: clamp(70px, 7vw, 110px);
+  line-height: .80;
+  letter-spacing: -4.8px;
   font-weight: 800;
   color: #ffffff;
   text-shadow: 0 0 34px rgba(255,255,255,.12);
@@ -2521,9 +2521,9 @@ button:active,
 .landing-copy h2 {
   margin: 20px 0 18px;
   max-width: 780px;
-  font-size: clamp(46px, 6.2vw, 88px);
-  line-height: .88;
-  letter-spacing: -4px;
+  font-size: clamp(28px, 3.2vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -1.8px;
   font-weight: 800;
   color: #ffffff;
   text-shadow:
@@ -2935,4 +2935,50 @@ button:active,
 .score-popup small,
 .mini-stat-popup small {
   display: none !important;
+}
+
+/* =========================
+   FINAL TITLE / LOGO SIZE SYNC
+   Keeps cover page and dashboard branding fluent.
+========================= */
+.brand img,
+.landing-brand-row img {
+  width: 132px !important;
+  height: 132px !important;
+}
+
+.brand h1,
+.landing-brand-row h1 {
+  margin: 0 !important;
+  font-size: clamp(70px, 7vw, 110px) !important;
+  line-height: .80 !important;
+  letter-spacing: -4.8px !important;
+  font-weight: 800 !important;
+}
+
+.landing-copy h2 {
+  font-size: clamp(28px, 3.2vw, 48px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -1.8px !important;
+  max-width: 790px !important;
+}
+
+@media (max-width: 680px) {
+  .brand img,
+  .landing-brand-row img {
+    width: 104px !important;
+    height: 104px !important;
+  }
+
+  .brand h1,
+  .landing-brand-row h1 {
+    font-size: 64px !important;
+    letter-spacing: -3px !important;
+  }
+
+  .landing-copy h2 {
+    font-size: 30px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -1.2px !important;
+  }
 }
