@@ -283,10 +283,10 @@ function App() {
             type="button"
             className="plans-nav-btn"
             onClick={() => setView("plans")}
+            aria-label="Eval AI Plans"
             title="Eval AI Plans"
           >
-            <Crown size={18} />
-            Plans
+            <Crown size={20} />
           </button>
 
           <div>
@@ -298,17 +298,18 @@ function App() {
             />
           </div>
 
-          <button disabled={loading}>
+          <button disabled={loading} aria-label="Search stock" title="Search stock">
             {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-            Analyze
           </button>
 
           <button
             type="button"
             className="ghost-btn"
             onClick={() => addTicker(symbol)}
+            aria-label="Add to watchlist"
+            title="Add to watchlist"
           >
-            <Plus size={18} /> Add
+            <Plus size={18} />
           </button>
         </form>
       </header>
@@ -355,7 +356,7 @@ function App() {
 function EmptyReport() {
   return (
     <section className="empty-report">
-      Type a ticker like AAPL, MSFT, or NVDA & click Analyze.
+      Type a ticker like AAPL, MSFT, or NVDA & click the search icon.
     </section>
   );
 }
@@ -450,13 +451,14 @@ function PlansPage({ onBack }) {
       yearly: "$99.99/yr",
       tone: "pro",
       description:
-        "Unlock limited access to Eval AI Assistant, more stocks, and a much deeper market-metrics dashboard.",
+        "Unlock limited access to Eval AI Assistant and a deeper metrics dashboard that adds EBIT, EBITDA, and other fundamentals for a more accurate evaluation.",
       features: [
         "Limited Eval AI Assistant access",
-        "More stock searches and saved reports",
-        "More market metrics from income statements",
+        "EBIT and EBITDA included in the evaluation",
+        "Expanded income-statement metric calculations",
         "Cash-flow and balance-sheet metric expansion",
-        "Cleaner explanations for each score category",
+        "Additional profitability and operating-efficiency metrics",
+        "More accurate Eval Score interpretation",
       ],
     },
     {
@@ -470,6 +472,8 @@ function PlansPage({ onBack }) {
         "Full Eval AI Assistant access",
         "Full Eval Score with even more metrics",
         "Intrinsic value, WACC, and DCF support",
+        "Percent difference between current price and intrinsic value",
+        "Warren Buffett-style Margin of Safety interpretation",
         "News sentiment rating",
         "AI summaries that grade news articles",
         "Recent news grades converted into a sentiment score",
@@ -753,8 +757,8 @@ function Report({ data, onAdd }) {
           </p>
 
           <div className="hero-actions">
-            <button onClick={onAdd}>
-              <Plus size={17} /> Add to Watchlist
+            <button onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
+              <Plus size={17} />
             </button>
 
             {data.profile?.weburl && (
@@ -781,7 +785,7 @@ function Report({ data, onAdd }) {
           <div className="section-title">
             <Building2 size={17} /> What this company does
           </div>
-          <p>{data.companyDescription}</p>
+          <p>{data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
         </div>
 
         <div className="story-card">
