@@ -2007,3 +2007,60 @@ button:active,
     transform: translateY(0) scale(1);
   }
 }
+
+/* =========================
+   SMALLER SCORE INFO BUTTONS + METRIC-ONLY POPUP
+========================= */
+.grade-score-row {
+  gap: 7px;
+}
+
+.score-help-btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 12px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.score-help-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 0 16px rgba(21,231,255,.18),
+    0 0 24px rgba(133,255,71,.08),
+    0 8px 18px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-help-btn svg {
+  width: 11px !important;
+  height: 11px !important;
+  stroke-width: 2.8;
+}
+
+.score-popup li {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+
+.score-popup li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 0 10px rgba(21,231,255,.28);
+}
+
+.score-popup li b {
+  display: none !important;
+}
