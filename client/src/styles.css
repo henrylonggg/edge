@@ -1885,3 +1885,486 @@ button:active,
     min-height: auto;
   }
 }
+
+/* =========================
+   SCORE HELP POPUPS
+========================= */
+.grade-card {
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.grade-card:hover,
+.grade-card:has(.score-popup) {
+  z-index: 20;
+}
+
+.grade-score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.score-help-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  background: rgba(255,255,255,.095) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.score-help-btn:hover {
+  background: rgba(255,255,255,.15) !important;
+  box-shadow:
+    0 0 22px rgba(21,231,255,.18),
+    0 0 34px rgba(133,255,71,.10),
+    0 10px 24px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-popup {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 98px;
+  z-index: 50;
+  padding: 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 36%),
+    radial-gradient(circle at 88% 100%, rgba(159,92,255,.16), transparent 42%),
+    rgba(3,8,18,.96);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 30px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  animation: popupIn .18s ease both;
+}
+
+.score-popup-title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: .03em;
+}
+
+.score-popup ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.score-popup li {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  color: rgba(248,251,255,.78);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.score-popup li span {
+  color: rgba(248,251,255,.76);
+  font-weight: 700;
+}
+
+.score-popup li b {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.score-popup small {
+  display: block;
+  margin-top: 11px;
+  color: rgba(248,251,255,.48);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================
+   SMALLER SCORE INFO BUTTONS + METRIC-ONLY POPUP
+========================= */
+.grade-score-row {
+  gap: 7px;
+}
+
+.score-help-btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 12px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.score-help-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 0 16px rgba(21,231,255,.18),
+    0 0 24px rgba(133,255,71,.08),
+    0 8px 18px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-help-btn svg {
+  width: 11px !important;
+  height: 11px !important;
+  stroke-width: 2.8;
+}
+
+.score-popup li {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+
+.score-popup li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 0 10px rgba(21,231,255,.28);
+}
+
+.score-popup li b {
+  display: none !important;
+}
+
+/* =========================
+   RISK INFO POPUP + ONE PRO PLAN UPGRADE
+========================= */
+.mini-stat {
+  position: relative;
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.mini-stat:has(.mini-stat-popup) {
+  z-index: 35;
+}
+
+.mini-stat-value-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.mini-stat-value-row b {
+  margin-top: 0 !important;
+}
+
+.mini-risk-help-btn {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.mini-stat-popup {
+  top: 62px !important;
+  left: 12px !important;
+  right: 12px !important;
+  min-width: 210px;
+}
+
+.pro-only-shell {
+  max-width: 1040px !important;
+  padding: 38px !important;
+  background:
+    radial-gradient(circle at 14% 2%, rgba(255,214,107,.18), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(21,231,255,.17), transparent 34%),
+    radial-gradient(circle at 75% 94%, rgba(159,92,255,.22), transparent 38%),
+    linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.055)) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+.pro-only-grid {
+  grid-template-columns: minmax(300px, 760px) !important;
+  justify-content: center;
+}
+
+.pro-only-card {
+  min-height: auto !important;
+  padding: 34px !important;
+  border-radius: 34px !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.125), rgba(255,255,255,.048)),
+    radial-gradient(circle at 14% 8%, rgba(255,214,107,.22), transparent 33%),
+    radial-gradient(circle at 93% 12%, rgba(21,231,255,.20), transparent 32%),
+    radial-gradient(circle at 78% 98%, rgba(133,255,71,.12), transparent 34%),
+    rgba(1,7,16,.62) !important;
+  border: 1px solid rgba(255,214,107,.30) !important;
+  box-shadow:
+    0 38px 100px rgba(0,0,0,.48),
+    0 0 70px rgba(255,214,107,.10),
+    0 0 64px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+.pro-only-card::after {
+  background: linear-gradient(90deg, transparent, rgba(255,214,107,.78), rgba(21,231,255,.52), transparent) !important;
+}
+
+.plan-top,
+.pro-only-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.plan-top span {
+  display: inline-flex;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  margin-bottom: 12px;
+}
+
+.plan-top h3 {
+  margin: 0 !important;
+  font-size: clamp(54px, 7vw, 76px) !important;
+  line-height: .9 !important;
+  letter-spacing: -3px !important;
+  color: #ffffff !important;
+  text-shadow:
+    0 0 24px rgba(255,255,255,.16),
+    0 0 38px rgba(255,214,107,.14) !important;
+}
+
+.plan-top h3::after {
+  display: none !important;
+}
+
+.plan-top p {
+  margin: 10px 0 0 !important;
+  color: rgba(248,251,255,.70) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+.plan-description {
+  margin: 0 0 24px !important;
+  max-width: 720px;
+  color: rgba(248,251,255,.82) !important;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.plan-features,
+.pro-only-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin: 24px 0 26px;
+}
+
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.17);
+  color: rgba(248,251,255,.84);
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 650;
+}
+
+.plan-feature svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+  filter: drop-shadow(0 0 9px rgba(255,214,107,.30));
+  margin-top: 1px;
+}
+
+.pro-only-card .plan-select-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 18px !important;
+  color: #1c1200 !important;
+  background:
+    radial-gradient(circle at 28% 0%, rgba(255,255,255,.58), transparent 26%),
+    linear-gradient(135deg, #fff2a8, #ffd66b 44%, #ffb703) !important;
+  border-color: rgba(255,214,107,.72) !important;
+  box-shadow:
+    0 0 30px rgba(255,214,107,.35),
+    0 18px 38px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.55) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.pro-only-card .plan-select-btn:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    0 0 42px rgba(255,214,107,.48),
+    0 0 58px rgba(21,231,255,.12),
+    0 22px 46px rgba(0,0,0,.36),
+    inset 0 1px 0 rgba(255,255,255,.65) !important;
+}
+
+@media (max-width: 760px) {
+  .plan-features,
+  .pro-only-features {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-top,
+  .pro-only-top {
+    flex-direction: column;
+  }
+
+  .pro-only-shell {
+    padding: 24px !important;
+  }
+}
+
+/* =========================
+   INFO BUTTON FRONT-LAYER FIX
+   Keeps every circle-i popup above nearby cards/animations.
+========================= */
+.hero-card,
+.snapshot-grid,
+.grade-grid,
+.content,
+.layout {
+  overflow: visible !important;
+}
+
+.grade-card,
+.mini-stat {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.grade-card.popup-active,
+.mini-stat.popup-active {
+  z-index: 9998 !important;
+  isolation: isolate;
+}
+
+.grade-card.popup-active .score-popup,
+.mini-stat.popup-active .score-popup,
+.score-popup {
+  z-index: 9999 !important;
+}
+
+.score-help-btn {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  aspect-ratio: 1 / 1;
+}
+
+.score-help-btn svg {
+  display: none !important;
+}
+
+.info-letter {
+  display: block;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-.5px);
+  text-shadow: 0 0 10px rgba(255,255,255,.24);
+  pointer-events: none;
+}
+
+.score-help-btn:focus-visible {
+  outline: 2px solid rgba(21,231,255,.68);
+  outline-offset: 3px;
+}
+
+/* =========================
+   RISK POPUP COMPACT RESET
+   Keeps original i buttons/popups, but makes only the Risk popup smaller
+   so it does not overlap the Fast Read card.
+========================= */
+.mini-stat-popup {
+  top: 50px !important;
+  left: 10px !important;
+  right: 10px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 10px 11px !important;
+  border-radius: 15px !important;
+}
+
+.mini-stat-popup .score-popup-title {
+  font-size: 10px !important;
+  margin-bottom: 6px !important;
+  line-height: 1.15 !important;
+}
+
+.mini-stat-popup ul {
+  gap: 4px !important;
+}
+
+.mini-stat-popup li {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+  gap: 5px !important;
+}
+
+.mini-stat-popup li::before {
+  width: 4px !important;
+  height: 4px !important;
+  min-width: 4px !important;
+  margin-top: 4px !important;
+}
+
+.mini-stat-popup li span {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+}
+
+.mini-stat-popup small {
+  margin-top: 7px !important;
+  font-size: 8.5px !important;
+  line-height: 1.2 !important;
+}
