@@ -20,7 +20,6 @@ import {
   CheckCircle2,
   Star,
   AlertTriangle,
-  Info,
   Gauge,
   ArrowLeft,
 } from "lucide-react";
@@ -970,7 +969,7 @@ function MiniStat({
   onToggle,
 }) {
   return (
-    <div className="mini-stat">
+    <div className={`mini-stat ${isOpen ? "popup-active" : ""}`}>
       <span>
         {icon}
         {label}
@@ -986,7 +985,7 @@ function MiniStat({
             aria-label={helpTitle || `${label} metrics used`}
             title={helpTitle || `${label} metrics used`}
           >
-            <Info size={11} />
+            <span className="info-letter">i</span>
           </button>
         )}
       </div>
@@ -1021,7 +1020,7 @@ function Grade({
   const tone = scoreTone(s);
 
   return (
-    <div className="grade-card">
+    <div className={`grade-card ${isOpen ? "popup-active" : ""}`}>
       <div className="grade-head">
         <span>{icon}</span>
         <h3>{name}</h3>
@@ -1040,7 +1039,7 @@ function Grade({
           aria-label={`${name} metrics used`}
           title={`${name} metrics used`}
         >
-          <Info size={11} />
+          <span className="info-letter">i</span>
         </button>
       </div>
 
