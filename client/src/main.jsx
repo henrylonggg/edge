@@ -444,46 +444,27 @@ function Watchlist({
 
 
 function PlansPage({ onBack }) {
-  const plans = [
-    {
-      name: "Eval Pro",
-      price: "$9.99/mo",
-      yearly: "$99.99/yr",
-      tone: "pro",
-      description:
-        "Unlock limited access to Eval AI Assistant and a deeper metrics dashboard that adds EBIT, EBITDA, and other fundamentals for a more accurate evaluation.",
-      features: [
-        "Limited Eval AI Assistant access",
-        "EBIT and EBITDA included in the evaluation",
-        "Expanded income-statement metric calculations",
-        "Cash-flow and balance-sheet metric expansion",
-        "Additional profitability and operating-efficiency metrics",
-        "More accurate Eval Score interpretation",
-      ],
-    },
-    {
-      name: "Eval Platinum",
-      price: "$24.99/mo",
-      yearly: "$224.99/yr",
-      tone: "platinum",
-      description:
-        "Get the full Eval Score system with advanced valuation, news sentiment, and complete assistant access.",
-      features: [
-        "Full Eval AI Assistant access",
-        "Full Eval Score with even more metrics",
-        "Intrinsic value, WACC, and DCF support",
-        "Percent difference between current price and intrinsic value",
-        "Warren Buffett-style Margin of Safety interpretation",
-        "News sentiment rating",
-        "AI summaries that grade news articles",
-        "Recent news grades converted into a sentiment score",
-      ],
-    },
-  ];
+  const plan = {
+    name: "Eval Pro",
+    price: "$9.99/mo",
+    yearly: "$99.99/yr",
+    description:
+      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
+    features: [
+      "Expanded Eval Score with more quality fundamentals",
+      "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
+      "Intrinsic value, WACC, and DCF-style valuation support",
+      "Margin of safety and percent difference from intrinsic value",
+      "News sentiment score from recent company headlines",
+      "AI summaries that explain what the news means",
+      "More detailed metric explanations in plain English",
+      "Expanded Eval AI Assistant access for stock questions",
+    ],
+  };
 
   return (
     <section className="plans-page">
-      <div className="plans-shell">
+      <div className="plans-shell pro-only-shell">
         <div className="plans-page-head">
           <button className="back-btn" onClick={onBack}>
             <ArrowLeft size={18} /> Dashboard
@@ -491,59 +472,58 @@ function PlansPage({ onBack }) {
 
           <div>
             <div className="plans-kicker">
-              <Crown size={16} /> Eval AI Plans
+              <Crown size={16} /> Eval Pro
             </div>
-            <h2>Upgrade the stock research engine.</h2>
+            <h2>One plan. Deeper stock research.</h2>
             <p>
-              Choose a plan for deeper company fundamentals, more market data,
-              stronger Eval scoring, and expanded AI-powered explanations.
+              Eval Pro keeps the upgrade simple: stronger scoring, more company
+              metrics, valuation tools, news sentiment, and cleaner AI-powered
+              explanations for one price.
             </p>
           </div>
         </div>
 
-        <div className="plans-grid">
-          {plans.map((plan) => (
-            <article className={`plan-card ${plan.tone}`} key={plan.name}>
-              <div className="plan-glow" />
+        <div className="plans-grid pro-only-grid">
+          <article className="plan-card pro pro-only-card">
+            <div className="plan-glow" />
 
-              <div className="plan-top">
-                <div>
-                  <span>{plan.name}</span>
-                  <h3>{plan.price}</h3>
-                  <p>{plan.yearly}</p>
-                </div>
-
-                <div className="plan-icon">
-                  <Crown size={24} />
-                </div>
+            <div className="plan-top pro-only-top">
+              <div>
+                <span>{plan.name}</span>
+                <h3>{plan.price}</h3>
+                <p>{plan.yearly}</p>
               </div>
 
-              <p className="plan-description">{plan.description}</p>
-
-              <div className="plan-features">
-                {plan.features.map((feature) => (
-                  <div className="plan-feature" key={feature}>
-                    <CheckCircle2 size={16} />
-                    <span>{feature}</span>
-                  </div>
-                ))}
+              <div className="plan-icon">
+                <Crown size={28} />
               </div>
+            </div>
 
-              <button
-                type="button"
-                className="plan-select-btn"
-                onClick={() => {}}
-                title={`${plan.name} website coming soon`}
-              >
-                {plan.name}
-              </button>
-            </article>
-          ))}
+            <p className="plan-description">{plan.description}</p>
+
+            <div className="plan-features pro-only-features">
+              {plan.features.map((feature) => (
+                <div className="plan-feature" key={feature}>
+                  <CheckCircle2 size={16} />
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="plan-select-btn"
+              onClick={() => {}}
+              title="Eval Pro website coming soon"
+            >
+              Upgrade to Eval Pro
+            </button>
+          </article>
         </div>
 
         <p className="fineprint center">
-          Plan buttons are placeholders for now. Connect them later to the live
-          Pro and Platinum web apps when those versions are ready.
+          Plan button is a placeholder for now. Connect it later to the live Pro
+          checkout page when it is ready.
         </p>
       </div>
     </section>
@@ -814,7 +794,22 @@ function Report({ data, onAdd }) {
 
         <div className="snapshot-grid">
           <MiniStat icon={<Activity size={17} />} label="Price" value={money(data.quote?.c)} />
-          <MiniStat icon={<ShieldCheck size={17} />} label="Risk" value={data.grades.riskLabel} />
+          <MiniStat
+            icon={<ShieldCheck size={17} />}
+            label="Risk"
+            value={data.grades.riskLabel}
+            helpTitle="Risk metrics used"
+            metricsUsed={[
+              "Beta",
+              "Debt-to-Equity",
+              "Financial Health score",
+              "Profitability score",
+              "Valuation pressure",
+              "Market-cap stability",
+            ]}
+            isOpen={openScoreHelp === "risk"}
+            onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
+          />
           <MiniStat
             icon={<Building2 size={17} />}
             label="Market Cap"
@@ -965,14 +960,50 @@ function metricLine(label, item) {
   };
 }
 
-function MiniStat({ icon, label, value }) {
+function MiniStat({
+  icon,
+  label,
+  value,
+  helpTitle,
+  metricsUsed = [],
+  isOpen = false,
+  onToggle,
+}) {
   return (
     <div className="mini-stat">
       <span>
         {icon}
         {label}
       </span>
-      <b>{value}</b>
+
+      <div className="mini-stat-value-row">
+        <b>{value}</b>
+        {metricsUsed.length > 0 && (
+          <button
+            type="button"
+            className="score-help-btn mini-risk-help-btn"
+            onClick={onToggle}
+            aria-label={helpTitle || `${label} metrics used`}
+            title={helpTitle || `${label} metrics used`}
+          >
+            <Info size={11} />
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="score-popup mini-stat-popup">
+          <div className="score-popup-title">{helpTitle || "Metrics used"}</div>
+          <ul>
+            {metricsUsed.map((metric) => (
+              <li key={metric}>
+                <span>{metric}</span>
+              </li>
+            ))}
+          </ul>
+          <small>Only available metrics are used. Missing metrics are skipped.</small>
+        </div>
+      )}
     </div>
   );
 }
