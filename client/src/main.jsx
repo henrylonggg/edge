@@ -711,6 +711,39 @@ function Report({ data, onAdd }) {
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
   };
 
+  const categoryMetrics = {
+    growth: [
+      metricLine("Revenue Growth", metrics.revenueGrowth),
+      metricLine("Sales / earnings expansion", metrics.earningsGrowth),
+      metricLine("Growth trend quality", metrics.growthTrend),
+    ],
+    profitability: [
+      metricLine("ROE", metrics.roe),
+      metricLine("Net Margin", metrics.netMargin),
+      metricLine("Operating efficiency", metrics.operatingMargin),
+    ],
+    financialHealth: [
+      metricLine("Debt-to-Equity", metrics.debtToEquity),
+      metricLine("Balance-sheet strength", metrics.currentRatio),
+      metricLine("Cash / debt pressure", metrics.cashDebtCoverage),
+    ],
+    valuation: [
+      metricLine("P/E Ratio", metrics.peRatio),
+      metricLine("Price-to-Sales", metrics.priceToSales),
+      metricLine("Price-to-Book", metrics.priceToBook),
+    ],
+    momentum: [
+      metricLine("Beta", metrics.beta),
+      metricLine("Recent price trend", metrics.priceMomentum),
+      metricLine("Market strength", metrics.relativeStrength),
+    ],
+    reversal: [
+      metricLine("Pullback from highs", metrics.pullbackFromHigh),
+      metricLine("Distance from moving average", metrics.movingAverageDistance),
+      metricLine("Oversold / recovery setup", metrics.reversalSetup),
+    ],
+  };
+
   const rows = [
     [
       "P/E Ratio",
@@ -794,7 +827,7 @@ function Report({ data, onAdd }) {
           <div className="section-title">
             <Building2 size={17} /> What this company does
           </div>
-          <p>{data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
+          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
         </div>
 
         <div className="story-card">
@@ -825,36 +858,42 @@ function Report({ data, onAdd }) {
           value={cats.growth}
           icon={<TrendingUp size={18} />}
           description={gradeDescriptions.growth}
+          metricsUsed={categoryMetrics.growth}
         />
         <Grade
           name="Profitability"
           value={cats.profitability}
           icon={<BarChart3 size={18} />}
           description={gradeDescriptions.profitability}
+          metricsUsed={categoryMetrics.profitability}
         />
         <Grade
           name="Financial Health"
           value={cats.financialHealth}
           icon={<ShieldCheck size={18} />}
           description={gradeDescriptions.financialHealth}
+          metricsUsed={categoryMetrics.financialHealth}
         />
         <Grade
           name="Valuation"
           value={cats.valuation}
           icon={<Target size={18} />}
           description={gradeDescriptions.valuation}
+          metricsUsed={categoryMetrics.valuation}
         />
         <Grade
           name="Momentum"
           value={cats.momentum}
           icon={<LineChart size={18} />}
           description={gradeDescriptions.momentum}
+          metricsUsed={categoryMetrics.momentum}
         />
         <Grade
           name="Pullback"
           value={cats.reversal}
           icon={<Zap size={18} />}
           description={gradeDescriptions.reversal}
+          metricsUsed={categoryMetrics.reversal}
         />
       </section>
 
@@ -873,6 +912,24 @@ function Report({ data, onAdd }) {
   );
 }
 
+function metricLine(label, item) {
+  if (!item) return { label, value: "Used when available", source: "Score model" };
+
+  if (typeof item === "object" && "value" in item) {
+    return {
+      label,
+      value: fmt(item.value, item.suffix || ""),
+      source: item.source || "Score model",
+    };
+  }
+
+  return {
+    label,
+    value: item === null || item === undefined ? "N/A" : String(item),
+    source: "Score model",
+  };
+}
+
 function MiniStat({ icon, label, value }) {
   return (
     <div className="mini-stat">
@@ -885,7 +942,8 @@ function MiniStat({ icon, label, value }) {
   );
 }
 
-function Grade({ name, value, icon, description }) {
+function Grade({ name, value, icon, description, metricsUsed = [] }) {
+  const [open, setOpen] = useState(false);
   const s = score10(value);
   const tone = scoreTone(s);
 
@@ -900,7 +958,34 @@ function Grade({ name, value, icon, description }) {
         <span className={tone} style={{ width: `${(s || 0) * 10}%` }} />
       </div>
 
-      <strong className={tone}>{scoreText(s)}</strong>
+      <div className="grade-score-row">
+        <strong className={tone}>{scoreText(s)}</strong>
+        <button
+          type="button"
+          className="score-help-btn"
+          onClick={() => setOpen((current) => !current)}
+          aria-label={`${name} metrics used`}
+          title={`${name} metrics used`}
+        >
+          <Info size={15} />
+        </button>
+      </div>
+
+      {open && (
+        <div className="score-popup">
+          <div className="score-popup-title">Metrics used</div>
+          <ul>
+            {metricsUsed.map((metric) => (
+              <li key={metric.label}>
+                <span>{metric.label}</span>
+                <b>{metric.value}</b>
+              </li>
+            ))}
+          </ul>
+          <small>Missing values are skipped so the score does not get corrupted.</small>
+        </div>
+      )}
+
       <p className="grade-description">{description}</p>
     </div>
   );
