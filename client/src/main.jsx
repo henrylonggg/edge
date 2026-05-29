@@ -377,8 +377,8 @@ function LandingPage({ onContinue }) {
     },
     {
       icon: <BrainCircuit size={20} />,
-      title: "Ask questions instantly",
-      text: "Use the assistant to compare stocks, understand metrics, and get beginner-friendly explanations.",
+      title: "Ask questions instantly*",
+      text: "Ask the assistant to compare stocks, explain metrics, and translate market data into clear, beginner-friendly answers.",
     },
   ];
 
@@ -392,8 +392,8 @@ function LandingPage({ onContinue }) {
         <div className="landing-brand-row">
           <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
           <div>
-            <span>Stock research made simple</span>
-            <h1>Eval AI</h1>
+            <h1>getstockeval.com</h1>
+            <p>Powered by Eval AI</p>
           </div>
         </div>
 
@@ -409,7 +409,7 @@ function LandingPage({ onContinue }) {
               Eval AI helps users understand stocks without digging through confusing
               spreadsheets, finance terms, or long reports. Enter any ticker to get a
               simple Eval Score, risk rating, company summary, key metrics, watchlist,
-              and plain-English explanations.
+              and plain-English explanations designed to be quick, readable, and useful.
             </p>
 
             <div className="landing-actions">
@@ -455,6 +455,10 @@ function LandingPage({ onContinue }) {
           <span>Watchlist</span>
           <span>AI Assistant</span>
         </div>
+
+        <p className="landing-footnote">
+          *Eval AI provides educational explanations only and is not financial advice.
+        </p>
       </section>
     </main>
   );
