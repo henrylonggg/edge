@@ -2,6 +2,10 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { buildStockAnalysis } from "./score.js";
 
 dotenv.config();
@@ -217,6 +221,381 @@ app.use(
 
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const AUTH_DB_PATH = path.join(__dirname, "auth-data.json");
+const CODE_TTL_MS = 10 * 60 * 1000;
+const MAX_CODE_ATTEMPTS = 5;
+
+const pendingSignups = new Map();
+const pendingResets = new Map();
+
+function readAuthDb() {
+  try {
+    if (!fs.existsSync(AUTH_DB_PATH)) {
+      return { users: [] };
+    }
+    const parsed = JSON.parse(fs.readFileSync(AUTH_DB_PATH, "utf8"));
+    return { users: Array.isArray(parsed.users) ? parsed.users : [] };
+  } catch (error) {
+    console.error("Could not read auth database:", error?.message || error);
+    return { users: [] };
+  }
+}
+
+function writeAuthDb(db) {
+  fs.writeFileSync(AUTH_DB_PATH, JSON.stringify(db, null, 2));
+}
+
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase();
+}
+
+function isValidEmail(email = "") {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function createCode() {
+  return String(crypto.randomInt(100000, 999999));
+}
+
+function hashCode(code) {
+  return crypto.createHash("sha256").update(String(code)).digest("hex");
+}
+
+function createPasswordHash(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, user) {
+  if (!user?.passwordHash || !user?.passwordSalt) return false;
+  const hash = crypto.scryptSync(password, user.passwordSalt, 64).toString("hex");
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(user.passwordHash, "hex"));
+}
+
+function createSessionToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+async function verifyCaptcha({ captchaToken, captchaConfirmed }) {
+  const secret = process.env.TURNSTILE_SECRET_KEY || process.env.HCAPTCHA_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY;
+
+  if (!secret) {
+    return Boolean(captchaConfirmed);
+  }
+
+  if (!captchaToken) return false;
+
+  const providerUrl = process.env.TURNSTILE_SECRET_KEY
+    ? "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    : process.env.HCAPTCHA_SECRET_KEY
+      ? "https://hcaptcha.com/siteverify"
+      : "https://www.google.com/recaptcha/api/siteverify";
+
+  try {
+    const body = new URLSearchParams();
+    body.append("secret", secret);
+    body.append("response", captchaToken);
+
+    const response = await fetch(providerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    });
+
+    const json = await response.json().catch(() => null);
+    return Boolean(json?.success);
+  } catch (error) {
+    console.error("Captcha verification failed:", error?.message || error);
+    return false;
+  }
+}
+
+async function sendVerificationEmail(email, code, purpose) {
+  const subject = purpose === "reset"
+    ? "Your Eval password reset code"
+    : "Your Eval verification code";
+
+  const text = purpose === "reset"
+    ? `Your Eval password reset code is ${code}. This code expires in 10 minutes.`
+    : `Your Eval verification code is ${code}. This code expires in 10 minutes.`;
+
+  if (process.env.SENDGRID_API_KEY && process.env.AUTH_EMAIL_FROM) {
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email }] }],
+        from: { email: process.env.AUTH_EMAIL_FROM, name: "Eval" },
+        subject,
+        content: [{ type: "text/plain", value: text }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.error("SendGrid failed:", response.status, errorText);
+      throw new Error("Could not send verification email.");
+    }
+
+    return;
+  }
+
+  console.log(`\n[EVAL AUTH CODE] ${purpose.toUpperCase()} for ${email}: ${code}\n`);
+}
+
+function getUser(email) {
+  const db = readAuthDb();
+  return db.users.find((user) => user.email === email) || null;
+}
+
+function saveUser(nextUser) {
+  const db = readAuthDb();
+  const existingIndex = db.users.findIndex((user) => user.email === nextUser.email);
+
+  if (existingIndex >= 0) {
+    db.users[existingIndex] = nextUser;
+  } else {
+    db.users.push(nextUser);
+  }
+
+  writeAuthDb(db);
+}
+
+app.post("/api/auth/signup/start", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Enter a valid email address." });
+    }
+
+    if (getUser(email)) {
+      return res.status(409).json({ error: "An account already exists for this email. Log in instead." });
+    }
+
+    const code = createCode();
+    pendingSignups.set(email, {
+      codeHash: hashCode(code),
+      expiresAt: Date.now() + CODE_TTL_MS,
+      attempts: 0,
+      verified: false,
+    });
+
+    await sendVerificationEmail(email, code, "signup");
+
+    return res.status(200).json({ ok: true, message: "Verification code sent." });
+  } catch (error) {
+    console.error("Signup start failed:", error);
+    return res.status(500).json({ error: error?.message || "Could not start signup." });
+  }
+});
+
+app.post("/api/auth/signup/verify", async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const code = String(req.body?.code || "").trim();
+  const pending = pendingSignups.get(email);
+
+  if (!pending || pending.expiresAt < Date.now()) {
+    pendingSignups.delete(email);
+    return res.status(400).json({ error: "Verification code expired. Request a new code." });
+  }
+
+  if (pending.attempts >= MAX_CODE_ATTEMPTS) {
+    pendingSignups.delete(email);
+    return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." });
+  }
+
+  if (pending.codeHash !== hashCode(code)) {
+    pending.attempts += 1;
+    return res.status(400).json({ error: "Incorrect verification code." });
+  }
+
+  pending.verified = true;
+  pendingSignups.set(email, pending);
+
+  return res.status(200).json({ ok: true, message: "Email verified." });
+});
+
+app.post("/api/auth/signup/finish", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
+    const captchaOk = await verifyCaptcha(req.body || {});
+    const pending = pendingSignups.get(email);
+
+    if (!pending?.verified || pending.expiresAt < Date.now()) {
+      return res.status(400).json({ error: "Verify your email before creating a password." });
+    }
+
+    if (!captchaOk) {
+      return res.status(400).json({ error: "Robot check failed. Try again." });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: "Both passwords must match." });
+    }
+
+    if (getUser(email)) {
+      return res.status(409).json({ error: "An account already exists for this email." });
+    }
+
+    const { salt, hash } = createPasswordHash(password);
+
+    saveUser({
+      id: crypto.randomUUID(),
+      email,
+      passwordSalt: salt,
+      passwordHash: hash,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    pendingSignups.delete(email);
+
+    return res.status(200).json({ ok: true, message: "Account created. Log in now." });
+  } catch (error) {
+    console.error("Signup finish failed:", error);
+    return res.status(500).json({ error: error?.message || "Could not create account." });
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const captchaOk = await verifyCaptcha(req.body || {});
+
+    if (!captchaOk) {
+      return res.status(400).json({ error: "Robot check failed. Try again." });
+    }
+
+    const user = getUser(email);
+
+    if (!user || !verifyPassword(password, user)) {
+      return res.status(401).json({ error: "Incorrect email or password." });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      token: createSessionToken(),
+      user: { email: user.email },
+      message: "Logged in.",
+    });
+  } catch (error) {
+    console.error("Login failed:", error);
+    return res.status(500).json({ error: "Could not log in." });
+  }
+});
+
+app.post("/api/auth/password/start", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const captchaOk = await verifyCaptcha(req.body || {});
+
+    if (!captchaOk) {
+      return res.status(400).json({ error: "Robot check failed. Try again." });
+    }
+
+    const user = getUser(email);
+
+    if (user) {
+      const code = createCode();
+      pendingResets.set(email, {
+        codeHash: hashCode(code),
+        expiresAt: Date.now() + CODE_TTL_MS,
+        attempts: 0,
+        verified: false,
+      });
+      await sendVerificationEmail(email, code, "reset");
+    }
+
+    return res.status(200).json({ ok: true, message: "If that email exists, a reset code was sent." });
+  } catch (error) {
+    console.error("Password reset start failed:", error);
+    return res.status(500).json({ error: error?.message || "Could not start password reset." });
+  }
+});
+
+app.post("/api/auth/password/verify", async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const code = String(req.body?.code || "").trim();
+  const pending = pendingResets.get(email);
+
+  if (!pending || pending.expiresAt < Date.now()) {
+    pendingResets.delete(email);
+    return res.status(400).json({ error: "Reset code expired. Request a new code." });
+  }
+
+  if (pending.attempts >= MAX_CODE_ATTEMPTS) {
+    pendingResets.delete(email);
+    return res.status(429).json({ error: "Too many incorrect attempts. Request a new code." });
+  }
+
+  if (pending.codeHash !== hashCode(code)) {
+    pending.attempts += 1;
+    return res.status(400).json({ error: "Incorrect reset code." });
+  }
+
+  pending.verified = true;
+  pendingResets.set(email, pending);
+
+  return res.status(200).json({ ok: true, message: "Reset code verified." });
+});
+
+app.post("/api/auth/password/finish", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const confirmPassword = String(req.body?.confirmPassword || "");
+    const pending = pendingResets.get(email);
+    const user = getUser(email);
+
+    if (!user) {
+      return res.status(404).json({ error: "Account not found." });
+    }
+
+    if (!pending?.verified || pending.expiresAt < Date.now()) {
+      return res.status(400).json({ error: "Verify your reset code before creating a new password." });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters." });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: "Both passwords must match." });
+    }
+
+    const { salt, hash } = createPasswordHash(password);
+
+    saveUser({
+      ...user,
+      passwordSalt: salt,
+      passwordHash: hash,
+      updatedAt: new Date().toISOString(),
+    });
+
+    pendingResets.delete(email);
+
+    return res.status(200).json({ ok: true, message: "Password reset. Log in now." });
+  } catch (error) {
+    console.error("Password reset finish failed:", error);
+    return res.status(500).json({ error: error?.message || "Could not reset password." });
+  }
+});
 
 app.get("/", (req, res) => {
   res.status(200).json({
