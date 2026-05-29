@@ -685,6 +685,7 @@ function Report({ data, onAdd }) {
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
   const tone = scoreTone(edge);
+  const [openScoreHelp, setOpenScoreHelp] = useState(null);
 
   const strongest = useMemo(
     () =>
@@ -854,46 +855,80 @@ function Report({ data, onAdd }) {
 
       <section className="grade-grid">
         <Grade
+          id="growth"
           name="Growth"
           value={cats.growth}
           icon={<TrendingUp size={18} />}
           description={gradeDescriptions.growth}
           metricsUsed={categoryMetrics.growth}
+          isOpen={openScoreHelp === "growth"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
+          }
         />
         <Grade
+          id="profitability"
           name="Profitability"
           value={cats.profitability}
           icon={<BarChart3 size={18} />}
           description={gradeDescriptions.profitability}
           metricsUsed={categoryMetrics.profitability}
+          isOpen={openScoreHelp === "profitability"}
+          onToggle={() =>
+            setOpenScoreHelp(
+              openScoreHelp === "profitability" ? null : "profitability"
+            )
+          }
         />
         <Grade
+          id="financialHealth"
           name="Financial Health"
           value={cats.financialHealth}
           icon={<ShieldCheck size={18} />}
           description={gradeDescriptions.financialHealth}
           metricsUsed={categoryMetrics.financialHealth}
+          isOpen={openScoreHelp === "financialHealth"}
+          onToggle={() =>
+            setOpenScoreHelp(
+              openScoreHelp === "financialHealth" ? null : "financialHealth"
+            )
+          }
         />
         <Grade
+          id="valuation"
           name="Valuation"
           value={cats.valuation}
           icon={<Target size={18} />}
           description={gradeDescriptions.valuation}
           metricsUsed={categoryMetrics.valuation}
+          isOpen={openScoreHelp === "valuation"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
+          }
         />
         <Grade
+          id="momentum"
           name="Momentum"
           value={cats.momentum}
           icon={<LineChart size={18} />}
           description={gradeDescriptions.momentum}
           metricsUsed={categoryMetrics.momentum}
+          isOpen={openScoreHelp === "momentum"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
+          }
         />
         <Grade
+          id="reversal"
           name="Pullback"
           value={cats.reversal}
           icon={<Zap size={18} />}
           description={gradeDescriptions.reversal}
           metricsUsed={categoryMetrics.reversal}
+          isOpen={openScoreHelp === "reversal"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
+          }
         />
       </section>
 
@@ -942,8 +977,15 @@ function MiniStat({ icon, label, value }) {
   );
 }
 
-function Grade({ name, value, icon, description, metricsUsed = [] }) {
-  const [open, setOpen] = useState(false);
+function Grade({
+  name,
+  value,
+  icon,
+  description,
+  metricsUsed = [],
+  isOpen = false,
+  onToggle,
+}) {
   const s = score10(value);
   const tone = scoreTone(s);
 
@@ -963,26 +1005,25 @@ function Grade({ name, value, icon, description, metricsUsed = [] }) {
         <button
           type="button"
           className="score-help-btn"
-          onClick={() => setOpen((current) => !current)}
+          onClick={onToggle}
           aria-label={`${name} metrics used`}
           title={`${name} metrics used`}
         >
-          <Info size={15} />
+          <Info size={11} />
         </button>
       </div>
 
-      {open && (
+      {isOpen && (
         <div className="score-popup">
           <div className="score-popup-title">Metrics used</div>
           <ul>
             {metricsUsed.map((metric) => (
               <li key={metric.label}>
                 <span>{metric.label}</span>
-                <b>{metric.value}</b>
               </li>
             ))}
           </ul>
-          <small>Missing values are skipped so the score does not get corrupted.</small>
+          <small>Only available metrics are used. Missing metrics are skipped.</small>
         </div>
       )}
 
