@@ -274,36 +274,74 @@ button {
   width: 224px;
   height: 224px;
   border-radius: 50%;
-  padding: 15px;
-  background: conic-gradient(var(--ring) var(--score-angle), rgba(255,255,255,.09) 0deg);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 24px 70px rgba(0,0,0,.34), 0 0 50px rgba(133,215,19,.10);
+  padding: 18px;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.055), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), rgba(255,255,255,.08) 0deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.09),
+    inset 0 0 32px rgba(0,0,0,.28),
+    0 24px 70px rgba(0,0,0,.34),
+    0 0 42px var(--ring-glow);
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), transparent 0deg);
+  filter: blur(15px);
+  opacity: .44;
+  z-index: -1;
+}
+
+.score-ring::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.11);
+  box-shadow: inset 0 0 28px rgba(0,0,0,.36);
+  pointer-events: none;
 }
 
 .score-ring.green {
-  --ring: var(--green);
+  --ring-bright: #85ff47;
+  --ring-glow: rgba(133,255,71,.42);
 }
 
 .score-ring.yellow {
-  --ring: var(--yellow);
+  --ring-bright: #ffe45f;
+  --ring-glow: rgba(255,228,95,.44);
 }
 
 .score-ring.red {
-  --ring: var(--red);
+  --ring-bright: #ff4f67;
+  --ring-glow: rgba(255,79,103,.44);
 }
 
 .score-ring.neutral {
-  --ring: var(--blue);
+  --ring-bright: var(--cyan);
+  --ring-glow: rgba(21,231,255,.34);
 }
 
 .score-core {
   height: 100%;
   border-radius: 50%;
-  background: rgba(0,0,0,.18);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 30%),
+    linear-gradient(145deg, rgba(1,8,16,.92), rgba(4,13,26,.76));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow:
+    inset 0 0 35px rgba(0,0,0,.45),
+    inset 0 0 22px rgba(255,255,255,.035);
 }
 
 .score-core span {
@@ -317,6 +355,9 @@ button {
   color: #ffffff;
   text-align: center;
   font-weight: 800;
+  text-shadow:
+    0 0 14px rgba(255,255,255,.24),
+    0 0 36px rgba(255,255,255,.10);
 }
 
 .company-panel {
@@ -673,34 +714,69 @@ button {
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  padding: 6px;
-  background: conic-gradient(var(--watch-ring) var(--watch-score-angle), rgba(255,255,255,.10) 0deg);
+  padding: 7px;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.045), transparent 48%),
+    conic-gradient(from -90deg, var(--watch-ring-bright) var(--watch-score-angle), rgba(255,255,255,.085) 0deg);
   display: grid;
   place-items: center;
-  box-shadow: 0 12px 28px rgba(0,0,0,.28);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 16px rgba(0,0,0,.32),
+    0 12px 28px rgba(0,0,0,.30),
+    0 0 24px var(--watch-glow);
+}
+
+.watch-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--watch-ring-bright) var(--watch-score-angle), transparent 0deg);
+  filter: blur(9px);
+  opacity: .42;
+  z-index: -1;
+}
+
+.watch-score-ring::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: inset 0 0 15px rgba(0,0,0,.36);
+  pointer-events: none;
 }
 
 .watch-score-ring.green {
-  --watch-ring: var(--green);
+  --watch-ring-bright: #85ff47;
+  --watch-glow: rgba(133,255,71,.34);
 }
 
 .watch-score-ring.yellow {
-  --watch-ring: var(--yellow);
+  --watch-ring-bright: #ffe45f;
+  --watch-glow: rgba(255,228,95,.35);
 }
 
 .watch-score-ring.red {
-  --watch-ring: var(--red);
+  --watch-ring-bright: #ff4f67;
+  --watch-glow: rgba(255,79,103,.35);
 }
 
 .watch-score-ring.neutral {
-  --watch-ring: var(--blue);
+  --watch-ring-bright: var(--cyan);
+  --watch-glow: rgba(21,231,255,.28);
 }
 
 .watch-score-ring strong {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: rgba(0,0,0,.18);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.075), transparent 34%),
+    linear-gradient(145deg, rgba(1,8,16,.92), rgba(4,13,26,.76));
   display: grid;
   place-items: center;
   color: #ffffff;
@@ -709,223 +785,7 @@ button {
   font-weight: 800;
   letter-spacing: -.6px;
   text-align: center;
-}
-
-.watch-empty {
-  padding: 18px;
-  color: var(--muted);
-  border: 1px dashed rgba(255,255,255,.14);
-  border-radius: 18px;
-  line-height: 1.5;
-}
-
-
-.plans-page {
-  min-height: 70vh;
-  display: grid;
-  place-items: stretch;
-}
-
-.plans-shell {
-  padding: 26px;
-  max-width: 1180px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.plans-page-head {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 20px;
-  align-items: start;
-  margin-bottom: 22px;
-}
-
-.plans-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--gold);
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: .03em;
-  text-shadow: 0 0 18px rgba(255,214,107,.34);
-}
-
-.plans-page-head h2 {
-  margin: 8px 0 8px;
-  font-size: clamp(38px, 5vw, 66px);
-  line-height: .94;
-  letter-spacing: -2.8px;
-  font-weight: 800;
-}
-
-.plans-page-head p {
-  margin: 0;
-  color: var(--muted);
-  max-width: 780px;
-  line-height: 1.55;
-}
-
-.plans-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.plan-card {
-  position: relative;
-  padding: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.13);
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(255,214,107,.18), transparent 30%),
-    rgba(0,0,0,.20);
-  box-shadow: var(--shadow);
-}
-
-.plan-card.platinum {
-  background:
-    radial-gradient(circle at 20% 12%, rgba(159,92,255,.22), transparent 32%),
-    radial-gradient(circle at 85% 18%, rgba(21,231,255,.15), transparent 34%),
-    rgba(0,0,0,.20);
-}
-
-.plan-card.pro {
-  border-color: rgba(255,214,107,.26);
-}
-
-.plan-card.platinum {
-  border-color: rgba(159,92,255,.28);
-}
-
-.plan-glow {
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  right: -60px;
-  top: -70px;
-  border-radius: 50%;
-  background: rgba(255,214,107,.20);
-  filter: blur(14px);
-  pointer-events: none;
-}
-
-.plan-card.platinum .plan-glow {
-  background: rgba(159,92,255,.24);
-}
-
-.plan-top {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: start;
-}
-
-.plan-top span {
-  display: block;
-  color: var(--gold);
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.plan-card.platinum .plan-top span {
-  color: #cfa8ff;
-}
-
-.plan-top h3 {
-  margin: 8px 0 4px;
-  font-size: clamp(42px, 5vw, 62px);
-  line-height: .95;
-  letter-spacing: -2.6px;
-  font-weight: 800;
-}
-
-.plan-top p {
-  margin: 0;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.plan-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 19px;
-  display: grid;
-  place-items: center;
-  color: #201200;
-  background:
-    radial-gradient(circle at 35% 20%, rgba(255,255,255,.72), transparent 22%),
-    linear-gradient(135deg, #fff4ad 0%, var(--gold) 38%, var(--gold-strong) 100%);
-  box-shadow: 0 0 34px rgba(255,214,107,.32);
-}
-
-.plan-card.platinum .plan-icon {
-  color: #ffffff;
-  background: linear-gradient(135deg, #cfa8ff 0%, var(--purple) 52%, #15e7ff 130%);
-  box-shadow: 0 0 34px rgba(159,92,255,.32);
-}
-
-.plan-description {
-  position: relative;
-  color: rgba(248,251,255,.82);
-  line-height: 1.65;
-  margin: 22px 0;
-  font-size: 16px;
-}
-
-.plan-features {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.plan-feature {
-  display: flex;
-  align-items: start;
-  gap: 10px;
-  color: rgba(248,251,255,.82);
-  line-height: 1.45;
-}
-
-.plan-feature svg {
-  flex: 0 0 auto;
-  color: var(--gold);
-  margin-top: 2px;
-}
-
-.plan-card.platinum .plan-feature svg {
-  color: #cfa8ff;
-}
-
-.plan-select-btn {
-  position: relative;
-  width: 100%;
-  min-height: 56px;
-  border: 1px solid rgba(255,214,107,.72);
-  border-radius: 18px;
-  color: #201200;
-  font-weight: 800;
-  background:
-    radial-gradient(circle at 40% 18%, rgba(255,255,255,.72), transparent 20%),
-    linear-gradient(135deg, #fff4ad 0%, var(--gold) 36%, var(--gold-strong) 100%);
-  box-shadow:
-    0 0 24px rgba(255,214,107,.38),
-    0 0 58px rgba(255,183,3,.20),
-    inset 0 1px 0 rgba(255,255,255,.58);
-}
-
-.plan-card.platinum .plan-select-btn {
-  border-color: rgba(159,92,255,.65);
-  color: #ffffff;
-  background: linear-gradient(135deg, #cfa8ff 0%, var(--purple) 52%, #15e7ff 130%);
-  box-shadow:
-    0 0 24px rgba(159,92,255,.38),
-    0 0 58px rgba(21,231,255,.18),
-    inset 0 1px 0 rgba(255,255,255,.30);
+  text-shadow: 0 0 10px rgba(255,255,255,.22);
 }
 
 .assistant-page {
