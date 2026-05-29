@@ -2256,3 +2256,66 @@ button:active,
     padding: 24px !important;
   }
 }
+
+/* =========================
+   INFO BUTTON FRONT-LAYER FIX
+   Keeps every circle-i popup above nearby cards/animations.
+========================= */
+.hero-card,
+.snapshot-grid,
+.grade-grid,
+.content,
+.layout {
+  overflow: visible !important;
+}
+
+.grade-card,
+.mini-stat {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.grade-card.popup-active,
+.mini-stat.popup-active {
+  z-index: 9998 !important;
+  isolation: isolate;
+}
+
+.grade-card.popup-active .score-popup,
+.mini-stat.popup-active .score-popup,
+.score-popup {
+  z-index: 9999 !important;
+}
+
+.score-help-btn {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  aspect-ratio: 1 / 1;
+}
+
+.score-help-btn svg {
+  display: none !important;
+}
+
+.info-letter {
+  display: block;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-.5px);
+  text-shadow: 0 0 10px rgba(255,255,255,.24);
+  pointer-events: none;
+}
+
+.score-help-btn:focus-visible {
+  outline: 2px solid rgba(21,231,255,.68);
+  outline-offset: 3px;
+}
