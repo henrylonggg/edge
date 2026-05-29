@@ -1661,3 +1661,227 @@ button {
     font-size: 46px;
   }
 }
+/* =========================================================
+   REQUESTED UI UPDATE — NEON SCORE BARS + BUTTON MOTION
+   Paste-safe override section. Keep this at the bottom.
+========================================================= */
+
+button,
+.hero-actions a,
+.plan-select-btn,
+.plan-card button,
+.plan-button {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    filter .18s ease;
+}
+
+button::before,
+.hero-actions a::before,
+.plan-select-btn::before,
+.plan-card button::before,
+.plan-button::before {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -55%;
+  width: 44%;
+  height: 340%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent);
+  transform: rotate(24deg) translateX(-160%);
+  opacity: 0;
+  transition: transform .52s ease, opacity .52s ease;
+}
+
+button:hover,
+.hero-actions a:hover,
+.plan-select-btn:hover,
+.plan-card button:hover,
+.plan-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 0 22px rgba(21,231,255,.14),
+    0 0 34px rgba(133,255,71,.08),
+    0 14px 30px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+button:hover::before,
+.hero-actions a:hover::before,
+.plan-select-btn:hover::before,
+.plan-card button:hover::before,
+.plan-button:hover::before {
+  opacity: 1;
+  transform: rotate(24deg) translateX(520%);
+}
+
+button:active,
+.hero-actions a:active,
+.plan-select-btn:active,
+.plan-card button:active,
+.plan-button:active {
+  transform: translateY(0) scale(.98);
+}
+
+.plans-nav-btn:hover {
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.78), transparent 20%),
+    linear-gradient(135deg, #fff4ad 0%, var(--gold) 36%, var(--gold-strong) 100%) !important;
+  color: #201200 !important;
+  box-shadow:
+    0 0 30px rgba(255,214,107,.58),
+    0 0 72px rgba(255,183,3,.34),
+    0 16px 36px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.62) !important;
+}
+
+.grade-card {
+  position: relative;
+  min-height: 190px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 16% 10%, rgba(21,231,255,.08), transparent 34%),
+    radial-gradient(circle at 90% 92%, rgba(159,92,255,.10), transparent 40%),
+    rgba(255,255,255,.072);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.grade-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,.18);
+  box-shadow:
+    0 26px 62px rgba(0,0,0,.34),
+    0 0 34px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.grade-head {
+  color: rgba(255,255,255,.82);
+}
+
+.grade-head span {
+  display: inline-flex;
+  color: rgba(255,255,255,.72);
+  filter: drop-shadow(0 0 8px rgba(255,255,255,.12));
+}
+
+.grade-line {
+  height: 9px;
+  margin: 18px 0 13px;
+  background: rgba(255,255,255,.085);
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,.46),
+    0 0 14px rgba(255,255,255,.045);
+}
+
+.grade-line span {
+  position: relative;
+  box-shadow:
+    0 0 16px currentColor,
+    0 0 28px currentColor,
+    inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+.grade-line span.green {
+  color: #85ff47;
+  background: linear-gradient(90deg, rgba(133,255,71,.82), #85ff47);
+}
+
+.grade-line span.yellow {
+  color: #ffe45f;
+  background: linear-gradient(90deg, rgba(255,228,95,.82), #ffe45f);
+}
+
+.grade-line span.red {
+  color: #ff4f67;
+  background: linear-gradient(90deg, rgba(255,79,103,.82), #ff4f67);
+}
+
+.grade-line span.neutral {
+  color: var(--cyan);
+  background: linear-gradient(90deg, rgba(21,231,255,.82), var(--cyan));
+}
+
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  color: #ffffff !important;
+  text-shadow:
+    0 0 12px rgba(255,255,255,.22),
+    0 0 26px rgba(255,255,255,.08);
+}
+
+.grade-description {
+  margin: 8px 0 0;
+  color: rgba(248,251,255,.68);
+  font-size: 12.5px;
+  line-height: 1.52;
+  font-weight: 600;
+}
+
+.plans-shell {
+  transform: translateZ(0);
+  box-shadow:
+    0 42px 110px rgba(0,0,0,.52),
+    0 0 64px rgba(21,231,255,.08),
+    0 0 80px rgba(159,92,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+.plans-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  border: 1px solid rgba(255,214,107,.34);
+  background: rgba(255,214,107,.10);
+  box-shadow: 0 0 26px rgba(255,214,107,.14);
+}
+
+.plan-card {
+  transform: translateZ(0);
+}
+
+.plan-card.pro {
+  border-color: rgba(21,231,255,.22);
+  box-shadow:
+    0 30px 82px rgba(0,0,0,.40),
+    0 0 42px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.plan-card.platinum {
+  border-color: rgba(255,214,107,.32);
+  box-shadow:
+    0 30px 82px rgba(0,0,0,.42),
+    0 0 52px rgba(255,214,107,.10),
+    inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+.plan-select-btn {
+  min-height: 54px;
+  letter-spacing: .02em;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.18), transparent 26%),
+    rgba(255,255,255,.105) !important;
+}
+
+@media (max-width: 680px) {
+  .grade-card {
+    min-height: auto;
+  }
+}
