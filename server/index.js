@@ -60,7 +60,7 @@ app.use(morgan("dev"));
 app.get("/", (req, res) => {
   res.status(200).json({
     ok: true,
-    message: "Edge Render backend is running.",
+    message: "Eval Render backend is running.",
     routes: {
       health: "/api/health",
       analyzeExample: "/api/analyze/AAPL",
@@ -72,7 +72,7 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     ok: true,
-    service: "edge-backend",
+    service: "eval-backend",
     status: "live",
     time: new Date().toISOString(),
   });
@@ -120,12 +120,12 @@ app.post("/api/assistant", async (req, res) => {
       const risk = current?.grades?.riskLabel || "N/A";
 
       return res.status(200).json({
-        answer: `For ${symbol}, the current Edge Score is ${score} and the risk label is ${risk}. Your question was: "${question}". The assistant AI key is not connected on the backend yet, but the stock analysis route is working.`,
+        answer: `For ${symbol}, the current Eval Score is ${score} and the risk label is ${risk}. Your question was: "${question}". The assistant AI key is not connected on the backend yet, but the stock analysis route is working.`,
       });
     }
 
     const prompt = `
-You are Edge Assistant, a simple stock-analysis helper.
+You are Eval AI Assistant, a simple stock-analysis helper.
 Do not give licensed financial advice.
 Explain clearly and briefly.
 
@@ -200,5 +200,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Edge server running on port ${PORT}`);
+  console.log(`Eval server running on port ${PORT}`);
 });
