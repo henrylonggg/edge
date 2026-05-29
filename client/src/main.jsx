@@ -16,6 +16,8 @@ import {
   LineChart,
   Zap,
   BrainCircuit,
+  Crown,
+  CheckCircle2,
   Star,
   AlertTriangle,
   Info,
@@ -277,6 +279,16 @@ function App() {
             <BrainCircuit size={23} />
           </button>
 
+          <button
+            type="button"
+            className="plans-nav-btn"
+            onClick={() => setView("plans")}
+            title="Eval AI Plans"
+          >
+            <Crown size={18} />
+            Plans
+          </button>
+
           <div>
             <label>Stock Ticker</label>
             <input
@@ -286,17 +298,18 @@ function App() {
             />
           </div>
 
-          <button disabled={loading}>
+          <button disabled={loading} aria-label="Search stock" title="Search stock">
             {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-            Analyze
           </button>
 
           <button
             type="button"
             className="ghost-btn"
             onClick={() => addTicker(symbol)}
+            aria-label="Add to watchlist"
+            title="Add to watchlist"
           >
-            <Plus size={18} /> Add
+            <Plus size={18} />
           </button>
         </form>
       </header>
@@ -313,6 +326,8 @@ function App() {
           watchlist={watchlist}
           onBack={() => setView("dashboard")}
         />
+      ) : view === "plans" ? (
+        <PlansPage onBack={() => setView("dashboard")} />
       ) : (
         <section className="layout">
           <div className="content">
@@ -341,7 +356,7 @@ function App() {
 function EmptyReport() {
   return (
     <section className="empty-report">
-      Type a ticker like AAPL, MSFT, or NVDA & click Analyze.
+      Type a ticker like AAPL, MSFT, or NVDA & click the search icon.
     </section>
   );
 }
@@ -424,6 +439,111 @@ function Watchlist({
         )}
       </div>
     </aside>
+  );
+}
+
+
+function PlansPage({ onBack }) {
+  const plans = [
+    {
+      name: "Eval Pro",
+      price: "$9.99/mo",
+      yearly: "$99.99/yr",
+      tone: "pro",
+      description:
+        "Unlock limited access to Eval AI Assistant, more stocks, and a much deeper market-metrics dashboard.",
+      features: [
+        "Limited Eval AI Assistant access",
+        "More stock searches and saved reports",
+        "More market metrics from income statements",
+        "Cash-flow and balance-sheet metric expansion",
+        "Cleaner explanations for each score category",
+      ],
+    },
+    {
+      name: "Eval Platinum",
+      price: "$24.99/mo",
+      yearly: "$224.99/yr",
+      tone: "platinum",
+      description:
+        "Get the full Eval Score system with advanced valuation, news sentiment, and complete assistant access.",
+      features: [
+        "Full Eval AI Assistant access",
+        "Full Eval Score with even more metrics",
+        "Intrinsic value, WACC, and DCF support",
+        "News sentiment rating",
+        "AI summaries that grade news articles",
+        "Recent news grades converted into a sentiment score",
+      ],
+    },
+  ];
+
+  return (
+    <section className="plans-page">
+      <div className="plans-shell">
+        <div className="plans-page-head">
+          <button className="back-btn" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
+          <div>
+            <div className="plans-kicker">
+              <Crown size={16} /> Eval AI Plans
+            </div>
+            <h2>Upgrade the stock research engine.</h2>
+            <p>
+              Choose a plan for deeper company fundamentals, more market data,
+              stronger Eval scoring, and expanded AI-powered explanations.
+            </p>
+          </div>
+        </div>
+
+        <div className="plans-grid">
+          {plans.map((plan) => (
+            <article className={`plan-card ${plan.tone}`} key={plan.name}>
+              <div className="plan-glow" />
+
+              <div className="plan-top">
+                <div>
+                  <span>{plan.name}</span>
+                  <h3>{plan.price}</h3>
+                  <p>{plan.yearly}</p>
+                </div>
+
+                <div className="plan-icon">
+                  <Crown size={24} />
+                </div>
+              </div>
+
+              <p className="plan-description">{plan.description}</p>
+
+              <div className="plan-features">
+                {plan.features.map((feature) => (
+                  <div className="plan-feature" key={feature}>
+                    <CheckCircle2 size={16} />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="plan-select-btn"
+                onClick={() => {}}
+                title={`${plan.name} website coming soon`}
+              >
+                {plan.name}
+              </button>
+            </article>
+          ))}
+        </div>
+
+        <p className="fineprint center">
+          Plan buttons are placeholders for now. Connect them later to the live
+          Pro and Platinum web apps when those versions are ready.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -634,8 +754,8 @@ function Report({ data, onAdd }) {
           </p>
 
           <div className="hero-actions">
-            <button onClick={onAdd}>
-              <Plus size={17} /> Add to Watchlist
+            <button onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
+              <Plus size={17} />
             </button>
 
             {data.profile?.weburl && (
