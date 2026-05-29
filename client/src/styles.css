@@ -197,9 +197,11 @@ button {
 }
 
 .plans-nav-btn {
-  min-width: 108px;
-  padding: 0 18px !important;
-  gap: 8px !important;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  padding: 0 !important;
+  gap: 0 !important;
   background:
     radial-gradient(circle at 35% 18%, rgba(255,255,255,.72), transparent 20%),
     linear-gradient(135deg, #fff4ad 0%, var(--gold) 36%, var(--gold-strong) 100%) !important;
@@ -323,13 +325,22 @@ button {
   justify-content: center;
 }
 
-.eyebrow,
-.section-title,
 .assistant-kicker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--green);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+
+.eyebrow,
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
   font-weight: 800;
   font-size: 13px;
   letter-spacing: .03em;
