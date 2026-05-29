@@ -2064,3 +2064,195 @@ button:active,
 .score-popup li b {
   display: none !important;
 }
+
+/* =========================
+   RISK INFO POPUP + ONE PRO PLAN UPGRADE
+========================= */
+.mini-stat {
+  position: relative;
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.mini-stat:has(.mini-stat-popup) {
+  z-index: 35;
+}
+
+.mini-stat-value-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.mini-stat-value-row b {
+  margin-top: 0 !important;
+}
+
+.mini-risk-help-btn {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.mini-stat-popup {
+  top: 62px !important;
+  left: 12px !important;
+  right: 12px !important;
+  min-width: 210px;
+}
+
+.pro-only-shell {
+  max-width: 1040px !important;
+  padding: 38px !important;
+  background:
+    radial-gradient(circle at 14% 2%, rgba(255,214,107,.18), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(21,231,255,.17), transparent 34%),
+    radial-gradient(circle at 75% 94%, rgba(159,92,255,.22), transparent 38%),
+    linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.055)) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+.pro-only-grid {
+  grid-template-columns: minmax(300px, 760px) !important;
+  justify-content: center;
+}
+
+.pro-only-card {
+  min-height: auto !important;
+  padding: 34px !important;
+  border-radius: 34px !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.125), rgba(255,255,255,.048)),
+    radial-gradient(circle at 14% 8%, rgba(255,214,107,.22), transparent 33%),
+    radial-gradient(circle at 93% 12%, rgba(21,231,255,.20), transparent 32%),
+    radial-gradient(circle at 78% 98%, rgba(133,255,71,.12), transparent 34%),
+    rgba(1,7,16,.62) !important;
+  border: 1px solid rgba(255,214,107,.30) !important;
+  box-shadow:
+    0 38px 100px rgba(0,0,0,.48),
+    0 0 70px rgba(255,214,107,.10),
+    0 0 64px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+.pro-only-card::after {
+  background: linear-gradient(90deg, transparent, rgba(255,214,107,.78), rgba(21,231,255,.52), transparent) !important;
+}
+
+.plan-top,
+.pro-only-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.plan-top span {
+  display: inline-flex;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  margin-bottom: 12px;
+}
+
+.plan-top h3 {
+  margin: 0 !important;
+  font-size: clamp(54px, 7vw, 76px) !important;
+  line-height: .9 !important;
+  letter-spacing: -3px !important;
+  color: #ffffff !important;
+  text-shadow:
+    0 0 24px rgba(255,255,255,.16),
+    0 0 38px rgba(255,214,107,.14) !important;
+}
+
+.plan-top h3::after {
+  display: none !important;
+}
+
+.plan-top p {
+  margin: 10px 0 0 !important;
+  color: rgba(248,251,255,.70) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+.plan-description {
+  margin: 0 0 24px !important;
+  max-width: 720px;
+  color: rgba(248,251,255,.82) !important;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.plan-features,
+.pro-only-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin: 24px 0 26px;
+}
+
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.17);
+  color: rgba(248,251,255,.84);
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 650;
+}
+
+.plan-feature svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+  filter: drop-shadow(0 0 9px rgba(255,214,107,.30));
+  margin-top: 1px;
+}
+
+.pro-only-card .plan-select-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 18px !important;
+  color: #1c1200 !important;
+  background:
+    radial-gradient(circle at 28% 0%, rgba(255,255,255,.58), transparent 26%),
+    linear-gradient(135deg, #fff2a8, #ffd66b 44%, #ffb703) !important;
+  border-color: rgba(255,214,107,.72) !important;
+  box-shadow:
+    0 0 30px rgba(255,214,107,.35),
+    0 18px 38px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.55) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.pro-only-card .plan-select-btn:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    0 0 42px rgba(255,214,107,.48),
+    0 0 58px rgba(21,231,255,.12),
+    0 22px 46px rgba(0,0,0,.36),
+    inset 0 1px 0 rgba(255,255,255,.65) !important;
+}
+
+@media (max-width: 760px) {
+  .plan-features,
+  .pro-only-features {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-top,
+  .pro-only-top {
+    flex-direction: column;
+  }
+
+  .pro-only-shell {
+    padding: 24px !important;
+  }
+}
