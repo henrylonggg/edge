@@ -68,6 +68,7 @@ function pickMetric(metrics, keys) {
       if (value !== null) return value;
     }
   }
+
   return null;
 }
 
@@ -367,6 +368,7 @@ function parseReport(report) {
       "DepreciationDepletionAndAmortization",
       "DepreciationDepletionAndAmortizationExpense",
       "DepreciationAndAmortization",
+      "DepreciationAmortizationAndAccretionNet",
     ],
     ["depreciation depletion and amortization", "depreciation and amortization"]
   );
@@ -376,6 +378,14 @@ function parseReport(report) {
       ? operatingCashFlow - Math.abs(capexRaw)
       : null;
 
+  /*
+    STRICT EBITDA:
+    EBITDA only exists if both required parts are found:
+    1. Operating Income
+    2. Depreciation & Amortization
+
+    No standalone Finnhub EBITDA fallback is used later.
+  */
   const ebitda =
     operatingIncome !== null && depreciation !== null
       ? operatingIncome + Math.abs(depreciation)
@@ -497,6 +507,11 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
     latestWithValue(annualReports, "freeCashFlow")
   );
 
+  /*
+    STRICT EBITDA:
+    Only use EBITDA that was calculated by parseReport from both:
+    Operating Income + Depreciation & Amortization.
+  */
   const ebitda = firstNumber(latestAnnual.ebitda, latestWithValue(annualReports, "ebitda"));
 
   const revenue = latestRevenue;
@@ -513,9 +528,14 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
     latestWithValue(annualReports, "pretaxIncome")
   );
 
+  /*
+    STRICT ENTERPRISE VALUE:
+    EV only exists if all required parts exist:
+    Market Cap + Total Debt - Cash.
+  */
   const enterpriseValue =
-    marketCap !== null && totalDebt !== null
-      ? marketCap + totalDebt - (cash || 0)
+    marketCap !== null && totalDebt !== null && cash !== null
+      ? marketCap + totalDebt - cash
       : null;
 
   const validEv = validPositiveNumber(enterpriseValue);
@@ -732,6 +752,11 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
 
   const derived = statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials);
 
+  /*
+    Enterprise Value fallback from Finnhub basic metrics:
+    Finnhub enterpriseValue-style metric values are commonly in millions,
+    so convert them to full dollars for calculation.
+  */
   const fallbackEnterpriseValue = pickScaledMetric(m, [
     { key: "enterpriseValue", scale: 1_000_000 },
     { key: "enterpriseValueTTM", scale: 1_000_000 },
@@ -742,38 +767,23 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     { key: "ev", scale: 1_000_000 },
   ]);
 
-  const fallbackEbitda = pickScaledMetric(m, [
-    "ebitda",
-    "ebitdaTTM",
-    "ebitdaAnnual",
-    "ebitdaQuarterly",
-    { key: "ebitdaMil", scale: 1_000_000 },
-    { key: "ebitdaTTMMil", scale: 1_000_000 },
-  ]);
-
+  /*
+    Strict logic:
+    - Enterprise Value can use the strict calculated value first.
+    - If statement EV cannot be calculated, fallback EV can be used.
+    - EBITDA cannot use a standalone fallback.
+    - EV/EBITDA cannot use a standalone fallback.
+  */
   const enterpriseValue = firstNumber(derived.enterpriseValue, fallbackEnterpriseValue);
-  const ebitda = firstNumber(derived.ebitda, fallbackEbitda);
+  const ebitda = derived.ebitda;
 
   const validEv = validPositiveNumber(enterpriseValue);
   const validEbitda = validPositiveNumber(ebitda);
 
-  const calculatedEvToEbitda =
+  const evToEbitda =
     validEv !== null && validEbitda !== null
       ? validEv / validEbitda
       : null;
-
-  const fallbackEvToEbitda = pickMetric(m, [
-    "evToEbitda",
-    "ev/ebitda",
-    "enterpriseValueOverEBITDA",
-  ]);
-
-  const evToEbitda =
-    calculatedEvToEbitda !== null && calculatedEvToEbitda > 0
-      ? calculatedEvToEbitda
-      : fallbackEvToEbitda !== null && fallbackEvToEbitda > 0
-        ? fallbackEvToEbitda
-        : null;
 
   return {
     peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
@@ -956,7 +966,7 @@ export async function buildStockAnalysis(symbol) {
 
     evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
       1
-    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data. Valuation includes EV/EBITDA only when both enterprise value and EBITDA can be calculated from valid Finnhub data.`,
+    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data. EBITDA only appears when Operating Income and Depreciation & Amortization are both available. EV/EBITDA only appears when valid EV and valid EBITDA are both available.`,
 
     metrics: {
       peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / Earnings"),
@@ -994,8 +1004,8 @@ export async function buildStockAnalysis(symbol) {
       evToEbitda: metric(
         extracted.evToEbitda,
         "",
-        extracted.evToEbitda !== null ? "Calculated" : "Finnhub",
-        "EV / EBITDA. EV is calculated using full enterprise value dollars. EBITDA is calculated using full EBITDA dollars. Displayed M values are only for the bubbles."
+        extracted.evToEbitda !== null ? "Calculated" : "Calculated",
+        "EV / EBITDA. This only appears when valid Enterprise Value and valid EBITDA are both available. No standalone Finnhub EV/EBITDA fallback is used."
       ),
 
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
@@ -1157,15 +1167,15 @@ export async function buildStockAnalysis(symbol) {
       ebitda: metric(
         toMillions(extracted.ebitda),
         "M",
-        extracted.ebitda !== null ? "Calculated" : "Finnhub",
-        "Operating Income + Depreciation & Amortization, shown in millions"
+        extracted.ebitda !== null ? "Calculated" : "Calculated",
+        "Operating Income + Depreciation & Amortization, shown in millions. If either required part is missing, this returns N/A."
       ),
 
       enterpriseValue: metric(
         toMillions(extracted.enterpriseValue),
         "M",
-        extracted.enterpriseValue !== null ? "Calculated" : "Finnhub",
-        "Market Cap + Total Debt - Cash, shown in millions"
+        extracted.enterpriseValue !== null ? "Calculated" : "Calculated",
+        "Market Cap + Total Debt - Cash, shown in millions. If the strict statement calculation is unavailable, Finnhub enterprise value may be used after converting from millions to full dollars."
       ),
 
       beta: metric(extracted.beta, "", "Finnhub", "Volatility compared with market"),
