@@ -173,32 +173,6 @@ async function rebuildHistoricalEvalScore(symbol, weeks, currentAnalysis = {}) {
   }
 }
 
-function getStoredHistoricalEvalScore(symbol, weeks) {
-  const key = String(symbol || "").trim().toUpperCase();
-  if (!key) return null;
-
-  const target = getLookbackStartDate(weeks).getTime();
-  const db = readScoreSnapshots();
-  const list = Array.isArray(db[key]) ? db[key] : [];
-
-  let best = null;
-  let bestDistance = Infinity;
-
-  for (const row of list) {
-    const score = asFiniteNumber(row?.evalScore);
-    const rowTime = row?.date ? new Date(`${row.date}T00:00:00Z`).getTime() : NaN;
-    if (score === null || !Number.isFinite(rowTime)) continue;
-
-    const distance = Math.abs(rowTime - target);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = score;
-    }
-  }
-
-  return bestDistance <= 10 * 24 * 60 * 60 * 1000 ? best : null;
-}
-
 async function getHistoricalEvalScore(symbol, weeks, currentAnalysis = {}) {
   const rebuilt = await rebuildHistoricalEvalScore(symbol, weeks, currentAnalysis);
   if (rebuilt.score !== null) return rebuilt;
