@@ -95,6 +95,13 @@ function fmt(v, suffix = "") {
   })}${suffix}`;
 }
 
+function signedFmt(v, suffix = "") {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
+  const n = Number(v);
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toLocaleString(undefined, { maximumFractionDigits: 1 })}${suffix}`;
+}
+
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
   return Number(v).toLocaleString(undefined, {
@@ -1493,6 +1500,12 @@ function Report({ data, onAdd }) {
   const tone = scoreTone(edge);
   const scoreInsight = getScoreInsight(edge);
   const [openScoreHelp, setOpenScoreHelp] = useState(null);
+  const [qualityPriceWeeks, setQualityPriceWeeks] = useState(10);
+  const qualityPriceLookbacks = [4, 10, 26, 52];
+  const qualityPriceComparison =
+    data?.qualityPriceComparisons?.[qualityPriceWeeks] ||
+    data?.qualityPriceComparisons?.[String(qualityPriceWeeks)] ||
+    null;
 
   const strongest = useMemo(
     () =>
@@ -1579,6 +1592,22 @@ function Report({ data, onAdd }) {
   };
 
   const rows = [
+    [
+      `${qualityPriceWeeks}W Quality vs Price`,
+      {
+        value: qualityPriceComparison?.value ?? null,
+        displayValue:
+          qualityPriceComparison?.value === null || qualityPriceComparison?.value === undefined
+            ? "N/A"
+            : signedFmt(qualityPriceComparison.value, " pts"),
+        source: qualityPriceComparison?.source || `${qualityPriceWeeks}-week start vs current`,
+        formula: qualityPriceComparison?.formula || "Eval Score % change minus price % change",
+        label: qualityPriceComparison?.label || "N/A",
+      },
+      qualityPriceComparison?.description ||
+        `Compares Eval Score percent change against price percent change over ${qualityPriceWeeks} weeks, using only the start date and current values.`,
+      true,
+    ],
     [
       "P/E Ratio",
       metrics.peRatio,
@@ -1840,13 +1869,34 @@ function Report({ data, onAdd }) {
       </section>
 
       <section className="metrics-card">
-        <div className="section-title">
-          <Gauge size={17} /> Key metrics
+        <div className="metrics-card-head">
+          <div className="section-title">
+            <Gauge size={17} /> Key metrics
+          </div>
+
+          <div className="lookback-toggle" aria-label="Quality versus price lookback">
+            {qualityPriceLookbacks.map((weeks) => (
+              <button
+                key={weeks}
+                type="button"
+                className={qualityPriceWeeks === weeks ? "active" : ""}
+                onClick={() => setQualityPriceWeeks(weeks)}
+              >
+                {weeks}W
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="metric-grid">
-          {rows.map(([label, item, help]) => (
-            <Metric key={label} label={label} item={item} help={help} />
+          {rows.map(([label, item, help, highlighted]) => (
+            <Metric
+              key={label}
+              label={label}
+              item={item}
+              help={help}
+              highlighted={highlighted}
+            />
           ))}
         </div>
       </section>
@@ -1973,15 +2023,16 @@ function Grade({
   );
 }
 
-function Metric({ label, item, help }) {
+function Metric({ label, item, help, highlighted = false }) {
   return (
-    <div className="metric-tile">
+    <div className={`metric-tile ${highlighted ? "metric-tile-featured" : ""}`}>
       <div>
         <h3>{label}</h3>
         <span>{item?.source || "Unavailable"}</span>
       </div>
 
-      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
+      {item?.label && <em>{item.label}</em>}
+      <strong>{item?.displayValue || fmt(item?.value, item?.suffix || "")}</strong>
       <p>{help}</p>
 
       {item?.formula && <small>{item.formula}</small>}
