@@ -59,6 +59,20 @@ function pickMetric(metrics, keys) {
   return null;
 }
 
+function pickScaledMetric(metrics, candidates) {
+  for (const candidate of candidates) {
+    const key = typeof candidate === "string" ? candidate : candidate.key;
+    const scale = typeof candidate === "string" ? 1 : candidate.scale || 1;
+
+    if (Object.prototype.hasOwnProperty.call(metrics, key)) {
+      const value = safeNumber(metrics[key]);
+      if (value !== null) return value * scale;
+    }
+  }
+
+  return null;
+}
+
 function availableWeightedAverage(items, fallback = 6.0) {
   const used = items.filter(
     (item) => item.score !== null && item.score !== undefined && Number.isFinite(Number(item.score))
@@ -576,6 +590,33 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
 
   const derived = statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials);
 
+  const fallbackEnterpriseValue = pickScaledMetric(m, [
+    "enterpriseValue",
+    "enterpriseValueTTM",
+    "enterpriseValueAnnual",
+    "enterpriseValueQuarterly",
+    { key: "enterpriseValueMil", scale: 1_000_000 },
+    { key: "evMil", scale: 1_000_000 },
+    "ev",
+  ]);
+
+  const fallbackEbitda = pickScaledMetric(m, [
+    "ebitda",
+    "ebitdaTTM",
+    "ebitdaAnnual",
+    "ebitdaQuarterly",
+    { key: "ebitdaMil", scale: 1_000_000 },
+    { key: "ebitdaTTMMil", scale: 1_000_000 },
+  ]);
+
+  const enterpriseValue = firstNumber(derived.enterpriseValue, fallbackEnterpriseValue);
+  const ebitda = firstNumber(derived.ebitda, fallbackEbitda);
+  const evToEbitda = firstNumber(
+    divide(enterpriseValue, ebitda),
+    derived.evToEbitda,
+    pickMetric(m, ["evToEbitda", "ev/ebitda", "enterpriseValueOverEBITDA"])
+  );
+
   return {
     peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
     forwardPe: pickMetric(m, ["forwardPE", "peForward", "forwardPeAnnual"]),
@@ -584,7 +625,7 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     priceToBook: firstNumber(derived.priceToBook, pickMetric(m, ["pbQuarterly", "pbAnnual", "priceToBookAnnual"])),
     priceToCashFlow: firstNumber(derived.priceToCashFlow, pickMetric(m, ["pcfShareTTM", "pcfShareAnnual", "priceToCashFlowTTM"])),
     priceToFreeCashFlow: firstNumber(derived.priceToFreeCashFlow, pickMetric(m, ["pfcfShareTTM", "pfcfShareAnnual", "priceToFreeCashFlowTTM"])),
-    evToEbitda: firstNumber(derived.evToEbitda, pickMetric(m, ["evToEbitda", "ev/ebitda", "enterpriseValueOverEBITDA"])),
+    evToEbitda,
     dividendYield: pickMetric(m, ["dividendYieldIndicatedAnnual", "currentDividendYieldTTM", "dividendYield5Y"]),
 
     roe: firstNumber(derived.roe, pickMetric(m, ["roeTTM", "roeRfy", "roeAnnual"])),
@@ -624,8 +665,8 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     marketCapM: safeNumber(profile?.marketCapitalization),
     operatingCashFlow: derived.operatingCashFlow,
     freeCashFlow: derived.freeCashFlow,
-    ebitda: derived.ebitda,
-    enterpriseValue: derived.enterpriseValue,
+    ebitda,
+    enterpriseValue,
   };
 }
 
@@ -690,7 +731,7 @@ export async function buildStockAnalysis(symbol) {
       priceToBook: metric(extracted.priceToBook, "", extracted.priceToBook !== null ? "Calculated" : "Finnhub", "Market Cap / Shareholders' Equity"),
       priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
       priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
-      evToEbitda: metric(extracted.evToEbitda, "", extracted.evToEbitda !== null ? "Calculated" : "Finnhub", "EV / EBITDA, where EV = Market Cap + Total Debt - Cash and EBITDA = Operating Income + Depreciation & Amortization"),
+      evToEbitda: metric(extracted.evToEbitda, "", extracted.evToEbitda !== null ? "Calculated" : "Finnhub", "EV / EBITDA. EV is calculated as Market Cap + Total Debt - Cash when Finnhub provides enough statement data. EBITDA is calculated as Operating Income + Depreciation & Amortization."),
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
 
       roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
@@ -718,8 +759,8 @@ export async function buildStockAnalysis(symbol) {
 
       operatingCashFlow: metric(extracted.operatingCashFlow, "", "Calculated", "Cash flow from operations"),
       freeCashFlow: metric(extracted.freeCashFlow, "", "Calculated", "Operating Cash Flow - Capital Expenditures"),
-      ebitda: metric(extracted.ebitda, "", "Calculated", "Operating Income + Depreciation & Amortization"),
-      enterpriseValue: metric(extracted.enterpriseValue, "", "Calculated", "Market Cap + Debt - Cash"),
+      ebitda: metric(extracted.ebitda, "", extracted.ebitda !== null ? "Calculated" : "Finnhub", "Operating Income + Depreciation & Amortization"),
+      enterpriseValue: metric(extracted.enterpriseValue, "", extracted.enterpriseValue !== null ? "Calculated" : "Finnhub", "Market Cap + Total Debt - Cash"),
 
       beta: metric(extracted.beta, "", "Finnhub", "Volatility compared with market"),
       dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current day price move"),
