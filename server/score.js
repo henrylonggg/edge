@@ -34,6 +34,18 @@ function divide(a, b) {
   return x / y;
 }
 
+function validPositiveNumber(value) {
+  const n = safeNumber(value);
+  if (n === null || n <= 0) return null;
+  return n;
+}
+
+function toMillions(value) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  return n / 1_000_000;
+}
+
 function percentGrowth(current, previous) {
   const c = safeNumber(current);
   const p = safeNumber(previous);
@@ -75,14 +87,22 @@ function pickScaledMetric(metrics, candidates) {
 
 function availableWeightedAverage(items, fallback = 6.0) {
   const used = items.filter(
-    (item) => item.score !== null && item.score !== undefined && Number.isFinite(Number(item.score))
+    (item) =>
+      item.score !== null &&
+      item.score !== undefined &&
+      Number.isFinite(Number(item.score))
   );
+
   if (!used.length) return fallback;
 
   const totalWeight = used.reduce((sum, item) => sum + (item.weight || 1), 0);
   if (!totalWeight) return fallback;
 
-  const total = used.reduce((sum, item) => sum + Number(item.score) * (item.weight || 1), 0);
+  const total = used.reduce(
+    (sum, item) => sum + Number(item.score) * (item.weight || 1),
+    0
+  );
+
   return Number(clamp(total / totalWeight).toFixed(1));
 }
 
@@ -90,6 +110,7 @@ function highIsGood(value, poor, excellent) {
   const n = safeNumber(value);
   if (n === null) return null;
   if (excellent === poor) return 6.0;
+
   const score = ((n - poor) / (excellent - poor)) * 10;
   return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
 }
@@ -98,6 +119,7 @@ function lowIsGood(value, excellent, poor) {
   const n = safeNumber(value);
   if (n === null) return null;
   if (poor === excellent) return 6.0;
+
   const score = 10 - ((n - excellent) / (poor - excellent)) * 10;
   return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
 }
@@ -202,21 +224,28 @@ function parseReport(report) {
   );
 
   const grossProfit = lineValue(ic, ["GrossProfit"], ["gross profit"]);
+
   const operatingIncome = lineValue(
     ic,
-    ["OperatingIncomeLoss", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"],
+    [
+      "OperatingIncomeLoss",
+      "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+    ],
     ["operating income", "operating loss"]
   );
+
   const pretaxIncome = lineValue(
     ic,
     ["IncomeLossFromContinuingOperationsBeforeIncomeTaxes", "IncomeLossBeforeIncomeTaxes"],
     ["income before income taxes", "pretax income", "pre-tax income"]
   );
+
   const netIncome = lineValue(
     ic,
     ["NetIncomeLoss", "ProfitLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"],
     ["net income", "net earnings", "net loss"]
   );
+
   const epsDiluted = lineValue(
     ic,
     ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted"],
@@ -226,7 +255,13 @@ function parseReport(report) {
   const assets = lineValue(bs, ["Assets"], ["total assets"]);
   const currentAssets = lineValue(bs, ["AssetsCurrent"], ["total current assets", "current assets"]);
   const liabilities = lineValue(bs, ["Liabilities"], ["total liabilities"]);
-  const currentLiabilities = lineValue(bs, ["LiabilitiesCurrent"], ["total current liabilities", "current liabilities"]);
+
+  const currentLiabilities = lineValue(
+    bs,
+    ["LiabilitiesCurrent"],
+    ["total current liabilities", "current liabilities"]
+  );
+
   const equity = lineValue(
     bs,
     [
@@ -234,8 +269,15 @@ function parseReport(report) {
       "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
       "PartnersCapital",
     ],
-    ["total shareholders equity", "total stockholders equity", "shareholders equity", "stockholders equity", "total equity"]
+    [
+      "total shareholders equity",
+      "total stockholders equity",
+      "shareholders equity",
+      "stockholders equity",
+      "total equity",
+    ]
   );
+
   const cash = lineValue(
     bs,
     [
@@ -245,17 +287,25 @@ function parseReport(report) {
     ],
     ["cash and cash equivalents", "cash cash equivalents", "cash"]
   );
+
   const receivables = lineValue(
     bs,
-    ["AccountsReceivableNetCurrent", "ReceivablesNetCurrent", "AccountsNotesAndLoansReceivableNetCurrent"],
+    [
+      "AccountsReceivableNetCurrent",
+      "ReceivablesNetCurrent",
+      "AccountsNotesAndLoansReceivableNetCurrent",
+    ],
     ["accounts receivable", "receivables"]
   );
+
   const inventory = lineValue(bs, ["InventoryNet"], ["inventories", "inventory"]);
+
   const shortTermInvestments = lineValue(
     bs,
     ["ShortTermInvestments", "MarketableSecuritiesCurrent"],
     ["short term investments", "marketable securities current"]
   );
+
   const longTermDebt = lineValue(
     bs,
     [
@@ -265,6 +315,7 @@ function parseReport(report) {
     ],
     ["long term debt", "long-term debt", "finance lease obligations"]
   );
+
   const shortTermDebt = lineValue(
     bs,
     [
@@ -275,6 +326,7 @@ function parseReport(report) {
     ],
     ["short term borrowings", "short-term debt", "current portion of long term debt"]
   );
+
   const totalDebt = firstNumber(
     lineValue(bs, ["DebtCurrentAndNoncurrent", "LongTermDebtAndShortTermBorrowings"], ["total debt"]),
     (safeNumber(longTermDebt) || 0) + (safeNumber(shortTermDebt) || 0) || null
@@ -282,17 +334,30 @@ function parseReport(report) {
 
   const operatingCashFlow = lineValue(
     cf,
-    ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"],
-    ["net cash provided by operating activities", "cash provided by operating activities", "operating activities"]
+    [
+      "NetCashProvidedByUsedInOperatingActivities",
+      "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+    ],
+    [
+      "net cash provided by operating activities",
+      "cash provided by operating activities",
+      "operating activities",
+    ]
   );
+
   const capexRaw = lineValue(
     cf,
     ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsForProceedsFromProductiveAssets"],
     ["payments to acquire property", "capital expenditures", "purchase of property"]
   );
+
   const depreciation = lineValue(
     cf,
-    ["DepreciationDepletionAndAmortization", "DepreciationDepletionAndAmortizationExpense", "DepreciationAndAmortization"],
+    [
+      "DepreciationDepletionAndAmortization",
+      "DepreciationDepletionAndAmortizationExpense",
+      "DepreciationAndAmortization",
+    ],
     ["depreciation depletion and amortization", "depreciation and amortization"]
   );
 
@@ -301,10 +366,15 @@ function parseReport(report) {
       ? operatingCashFlow - Math.abs(capexRaw)
       : null;
 
+  /*
+    Important fix:
+    EBITDA should only calculate when both operating income and depreciation/amortization exist.
+    Do not fall back to operating income alone, because that creates misleading EV/EBITDA values.
+  */
   const ebitda =
     operatingIncome !== null && depreciation !== null
       ? operatingIncome + Math.abs(depreciation)
-      : operatingIncome;
+      : null;
 
   const quickAssets = firstNumber(
     currentAssets !== null && inventory !== null ? currentAssets - Math.abs(inventory) : null,
@@ -346,12 +416,15 @@ function parseReport(report) {
 
 function sortedReports(financials) {
   const data = Array.isArray(financials?.data) ? financials.data : [];
+
   return data
     .map((item) => ({ raw: item, parsed: parseReport(item) }))
     .sort((a, b) => {
       const ay = safeNumber(a.parsed.fiscalYear) || 0;
       const by = safeNumber(b.parsed.fiscalYear) || 0;
+
       if (by !== ay) return by - ay;
+
       return String(b.parsed.filedDate || "").localeCompare(String(a.parsed.filedDate || ""));
     });
 }
@@ -361,17 +434,22 @@ function latestWithValue(reports, key) {
     const value = safeNumber(item.parsed?.[key]);
     if (value !== null) return value;
   }
+
   return null;
 }
 
 function valueNPeriodsAgo(reports, key, periodsAgo) {
-  const values = reports.map((item) => safeNumber(item.parsed?.[key])).filter((v) => v !== null);
+  const values = reports
+    .map((item) => safeNumber(item.parsed?.[key]))
+    .filter((v) => v !== null);
+
   return values[periodsAgo] ?? null;
 }
 
 function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials) {
   const annualReports = sortedReports(annualFinancials);
   const quarterlyReports = sortedReports(quarterlyFinancials);
+
   const latestAnnual = annualReports[0]?.parsed || {};
   const latestQuarter = quarterlyReports[0]?.parsed || {};
 
@@ -400,20 +478,36 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
   const longTermDebt = firstNumber(latestQuarter.longTermDebt, latestAnnual.longTermDebt);
   const equity = firstNumber(latestQuarter.equity, latestAnnual.equity);
   const assets = firstNumber(latestQuarter.assets, latestAnnual.assets);
-  const operatingCashFlow = firstNumber(latestAnnual.operatingCashFlow, latestWithValue(annualReports, "operatingCashFlow"));
-  const freeCashFlow = firstNumber(latestAnnual.freeCashFlow, latestWithValue(annualReports, "freeCashFlow"));
+
+  const operatingCashFlow = firstNumber(
+    latestAnnual.operatingCashFlow,
+    latestWithValue(annualReports, "operatingCashFlow")
+  );
+
+  const freeCashFlow = firstNumber(
+    latestAnnual.freeCashFlow,
+    latestWithValue(annualReports, "freeCashFlow")
+  );
+
   const ebitda = firstNumber(latestAnnual.ebitda, latestWithValue(annualReports, "ebitda"));
 
   const revenue = latestRevenue;
   const netIncome = firstNumber(latestAnnual.netIncome, latestWithValue(annualReports, "netIncome"));
   const grossProfit = firstNumber(latestAnnual.grossProfit, latestWithValue(annualReports, "grossProfit"));
-  const operatingIncome = firstNumber(latestAnnual.operatingIncome, latestWithValue(annualReports, "operatingIncome"));
+  const operatingIncome = firstNumber(
+    latestAnnual.operatingIncome,
+    latestWithValue(annualReports, "operatingIncome")
+  );
   const pretaxIncome = firstNumber(latestAnnual.pretaxIncome, latestWithValue(annualReports, "pretaxIncome"));
 
   const enterpriseValue =
     marketCap !== null && totalDebt !== null
       ? marketCap + totalDebt - (cash || 0)
       : null;
+
+  const validEv = validPositiveNumber(enterpriseValue);
+  const validEbitda = validPositiveNumber(ebitda);
+  const evToEbitda = validEv !== null && validEbitda !== null ? validEv / validEbitda : null;
 
   return {
     currentRatio: divide(currentAssets, currentLiabilities),
@@ -427,7 +521,7 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
     priceToBook: divide(marketCap, equity),
     priceToCashFlow: divide(marketCap, operatingCashFlow),
     priceToFreeCashFlow: divide(marketCap, freeCashFlow),
-    evToEbitda: divide(enterpriseValue, ebitda),
+    evToEbitda,
 
     grossMargin: divide(grossProfit, revenue) !== null ? divide(grossProfit, revenue) * 100 : null,
     operatingMargin: divide(operatingIncome, revenue) !== null ? divide(operatingIncome, revenue) * 100 : null,
@@ -435,9 +529,10 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
     netMargin: divide(netIncome, revenue) !== null ? divide(netIncome, revenue) * 100 : null,
     roe: divide(netIncome, equity) !== null ? divide(netIncome, equity) * 100 : null,
     roa: divide(netIncome, assets) !== null ? divide(netIncome, assets) * 100 : null,
-    roi: divide(operatingIncome, totalDebt !== null && equity !== null ? totalDebt + equity : null) !== null
-      ? divide(operatingIncome, totalDebt + equity) * 100
-      : null,
+    roi:
+      divide(operatingIncome, totalDebt !== null && equity !== null ? totalDebt + equity : null) !== null
+        ? divide(operatingIncome, totalDebt + equity) * 100
+        : null,
 
     revenueGrowth: percentGrowth(latestRevenue, priorRevenue),
     revenueGrowthQuarterly: percentGrowth(quarterlyRevenue, quarterlyRevenueYearAgo),
@@ -492,17 +587,20 @@ function scoreFinancialHealth(metrics) {
 }
 
 function scoreValuation(metrics, growthScore, profitabilityScore) {
-  const raw = availableWeightedAverage([
-    { score: lowIsGood(metrics.peRatio, 10, 75), weight: 1.2 },
-    { score: lowIsGood(metrics.forwardPe, 10, 60), weight: 0.65 },
-    { score: lowIsGood(metrics.priceToSales, 1.0, 18), weight: 0.9 },
-    { score: lowIsGood(metrics.priceToBook, 1.0, 14), weight: 0.75 },
-    { score: lowIsGood(metrics.priceToCashFlow, 8, 55), weight: 0.65 },
-    { score: lowIsGood(metrics.priceToFreeCashFlow, 10, 70), weight: 0.65 },
-    { score: lowIsGood(metrics.evToEbitda, 8, 35), weight: 1.05 },
-    { score: lowIsGood(metrics.pegRatio, 0.7, 3.5), weight: 0.45 },
-    { score: highIsGood(metrics.dividendYield, 0, 4.5), weight: 0.2 },
-  ], 5.9);
+  const raw = availableWeightedAverage(
+    [
+      { score: lowIsGood(metrics.peRatio, 10, 75), weight: 1.2 },
+      { score: lowIsGood(metrics.forwardPe, 10, 60), weight: 0.65 },
+      { score: lowIsGood(metrics.priceToSales, 1.0, 18), weight: 0.9 },
+      { score: lowIsGood(metrics.priceToBook, 1.0, 14), weight: 0.75 },
+      { score: lowIsGood(metrics.priceToCashFlow, 8, 55), weight: 0.65 },
+      { score: lowIsGood(metrics.priceToFreeCashFlow, 10, 70), weight: 0.65 },
+      { score: lowIsGood(metrics.evToEbitda, 8, 35), weight: 1.05 },
+      { score: lowIsGood(metrics.pegRatio, 0.7, 3.5), weight: 0.45 },
+      { score: highIsGood(metrics.dividendYield, 0, 4.5), weight: 0.2 },
+    ],
+    5.9
+  );
 
   const qualityAdjustment =
     (growthScore >= 7.7 ? 0.45 : growthScore >= 6.8 ? 0.25 : 0) +
@@ -527,13 +625,16 @@ function scoreMomentum(metrics) {
 }
 
 function scorePullback(metrics) {
-  return availableWeightedAverage([
-    { score: highIsGood(metrics.pullbackFromHigh, 0, 35), weight: 1.15 },
-    { score: lowIsGood(metrics.priceReturn4Week, -10, 18), weight: 0.55 },
-    { score: lowIsGood(metrics.priceReturn13Week, -15, 28), weight: 0.45 },
-    { score: rangeSweetSpot(metrics.distanceFrom52WeekLow, 18, 75, 0, 180), weight: 0.35 },
-    { score: lowIsGood(metrics.dayChangePercent, -4, 5), weight: 0.25 },
-  ], 6.0);
+  return availableWeightedAverage(
+    [
+      { score: highIsGood(metrics.pullbackFromHigh, 0, 35), weight: 1.15 },
+      { score: lowIsGood(metrics.priceReturn4Week, -10, 18), weight: 0.55 },
+      { score: lowIsGood(metrics.priceReturn13Week, -15, 28), weight: 0.45 },
+      { score: rangeSweetSpot(metrics.distanceFrom52WeekLow, 18, 75, 0, 180), weight: 0.35 },
+      { score: lowIsGood(metrics.dayChangePercent, -4, 5), weight: 0.25 },
+    ],
+    6.0
+  );
 }
 
 function getRiskLabel(metrics, financialHealthScore, profitabilityScore) {
@@ -611,20 +712,54 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
 
   const enterpriseValue = firstNumber(derived.enterpriseValue, fallbackEnterpriseValue);
   const ebitda = firstNumber(derived.ebitda, fallbackEbitda);
-  const evToEbitda = firstNumber(
-    divide(enterpriseValue, ebitda),
-    derived.evToEbitda,
-    pickMetric(m, ["evToEbitda", "ev/ebitda", "enterpriseValueOverEBITDA"])
-  );
+
+  /*
+    Important fix:
+    EV/EBITDA should only calculate from real EV and real EBITDA.
+    It should not return 0.
+    It should be N/A if either side is missing, invalid, zero, or negative.
+  */
+  const validEv = validPositiveNumber(enterpriseValue);
+  const validEbitda = validPositiveNumber(ebitda);
+
+  const calculatedEvToEbitda =
+    validEv !== null && validEbitda !== null
+      ? validEv / validEbitda
+      : null;
+
+  const fallbackEvToEbitda = pickMetric(m, [
+    "evToEbitda",
+    "ev/ebitda",
+    "enterpriseValueOverEBITDA",
+  ]);
+
+  const evToEbitda = firstNumber(calculatedEvToEbitda, fallbackEvToEbitda);
 
   return {
     peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
     forwardPe: pickMetric(m, ["forwardPE", "peForward", "forwardPeAnnual"]),
     pegRatio: pickMetric(m, ["pegRatio", "pegTTM", "pegAnnual"]),
-    priceToSales: firstNumber(derived.priceToSales, pickMetric(m, ["psTTM", "psAnnual", "priceToSalesTTM"])),
-    priceToBook: firstNumber(derived.priceToBook, pickMetric(m, ["pbQuarterly", "pbAnnual", "priceToBookAnnual"])),
-    priceToCashFlow: firstNumber(derived.priceToCashFlow, pickMetric(m, ["pcfShareTTM", "pcfShareAnnual", "priceToCashFlowTTM"])),
-    priceToFreeCashFlow: firstNumber(derived.priceToFreeCashFlow, pickMetric(m, ["pfcfShareTTM", "pfcfShareAnnual", "priceToFreeCashFlowTTM"])),
+
+    priceToSales: firstNumber(
+      derived.priceToSales,
+      pickMetric(m, ["psTTM", "psAnnual", "priceToSalesTTM"])
+    ),
+
+    priceToBook: firstNumber(
+      derived.priceToBook,
+      pickMetric(m, ["pbQuarterly", "pbAnnual", "priceToBookAnnual"])
+    ),
+
+    priceToCashFlow: firstNumber(
+      derived.priceToCashFlow,
+      pickMetric(m, ["pcfShareTTM", "pcfShareAnnual", "priceToCashFlowTTM"])
+    ),
+
+    priceToFreeCashFlow: firstNumber(
+      derived.priceToFreeCashFlow,
+      pickMetric(m, ["pfcfShareTTM", "pfcfShareAnnual", "priceToFreeCashFlowTTM"])
+    ),
+
     evToEbitda,
     dividendYield: pickMetric(m, ["dividendYieldIndicatedAnnual", "currentDividendYieldTTM", "dividendYield5Y"]),
 
@@ -636,20 +771,70 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     pretaxMargin: firstNumber(derived.pretaxMargin, pickMetric(m, ["pretaxMarginTTM", "pretaxMarginAnnual"])),
     netMargin: firstNumber(derived.netMargin, pickMetric(m, ["netProfitMarginTTM", "netProfitMarginAnnual"])),
 
-    revenueGrowth: firstNumber(derived.revenueGrowth, pickMetric(m, ["revenueGrowthTTMYoy", "revenueGrowthYOY", "revenueGrowthAnnualYoy"])),
-    revenueGrowthQuarterly: firstNumber(derived.revenueGrowthQuarterly, pickMetric(m, ["revenueGrowthQuarterlyYoy", "revenueGrowthQuarterly"])),
-    revenueGrowth3Y: firstNumber(derived.revenueGrowth3Y, pickMetric(m, ["revenueGrowth3Y", "revenueGrowth3YCAGR"])),
-    revenueGrowth5Y: firstNumber(derived.revenueGrowth5Y, pickMetric(m, ["revenueGrowth5Y", "revenueGrowth5YCAGR"])),
-    epsGrowth: firstNumber(derived.epsGrowth, pickMetric(m, ["epsGrowthTTMYoy", "epsGrowthYOY", "epsGrowthAnnualYoy"])),
-    epsGrowth3Y: firstNumber(derived.epsGrowth3Y, pickMetric(m, ["epsGrowth3Y", "epsGrowth3YCAGR"])),
-    epsGrowth5Y: firstNumber(derived.epsGrowth5Y, pickMetric(m, ["epsGrowth5Y", "epsGrowth5YCAGR"])),
+    revenueGrowth: firstNumber(
+      derived.revenueGrowth,
+      pickMetric(m, ["revenueGrowthTTMYoy", "revenueGrowthYOY", "revenueGrowthAnnualYoy"])
+    ),
 
-    debtToEquity: firstNumber(derived.debtToEquity, pickMetric(m, ["totalDebt/totalEquityAnnual", "totalDebt/totalEquityQuarterly"])),
-    longTermDebtToEquity: firstNumber(derived.longTermDebtToEquity, pickMetric(m, ["longTermDebt/equityAnnual", "longTermDebt/equityQuarterly"])),
-    currentRatio: firstNumber(derived.currentRatio, pickMetric(m, ["currentRatioAnnual", "currentRatioQuarterly"])),
-    quickRatio: firstNumber(derived.quickRatio, pickMetric(m, ["quickRatioAnnual", "quickRatioQuarterly"])),
-    cashRatio: firstNumber(derived.cashRatio, pickMetric(m, ["cashRatioAnnual", "cashRatioQuarterly"])),
-    assetTurnover: firstNumber(derived.assetTurnover, pickMetric(m, ["assetTurnoverAnnual", "assetTurnoverTTM"])),
+    revenueGrowthQuarterly: firstNumber(
+      derived.revenueGrowthQuarterly,
+      pickMetric(m, ["revenueGrowthQuarterlyYoy", "revenueGrowthQuarterly"])
+    ),
+
+    revenueGrowth3Y: firstNumber(
+      derived.revenueGrowth3Y,
+      pickMetric(m, ["revenueGrowth3Y", "revenueGrowth3YCAGR"])
+    ),
+
+    revenueGrowth5Y: firstNumber(
+      derived.revenueGrowth5Y,
+      pickMetric(m, ["revenueGrowth5Y", "revenueGrowth5YCAGR"])
+    ),
+
+    epsGrowth: firstNumber(
+      derived.epsGrowth,
+      pickMetric(m, ["epsGrowthTTMYoy", "epsGrowthYOY", "epsGrowthAnnualYoy"])
+    ),
+
+    epsGrowth3Y: firstNumber(
+      derived.epsGrowth3Y,
+      pickMetric(m, ["epsGrowth3Y", "epsGrowth3YCAGR"])
+    ),
+
+    epsGrowth5Y: firstNumber(
+      derived.epsGrowth5Y,
+      pickMetric(m, ["epsGrowth5Y", "epsGrowth5YCAGR"])
+    ),
+
+    debtToEquity: firstNumber(
+      derived.debtToEquity,
+      pickMetric(m, ["totalDebt/totalEquityAnnual", "totalDebt/totalEquityQuarterly"])
+    ),
+
+    longTermDebtToEquity: firstNumber(
+      derived.longTermDebtToEquity,
+      pickMetric(m, ["longTermDebt/equityAnnual", "longTermDebt/equityQuarterly"])
+    ),
+
+    currentRatio: firstNumber(
+      derived.currentRatio,
+      pickMetric(m, ["currentRatioAnnual", "currentRatioQuarterly"])
+    ),
+
+    quickRatio: firstNumber(
+      derived.quickRatio,
+      pickMetric(m, ["quickRatioAnnual", "quickRatioQuarterly"])
+    ),
+
+    cashRatio: firstNumber(
+      derived.cashRatio,
+      pickMetric(m, ["cashRatioAnnual", "cashRatioQuarterly"])
+    ),
+
+    assetTurnover: firstNumber(
+      derived.assetTurnover,
+      pickMetric(m, ["assetTurnoverAnnual", "assetTurnoverTTM"])
+    ),
 
     beta: pickMetric(m, ["beta"]),
     dayChangePercent: safeNumber(quote?.dp),
@@ -690,7 +875,13 @@ export async function buildStockAnalysis(symbol) {
   }
 
   const rawMetricData = metricsRaw?.metric || {};
-  const extracted = buildExtractedMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials);
+  const extracted = buildExtractedMetrics(
+    profile,
+    quote,
+    rawMetricData,
+    annualFinancials,
+    quarterlyFinancials
+  );
 
   const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
@@ -699,14 +890,17 @@ export async function buildStockAnalysis(symbol) {
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
 
-  const edgeScore = availableWeightedAverage([
-    { score: growthScore, weight: 0.235 },
-    { score: profitabilityScore, weight: 0.225 },
-    { score: healthScore, weight: 0.195 },
-    { score: valuationScore, weight: 0.145 },
-    { score: momentumScore, weight: 0.115 },
-    { score: reversalScore, weight: 0.085 },
-  ], 6.0);
+  const edgeScore = availableWeightedAverage(
+    [
+      { score: growthScore, weight: 0.235 },
+      { score: profitabilityScore, weight: 0.225 },
+      { score: healthScore, weight: 0.195 },
+      { score: valuationScore, weight: 0.145 },
+      { score: momentumScore, weight: 0.115 },
+      { score: reversalScore, weight: 0.085 },
+    ],
+    6.0
+  );
 
   const riskLabel = getRiskLabel(extracted, healthScore, profitabilityScore);
 
@@ -721,46 +915,217 @@ export async function buildStockAnalysis(symbol) {
 
     evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
       1
-    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data. Valuation now includes calculated EV/EBITDA when enterprise value and EBITDA can be built from Finnhub data.`,
+    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data. Valuation includes EV/EBITDA only when both enterprise value and EBITDA can be calculated from valid Finnhub data.`,
 
     metrics: {
       peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / Earnings"),
       forwardPe: metric(extracted.forwardPe, "", "Finnhub", "Forward Price / Earnings"),
       pegRatio: metric(extracted.pegRatio, "", "Finnhub", "P/E adjusted by expected growth"),
-      priceToSales: metric(extracted.priceToSales, "", extracted.priceToSales !== null ? "Calculated" : "Finnhub", "Market Cap / Revenue"),
-      priceToBook: metric(extracted.priceToBook, "", extracted.priceToBook !== null ? "Calculated" : "Finnhub", "Market Cap / Shareholders' Equity"),
-      priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
-      priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
-      evToEbitda: metric(extracted.evToEbitda, "", extracted.evToEbitda !== null ? "Calculated" : "Finnhub", "EV / EBITDA. EV is calculated as Market Cap + Total Debt - Cash when Finnhub provides enough statement data. EBITDA is calculated as Operating Income + Depreciation & Amortization."),
+
+      priceToSales: metric(
+        extracted.priceToSales,
+        "",
+        extracted.priceToSales !== null ? "Calculated" : "Finnhub",
+        "Market Cap / Revenue"
+      ),
+
+      priceToBook: metric(
+        extracted.priceToBook,
+        "",
+        extracted.priceToBook !== null ? "Calculated" : "Finnhub",
+        "Market Cap / Shareholders' Equity"
+      ),
+
+      priceToCashFlow: metric(
+        extracted.priceToCashFlow,
+        "",
+        extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub",
+        "Market Cap / Operating Cash Flow"
+      ),
+
+      priceToFreeCashFlow: metric(
+        extracted.priceToFreeCashFlow,
+        "",
+        extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub",
+        "Market Cap / Free Cash Flow"
+      ),
+
+      evToEbitda: metric(
+        extracted.evToEbitda,
+        "",
+        extracted.evToEbitda !== null ? "Calculated" : "Finnhub",
+        "EV / EBITDA. EV is calculated as Market Cap + Total Debt - Cash. EBITDA is calculated as Operating Income + Depreciation & Amortization. If either value is missing, EV/EBITDA returns N/A."
+      ),
+
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
 
-      roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
-      roa: metric(extracted.roa, "%", extracted.roa !== null ? "Calculated" : "Finnhub", "Net Income / Assets"),
-      roi: metric(extracted.roi, "%", extracted.roi !== null ? "Calculated" : "Finnhub", "Operating Income / Invested Capital"),
-      grossMargin: metric(extracted.grossMargin, "%", extracted.grossMargin !== null ? "Calculated" : "Finnhub", "Gross Profit / Revenue"),
-      operatingMargin: metric(extracted.operatingMargin, "%", extracted.operatingMargin !== null ? "Calculated" : "Finnhub", "Operating Income / Revenue"),
-      pretaxMargin: metric(extracted.pretaxMargin, "%", extracted.pretaxMargin !== null ? "Calculated" : "Finnhub", "Pretax Income / Revenue"),
-      netMargin: metric(extracted.netMargin, "%", extracted.netMargin !== null ? "Calculated" : "Finnhub", "Net Income / Revenue"),
+      roe: metric(
+        extracted.roe,
+        "%",
+        extracted.roe !== null ? "Calculated" : "Finnhub",
+        "Net Income / Shareholder Equity"
+      ),
 
-      revenueGrowth: metric(extracted.revenueGrowth, "%", extracted.revenueGrowth !== null ? "Calculated" : "Finnhub", "Annual revenue growth"),
-      revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", extracted.revenueGrowthQuarterly !== null ? "Calculated" : "Finnhub", "Quarterly revenue growth year over year"),
-      revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", extracted.revenueGrowth3Y !== null ? "Calculated" : "Finnhub", "3-year revenue CAGR"),
-      revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", extracted.revenueGrowth5Y !== null ? "Calculated" : "Finnhub", "5-year revenue CAGR"),
-      epsGrowth: metric(extracted.epsGrowth, "%", extracted.epsGrowth !== null ? "Calculated" : "Finnhub", "Annual diluted EPS growth"),
-      epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", extracted.epsGrowth3Y !== null ? "Calculated" : "Finnhub", "3-year EPS CAGR"),
-      epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", extracted.epsGrowth5Y !== null ? "Calculated" : "Finnhub", "5-year EPS CAGR"),
+      roa: metric(
+        extracted.roa,
+        "%",
+        extracted.roa !== null ? "Calculated" : "Finnhub",
+        "Net Income / Assets"
+      ),
 
-      debtToEquity: metric(extracted.debtToEquity, "", extracted.debtToEquity !== null ? "Calculated" : "Finnhub", "Total Debt / Total Equity"),
-      longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", extracted.longTermDebtToEquity !== null ? "Calculated" : "Finnhub", "Long-Term Debt / Equity"),
-      currentRatio: metric(extracted.currentRatio, "", extracted.currentRatio !== null ? "Calculated" : "Finnhub", "Current Assets / Current Liabilities"),
-      quickRatio: metric(extracted.quickRatio, "", extracted.quickRatio !== null ? "Calculated" : "Finnhub", "Quick Assets / Current Liabilities"),
-      cashRatio: metric(extracted.cashRatio, "", extracted.cashRatio !== null ? "Calculated" : "Finnhub", "Cash / Current Liabilities"),
-      assetTurnover: metric(extracted.assetTurnover, "", extracted.assetTurnover !== null ? "Calculated" : "Finnhub", "Revenue / Assets"),
+      roi: metric(
+        extracted.roi,
+        "%",
+        extracted.roi !== null ? "Calculated" : "Finnhub",
+        "Operating Income / Invested Capital"
+      ),
 
-      operatingCashFlow: metric(extracted.operatingCashFlow, "", "Calculated", "Cash flow from operations"),
-      freeCashFlow: metric(extracted.freeCashFlow, "", "Calculated", "Operating Cash Flow - Capital Expenditures"),
-      ebitda: metric(extracted.ebitda, "", extracted.ebitda !== null ? "Calculated" : "Finnhub", "Operating Income + Depreciation & Amortization"),
-      enterpriseValue: metric(extracted.enterpriseValue, "", extracted.enterpriseValue !== null ? "Calculated" : "Finnhub", "Market Cap + Total Debt - Cash"),
+      grossMargin: metric(
+        extracted.grossMargin,
+        "%",
+        extracted.grossMargin !== null ? "Calculated" : "Finnhub",
+        "Gross Profit / Revenue"
+      ),
+
+      operatingMargin: metric(
+        extracted.operatingMargin,
+        "%",
+        extracted.operatingMargin !== null ? "Calculated" : "Finnhub",
+        "Operating Income / Revenue"
+      ),
+
+      pretaxMargin: metric(
+        extracted.pretaxMargin,
+        "%",
+        extracted.pretaxMargin !== null ? "Calculated" : "Finnhub",
+        "Pretax Income / Revenue"
+      ),
+
+      netMargin: metric(
+        extracted.netMargin,
+        "%",
+        extracted.netMargin !== null ? "Calculated" : "Finnhub",
+        "Net Income / Revenue"
+      ),
+
+      revenueGrowth: metric(
+        extracted.revenueGrowth,
+        "%",
+        extracted.revenueGrowth !== null ? "Calculated" : "Finnhub",
+        "Annual revenue growth"
+      ),
+
+      revenueGrowthQuarterly: metric(
+        extracted.revenueGrowthQuarterly,
+        "%",
+        extracted.revenueGrowthQuarterly !== null ? "Calculated" : "Finnhub",
+        "Quarterly revenue growth year over year"
+      ),
+
+      revenueGrowth3Y: metric(
+        extracted.revenueGrowth3Y,
+        "%",
+        extracted.revenueGrowth3Y !== null ? "Calculated" : "Finnhub",
+        "3-year revenue CAGR"
+      ),
+
+      revenueGrowth5Y: metric(
+        extracted.revenueGrowth5Y,
+        "%",
+        extracted.revenueGrowth5Y !== null ? "Calculated" : "Finnhub",
+        "5-year revenue CAGR"
+      ),
+
+      epsGrowth: metric(
+        extracted.epsGrowth,
+        "%",
+        extracted.epsGrowth !== null ? "Calculated" : "Finnhub",
+        "Annual diluted EPS growth"
+      ),
+
+      epsGrowth3Y: metric(
+        extracted.epsGrowth3Y,
+        "%",
+        extracted.epsGrowth3Y !== null ? "Calculated" : "Finnhub",
+        "3-year EPS CAGR"
+      ),
+
+      epsGrowth5Y: metric(
+        extracted.epsGrowth5Y,
+        "%",
+        extracted.epsGrowth5Y !== null ? "Calculated" : "Finnhub",
+        "5-year EPS CAGR"
+      ),
+
+      debtToEquity: metric(
+        extracted.debtToEquity,
+        "",
+        extracted.debtToEquity !== null ? "Calculated" : "Finnhub",
+        "Total Debt / Total Equity"
+      ),
+
+      longTermDebtToEquity: metric(
+        extracted.longTermDebtToEquity,
+        "",
+        extracted.longTermDebtToEquity !== null ? "Calculated" : "Finnhub",
+        "Long-Term Debt / Equity"
+      ),
+
+      currentRatio: metric(
+        extracted.currentRatio,
+        "",
+        extracted.currentRatio !== null ? "Calculated" : "Finnhub",
+        "Current Assets / Current Liabilities"
+      ),
+
+      quickRatio: metric(
+        extracted.quickRatio,
+        "",
+        extracted.quickRatio !== null ? "Calculated" : "Finnhub",
+        "Quick Assets / Current Liabilities"
+      ),
+
+      cashRatio: metric(
+        extracted.cashRatio,
+        "",
+        extracted.cashRatio !== null ? "Calculated" : "Finnhub",
+        "Cash / Current Liabilities"
+      ),
+
+      assetTurnover: metric(
+        extracted.assetTurnover,
+        "",
+        extracted.assetTurnover !== null ? "Calculated" : "Finnhub",
+        "Revenue / Assets"
+      ),
+
+      operatingCashFlow: metric(
+        extracted.operatingCashFlow,
+        "",
+        "Calculated",
+        "Cash flow from operations"
+      ),
+
+      freeCashFlow: metric(
+        extracted.freeCashFlow,
+        "",
+        "Calculated",
+        "Operating Cash Flow - Capital Expenditures"
+      ),
+
+      ebitda: metric(
+        toMillions(extracted.ebitda),
+        "M",
+        extracted.ebitda !== null ? "Calculated" : "Finnhub",
+        "Operating Income + Depreciation & Amortization, shown in millions"
+      ),
+
+      enterpriseValue: metric(
+        toMillions(extracted.enterpriseValue),
+        "M",
+        extracted.enterpriseValue !== null ? "Calculated" : "Finnhub",
+        "Market Cap + Total Debt - Cash, shown in millions"
+      ),
 
       beta: metric(extracted.beta, "", "Finnhub", "Volatility compared with market"),
       dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current day price move"),
@@ -771,7 +1136,12 @@ export async function buildStockAnalysis(symbol) {
       weekHigh: metric(extracted.weekHigh, "", "Finnhub", "52-week high price"),
       weekLow: metric(extracted.weekLow, "", "Finnhub", "52-week low price"),
       pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Calculated", "Distance below 52-week high"),
-      distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Calculated", "Distance above 52-week low"),
+      distanceFrom52WeekLow: metric(
+        extracted.distanceFrom52WeekLow,
+        "%",
+        "Calculated",
+        "Distance above 52-week low"
+      ),
 
       marketCapM: metric(extracted.marketCapM, "M", "Finnhub", "Market capitalization in millions"),
     },
@@ -779,6 +1149,7 @@ export async function buildStockAnalysis(symbol) {
     grades: {
       edgeScore: Number(edgeScore.toFixed(1)),
       riskLabel,
+
       categories: {
         growth: growthScore,
         profitability: profitabilityScore,
@@ -787,6 +1158,7 @@ export async function buildStockAnalysis(symbol) {
         momentum: momentumScore,
         reversal: reversalScore,
       },
+
       context: {
         marketCapM: extracted.marketCapM,
       },
