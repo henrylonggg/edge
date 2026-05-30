@@ -1489,7 +1489,7 @@ function AssistantPage({ current, watchlist, onBack }) {
 
 function StockPriceChart({ symbol }) {
   const [points, setPoints] = useState([]);
-  const [range, setRange] = useState("1y");
+  const [range, setRange] = useState("1m");
   const [loading, setLoading] = useState(false);
   const [chartError, setChartError] = useState("");
 
@@ -1518,20 +1518,14 @@ function StockPriceChart({ symbol }) {
           throw new Error(json?.error || json?.message || "Chart data unavailable.");
         }
 
-        const raw = Array.isArray(json?.points)
-          ? json.points
-          : Array.isArray(json?.candles)
-            ? json.candles
-            : Array.isArray(json)
-              ? json
-              : [];
+        const raw = Array.isArray(json?.points) ? json.points : [];
 
         const next = raw
           .map((point) => ({
-            date: point.date || point.time || point.t || point.label,
+            date: point.date || point.targetDate || point.label,
             close: Number(point.close ?? point.c ?? point.price ?? point.value),
           }))
-          .filter((point) => Number.isFinite(point.close));
+          .filter((point) => point.date && Number.isFinite(point.close));
 
         if (!cancelled) setPoints(next);
       } catch (err) {
@@ -1556,27 +1550,52 @@ function StockPriceChart({ symbol }) {
 
     const width = 760;
     const height = 260;
-    const paddingX = 16;
-    const paddingY = 22;
+    const paddingX = 18;
+    const paddingY = 24;
     const values = points.map((point) => point.close);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const spread = max - min || 1;
 
+    const xForIndex = (index) =>
+      points.length === 1
+        ? width / 2
+        : paddingX + (index / Math.max(points.length - 1, 1)) * (width - paddingX * 2);
+
+    const yForValue = (value) =>
+      paddingY + ((max - value) / spread) * (height - paddingY * 2);
+
     const path = points
       .map((point, index) => {
-        const x = paddingX + (index / Math.max(points.length - 1, 1)) * (width - paddingX * 2);
-        const y = paddingY + ((max - point.close) / spread) * (height - paddingY * 2);
+        const x = xForIndex(index);
+        const y = yForValue(point.close);
         return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
       })
       .join(" ");
 
-    const area = `${path} L${width - paddingX} ${height - paddingY} L${paddingX} ${height - paddingY} Z`;
+    const n = points.length;
+    const sumX = points.reduce((sum, _, index) => sum + index, 0);
+    const sumY = points.reduce((sum, point) => sum + point.close, 0);
+    const sumXY = points.reduce((sum, point, index) => sum + index * point.close, 0);
+    const sumX2 = points.reduce((sum, _, index) => sum + index * index, 0);
+    const denominator = n * sumX2 - sumX * sumX;
+
+    const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
+    const intercept = n === 0 ? 0 : (sumY - slope * sumX) / n;
+
+    const trendStart = intercept;
+    const trendEnd = intercept + slope * (n - 1);
+
+    const trendPath =
+      n >= 2
+        ? `M${xForIndex(0).toFixed(2)} ${yForValue(trendStart).toFixed(2)} L${xForIndex(n - 1).toFixed(2)} ${yForValue(trendEnd).toFixed(2)}`
+        : "";
+
     const first = points[0]?.close ?? null;
     const last = points[points.length - 1]?.close ?? null;
     const change = first && last ? ((last - first) / Math.abs(first)) * 100 : null;
 
-    return { width, height, path, area, min, max, first, last, change };
+    return { width, height, path, trendPath, min, max, first, last, change };
   }, [points]);
 
   return (
@@ -1584,20 +1603,28 @@ function StockPriceChart({ symbol }) {
       <div className="stock-chart-head">
         <div>
           <div className="section-title">
-            <LineChart size={17} /> Stock chart
+            <LineChart size={17} /> Historical price chart
           </div>
-          <p>{symbol} price movement from Finnhub candle data.</p>
+          <p>
+            4:00 PM market close price from each Wednesday in the selected period.
+            The faint line behind it shows the trend.
+          </p>
         </div>
 
         <div className="stock-chart-controls" aria-label="Chart range controls">
-          {["1m", "3m", "6m", "1y"].map((option) => (
+          {[
+            ["1m", "1M"],
+            ["3m", "3M"],
+            ["6m", "6M"],
+            ["1y", "1Y"],
+          ].map(([value, label]) => (
             <button
-              key={option}
+              key={value}
               type="button"
-              className={range === option ? "active" : ""}
-              onClick={() => setRange(option)}
+              className={range === value ? "active" : ""}
+              onClick={() => setRange(value)}
             >
-              {option.toUpperCase()}
+              {label}
             </button>
           ))}
         </div>
@@ -1625,15 +1652,45 @@ function StockPriceChart({ symbol }) {
             aria-label={`${symbol} stock price chart`}
             preserveAspectRatio="none"
           >
-            <defs>
-              <linearGradient id={`chartArea-${symbol}`} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="rgba(133,215,19,.34)" />
-                <stop offset="100%" stopColor="rgba(133,215,19,0)" />
-              </linearGradient>
-            </defs>
-            <path d={chart.area} fill={`url(#chartArea-${symbol})`} />
-            <path d={chart.path} fill="none" stroke="rgba(133,255,71,.95)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d={chart.trendPath}
+              className="stock-chart-trend-line"
+            />
+            <path
+              d={chart.path}
+              className="stock-chart-price-glow"
+            />
+            <path
+              d={chart.path}
+              className="stock-chart-price-line"
+            />
+            {points.map((point, index) => {
+              const x =
+                points.length === 1
+                  ? chart.width / 2
+                  : 18 + (index / Math.max(points.length - 1, 1)) * (chart.width - 36);
+              const spread = chart.max - chart.min || 1;
+              const y = 24 + ((chart.max - point.close) / spread) * (chart.height - 48);
+
+              return (
+                <circle
+                  key={`${point.date}-${point.close}`}
+                  className="stock-chart-dot"
+                  cx={x}
+                  cy={y}
+                  r="3.8"
+                />
+              );
+            })}
           </svg>
+
+          <div className="stock-chart-labels">
+            {points.map((point) => (
+              <span key={`${point.date}-${point.close}`}>
+                {String(point.date).slice(5)} · ${Number(point.close).toFixed(2)}
+              </span>
+            ))}
+          </div>
         </>
       ) : (
         <div className="stock-chart-empty">
@@ -1780,16 +1837,6 @@ function Report({ data, onAdd }) {
       "Enterprise Value",
       metrics.enterpriseValue,
       "Company value estimate calculated as market cap plus total debt minus cash.",
-    ],
-    [
-      "EBITDA",
-      metrics.ebitda,
-      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
-    ],
-    [
-      "EV/EBITDA",
-      metrics.evToEbitda,
-      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
     ],
     [
       "52-Week Return",
