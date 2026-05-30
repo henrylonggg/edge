@@ -59,7 +59,7 @@ function pickMetric(metrics, keys) {
   return null;
 }
 
-function availableWeightedAverage(items, fallback = 5.8) {
+function availableWeightedAverage(items, fallback = 6.0) {
   const used = items.filter(
     (item) => item.score !== null && item.score !== undefined && Number.isFinite(Number(item.score))
   );
@@ -75,17 +75,17 @@ function availableWeightedAverage(items, fallback = 5.8) {
 function highIsGood(value, poor, excellent) {
   const n = safeNumber(value);
   if (n === null) return null;
-  if (excellent === poor) return 5.8;
+  if (excellent === poor) return 6.0;
   const score = ((n - poor) / (excellent - poor)) * 10;
-  return Number(clamp(score, 1.5, 10).toFixed(1));
+  return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
 }
 
 function lowIsGood(value, excellent, poor) {
   const n = safeNumber(value);
   if (n === null) return null;
-  if (poor === excellent) return 5.8;
+  if (poor === excellent) return 6.0;
   const score = 10 - ((n - excellent) / (poor - excellent)) * 10;
-  return Number(clamp(score, 1.5, 10).toFixed(1));
+  return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
 }
 
 function rangeSweetSpot(value, idealLow, idealHigh, weakLow, weakHigh) {
