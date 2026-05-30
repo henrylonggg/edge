@@ -113,6 +113,36 @@ function compactMoney(v) {
   return `$${n.toFixed(0)}M`;
 }
 
+function compactDollarFromRaw(v) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
+  const n = Number(v);
+  const abs = Math.abs(n);
+
+  if (abs >= 1_000_000_000_000) return `$${(n / 1_000_000_000_000).toFixed(1)}T`;
+  if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+function metricDisplayValue(label, item) {
+  if (!item || item.value === null || item.value === undefined || Number.isNaN(Number(item.value))) {
+    return "N/A";
+  }
+
+  const normalizedLabel = String(label || "").toLowerCase();
+  const shouldCompactDollar =
+    normalizedLabel.includes("enterprise value") ||
+    normalizedLabel.includes("ebitda") ||
+    normalizedLabel.includes("cash flow");
+
+  if (shouldCompactDollar && !normalizedLabel.includes("ev/ebitda")) {
+    return compactDollarFromRaw(item.value);
+  }
+
+  return fmt(item.value, item.suffix || "");
+}
+
 function readWatchlist() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -1622,12 +1652,12 @@ function Report({ data, onAdd }) {
     [
       "Enterprise Value",
       metrics.enterpriseValue,
-      "Company value estimate calculated as market cap plus total debt minus cash.",
+      "Company value estimate calculated from Finnhub data as market cap plus total debt minus cash.",
     ],
     [
       "EBITDA",
       metrics.ebitda,
-      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
+      "Operating earnings estimate calculated from operating income plus depreciation and amortization when Finnhub provides the data.",
     ],
     [
       "EV/EBITDA",
@@ -1859,7 +1889,7 @@ function metricLine(label, item) {
   if (typeof item === "object" && "value" in item) {
     return {
       label,
-      value: fmt(item.value, item.suffix || ""),
+      value: metricDisplayValue(label, item),
       source: item.source || "Score model",
     };
   }
@@ -1980,7 +2010,7 @@ function Metric({ label, item, help }) {
         <span>{item?.source || "Unavailable"}</span>
       </div>
 
-      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
+      <strong>{metricDisplayValue(label, item)}</strong>
       <p>{help}</p>
 
       {item?.formula && <small>{item.formula}</small>}
