@@ -1636,7 +1636,7 @@ function Report({ data, onAdd }) {
 
   return (
     <>
-      <section className="hero-card">
+      <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
             className={`score-ring ${tone}`}
