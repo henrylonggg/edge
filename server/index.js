@@ -13,6 +13,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+const MAX_ASSISTANT_QUESTION_CHARS = 75;
+const MAX_ASSISTANT_ANSWER_CHARS = 150;
+
+function shortAssistantAnswer(text = "") {
+  const cleaned = String(text || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length <= MAX_ASSISTANT_ANSWER_CHARS) return cleaned;
+  return `${cleaned.slice(0, MAX_ASSISTANT_ANSWER_CHARS - 3).trim()}...`;
+}
+
+
 
 function stripHtml(html = "") {
   return String(html)
@@ -667,8 +680,9 @@ app.get("/api/analyze/:symbol", async (req, res) => {
 app.post("/api/assistant", async (req, res) => {
   try {
     const { question, current, watchlist } = req.body || {};
+    const cleanQuestion = String(question || "").trim().slice(0, MAX_ASSISTANT_QUESTION_CHARS);
 
-    if (!question || !String(question).trim()) {
+    if (!cleanQuestion) {
       return res.status(400).json({
         error: "Missing assistant question.",
       });
@@ -680,17 +694,17 @@ app.post("/api/assistant", async (req, res) => {
       const risk = current?.grades?.riskLabel || "N/A";
 
       return res.status(200).json({
-        answer: `For ${symbol}, the current Eval Score is ${score} and the risk label is ${risk}. Your question was: "${question}". The assistant AI key is not connected on the backend yet, but the stock analysis route is working.`,
+        answer: shortAssistantAnswer(`${symbol}: Eval Score ${score}, risk ${risk}. AI key is not connected yet.`),
       });
     }
 
     const prompt = `
 You are Eval AI Assistant, a simple stock-analysis helper.
 Do not give licensed financial advice.
-Explain clearly and briefly.
+Use easy words. Answer in 150 characters or fewer.
 
 User question:
-${question}
+${cleanQuestion}
 
 Current stock data:
 ${JSON.stringify(current || {}, null, 2)}
@@ -713,7 +727,7 @@ ${JSON.stringify(watchlist || [], null, 2)}
             {
               role: "system",
               content:
-                "You are a helpful stock education assistant. Keep answers simple, practical, and beginner friendly. Do not claim to be a financial advisor.",
+                "You are a helpful stock education assistant. Use easy words. Keep every answer to 150 characters or fewer. Do not claim to be a financial advisor.",
             },
             {
               role: "user",
@@ -721,7 +735,7 @@ ${JSON.stringify(watchlist || [], null, 2)}
             },
           ],
           temperature: 0.4,
-          max_tokens: 500,
+          max_tokens: 80,
         }),
       }
     );
@@ -732,15 +746,17 @@ ${JSON.stringify(watchlist || [], null, 2)}
       console.error("OpenAI error:", openAiJson);
 
       return res.status(200).json({
-        answer:
-          "The stock data loaded, but the AI assistant could not respond right now. Check your OPENAI_API_KEY on Render.",
+        answer: shortAssistantAnswer(
+          "Stock data loaded, but the AI reply failed. Check your OPENAI_API_KEY on Render."
+        ),
       });
     }
 
     return res.status(200).json({
-      answer:
+      answer: shortAssistantAnswer(
         openAiJson?.choices?.[0]?.message?.content ||
-        "I could not create a response.",
+          "I could not create a response."
+      ),
     });
   } catch (error) {
     console.error("Assistant route failed:", error);
