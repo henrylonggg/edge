@@ -253,7 +253,13 @@ function parseReport(report) {
   );
 
   const assets = lineValue(bs, ["Assets"], ["total assets"]);
-  const currentAssets = lineValue(bs, ["AssetsCurrent"], ["total current assets", "current assets"]);
+
+  const currentAssets = lineValue(
+    bs,
+    ["AssetsCurrent"],
+    ["total current assets", "current assets"]
+  );
+
   const liabilities = lineValue(bs, ["Liabilities"], ["total liabilities"]);
 
   const currentLiabilities = lineValue(
@@ -328,7 +334,11 @@ function parseReport(report) {
   );
 
   const totalDebt = firstNumber(
-    lineValue(bs, ["DebtCurrentAndNoncurrent", "LongTermDebtAndShortTermBorrowings"], ["total debt"]),
+    lineValue(
+      bs,
+      ["DebtCurrentAndNoncurrent", "LongTermDebtAndShortTermBorrowings"],
+      ["total debt"]
+    ),
     (safeNumber(longTermDebt) || 0) + (safeNumber(shortTermDebt) || 0) || null
   );
 
@@ -366,18 +376,15 @@ function parseReport(report) {
       ? operatingCashFlow - Math.abs(capexRaw)
       : null;
 
-  /*
-    Important fix:
-    EBITDA should only calculate when both operating income and depreciation/amortization exist.
-    Do not fall back to operating income alone, because that creates misleading EV/EBITDA values.
-  */
   const ebitda =
     operatingIncome !== null && depreciation !== null
       ? operatingIncome + Math.abs(depreciation)
       : null;
 
   const quickAssets = firstNumber(
-    currentAssets !== null && inventory !== null ? currentAssets - Math.abs(inventory) : null,
+    currentAssets !== null && inventory !== null
+      ? currentAssets - Math.abs(inventory)
+      : null,
     [cash, receivables, shortTermInvestments]
       .map(safeNumber)
       .filter((x) => x !== null)
@@ -455,6 +462,7 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
 
   const marketCapM = safeNumber(profile?.marketCapitalization);
   const marketCap = marketCapM !== null ? marketCapM * 1_000_000 : null;
+
   const currentPrice = safeNumber(quote?.c);
 
   const latestRevenue = firstNumber(latestAnnual.revenue, latestWithValue(annualReports, "revenue"));
@@ -494,11 +502,16 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
   const revenue = latestRevenue;
   const netIncome = firstNumber(latestAnnual.netIncome, latestWithValue(annualReports, "netIncome"));
   const grossProfit = firstNumber(latestAnnual.grossProfit, latestWithValue(annualReports, "grossProfit"));
+
   const operatingIncome = firstNumber(
     latestAnnual.operatingIncome,
     latestWithValue(annualReports, "operatingIncome")
   );
-  const pretaxIncome = firstNumber(latestAnnual.pretaxIncome, latestWithValue(annualReports, "pretaxIncome"));
+
+  const pretaxIncome = firstNumber(
+    latestAnnual.pretaxIncome,
+    latestWithValue(annualReports, "pretaxIncome")
+  );
 
   const enterpriseValue =
     marketCap !== null && totalDebt !== null
@@ -507,7 +520,11 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
 
   const validEv = validPositiveNumber(enterpriseValue);
   const validEbitda = validPositiveNumber(ebitda);
-  const evToEbitda = validEv !== null && validEbitda !== null ? validEv / validEbitda : null;
+
+  const evToEbitda =
+    validEv !== null && validEbitda !== null
+      ? validEv / validEbitda
+      : null;
 
   return {
     currentRatio: divide(currentAssets, currentLiabilities),
@@ -523,12 +540,36 @@ function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFina
     priceToFreeCashFlow: divide(marketCap, freeCashFlow),
     evToEbitda,
 
-    grossMargin: divide(grossProfit, revenue) !== null ? divide(grossProfit, revenue) * 100 : null,
-    operatingMargin: divide(operatingIncome, revenue) !== null ? divide(operatingIncome, revenue) * 100 : null,
-    pretaxMargin: divide(pretaxIncome, revenue) !== null ? divide(pretaxIncome, revenue) * 100 : null,
-    netMargin: divide(netIncome, revenue) !== null ? divide(netIncome, revenue) * 100 : null,
-    roe: divide(netIncome, equity) !== null ? divide(netIncome, equity) * 100 : null,
-    roa: divide(netIncome, assets) !== null ? divide(netIncome, assets) * 100 : null,
+    grossMargin:
+      divide(grossProfit, revenue) !== null
+        ? divide(grossProfit, revenue) * 100
+        : null,
+
+    operatingMargin:
+      divide(operatingIncome, revenue) !== null
+        ? divide(operatingIncome, revenue) * 100
+        : null,
+
+    pretaxMargin:
+      divide(pretaxIncome, revenue) !== null
+        ? divide(pretaxIncome, revenue) * 100
+        : null,
+
+    netMargin:
+      divide(netIncome, revenue) !== null
+        ? divide(netIncome, revenue) * 100
+        : null,
+
+    roe:
+      divide(netIncome, equity) !== null
+        ? divide(netIncome, equity) * 100
+        : null,
+
+    roa:
+      divide(netIncome, assets) !== null
+        ? divide(netIncome, assets) * 100
+        : null,
+
     roi:
       divide(operatingIncome, totalDebt !== null && equity !== null ? totalDebt + equity : null) !== null
         ? divide(operatingIncome, totalDebt + equity) * 100
@@ -692,13 +733,13 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
   const derived = statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials);
 
   const fallbackEnterpriseValue = pickScaledMetric(m, [
-    "enterpriseValue",
-    "enterpriseValueTTM",
-    "enterpriseValueAnnual",
-    "enterpriseValueQuarterly",
+    { key: "enterpriseValue", scale: 1_000_000 },
+    { key: "enterpriseValueTTM", scale: 1_000_000 },
+    { key: "enterpriseValueAnnual", scale: 1_000_000 },
+    { key: "enterpriseValueQuarterly", scale: 1_000_000 },
     { key: "enterpriseValueMil", scale: 1_000_000 },
     { key: "evMil", scale: 1_000_000 },
-    "ev",
+    { key: "ev", scale: 1_000_000 },
   ]);
 
   const fallbackEbitda = pickScaledMetric(m, [
@@ -713,12 +754,6 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
   const enterpriseValue = firstNumber(derived.enterpriseValue, fallbackEnterpriseValue);
   const ebitda = firstNumber(derived.ebitda, fallbackEbitda);
 
-  /*
-    Important fix:
-    EV/EBITDA should only calculate from real EV and real EBITDA.
-    It should not return 0.
-    It should be N/A if either side is missing, invalid, zero, or negative.
-  */
   const validEv = validPositiveNumber(enterpriseValue);
   const validEbitda = validPositiveNumber(ebitda);
 
@@ -733,7 +768,12 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     "enterpriseValueOverEBITDA",
   ]);
 
-  const evToEbitda = firstNumber(calculatedEvToEbitda, fallbackEvToEbitda);
+  const evToEbitda =
+    calculatedEvToEbitda !== null && calculatedEvToEbitda > 0
+      ? calculatedEvToEbitda
+      : fallbackEvToEbitda !== null && fallbackEvToEbitda > 0
+        ? fallbackEvToEbitda
+        : null;
 
   return {
     peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
@@ -875,6 +915,7 @@ export async function buildStockAnalysis(symbol) {
   }
 
   const rawMetricData = metricsRaw?.metric || {};
+
   const extracted = buildExtractedMetrics(
     profile,
     quote,
@@ -954,7 +995,7 @@ export async function buildStockAnalysis(symbol) {
         extracted.evToEbitda,
         "",
         extracted.evToEbitda !== null ? "Calculated" : "Finnhub",
-        "EV / EBITDA. EV is calculated as Market Cap + Total Debt - Cash. EBITDA is calculated as Operating Income + Depreciation & Amortization. If either value is missing, EV/EBITDA returns N/A."
+        "EV / EBITDA. EV is calculated using full enterprise value dollars. EBITDA is calculated using full EBITDA dollars. Displayed M values are only for the bubbles."
       ),
 
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
@@ -1136,6 +1177,7 @@ export async function buildStockAnalysis(symbol) {
       weekHigh: metric(extracted.weekHigh, "", "Finnhub", "52-week high price"),
       weekLow: metric(extracted.weekLow, "", "Finnhub", "52-week low price"),
       pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Calculated", "Distance below 52-week high"),
+
       distanceFrom52WeekLow: metric(
         extracted.distanceFrom52WeekLow,
         "%",
@@ -1143,7 +1185,12 @@ export async function buildStockAnalysis(symbol) {
         "Distance above 52-week low"
       ),
 
-      marketCapM: metric(extracted.marketCapM, "M", "Finnhub", "Market capitalization in millions"),
+      marketCapM: metric(
+        extracted.marketCapM,
+        "M",
+        "Finnhub",
+        "Market capitalization in millions"
+      ),
     },
 
     grades: {
