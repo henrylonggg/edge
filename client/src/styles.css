@@ -4516,3 +4516,80 @@ button:active,
     padding-top: 0 !important;
   }
 }
+
+/* =========================
+   MAIN EVAL SCORE COLOR INSIGHT
+========================= */
+.score-panel {
+  position: relative;
+  overflow: visible;
+  z-index: 5;
+}
+
+.score-insight-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.score-insight-wrap.popup-active {
+  z-index: 10000;
+}
+
+.score-main-help-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  background: rgba(255,255,255,.105) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.14),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.score-main-help-btn .info-letter {
+  font-size: 13px;
+}
+
+.score-insight-popup {
+  left: 50% !important;
+  right: auto !important;
+  top: 38px !important;
+  width: min(330px, 86vw);
+  transform: translateX(-50%);
+  text-align: left;
+  padding: 16px !important;
+}
+
+.score-insight-popup.green {
+  border-color: rgba(133,255,71,.28);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(133,255,71,.16),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup.yellow {
+  border-color: rgba(255,228,95,.30);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(255,228,95,.14),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup.red {
+  border-color: rgba(255,79,103,.32);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(255,79,103,.15),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup p {
+  margin: 0;
+  color: rgba(248,251,255,.84);
+  font-size: 13px;
+  line-height: 1.58;
+}
