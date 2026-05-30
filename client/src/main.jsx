@@ -1554,6 +1554,8 @@ function Report({ data, onAdd }) {
       metricLine("Price-to-Book", metrics.priceToBook),
       metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
       metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
+      metricLine("Enterprise Value", metrics.enterpriseValue),
+      metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
     ],
@@ -1618,9 +1620,19 @@ function Report({ data, onAdd }) {
       "Compares market value with annual sales.",
     ],
     [
+      "Enterprise Value",
+      metrics.enterpriseValue,
+      "Company value estimate calculated as market cap plus total debt minus cash.",
+    ],
+    [
+      "EBITDA",
+      metrics.ebitda,
+      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
+    ],
+    [
       "EV/EBITDA",
       metrics.evToEbitda,
-      "Compares enterprise value with operating earnings before interest, taxes, depreciation, and amortization.",
+      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
     ],
     [
       "52-Week Return",
