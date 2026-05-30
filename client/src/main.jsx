@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  ClerkProvider,
+  SignIn,
+  SignUp,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useUser,
+} from "@clerk/clerk-react";
+import {
   Search,
   RefreshCw,
   Plus,
@@ -31,6 +40,7 @@ import "./styles.css";
   This avoids Vercel environment variable problems.
 */
 const API = "https://edge-1-6dtw.onrender.com";
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
 
@@ -121,6 +131,7 @@ function categoryLabel(key) {
 }
 
 function App() {
+  const { isLoaded, isSignedIn } = useUser();
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -259,13 +270,26 @@ function App() {
     analyze(null, "AAPL");
   }, []);
 
-  if (view === "landing") {
-    return <LandingPage onContinue={() => setView("auth")} />;
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const publicViews = ["landing", "account"];
+    if (!isSignedIn && !publicViews.includes(view)) {
+      setView("account");
+    }
+  }, [isLoaded, isSignedIn, view]);
+
+  if (!isLoaded) {
+    return <LoadingScreen />;
   }
 
-  if (view === "auth") {
+  if (view === "landing") {
+    return <LandingPage onContinue={() => setView("account")} />;
+  }
+
+  if (view === "account") {
     return (
-      <AuthPage
+      <ClerkAccessPage
         onBack={() => setView("landing")}
         onSuccess={() => setView("dashboard")}
       />
@@ -324,6 +348,12 @@ function App() {
           >
             <Plus size={18} />
           </button>
+
+          <SignedIn>
+            <div className="topbar-user">
+              <UserButton />
+            </div>
+          </SignedIn>
         </form>
       </header>
 
@@ -473,509 +503,150 @@ function LandingPage({ onContinue }) {
 }
 
 
-function AuthPage({ onBack, onSuccess }) {
-  const [authView, setAuthView] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [captcha, setCaptcha] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loadingAuth, setLoadingAuth] = useState(false);
+function ClerkAccessPage({ onBack, onSuccess }) {
+  const [mode, setMode] = useState("signIn");
 
-  const isLogin = authView === "login";
-  const isSignupEmail = authView === "signupEmail";
-  const isSignupCode = authView === "signupCode";
-  const isSignupPassword = authView === "signupPassword";
-  const isForgotEmail = authView === "forgotEmail";
-  const isForgotCode = authView === "forgotCode";
-  const isForgotPassword = authView === "forgotPassword";
+  useEffect(() => {
+    function syncModeFromHash() {
+      const hash = window.location.hash.toLowerCase();
+      if (hash.includes("sign-up") || hash.includes("signup")) {
+        setMode("signUp");
+      } else if (hash.includes("sign-in") || hash.includes("signin")) {
+        setMode("signIn");
+      }
+    }
 
-  function resetInputs(nextView = "login") {
-    setPassword("");
-    setConfirmPassword("");
-    setCode("");
-    setCaptcha(false);
-    setMessage("");
-    setAuthView(nextView);
+    syncModeFromHash();
+    window.addEventListener("hashchange", syncModeFromHash);
+    return () => window.removeEventListener("hashchange", syncModeFromHash);
+  }, []);
+
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    window.location.hash = nextMode === "signUp" ? "sign-up" : "sign-in";
   }
 
-  async function authFetch(path, body) {
-    const res = await fetch(`${API}${path}`, {
-      method: "POST",
-      mode: "cors",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    const json = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      throw new Error(json?.error || json?.message || "Authentication failed.");
-    }
-
-    return json || {};
-  }
-
-  function validateEmail() {
-    const clean = email.trim().toLowerCase();
-    if (!clean || !clean.includes("@")) {
-      setMessage("Enter a valid email address.");
-      return null;
-    }
-    return clean;
-  }
-
-  function validatePasswordPair() {
-    if (password.length < 8) {
-      setMessage("Password must be at least 8 characters.");
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      setMessage("Both passwords must match.");
-      return false;
-    }
-
-    return true;
-  }
-
-  async function handleLogin(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean) return;
-
-    if (!password.trim()) {
-      setMessage("Enter your password.");
-      return;
-    }
-
-    if (!captcha) {
-      setMessage("Complete the robot check before logging in.");
-      return;
-    }
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/login", {
-        email: clean,
-        password,
-        captchaConfirmed: captcha,
-      });
-      onSuccess();
-    } catch (err) {
-      setMessage(err.message || "Login failed.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function startSignup(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean) return;
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/signup/start", { email: clean });
-      setEmail(clean);
-      setAuthView("signupCode");
-      setMessage("Verification code sent. Check your email.");
-    } catch (err) {
-      setMessage(err.message || "Could not send verification code.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function verifySignupCode(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean) return;
-
-    if (!code.trim()) {
-      setMessage("Enter the verification code from your email.");
-      return;
-    }
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/signup/verify", {
-        email: clean,
-        code: code.trim(),
-      });
-      setCode("");
-      setAuthView("signupPassword");
-      setMessage("Email verified. Create your password now.");
-    } catch (err) {
-      setMessage(err.message || "Invalid verification code.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function finishSignup(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean || !validatePasswordPair()) return;
-
-    if (!captcha) {
-      setMessage("Complete the robot check before creating your account.");
-      return;
-    }
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/signup/finish", {
-        email: clean,
-        password,
-        confirmPassword,
-        captchaConfirmed: captcha,
-      });
-      resetInputs("login");
-      setEmail(clean);
-      setMessage("Account created. Log in with your new password.");
-    } catch (err) {
-      setMessage(err.message || "Could not create account.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function startPasswordReset(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean) return;
-
-    if (!captcha) {
-      setMessage("Complete the robot check before sending a reset code.");
-      return;
-    }
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/password/start", {
-        email: clean,
-        captchaConfirmed: captcha,
-      });
-      setEmail(clean);
-      setCaptcha(false);
-      setAuthView("forgotCode");
-      setMessage("If that email has an account, a reset code was sent.");
-    } catch (err) {
-      setMessage(err.message || "Could not send reset code.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function verifyResetCode(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean) return;
-
-    if (!code.trim()) {
-      setMessage("Enter the reset code from your email.");
-      return;
-    }
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/password/verify", {
-        email: clean,
-        code: code.trim(),
-      });
-      setCode("");
-      setAuthView("forgotPassword");
-      setMessage("Code verified. Create a new password.");
-    } catch (err) {
-      setMessage(err.message || "Invalid reset code.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  async function finishPasswordReset(e) {
-    e.preventDefault();
-
-    const clean = validateEmail();
-    if (!clean || !validatePasswordPair()) return;
-
-    setLoadingAuth(true);
-    setMessage("");
-
-    try {
-      await authFetch("/api/auth/password/finish", {
-        email: clean,
-        password,
-        confirmPassword,
-      });
-      resetInputs("login");
-      setEmail(clean);
-      setMessage("Password reset. Log in with your new password.");
-    } catch (err) {
-      setMessage(err.message || "Could not reset password.");
-    } finally {
-      setLoadingAuth(false);
-    }
-  }
-
-  function socialAuth(provider) {
-    setMessage(`${provider} sign-in UI is ready, but OAuth still needs to be connected in the backend.`);
-  }
-
-  const formTitle =
-    isLogin ? "Log in to Eval" :
-    isSignupEmail ? "Create your account" :
-    isSignupCode ? "Verify your email" :
-    isSignupPassword ? "Create your password" :
-    isForgotEmail ? "Reset your password" :
-    isForgotCode ? "Enter your reset code" :
-    "Create a new password";
-
-  const formText =
-    isLogin ? "Enter your email, password, and robot check to access the dashboard." :
-    isSignupEmail ? "Start with your email. Eval will send you a verification code." :
-    isSignupCode ? "Type the code sent to your email before creating a password." :
-    isSignupPassword ? "Use a strong password, type it twice, then complete the robot check." :
-    isForgotEmail ? "Enter the email you used for Eval and request a new verification code." :
-    isForgotCode ? "Type the reset code from your email to continue." :
-    "Type your new password twice. After saving it, you will return to the login screen.";
+  const clerkAppearance = {
+    variables: {
+      fontFamily: "Oxanium, sans-serif",
+      colorPrimary: "#85d713",
+      colorText: "#f8fbff",
+      colorTextSecondary: "rgba(248,251,255,.66)",
+      colorBackground: "rgba(1,7,16,.88)",
+      colorInputBackground: "rgba(0,0,0,.28)",
+      colorInputText: "#f8fbff",
+      borderRadius: "18px",
+    },
+    elements: {
+      rootBox: "clerk-root-box",
+      card: "clerk-card-shell",
+      headerTitle: "clerk-title",
+      headerSubtitle: "clerk-subtitle",
+      socialButtonsBlockButton: "clerk-social-btn",
+      formButtonPrimary: "clerk-primary-btn",
+      footerActionLink: "clerk-link",
+    },
+  };
 
   return (
-    <main className="auth-page">
-      <div className="landing-orb landing-orb-one" />
-      <div className="landing-orb landing-orb-two" />
-      <div className="landing-grid-glow" />
+    <main className="clerk-access-page">
+      <div className="clerk-access-orb clerk-access-orb-one" />
+      <div className="clerk-access-orb clerk-access-orb-two" />
+      <div className="clerk-access-grid-glow" />
 
-      <section className="auth-shell advanced-auth-shell">
-        <button type="button" className="auth-back-btn" onClick={onBack}>
-          <ArrowLeft size={17} /> Back
-        </button>
+      <section className="clerk-access-shell">
+        <div className="clerk-access-head">
+          <button type="button" className="back-btn clerk-access-back" onClick={onBack}>
+            <ArrowLeft size={18} /> Cover page
+          </button>
 
-        <div className="auth-brand-block">
-          <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
-          <div>
-            <h1>Eval</h1>
-            <p>Secure access to your stock research dashboard.</p>
+          <div className="clerk-access-brand">
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <div>
+              <h1>Eval</h1>
+              <p>Secure account access</p>
+            </div>
           </div>
         </div>
 
-        <div className="auth-grid">
-          <div className="auth-copy-card">
-            <div className="landing-kicker">
-              <ShieldCheck size={16} /> Secure account flow
+        <div className="clerk-access-layout">
+          <aside className="clerk-access-copy">
+            <div className="clerk-access-kicker">
+              <ShieldCheck size={16} /> Protected by Clerk
             </div>
-            <h2>Real sign-in logic before users enter Eval.</h2>
+            <h2>Sign in before entering the dashboard.</h2>
             <p>
-              Users verify their email, create a password, complete a robot check,
-              and then return to the login screen. Password resets use a fresh email
-              code before the new password can be saved.
+              Clerk handles email verification, secure passwords, forgot-password recovery,
+              Google sign-in, Apple sign-in, active sessions, and bot sign-up protection from
+              your Clerk dashboard.
             </p>
 
-            <div className="auth-benefits">
-              <div>
-                <CheckCircle2 size={17} />
-                <span>Email verification code before signup</span>
-              </div>
-              <div>
-                <CheckCircle2 size={17} />
-                <span>Password match check and protected login</span>
-              </div>
-              <div>
-                <CheckCircle2 size={17} />
-                <span>Forgot-password code and reset flow</span>
-              </div>
+            <div className="clerk-access-list">
+              <span><CheckCircle2 size={16} /> Real sign-up and sign-in</span>
+              <span><CheckCircle2 size={16} /> Email verification and password reset</span>
+              <span><CheckCircle2 size={16} /> Google and Apple provider support</span>
+              <span><CheckCircle2 size={16} /> Bot protection enabled through Clerk</span>
             </div>
-          </div>
+          </aside>
 
-          <form
-            className="auth-card advanced-auth-card"
-            onSubmit={
-              isLogin ? handleLogin :
-              isSignupEmail ? startSignup :
-              isSignupCode ? verifySignupCode :
-              isSignupPassword ? finishSignup :
-              isForgotEmail ? startPasswordReset :
-              isForgotCode ? verifyResetCode :
-              finishPasswordReset
-            }
-          >
-            <div className="auth-tabs">
-              <button
-                type="button"
-                className={authView.startsWith("signup") ? "active" : ""}
-                onClick={() => resetInputs("signupEmail")}
-              >
-                Sign up
-              </button>
-              <button
-                type="button"
-                className={authView === "login" ? "active" : ""}
-                onClick={() => resetInputs("login")}
-              >
-                Log in
-              </button>
-            </div>
+          <section className="clerk-access-card">
+            <SignedOut>
+              <div className="clerk-access-topline">
+                <span>{mode === "signIn" ? "Welcome back" : "Create your Eval account"}</span>
+                <h3>{mode === "signIn" ? "Sign in to continue." : "Sign up to get started."}</h3>
+              </div>
 
-            <div className="auth-card-head">
-              <h2>{formTitle}</h2>
-              <p>{formText}</p>
-            </div>
+              <div className="clerk-access-tabs">
+                <button
+                  type="button"
+                  className={mode === "signIn" ? "active" : ""}
+                  onClick={() => switchMode("signIn")}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  className={mode === "signUp" ? "active" : ""}
+                  onClick={() => switchMode("signUp")}
+                >
+                  Sign up
+                </button>
+              </div>
 
-            <label className="auth-field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                disabled={isSignupCode || isSignupPassword || isForgotCode || isForgotPassword}
-              />
-            </label>
+              <div className="clerk-access-panel">
+                {mode === "signIn" ? (
+                  <SignIn
+                    appearance={clerkAppearance}
+                    routing="hash"
+                    signUpUrl="#sign-up"
+                  />
+                ) : (
+                  <SignUp
+                    appearance={clerkAppearance}
+                    routing="hash"
+                    signInUrl="#sign-in"
+                  />
+                )}
+              </div>
+            </SignedOut>
 
-            {(isLogin || isSignupPassword || isForgotPassword) && (
-              <label className="auth-field">
-                <span>{isForgotPassword ? "New password" : "Password"}</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 8 characters"
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                />
-              </label>
-            )}
-
-            {(isSignupPassword || isForgotPassword) && (
-              <label className="auth-field">
-                <span>Confirm password</span>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Type password again"
-                  autoComplete="new-password"
-                />
-              </label>
-            )}
-
-            {(isSignupCode || isForgotCode) && (
-              <label className="auth-field code-field">
-                <span>Verification code</span>
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="6-digit code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                />
-              </label>
-            )}
-
-            {(isLogin || isSignupPassword || isForgotEmail) && (
-              <label className={`captcha-box ${captcha ? "checked" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={captcha}
-                  onChange={(e) => setCaptcha(e.target.checked)}
-                />
-                <span className="captcha-checkmark">{captcha ? "✓" : ""}</span>
-                <span>
-                  <b>I'm not a robot</b>
-                  <small>Robot protection required for account access.</small>
-                </span>
-              </label>
-            )}
-
-            {message && <div className="auth-message">{message}</div>}
-
-            <button type="submit" className="auth-submit-btn" disabled={loadingAuth}>
-              {loadingAuth ? <RefreshCw className="spin" size={18} /> : null}
-              {isLogin ? "Log in" :
-               isSignupEmail ? "Send verification code" :
-               isSignupCode ? "Verify email" :
-               isSignupPassword ? "Create account" :
-               isForgotEmail ? "Send reset code" :
-               isForgotCode ? "Verify reset code" :
-               "Save new password"}
-              <ArrowRight size={18} />
-            </button>
-
-            {isLogin && (
-              <button
-                type="button"
-                className="forgot-password-btn"
-                onClick={() => resetInputs("forgotEmail")}
-              >
-                Forgot your password?
-              </button>
-            )}
-
-            {isLogin && (
-              <>
-                <div className="auth-divider"><span>or continue with</span></div>
-
-                <div className="social-auth-grid">
-                  <button type="button" onClick={() => socialAuth("Google")}>
-                    <span className="social-mark">G</span> Google
-                  </button>
-                  <button type="button" onClick={() => socialAuth("Apple")}>
-                    <span className="social-mark apple-mark"></span> Apple
-                  </button>
+            <SignedIn>
+              <div className="clerk-access-ready">
+                <div className="clerk-access-user">
+                  <UserButton />
                 </div>
-              </>
-            )}
-
-            {(isForgotEmail || isForgotCode || isForgotPassword) && (
-              <button
-                type="button"
-                className="forgot-password-btn"
-                onClick={() => resetInputs("login")}
-              >
-                Back to login
-              </button>
-            )}
-
-            <p className="auth-note">
-              Production captcha should use Cloudflare Turnstile, hCaptcha, or reCAPTCHA
-              with server-side verification.
-            </p>
-          </form>
+                <span>Signed in</span>
+                <h3>Your account is ready.</h3>
+                <p>Continue to Eval and start analyzing stocks.</p>
+                <button type="button" className="auth-submit-btn" onClick={onSuccess}>
+                  Continue to dashboard <ArrowRight size={18} />
+                </button>
+              </div>
+            </SignedIn>
+          </section>
         </div>
       </section>
     </main>
-  );
-}
-
-function EmptyReport() {
-  return (
-    <section className="empty-report">
-      Type a ticker like AAPL, MSFT, or NVDA & click the search icon.
-    </section>
   );
 }
 
@@ -1695,4 +1366,42 @@ function Metric({ label, item, help }) {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+function LoadingScreen() {
+  return (
+    <main className="loading-screen">
+      <div className="loading-card">
+        <RefreshCw className="spin" size={22} />
+        <span>Loading Eval...</span>
+      </div>
+    </main>
+  );
+}
+
+function MissingClerkConfig() {
+  return (
+    <main className="loading-screen">
+      <div className="loading-card missing-clerk-card">
+        <AlertTriangle size={24} />
+        <h2>Missing Clerk publishable key</h2>
+        <p>
+          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
+          then redeploy the frontend.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+function Root() {
+  if (!CLERK_PUBLISHABLE_KEY) {
+    return <MissingClerkConfig />;
+  }
+
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <App />
+    </ClerkProvider>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<Root />);
