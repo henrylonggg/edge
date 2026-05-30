@@ -138,6 +138,108 @@ function categoryLabel(key) {
   );
 }
 
+
+function getSafeProfileAccent(user) {
+  const fallbackColors = [
+    "159,92,255",
+    "21,231,255",
+    "133,255,71",
+    "255,214,107",
+    "255,95,115",
+  ];
+
+  const seed = String(user?.id || user?.primaryEmailAddress?.emailAddress || "eval");
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return fallbackColors[Math.abs(hash) % fallbackColors.length];
+}
+
+function ProfileButton() {
+  const { user } = useUser();
+  const [accent, setAccent] = useState(() => getSafeProfileAccent(user));
+
+  useEffect(() => {
+    let cancelled = false;
+    const imageUrl = user?.imageUrl;
+
+    if (!imageUrl) {
+      setAccent(getSafeProfileAccent(user));
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.referrerPolicy = "no-referrer";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const size = 36;
+        canvas.width = size;
+        canvas.height = size;
+
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) throw new Error("Canvas unavailable");
+
+        ctx.drawImage(img, 0, 0, size, size);
+        const pixels = ctx.getImageData(0, 0, size, size).data;
+
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let count = 0;
+
+        for (let i = 0; i < pixels.length; i += 16) {
+          const alpha = pixels[i + 3];
+          if (alpha < 180) continue;
+
+          const pr = pixels[i];
+          const pg = pixels[i + 1];
+          const pb = pixels[i + 2];
+          const brightness = (pr + pg + pb) / 3;
+
+          if (brightness < 24 || brightness > 236) continue;
+
+          r += pr;
+          g += pg;
+          b += pb;
+          count += 1;
+        }
+
+        if (!count) throw new Error("No usable avatar color");
+
+        const color = `${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)}`;
+        if (!cancelled) setAccent(color);
+      } catch {
+        if (!cancelled) setAccent(getSafeProfileAccent(user));
+      }
+    };
+
+    img.onerror = () => {
+      if (!cancelled) setAccent(getSafeProfileAccent(user));
+    };
+
+    img.src = imageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.imageUrl]);
+
+  return (
+    <div
+      className="topbar-user"
+      style={{ "--profile-accent": accent }}
+      title="Account settings"
+    >
+      <UserButton />
+    </div>
+  );
+}
+
 function App() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [symbol, setSymbol] = useState("AAPL");
@@ -404,9 +506,7 @@ function App() {
           </button>
 
           <SignedIn>
-            <div className="topbar-user">
-              <UserButton />
-            </div>
+            <ProfileButton />
           </SignedIn>
         </form>
       </header>
@@ -602,7 +702,9 @@ function ClerkAccessPage({ onBack, onSuccess }) {
       card: "clerk-card-shell",
       headerTitle: "clerk-title",
       headerSubtitle: "clerk-subtitle",
+      socialButtonsBlock: "clerk-social-hidden",
       socialButtonsBlockButton: "clerk-social-btn",
+      dividerRow: "clerk-auth-divider-hidden",
       formButtonPrimary: "clerk-primary-btn",
       footerActionLink: "clerk-link",
     },
@@ -637,14 +739,12 @@ function ClerkAccessPage({ onBack, onSuccess }) {
             <h2>Sign in before entering the dashboard.</h2>
             <p>
               Clerk handles email verification, secure passwords, forgot-password recovery,
-              Google sign-in, Apple sign-in, active sessions, and bot sign-up protection from
-              your Clerk dashboard.
+              active sessions, and bot sign-up protection from your Clerk dashboard.
             </p>
 
             <div className="clerk-access-list">
               <span><CheckCircle2 size={16} /> Real sign-up and sign-in</span>
               <span><CheckCircle2 size={16} /> Email verification and password reset</span>
-              <span><CheckCircle2 size={16} /> Google and Apple provider support</span>
               <span><CheckCircle2 size={16} /> Bot protection enabled through Clerk</span>
             </div>
           </aside>
