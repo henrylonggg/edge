@@ -108,7 +108,7 @@ button {
 
 .searchbar {
   display: grid;
-  grid-template-columns: auto auto 1fr auto auto;
+  grid-template-columns: auto auto auto 1fr auto auto;
   gap: 12px;
   align-items: end;
   padding: 12px;
@@ -370,7 +370,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--green);
+  color: #ffffff;
   font-weight: 800;
   font-size: 13px;
   letter-spacing: .03em;
@@ -2989,7 +2989,7 @@ button:active,
    Old custom login/sign-up CSS has been removed from this file.
 ========================================================= */
 .searchbar {
-  grid-template-columns: auto auto 1fr auto auto auto;
+  grid-template-columns: auto auto auto 1fr auto auto;
 }
 
 .topbar-user {
@@ -3477,7 +3477,7 @@ button:active,
 
 @media (max-width: 1180px) {
   .searchbar {
-    grid-template-columns: auto auto 1fr auto auto auto;
+    grid-template-columns: auto auto auto 1fr auto auto;
   }
 
   .clerk-access-layout {
@@ -4433,7 +4433,7 @@ button:active,
    Moves utility links below metrics and makes top buttons consistent.
 ========================================================= */
 .searchbar {
-  grid-template-columns: auto auto 1fr auto auto auto !important;
+  grid-template-columns: auto auto auto 1fr auto auto !important;
 }
 
 .topbar-user {
@@ -4497,7 +4497,7 @@ button:active,
 
 @media (max-width: 1180px) {
   .searchbar {
-    grid-template-columns: auto auto 1fr auto auto auto !important;
+    grid-template-columns: auto auto auto 1fr auto auto !important;
   }
 }
 
@@ -4624,4 +4624,25 @@ button:active,
 .hero-card.score-popup-active .score-insight-popup {
   z-index: 2147483003 !important;
   pointer-events: auto;
+}
+
+/* Small assistant/topbar update */
+.assistant-kicker {
+  color: #ffffff !important;
+}
+
+.searchbar {
+  grid-template-columns: auto auto auto 1fr auto auto !important;
+}
+
+@media (max-width: 1180px) {
+  .searchbar {
+    grid-template-columns: auto auto auto 1fr auto auto !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar {
+    grid-template-columns: 1fr !important;
+  }
 }
