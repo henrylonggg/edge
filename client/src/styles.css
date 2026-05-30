@@ -598,23 +598,60 @@ button {
   overflow: hidden;
 }
 
+
+.metric-tile-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  min-width: max-content;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+  background: rgba(0,0,0,.26);
+}
+
+.metric-tile-toggle button {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 4px 6px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.metric-tile-toggle button.active {
+  color: #ffffff;
+  border-color: rgba(255,255,255,.22);
+  background: rgba(255,255,255,.16);
+  box-shadow: 0 0 14px rgba(21,231,255,.16);
+}
+
 .metric-tile-featured {
   position: relative;
   background:
     radial-gradient(circle at 18% 8%, rgba(21,231,255,.16), transparent 34%),
     radial-gradient(circle at 90% 18%, rgba(133,215,19,.14), transparent 36%),
     rgba(0,0,0,.24);
-  border-color: rgba(255,255,255,.22);
+  border-color: rgba(255,255,255,.28);
   box-shadow:
-    0 0 28px rgba(21,231,255,.12),
-    inset 0 1px 0 rgba(255,255,255,.10);
+    0 0 34px rgba(21,231,255,.16),
+    0 0 22px rgba(133,215,19,.08),
+    inset 0 1px 0 rgba(255,255,255,.12);
 }
 
-.metric-tile div {
+.metric-tile-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  align-items: start;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.metric-tile-head > div {
+  min-width: 0;
 }
 
 .metric-tile h3 {
@@ -624,11 +661,11 @@ button {
   font-weight: 700;
 }
 
-.metric-tile div span {
+.metric-tile-head span {
   font-size: 11px;
   color: var(--soft);
-  text-align: right;
-  max-width: 45%;
+  text-align: left;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 
