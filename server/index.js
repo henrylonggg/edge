@@ -12,6 +12,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5050;
+const SCORE_SNAPSHOTS_PATH = path.join(process.cwd(), "score-history.json");
 
 const MAX_ASSISTANT_QUESTION_CHARS = 75;
 const MAX_ASSISTANT_ANSWER_CHARS = 150;
@@ -47,7 +48,167 @@ function toUnixSeconds(date) {
   return Math.floor(date.getTime() / 1000);
 }
 
-function getHistoricalEvalScore(analysis = {}, weeks) {
+function readScoreSnapshots() {
+  try {
+    if (!fs.existsSync(SCORE_SNAPSHOTS_PATH)) return {};
+    const parsed = JSON.parse(fs.readFileSync(SCORE_SNAPSHOTS_PATH, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeScoreSnapshots(data) {
+  try {
+    fs.writeFileSync(SCORE_SNAPSHOTS_PATH, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Could not save score snapshot:", error?.message || error);
+  }
+}
+
+function saveCurrentScoreSnapshot(symbol, analysis = {}) {
+  const score = asFiniteNumber(analysis.grades?.edgeScore);
+  const price = asFiniteNumber(analysis.quote?.c);
+  if (score === null) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const key = String(symbol || "").trim().toUpperCase();
+  if (!key) return;
+
+  const db = readScoreSnapshots();
+  const list = Array.isArray(db[key]) ? db[key] : [];
+  const nextRow = { date: today, evalScore: score, price };
+  const withoutToday = list.filter((row) => row?.date !== today);
+
+  db[key] = [...withoutToday, nextRow]
+    .filter((row) => row?.date && asFiniteNumber(row?.evalScore) !== null)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-420);
+
+  writeScoreSnapshots(db);
+}
+
+function getStoredHistoricalEvalScore(symbol, weeks) {
+  const key = String(symbol || "").trim().toUpperCase();
+  if (!key) return null;
+
+  const target = getLookbackStartDate(weeks).getTime();
+  const db = readScoreSnapshots();
+  const list = Array.isArray(db[key]) ? db[key] : [];
+
+  let best = null;
+  let bestDistance = Infinity;
+
+  for (const row of list) {
+    const score = asFiniteNumber(row?.evalScore);
+    const rowTime = row?.date ? new Date(`${row.date}T00:00:00Z`).getTime() : NaN;
+    if (score === null || !Number.isFinite(rowTime)) continue;
+
+    const distance = Math.abs(rowTime - target);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = score;
+    }
+  }
+
+  // Do not pretend a current snapshot is historical. Require a saved score
+  // within 10 days of the selected start date.
+  return bestDistance <= 10 * 24 * 60 * 60 * 1000 ? best : null;
+}
+
+async function rebuildHistoricalEvalScore(symbol, weeks, currentAnalysis = {}) {
+  const startDate = getLookbackStartDate(weeks).toISOString().slice(0, 10);
+
+  try {
+    const historicalAnalysis = await buildStockAnalysis(symbol, {
+      asOfDate: startDate,
+      historicalDate: startDate,
+      useHistoricalMetrics: true,
+      nullMissingHistoricalMetrics: true,
+      lookbackWeeks: weeks,
+    });
+
+    const score = asFiniteNumber(historicalAnalysis?.grades?.edgeScore);
+    if (score === null) {
+      return { score: null, status: "historical_score_missing" };
+    }
+
+    const currentScore = asFiniteNumber(currentAnalysis?.grades?.edgeScore);
+    const currentPrice = asFiniteNumber(currentAnalysis?.quote?.c);
+    const historicalPrice = asFiniteNumber(historicalAnalysis?.quote?.c);
+
+    const hasHistoricalMarker = Boolean(
+      historicalAnalysis?.asOfDate ||
+      historicalAnalysis?.historicalAsOfDate ||
+      historicalAnalysis?.metricsAsOfDate ||
+      historicalAnalysis?.meta?.asOfDate ||
+      historicalAnalysis?.meta?.historicalAsOfDate ||
+      historicalAnalysis?.historicalMode === true
+    );
+
+    const looksLikeCurrentRun =
+      currentScore !== null &&
+      historicalPrice !== null &&
+      currentPrice !== null &&
+      Math.abs(score - currentScore) < 0.0001 &&
+      Math.abs(historicalPrice - currentPrice) < 0.0001 &&
+      !hasHistoricalMarker;
+
+    if (looksLikeCurrentRun) {
+      return {
+        score: null,
+        status: "scorejs_needs_historical_asof_support",
+      };
+    }
+
+    return {
+      score,
+      status: hasHistoricalMarker ? "recomputed_from_start_date" : "recomputed_probable_start_date",
+      metricsUsed: historicalAnalysis?.grades?.metricsUsed ?? historicalAnalysis?.metricsUsed ?? null,
+      metricsSkipped: historicalAnalysis?.grades?.metricsSkipped ?? historicalAnalysis?.metricsSkipped ?? null,
+    };
+  } catch (error) {
+    console.error(`Historical Eval Score rebuild failed for ${symbol} ${weeks}w:`, error?.message || error);
+    return { score: null, status: "historical_score_rebuild_failed" };
+  }
+}
+
+function getStoredHistoricalEvalScore(symbol, weeks) {
+  const key = String(symbol || "").trim().toUpperCase();
+  if (!key) return null;
+
+  const target = getLookbackStartDate(weeks).getTime();
+  const db = readScoreSnapshots();
+  const list = Array.isArray(db[key]) ? db[key] : [];
+
+  let best = null;
+  let bestDistance = Infinity;
+
+  for (const row of list) {
+    const score = asFiniteNumber(row?.evalScore);
+    const rowTime = row?.date ? new Date(`${row.date}T00:00:00Z`).getTime() : NaN;
+    if (score === null || !Number.isFinite(rowTime)) continue;
+
+    const distance = Math.abs(rowTime - target);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = score;
+    }
+  }
+
+  return bestDistance <= 10 * 24 * 60 * 60 * 1000 ? best : null;
+}
+
+async function getHistoricalEvalScore(symbol, weeks, currentAnalysis = {}) {
+  const rebuilt = await rebuildHistoricalEvalScore(symbol, weeks, currentAnalysis);
+  if (rebuilt.score !== null) return rebuilt;
+
+  const storedScore = getStoredHistoricalEvalScore(symbol, weeks);
+  if (storedScore !== null) {
+    return { score: storedScore, status: "stored_snapshot_fallback" };
+  }
+
+  const analysis = currentAnalysis;
   const possibleObjects = [
     analysis.qualityPriceHistory,
     analysis.evalScoreHistory,
@@ -68,11 +229,11 @@ function getHistoricalEvalScore(analysis = {}, weeks) {
 
     if (direct && typeof direct === "object") {
       const score = asFiniteNumber(direct.evalScore ?? direct.edgeScore ?? direct.score ?? direct.value);
-      if (score !== null) return score;
+      if (score !== null) return { score, status: "analysis_history_fallback" };
     }
 
     const directNumber = asFiniteNumber(direct);
-    if (directNumber !== null) return directNumber;
+    if (directNumber !== null) return { score: directNumber, status: "analysis_history_fallback" };
   }
 
   const possibleArrays = [
@@ -91,49 +252,72 @@ function getHistoricalEvalScore(analysis = {}, weeks) {
     });
 
     const score = asFiniteNumber(match?.evalScore ?? match?.edgeScore ?? match?.score ?? match?.value);
-    if (score !== null) return score;
+    if (score !== null) return { score, status: "analysis_history_fallback" };
   }
 
-  return null;
+  return { score: null, status: rebuilt.status };
 }
 
 async function fetchStartPriceForLookback(symbol, weeks) {
   const token = process.env.FINNHUB_API_KEY || process.env.FINNHUB_KEY;
-  if (!token) return null;
+  if (!token) return { price: null, status: "missing_finnhub_key" };
 
   const startDate = getLookbackStartDate(weeks);
   const fromDate = new Date(startDate);
-  const toDate = new Date(startDate);
+  const toDate = new Date();
 
-  fromDate.setUTCDate(fromDate.getUTCDate() - 4);
-  toDate.setUTCDate(toDate.getUTCDate() + 4);
+  // Start a few days early so weekends/market holidays still return
+  // the nearest real trading candle around the selected start date.
+  fromDate.setUTCDate(fromDate.getUTCDate() - 7);
+  toDate.setUTCDate(toDate.getUTCDate() + 1);
 
   try {
     const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=D&from=${toUnixSeconds(fromDate)}&to=${toUnixSeconds(toDate)}&token=${token}`;
     const res = await fetch(url);
     const json = await res.json().catch(() => null);
 
-    if (!res.ok || json?.s !== "ok" || !Array.isArray(json?.c) || !json.c.length) {
-      return null;
+    if (!res.ok) {
+      return { price: null, status: `finnhub_http_${res.status}` };
+    }
+
+    if (json?.s === "no_data") {
+      return { price: null, status: "finnhub_no_data" };
+    }
+
+    if (json?.s !== "ok" || !Array.isArray(json?.c) || !json.c.length || !Array.isArray(json?.t)) {
+      return { price: null, status: "finnhub_bad_candle_response" };
     }
 
     const target = toUnixSeconds(startDate);
-    let bestIndex = 0;
+    let bestIndex = -1;
     let bestDistance = Infinity;
 
     for (let i = 0; i < json.c.length; i += 1) {
-      const t = Number(json.t?.[i]);
-      const distance = Number.isFinite(t) ? Math.abs(t - target) : Infinity;
+      const price = asFiniteNumber(json.c[i]);
+      const t = Number(json.t[i]);
+      if (price === null || !Number.isFinite(t)) continue;
+
+      // Prefer the first valid candle on/after the target date. If the
+      // target is a weekend or holiday, this lands on the next trading day.
+      const isAfterOrOnTarget = t >= target;
+      const distance = Math.abs(t - target) + (isAfterOrOnTarget ? 0 : 3 * 24 * 60 * 60);
+
       if (distance < bestDistance) {
         bestDistance = distance;
         bestIndex = i;
       }
     }
 
-    return asFiniteNumber(json.c[bestIndex]);
+    if (bestIndex < 0) return { price: null, status: "finnhub_no_valid_close" };
+
+    return {
+      price: asFiniteNumber(json.c[bestIndex]),
+      status: "ok",
+      candleDate: new Date(Number(json.t[bestIndex]) * 1000).toISOString().slice(0, 10),
+    };
   } catch (error) {
     console.error(`Start price lookup failed for ${symbol} ${weeks}w:`, error?.message || error);
-    return null;
+    return { price: null, status: "finnhub_request_failed" };
   }
 }
 
@@ -181,8 +365,10 @@ async function buildQualityPriceComparisons(symbol, analysis = {}) {
 
   await Promise.all(
     QUALITY_PRICE_LOOKBACKS.map(async (weeks) => {
-      const startEvalScore = getHistoricalEvalScore(analysis, weeks);
-      const startPrice = await fetchStartPriceForLookback(symbol, weeks);
+      const startEvalResult = await getHistoricalEvalScore(symbol, weeks, analysis);
+      const startEvalScore = startEvalResult.score;
+      const startPriceResult = await fetchStartPriceForLookback(symbol, weeks);
+      const startPrice = startPriceResult.price;
       const evalChange = pctChange(currentEvalScore, startEvalScore);
       const priceChange = pctChange(currentPrice, startPrice);
       const divergence = evalChange === null || priceChange === null ? null : evalChange - priceChange;
@@ -194,13 +380,21 @@ async function buildQualityPriceComparisons(symbol, analysis = {}) {
         startEvalScore: roundOne(startEvalScore),
         currentPrice: roundOne(currentPrice),
         startPrice: roundOne(startPrice),
+        startPriceDate: startPriceResult.candleDate || null,
+        startPriceStatus: startPriceResult.status,
+        hasHistoricalEvalScore: startEvalScore !== null,
+        startEvalScoreStatus: startEvalResult.status,
+        historicalMetricsUsed: startEvalResult.metricsUsed,
+        historicalMetricsSkipped: startEvalResult.metricsSkipped,
         evalChangePct: roundOne(evalChange),
         priceChangePct: roundOne(priceChange),
         value: roundOne(divergence),
         label: getQualityPriceLabel(divergence),
         description: getQualityPriceDescription(divergence, weeks),
-        formula: "Pts = Eval Score % change minus stock price % change. Uses only the selected start date and today.",
-        source: `Finnhub start price · ${weeks}W`,
+        formula: "Pts = start-date Eval Score % change minus start-date stock price % change. Only two dates are used: selected start date and today.",
+        source: startPriceResult.status === "ok"
+          ? `Finnhub start price${startPriceResult.candleDate ? ` ${startPriceResult.candleDate}` : ""} · Eval Score ${startEvalResult.status.replaceAll("_", " ")} · ${weeks}W`
+          : `Finnhub start price unavailable · Eval Score ${startEvalResult.status.replaceAll("_", " ")} · ${weeks}W`,
       };
     })
   );
@@ -837,6 +1031,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
 
     const analysis = await buildStockAnalysis(symbol);
     analysis.qualityPriceComparisons = await buildQualityPriceComparisons(symbol, analysis);
+    saveCurrentScoreSnapshot(symbol, analysis);
     const finnhubAbout = await fetchFinnhubAbout(symbol);
 
     if (finnhubAbout) {
