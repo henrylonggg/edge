@@ -1605,7 +1605,7 @@ function Report({ data, onAdd }) {
         label: qualityPriceComparison?.label || "N/A",
       },
       qualityPriceComparison?.description ||
-        `Compares Eval Score percent change against price percent change over ${qualityPriceWeeks} weeks, using only the start date and current values.`,
+        `Shows the percentage-point gap between Eval Score change and price change over ${qualityPriceWeeks} weeks. Positive pts mean quality improved more than price. Negative pts mean price moved ahead of quality.`,
       true,
     ],
     [
@@ -1873,19 +1873,6 @@ function Report({ data, onAdd }) {
           <div className="section-title">
             <Gauge size={17} /> Key metrics
           </div>
-
-          <div className="lookback-toggle" aria-label="Quality versus price lookback">
-            {qualityPriceLookbacks.map((weeks) => (
-              <button
-                key={weeks}
-                type="button"
-                className={qualityPriceWeeks === weeks ? "active" : ""}
-                onClick={() => setQualityPriceWeeks(weeks)}
-              >
-                {weeks}W
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="metric-grid">
@@ -1896,6 +1883,22 @@ function Report({ data, onAdd }) {
               item={item}
               help={help}
               highlighted={highlighted}
+              controls={
+                highlighted ? (
+                  <div className="metric-tile-toggle" aria-label="Quality versus price lookback">
+                    {qualityPriceLookbacks.map((weeks) => (
+                      <button
+                        key={weeks}
+                        type="button"
+                        className={qualityPriceWeeks === weeks ? "active" : ""}
+                        onClick={() => setQualityPriceWeeks(weeks)}
+                      >
+                        {weeks}W
+                      </button>
+                    ))}
+                  </div>
+                ) : null
+              }
             />
           ))}
         </div>
@@ -2023,12 +2026,15 @@ function Grade({
   );
 }
 
-function Metric({ label, item, help, highlighted = false }) {
+function Metric({ label, item, help, highlighted = false, controls = null }) {
   return (
     <div className={`metric-tile ${highlighted ? "metric-tile-featured" : ""}`}>
-      <div>
-        <h3>{label}</h3>
-        <span>{item?.source || "Unavailable"}</span>
+      <div className="metric-tile-head">
+        <div>
+          <h3>{label}</h3>
+          <span>{item?.source || "Unavailable"}</span>
+        </div>
+        {controls}
       </div>
 
       {item?.label && <em>{item.label}</em>}
