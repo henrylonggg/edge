@@ -548,6 +548,41 @@ button {
   color: var(--blue);
 }
 
+.metrics-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.lookback-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 16px;
+  background: rgba(0,0,0,.18);
+}
+
+.lookback-toggle button {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 8px 10px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lookback-toggle button.active {
+  color: #ffffff;
+  border-color: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.13);
+  box-shadow: 0 0 18px rgba(21,231,255,.14);
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0,1fr));
@@ -561,6 +596,18 @@ button {
   background: rgba(0,0,0,.18);
   border: 1px solid rgba(255,255,255,.09);
   overflow: hidden;
+}
+
+.metric-tile-featured {
+  position: relative;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(21,231,255,.16), transparent 34%),
+    radial-gradient(circle at 90% 18%, rgba(133,215,19,.14), transparent 36%),
+    rgba(0,0,0,.24);
+  border-color: rgba(255,255,255,.22);
+  box-shadow:
+    0 0 28px rgba(21,231,255,.12),
+    inset 0 1px 0 rgba(255,255,255,.10);
 }
 
 .metric-tile div {
@@ -583,6 +630,20 @@ button {
   text-align: right;
   max-width: 45%;
   overflow-wrap: anywhere;
+}
+
+.metric-tile em {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 12px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.13);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .metric-tile strong {
@@ -982,6 +1043,15 @@ button {
   .assistant-page-head,
   .plans-page-head {
     grid-template-columns: 1fr;
+  }
+
+  .metrics-card-head {
+    align-items: stretch;
+  }
+
+  .lookback-toggle {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .ai-nav-btn,
