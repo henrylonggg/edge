@@ -548,41 +548,6 @@ button {
   color: var(--blue);
 }
 
-.metrics-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.lookback-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px;
-  border: 1px solid rgba(255,255,255,.11);
-  border-radius: 16px;
-  background: rgba(0,0,0,.18);
-}
-
-.lookback-toggle button {
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 8px 10px;
-  color: var(--muted);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.lookback-toggle button.active {
-  color: #ffffff;
-  border-color: rgba(255,255,255,.18);
-  background: rgba(255,255,255,.13);
-  box-shadow: 0 0 18px rgba(21,231,255,.14);
-}
-
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0,1fr));
@@ -598,60 +563,11 @@ button {
   overflow: hidden;
 }
 
-
-.metric-tile-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  min-width: max-content;
-  margin: 0;
-  padding: 3px;
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 12px;
-  background: rgba(0,0,0,.26);
-}
-
-.metric-tile-toggle button {
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 4px 6px;
-  color: var(--muted);
-  background: transparent;
-  font-size: 9px;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.metric-tile-toggle button.active {
-  color: #ffffff;
-  border-color: rgba(255,255,255,.22);
-  background: rgba(255,255,255,.16);
-  box-shadow: 0 0 14px rgba(21,231,255,.16);
-}
-
-.metric-tile-featured {
-  position: relative;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(21,231,255,.16), transparent 34%),
-    radial-gradient(circle at 90% 18%, rgba(133,215,19,.14), transparent 36%),
-    rgba(0,0,0,.24);
-  border-color: rgba(255,255,255,.28);
-  box-shadow:
-    0 0 34px rgba(21,231,255,.16),
-    0 0 22px rgba(133,215,19,.08),
-    inset 0 1px 0 rgba(255,255,255,.12);
-}
-
-.metric-tile-head {
+.metric-tile div {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.metric-tile-head > div {
-  min-width: 0;
+  gap: 12px;
+  align-items: start;
 }
 
 .metric-tile h3 {
@@ -661,26 +577,12 @@ button {
   font-weight: 700;
 }
 
-.metric-tile-head span {
+.metric-tile div span {
   font-size: 11px;
   color: var(--soft);
-  text-align: left;
-  max-width: 100%;
+  text-align: right;
+  max-width: 45%;
   overflow-wrap: anywhere;
-}
-
-.metric-tile em {
-  display: inline-flex;
-  width: fit-content;
-  margin-top: 12px;
-  padding: 5px 8px;
-  border-radius: 999px;
-  color: #ffffff;
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.13);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 800;
 }
 
 .metric-tile strong {
@@ -1080,15 +982,6 @@ button {
   .assistant-page-head,
   .plans-page-head {
     grid-template-columns: 1fr;
-  }
-
-  .metrics-card-head {
-    align-items: stretch;
-  }
-
-  .lookback-toggle {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
   }
 
   .ai-nav-btn,
