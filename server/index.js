@@ -152,26 +152,26 @@ function getQualityPriceDescription(value, weeks) {
   const n = asFiniteNumber(value);
 
   if (n === null) {
-    return `Not enough ${weeks}-week start-date data is available to compare Eval Score change against price change.`;
+    return `Not enough ${weeks}-week start-date data is available yet. This needs the start-date Eval Score plus Finnhub start price.`;
   }
 
   if (n >= 20) {
-    return `Over ${weeks} weeks, the Eval Score improved much more than price. The company setup may be getting better before price fully reflects it.`;
+    return `+${roundOne(n)} pts means Eval Score improved far more than price over ${weeks} weeks. Investors can use this as a quality-lead signal: the business setup improved faster than the market price reacted.`;
   }
 
   if (n >= 7) {
-    return `Over ${weeks} weeks, the Eval Score improved slightly more than price. Quality has modestly outpaced price.`;
+    return `+${roundOne(n)} pts means Eval Score improved more than price over ${weeks} weeks. Investors can use this to spot stocks where quality may be getting better before price fully catches up.`;
   }
 
   if (n <= -20) {
-    return `Over ${weeks} weeks, price moved much more than the Eval Score. The stock may be running ahead of business quality.`;
+    return `${roundOne(n)} pts means price moved far more than Eval Score over ${weeks} weeks. Investors can use this as a warning that price may be running ahead of company quality.`;
   }
 
   if (n <= -7) {
-    return `Over ${weeks} weeks, price slightly outpaced the Eval Score. Price strength is ahead of quality improvement.`;
+    return `${roundOne(n)} pts means price moved more than Eval Score over ${weeks} weeks. Investors can use this to be careful when price strength is not backed by matching quality improvement.`;
   }
 
-  return `Over ${weeks} weeks, the Eval Score and price moved mostly together.`;
+  return `${roundOne(n)} pts means Eval Score and price moved mostly together over ${weeks} weeks. Investors can use this as a neutral read: quality and price are generally in line.`;
 }
 
 async function buildQualityPriceComparisons(symbol, analysis = {}) {
@@ -199,8 +199,8 @@ async function buildQualityPriceComparisons(symbol, analysis = {}) {
         value: roundOne(divergence),
         label: getQualityPriceLabel(divergence),
         description: getQualityPriceDescription(divergence, weeks),
-        formula: "Eval Score % change minus price % change, using only start date and current values.",
-        source: `${weeks}-week start vs current`,
+        formula: "Pts = Eval Score % change minus stock price % change. Uses only the selected start date and today.",
+        source: `Finnhub start price · ${weeks}W`,
       };
     })
   );
