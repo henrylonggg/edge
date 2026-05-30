@@ -4427,3 +4427,92 @@ button:active,
 .clerk-access-panel .clerk-card-shell {
   padding-top: 30px !important;
 }
+
+/* =========================================================
+   FINAL DASHBOARD NAV / TOPBAR POSITION UPDATE
+   Moves utility links below metrics and makes top buttons consistent.
+========================================================= */
+.searchbar {
+  grid-template-columns: auto auto 1fr auto auto auto !important;
+}
+
+.topbar-user {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  padding: 4px !important;
+  border-radius: 18px !important;
+  align-self: end !important;
+}
+
+.topbar-user::before {
+  inset: -3px !important;
+  border-radius: 22px !important;
+}
+
+.topbar-user::after {
+  border-radius: 16px !important;
+}
+
+.topbar-user .cl-userButtonBox,
+.topbar-user .cl-userButtonTrigger,
+.topbar-user .cl-avatarBox,
+.topbar-user button {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  border-radius: 15px !important;
+}
+
+.topbar-user .cl-avatarImage,
+.topbar-user .cl-avatarFallback {
+  border-radius: 14px !important;
+}
+
+.dashboard-link-row {
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: -2px 0 0 !important;
+  padding: 4px 0 2px !important;
+}
+
+.dashboard-link-btn {
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  gap: 7px !important;
+  font-size: 12px !important;
+  letter-spacing: .01em !important;
+  min-height: 42px !important;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.11) !important;
+}
+
+.dashboard-link-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+@media (max-width: 1180px) {
+  .searchbar {
+    grid-template-columns: auto auto 1fr auto auto auto !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-user {
+    width: 100% !important;
+    height: 56px !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard-link-row {
+    padding-top: 0 !important;
+  }
+}
