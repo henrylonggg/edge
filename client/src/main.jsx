@@ -42,6 +42,10 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
+/*
+  HARD-CODED RENDER BACKEND URL
+  This avoids Vercel environment variable problems.
+*/
 const API = "https://edge-1-6dtw.onrender.com";
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -86,7 +90,9 @@ function gradeFrom10(v) {
 
 function fmt(v, suffix = "") {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  return `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 })}${suffix}`;
+  return `${Number(v).toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  })}${suffix}`;
 }
 
 function money(v) {
@@ -132,35 +138,36 @@ function categoryLabel(key) {
   );
 }
 
-function scoreInsight(v) {
-  const n = score10(v);
+function getScoreInsight(score) {
+  const n = score10(score);
 
   if (n === null) {
     return {
-      label: "Unavailable",
-      text: "There is not enough reliable company data available yet to explain this Eval ring with confidence.",
+      label: "Unavailable Evaluation",
+      text: "There is not enough reliable company data available to explain this score yet.",
     };
   }
 
   if (n <= 5) {
     return {
-      label: "Red",
-      text: "Red means the company is evaluating as a weaker stock profile right now. The current read points to less convincing quality, weaker consistency, heavier pressure, stretched fundamentals, or more uncertainty than higher-rated companies.",
+      label: "Red Evaluation",
+      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
     };
   }
 
   if (n <= 7) {
     return {
-      label: "Yellow",
-      text: "Yellow means the company is evaluating as a mixed stock profile. The business may have real strengths, but the overall company picture is not clean enough to grade as top-tier because some areas are holding the evaluation back.",
+      label: "Yellow Evaluation",
+      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
     };
   }
 
   return {
-    label: "Green",
-    text: "Green means the company is evaluating as a strong stock profile. The business looks high quality overall, with signs of strong execution, durable performance, healthier fundamentals, and a company profile that stands out well.",
+    label: "Green Evaluation",
+    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
   };
 }
+
 
 function getSafeProfileAccent(user) {
   const fallbackColors = [
@@ -173,7 +180,6 @@ function getSafeProfileAccent(user) {
 
   const seed = String(user?.id || user?.primaryEmailAddress?.emailAddress || "eval");
   let hash = 0;
-
   for (let i = 0; i < seed.length; i += 1) {
     hash = seed.charCodeAt(i) + ((hash << 5) - hash);
   }
@@ -265,7 +271,7 @@ function ProfileButton() {
 }
 
 function App() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -286,10 +292,14 @@ function App() {
     setError("");
 
     try {
-      const res = await fetch(`${API}/api/analyze/${encodeURIComponent(clean)}`, {
+      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
+
+      const res = await fetch(url, {
         method: "GET",
         mode: "cors",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+        },
       });
 
       const json = await res.json().catch(() => null);
@@ -305,7 +315,10 @@ function App() {
       setData(json);
       return json;
     } catch (err) {
-      setError(err.message || "Failed to fetch from Render. Check Render logs and browser console.");
+      setError(
+        err.message ||
+          "Failed to fetch from Render. Check Render logs and browser console."
+      );
       return null;
     } finally {
       setLoading(false);
@@ -356,7 +369,9 @@ function App() {
         const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
           method: "GET",
           mode: "cors",
-          headers: { Accept: "application/json" },
+          headers: {
+            Accept: "application/json",
+          },
         });
 
         const json = await res.json().catch(() => null);
@@ -381,343 +396,805 @@ function App() {
     }
 
     const next = refreshed.sort((a, b) => (b.score || 0) - (a.score || 0));
+
     setWatchlist(next);
     saveWatchlist(next);
     setWatchLoading(false);
   }
 
-  function enterDashboard() {
-    const accepted = localStorage.getItem(`eval-terms-${TERMS_VERSION}`) === "accepted";
-    setTermsAccepted(accepted);
-    setView(accepted ? "dashboard" : "terms");
-  }
+  useEffect(() => {
+    const saved = readWatchlist().sort(
+      (a, b) => (b.score || 0) - (a.score || 0)
+    );
+
+    setWatchlist(saved);
+    analyze(null, "AAPL");
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user?.id) {
+      setTermsAccepted(false);
+      return;
+    }
+
+    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+    setTermsAccepted(localStorage.getItem(key) === "true");
+  }, [isLoaded, isSignedIn, user?.id]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const publicViews = ["landing", "account"];
+    if (!isSignedIn && !publicViews.includes(view)) {
+      setView("account");
+      return;
+    }
+
+    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
+      setView("terms");
+    }
+  }, [isLoaded, isSignedIn, termsAccepted, view]);
 
   function acceptTerms() {
-    localStorage.setItem(`eval-terms-${TERMS_VERSION}`, "accepted");
+    if (user?.id) {
+      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+      localStorage.setItem(key, "true");
+    }
+
     setTermsAccepted(true);
     setView("dashboard");
   }
 
-  useEffect(() => {
-    setWatchlist(readWatchlist().sort((a, b) => (b.score || 0) - (a.score || 0)));
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn && !data) {
-      analyze(null, "AAPL");
-    }
-  }, [isLoaded, isSignedIn]);
-
-  if (!isLoaded) return <LoadingScreen />;
+  if (!isLoaded) {
+    return <LoadingScreen />;
+  }
 
   if (view === "landing") {
-    return <LandingPage onContinue={enterDashboard} />;
+    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
+  }
+
+  if (view === "account") {
+    return (
+      <ClerkAccessPage
+        onBack={() => setView("landing")}
+        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
+      />
+    );
   }
 
   if (view === "terms") {
     return (
       <TermsPage
-        alreadyAccepted={termsAccepted}
         onAgree={acceptTerms}
         onBack={() => setView("dashboard")}
+        requireAgreement={!termsAccepted}
       />
     );
   }
 
   if (view === "support") {
-    return <SupportPage onBack={() => setView("dashboard")} />;
+    return (
+      <SupportContactPage
+        onBack={() => setView("dashboard")}
+        onHome={() => setView("landing")}
+        onTerms={() => setView("terms")}
+      />
+    );
   }
 
   return (
-    <>
-      <SignedOut>
-        <main className="clerk-access-page">
-          <section className="clerk-access-shell">
-            <div className="clerk-access-copy">
-              <div className="landing-brand-row">
-                <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-                <span>Eval AI</span>
-              </div>
-              <h1>Sign in to use Eval.</h1>
-              <p>Create an account or sign in to save your watchlist and use the dashboard.</p>
-            </div>
+    <main className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
+          <div>
+            <h1>Eval</h1>
+          </div>
+        </div>
 
-            <div className="clerk-access-card">
-              <SignIn routing="hash" signUpUrl="#/sign-up" />
-            </div>
-          </section>
-        </main>
-      </SignedOut>
+        <form onSubmit={analyze} className="searchbar">
+          <button
+            type="button"
+            className="ai-nav-btn"
+            onClick={() => setView("assistant")}
+            title="Eval AI Assistant"
+          >
+            <BrainCircuit size={23} />
+          </button>
 
-      <SignedIn>
-        <main className="app-shell">
-          <header className="topbar">
-            <div className="brand">
-              <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-              <div>
-                <h1>Eval AI</h1>
-              </div>
-            </div>
+          <SignedIn>
+            <ProfileButton />
+          </SignedIn>
 
-            <form onSubmit={analyze} className="searchbar">
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => setView("landing")}
-                title="Homepage"
-              >
-                <Home size={18} />
-              </button>
+          <div>
+            <label>Stock Ticker</label>
+            <input
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              placeholder="AAPL"
+            />
+          </div>
 
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => setView("terms")}
-                title="Terms"
-              >
-                <FileText size={18} />
-              </button>
+          <button disabled={loading} aria-label="Search stock" title="Search stock">
+            {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
+          </button>
 
-              <div>
-                <label>Stock ticker</label>
-                <input
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  placeholder="AAPL"
-                  maxLength={8}
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={() => addTicker(symbol)}
+            aria-label="Add to watchlist"
+            title="Add to watchlist"
+          >
+            <Plus size={18} />
+          </button>
+
+          <button
+            type="button"
+            className="plans-nav-btn"
+            onClick={() => setView("plans")}
+            aria-label="Eval AI Plans"
+            title="Eval AI Plans"
+          >
+            <Crown size={20} />
+          </button>
+        </form>
+      </header>
+
+      {error && (
+        <div className="error-banner">
+          <AlertTriangle size={18} /> {error}
+        </div>
+      )}
+
+      {view === "assistant" ? (
+        <AssistantPage
+          current={data}
+          watchlist={watchlist}
+          onBack={() => setView("dashboard")}
+        />
+      ) : view === "plans" ? (
+        <PlansPage onBack={() => setView("dashboard")} />
+      ) : (
+        <section className="layout">
+          <div className="content">
+            {data ? (
+              <>
+                <Report data={data} onAdd={() => addTicker(data.symbol)} />
+                <DashboardLinkRow
+                  onHome={() => setView("landing")}
+                  onTerms={() => setView("terms")}
+                  onSupport={() => setView("support")}
                 />
-              </div>
+              </>
+            ) : (
+              <EmptyReport />
+            )}
+          </div>
 
-              <button disabled={loading}>
-                {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-                Analyze
-              </button>
-
-              <button
-                type="button"
-                className="ai-nav-btn"
-                onClick={() => setView("assistant")}
-                aria-label="Eval AI Assistant"
-                title="Eval AI Assistant"
-              >
-                <BrainCircuit size={20} />
-              </button>
-
-              <button
-                type="button"
-                className="plans-nav-btn"
-                onClick={() => setView("plans")}
-                aria-label="Eval AI Plans"
-                title="Eval AI Plans"
-              >
-                <Crown size={20} />
-              </button>
-
-              <ProfileButton />
-            </form>
-          </header>
-
-          {error && (
-            <div className="error-banner">
-              <AlertTriangle size={18} /> {error}
-            </div>
-          )}
-
-          {view === "assistant" ? (
-            <AssistantPage current={data} watchlist={watchlist} onBack={() => setView("dashboard")} />
-          ) : view === "plans" ? (
-            <PlansPage onBack={() => setView("dashboard")} />
-          ) : (
-            <section className="layout">
-              <div className="content">
-                {data ? (
-                  <>
-                    <Report data={data} onAdd={() => addTicker(data.symbol)} />
-                    <DashboardLinkRow
-                      onHome={() => setView("landing")}
-                      onTerms={() => setView("terms")}
-                      onSupport={() => setView("support")}
-                    />
-                  </>
-                ) : (
-                  <EmptyReport />
-                )}
-              </div>
-
-              <Watchlist
-                items={watchlist}
-                symbol={symbol}
-                onAdd={addTicker}
-                onRemove={removeTicker}
-                onAnalyze={(ticker) => analyze(null, ticker)}
-                onRefresh={refreshWatchlist}
-                loading={watchLoading}
-              />
-            </section>
-          )}
-        </main>
-      </SignedIn>
-    </>
+          <Watchlist
+            items={watchlist}
+            symbol={symbol}
+            onAdd={addTicker}
+            onRemove={removeTicker}
+            onAnalyze={(ticker) => analyze(null, ticker)}
+            onRefresh={refreshWatchlist}
+            loading={watchLoading}
+          />
+        </section>
+      )}
+    </main>
   );
 }
 
+
 function LandingPage({ onContinue }) {
+  const productPoints = [
+    {
+      icon: <Gauge size={20} />,
+      title: "One simple Eval Score",
+      text: "Type a ticker and get a clean 0–10 score that summarizes the stock’s overall setup.",
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      title: "Breakdowns that make sense",
+      text: "See growth, profitability, financial health, valuation, momentum, and pullback in plain English.",
+    },
+    {
+      icon: <ShieldCheck size={20} />,
+      title: "Risk made easier",
+      text: "Eval AI turns volatility, debt, valuation, and business strength into a quick risk read.",
+    },
+    {
+      icon: <BrainCircuit size={20} />,
+      title: "Ask questions instantly*",
+      text: "Ask the assistant to compare stocks, explain metrics, and translate market data into clear, beginner-friendly answers.",
+    },
+  ];
+
   return (
     <main className="landing-page">
       <div className="landing-orb landing-orb-one" />
       <div className="landing-orb landing-orb-two" />
+      <div className="landing-grid-glow" />
 
       <section className="landing-shell">
         <div className="landing-brand-row">
           <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-          <span>Eval AI</span>
-        </div>
-
-        <h1>Stock research made easier.</h1>
-        <p>
-          Eval turns fundamentals, valuation, risk, momentum, and financial strength into one clean 0–10 score.
-        </p>
-
-        <div className="landing-actions">
-          <button onClick={onContinue}>
-            Enter dashboard <ArrowRight size={18} />
-          </button>
-        </div>
-
-        <div className="landing-feature-grid">
-          <Feature icon={<Gauge size={20} />} title="One simple Eval Score" text="Type a ticker and get a clean score." />
-          <Feature icon={<BarChart3 size={20} />} title="Metric breakdowns" text="See the reasons behind the rating." />
-          <Feature icon={<ShieldCheck size={20} />} title="Risk made easier" text="Understand debt, volatility, and business quality." />
-          <Feature icon={<BrainCircuit size={20} />} title="AI assistant" text="Ask questions in plain English." />
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function Feature({ icon, title, text }) {
-  return (
-    <article className="landing-feature-card">
-      <span>{icon}</span>
-      <h3>{title}</h3>
-      <p>{text}</p>
-    </article>
-  );
-}
-
-function TermsPage({ alreadyAccepted, onAgree, onBack }) {
-  const [confirmName, setConfirmName] = useState("");
-  const canAgree = alreadyAccepted || confirmName.trim().toUpperCase() === "I AGREE";
-
-  return (
-    <main className="terms-page">
-      <section className="terms-shell">
-        <button className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Dashboard
-        </button>
-
-        <div className="terms-head">
-          <div className="terms-kicker">
-            <Scale size={16} /> Terms of Use
+          <div>
+            <h1>Eval</h1>
           </div>
-          <h1>Eval AI Terms</h1>
-          <p>
-            Eval is for education and research only. It is not financial advice, and all data should be verified before making decisions.
-          </p>
         </div>
 
-        <div className="terms-card">
-          <h2>Important terms</h2>
-          <p>
-            Eval may use third-party financial data, public filings, APIs, and AI-generated explanations. Data can be missing, delayed, stale, estimated, or incorrect.
-          </p>
-          <p>
-            You are responsible for your own investment decisions. Eval does not guarantee returns, accuracy, or suitability for any financial action.
-          </p>
-          <p>
-            You agree not to abuse, scrape, overload, reverse engineer, or misuse Eval or its connected services.
-          </p>
-        </div>
+        <div className="landing-hero">
+          <div className="landing-copy">
+            <div className="landing-kicker">
+              <Sparkles size={16} /> Built for faster stock decisions
+            </div>
 
-        <div className="terms-accept-panel">
-          {alreadyAccepted ? (
-            <button className="terms-agree-btn" onClick={onBack}>
-              Back to dashboard <ArrowRight size={18} />
-            </button>
-          ) : (
-            <>
-              <input
-                className="terms-confirm-input"
-                value={confirmName}
-                onChange={(e) => setConfirmName(e.target.value)}
-                placeholder="Type I AGREE"
-              />
-              <button className="terms-agree-btn" disabled={!canAgree} onClick={onAgree}>
-                Agree and enter dashboard <ArrowRight size={18} />
+            <h2>Turn complicated stock data into one clear answer.</h2>
+
+            <p>
+              Eval AI helps users understand stocks without digging through confusing
+              spreadsheets, finance terms, or long reports. Enter any ticker to get a
+              simple Eval Score, risk rating, company summary, key metrics, watchlist,
+              and plain-English explanations designed to be quick, readable, and useful.
+            </p>
+
+            <div className="landing-actions">
+              <button type="button" className="landing-continue-btn" onClick={onContinue}>
+                Continue <ArrowRight size={20} />
               </button>
-            </>
-          )}
+              <span>Open the dashboard and start analyzing stocks.</span>
+            </div>
+          </div>
+
+          <div className="landing-score-preview" aria-label="Eval AI preview card">
+            <div className="preview-topline">
+              <span>Live-style report preview</span>
+              <b>NVDA</b>
+            </div>
+
+            <div className="preview-score-ring">
+              <strong>9.0</strong>
+            </div>
+
+            <div className="preview-bars">
+              <div><span>Profitability</span><b style={{ width: "92%" }} /></div>
+              <div><span>Financial Health</span><b style={{ width: "81%" }} /></div>
+              <div><span>Momentum</span><b style={{ width: "74%" }} /></div>
+            </div>
+          </div>
         </div>
+
+        <div className="landing-points">
+          {productPoints.map((point) => (
+            <article className="landing-point-card" key={point.title}>
+              <div>{point.icon}</div>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="landing-bottom-strip">
+          <span>Eval Score</span>
+          <span>Risk Rating</span>
+          <span>Company Breakdown</span>
+          <span>Watchlist</span>
+          <span>AI Assistant</span>
+        </div>
+
+        <p className="landing-footnote">
+          *Eval AI provides educational explanations only and is not financial advice.
+        </p>
       </section>
     </main>
   );
 }
 
-function SupportPage({ onBack }) {
+
+function ClerkAccessPage({ onBack, onSuccess }) {
+  const [mode, setMode] = useState("signIn");
+
+  useEffect(() => {
+    function syncModeFromHash() {
+      const hash = window.location.hash.toLowerCase();
+      if (hash.includes("sign-up") || hash.includes("signup")) {
+        setMode("signUp");
+      } else if (hash.includes("sign-in") || hash.includes("signin")) {
+        setMode("signIn");
+      }
+    }
+
+    syncModeFromHash();
+    window.addEventListener("hashchange", syncModeFromHash);
+    return () => window.removeEventListener("hashchange", syncModeFromHash);
+  }, []);
+
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    window.location.hash = nextMode === "signUp" ? "sign-up" : "sign-in";
+  }
+
+  const clerkAppearance = {
+    variables: {
+      fontFamily: "Oxanium, sans-serif",
+      colorPrimary: "#85d713",
+      colorText: "#f8fbff",
+      colorTextSecondary: "rgba(248,251,255,.66)",
+      colorBackground: "rgba(1,7,16,.88)",
+      colorInputBackground: "rgba(0,0,0,.28)",
+      colorInputText: "#f8fbff",
+      borderRadius: "18px",
+    },
+    elements: {
+      rootBox: "clerk-root-box",
+      card: "clerk-card-shell",
+      headerTitle: "clerk-title",
+      headerSubtitle: "clerk-subtitle",
+      socialButtonsBlock: "clerk-social-hidden",
+      socialButtonsBlockButton: "clerk-social-btn",
+      dividerRow: "clerk-auth-divider-hidden",
+      formButtonPrimary: "clerk-primary-btn",
+      footerActionLink: "clerk-link",
+    },
+  };
+
   return (
-    <main className="support-page">
-      <section className="support-shell">
-        <button className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Dashboard
-        </button>
+    <main className="clerk-access-page">
+      <div className="clerk-access-orb clerk-access-orb-one" />
+      <div className="clerk-access-orb clerk-access-orb-two" />
+      <div className="clerk-access-grid-glow" />
 
-        <div className="support-head">
-          <div className="support-kicker">
-            <MessageCircle size={16} /> Support
+      <section className="clerk-access-shell">
+        <div className="clerk-access-head">
+          <button type="button" className="back-btn clerk-access-back" onClick={onBack}>
+            <ArrowLeft size={18} /> Cover page
+          </button>
+
+          <div className="clerk-access-brand">
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <div>
+              <h1>Eval</h1>
+              <p>Secure account access</p>
+            </div>
           </div>
-          <h1>Need help with Eval?</h1>
-          <p>Use the contact options below for account, billing, data, or dashboard issues.</p>
         </div>
 
-        <div className="support-grid">
-          <div className="support-card">
-            <Mail size={22} />
-            <h3>Email</h3>
-            <p>support@eval-ai.com</p>
-          </div>
-          <div className="support-card">
-            <Phone size={22} />
-            <h3>Phone</h3>
-            <p>Coming soon</p>
-          </div>
-          <div className="support-card">
-            <LockKeyhole size={22} />
-            <h3>Account</h3>
-            <p>Use your profile button to manage account settings.</p>
-          </div>
+        <div className="clerk-access-layout">
+          <aside className="clerk-access-copy">
+            <div className="clerk-access-kicker">
+              <ShieldCheck size={16} /> Protected by Clerk
+            </div>
+            <h2>Sign in before entering the dashboard.</h2>
+            <p>
+              Clerk handles email verification, secure passwords, forgot-password recovery,
+              active sessions, and bot sign-up protection from your Clerk dashboard.
+            </p>
+
+            <div className="clerk-access-list">
+              <span><CheckCircle2 size={16} /> Real sign-up and sign-in</span>
+              <span><CheckCircle2 size={16} /> Email verification and password reset</span>
+              <span><CheckCircle2 size={16} /> Bot protection enabled through Clerk</span>
+            </div>
+          </aside>
+
+          <section className="clerk-access-card">
+            <SignedOut>
+              <div className="clerk-access-topline">
+                <span>{mode === "signIn" ? "Welcome back" : "Create your Eval account"}</span>
+                <h3>{mode === "signIn" ? "Sign in to continue." : "Sign up to get started."}</h3>
+              </div>
+
+              <div className="clerk-access-tabs">
+                <button
+                  type="button"
+                  className={mode === "signIn" ? "active" : ""}
+                  onClick={() => switchMode("signIn")}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  className={mode === "signUp" ? "active" : ""}
+                  onClick={() => switchMode("signUp")}
+                >
+                  Sign up
+                </button>
+              </div>
+
+              <div className="clerk-access-panel">
+                {mode === "signIn" ? (
+                  <SignIn
+                    appearance={clerkAppearance}
+                    routing="hash"
+                    signUpUrl="#sign-up"
+                  />
+                ) : (
+                  <SignUp
+                    appearance={clerkAppearance}
+                    routing="hash"
+                    signInUrl="#sign-in"
+                  />
+                )}
+              </div>
+            </SignedOut>
+
+            <SignedIn>
+              <div className="clerk-access-ready">
+                <div className="clerk-access-user">
+                  <UserButton />
+                </div>
+                <span>Signed in</span>
+                <h3>Your account is ready.</h3>
+                <p>Continue to Eval and start analyzing stocks.</p>
+                <button type="button" className="auth-submit-btn" onClick={onSuccess}>
+                  Continue to dashboard <ArrowRight size={18} />
+                </button>
+              </div>
+            </SignedIn>
+          </section>
         </div>
       </section>
     </main>
   );
 }
+
 
 function DashboardLinkRow({ onHome, onTerms, onSupport }) {
   return (
-    <div className="dashboard-link-row">
-      <button className="dashboard-link-btn" onClick={onHome}>
-        <Home size={14} /> Homepage
+    <nav className="dashboard-link-row" aria-label="Dashboard navigation">
+      <button type="button" className="dashboard-link-btn" onClick={onHome}>
+        <Home size={16} /> Homepage
       </button>
-      <button className="dashboard-link-btn" onClick={onTerms}>
-        <FileText size={14} /> Terms
+      <button type="button" className="dashboard-link-btn" onClick={onTerms}>
+        <Scale size={16} /> Terms & Conditions
       </button>
-      <button className="dashboard-link-btn" onClick={onSupport}>
-        <MessageCircle size={14} /> Support
+      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}>
+        <MessageCircle size={16} /> Support & Contact
       </button>
-    </div>
+    </nav>
   );
 }
 
-function Watchlist({ items, symbol, onAdd, onRemove, onAnalyze, onRefresh, loading }) {
+function SupportContactPage({ onBack, onHome, onTerms }) {
+  return (
+    <main className="support-page">
+      <div className="support-orb support-orb-one" />
+      <div className="support-orb support-orb-two" />
+
+      <section className="support-shell">
+        <div className="support-topbar">
+          <button className="back-btn" type="button" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
+          <div className="support-mini-nav">
+            <button type="button" onClick={onHome}>
+              <Home size={15} /> Homepage
+            </button>
+            <button type="button" onClick={onTerms}>
+              <Scale size={15} /> Terms
+            </button>
+          </div>
+        </div>
+
+        <div className="support-hero">
+          <div>
+            <div className="support-kicker">
+              <MessageCircle size={16} /> Support & Contact
+            </div>
+            <h1>Need help with Eval?</h1>
+            <p>
+              Reach out with account questions, login issues, dashboard problems, billing
+              questions, feature requests, or general feedback. Emails and direct messages are
+              the fastest way to get a response because they are easier to track and answer clearly.
+            </p>
+          </div>
+
+          <div className="support-contact-card">
+            <span>Primary contact</span>
+            <h2>Henry Long</h2>
+            <a href="mailto:henryl@udel.edu">
+              <Mail size={18} /> henryl@udel.edu
+            </a>
+            <a href="tel:4846024647">
+              <Phone size={18} /> 484-602-4647
+            </a>
+          </div>
+        </div>
+
+        <div className="support-grid">
+          <article className="support-card">
+            <Mail size={22} />
+            <h3>Best option: email</h3>
+            <p>
+              Email is the best way to explain what happened, include screenshots, and get a
+              direct answer. Include your account email, ticker if relevant, and a short
+              description of the issue.
+            </p>
+          </article>
+
+          <article className="support-card">
+            <MessageCircle size={22} />
+            <h3>Direct messages are fastest</h3>
+            <p>
+              Direct messages are usually the quickest route for simple questions or urgent
+              issues. If the problem needs more detail, you may be asked to follow up by email.
+            </p>
+          </article>
+
+          <article className="support-card">
+            <ShieldCheck size={22} />
+            <h3>What to include</h3>
+            <p>
+              Send the email used for your Eval account, what page you were on, what button or
+              ticker caused the issue, and any error message you saw. Do not send passwords.
+            </p>
+          </article>
+        </div>
+
+        <div className="support-note">
+          Eval is an educational stock-analysis tool. Support can help with product access,
+          account issues, and app problems, but cannot provide personalized financial advice.
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function TermsPage({ onAgree, onBack, requireAgreement = true }) {
+  const [checked, setChecked] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
+
+  const sections = [
+    {
+      title: "1. Acceptance of these Terms",
+      text: [
+        "These Terms and Conditions govern your access to and use of Eval, including the website, dashboard, Eval Score, risk rating, watchlist, AI assistant, company summaries, key metrics, charts, explanations, paid plan pages, and any related content or features. By creating an account, signing in, clicking I Agree, or using Eval, you agree to these Terms.",
+        "If you do not agree, do not use Eval. If you use Eval on behalf of a company, club, organization, partnership, or other entity, you represent that you have authority to bind that entity to these Terms."
+      ],
+    },
+    {
+      title: "2. Educational information only — no investment advice",
+      text: [
+        "Eval is an educational stock research and data-organization tool. Eval is not a registered investment adviser, financial adviser, broker-dealer, securities dealer, tax adviser, legal adviser, accountant, investment bank, portfolio manager, fiduciary, or trading platform.",
+        "Nothing on Eval is personalized investment advice, financial advice, trading advice, tax advice, legal advice, accounting advice, a recommendation, an offer, a solicitation, or a promise to buy, sell, hold, short, trade, or otherwise transact in any security, ETF, option, cryptocurrency, futures contract, index, fund, financial product, or investment strategy.",
+        "Eval does not consider your investment objectives, net worth, risk tolerance, income, debts, taxes, time horizon, portfolio, personal circumstances, or suitability. You are solely responsible for your own investment decisions and should consult a qualified licensed professional before making financial decisions."
+      ],
+    },
+    {
+      title: "3. No guarantees, no reliance, and market risk",
+      text: [
+        "Investing and trading involve risk, including loss of principal. Securities and markets can move quickly and unpredictably. Past performance, historical data, backtests, analyst opinions, valuation models, ratings, grades, metrics, scores, or AI-generated explanations do not guarantee future results.",
+        "Eval Scores, risk ratings, grades, company summaries, pullback readings, momentum readings, valuation readings, and AI answers are simplified educational outputs. They may be incomplete, delayed, inaccurate, misinterpreted, unavailable, or inappropriate for your situation. Do not rely on Eval as the only basis for an investment decision.",
+        "You agree that your use of Eval is at your own risk and that you are responsible for independently verifying all information before acting on it."
+      ],
+    },
+    {
+      title: "4. Data sources, calculations, and third-party information",
+      text: [
+        "Eval may use market data, company data, financial statements, ratios, profile information, news information, AI responses, and other data from third-party providers, public sources, APIs, company websites, and user inputs. Eval does not guarantee that data is accurate, complete, current, uninterrupted, or error-free.",
+        "Financial metrics may be missing, stale, restated, estimated, calculated differently by different providers, or affected by stock splits, corporate actions, accounting methods, API limits, provider outages, caching, formatting issues, or data-entry errors.",
+        "Eval may modify, remove, reorder, or change metrics, score weights, formulas, plans, features, explanations, provider integrations, or availability at any time without notice."
+      ],
+    },
+    {
+      title: "5. AI assistant and automated explanations",
+      text: [
+        "Eval may include AI-generated summaries, explanations, comparisons, interpretations, and answers. AI can be wrong, outdated, incomplete, overly confident, or misleading. AI responses are for educational use only and are not professional advice.",
+        "You agree not to treat any AI output as a command, recommendation, guarantee, or substitute for your own research or a licensed professional. You should verify AI output with reliable independent sources before using it."
+      ],
+    },
+    {
+      title: "6. Accounts, security, and acceptable use",
+      text: [
+        "You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to provide accurate account information and to keep it updated.",
+        "You may not scrape, copy, resell, overload, attack, reverse engineer, bypass authentication, bypass rate limits, interfere with security, use bots, create fake accounts, share accounts to avoid payment, or use Eval for unlawful, abusive, fraudulent, or harmful purposes.",
+        "Eval may suspend, restrict, or terminate access at any time if misuse, suspicious activity, payment issues, legal risk, security risk, API abuse, or violation of these Terms is suspected."
+      ],
+    },
+    {
+      title: "7. Subscriptions, payments, and plan changes",
+      text: [
+        "Paid plans, pricing, features, limits, trials, and billing terms may change over time. Unless otherwise stated at checkout, subscription fees are billed in advance and may be recurring. You are responsible for reviewing the price, renewal period, and cancellation terms before purchasing.",
+        "Eval may add, remove, or modify features included in free or paid plans. A feature described on a plan page may depend on third-party APIs, market data providers, AI providers, payment providers, or backend availability."
+      ],
+    },
+    {
+      title: "8. Intellectual property and license",
+      text: [
+        "Eval, including its design, interface, branding, scoring structure, explanations, code, layout, text, graphics, and features, is owned by Eval or its licensors and is protected by intellectual-property laws. You receive a limited, revocable, non-exclusive, non-transferable license to use Eval for personal, non-commercial educational research unless a separate written agreement says otherwise.",
+        "You may not copy, modify, distribute, sell, sublicense, frame, mirror, or create derivative works from Eval without written permission."
+      ],
+    },
+    {
+      title: "9. User content and feedback",
+      text: [
+        "If you submit questions, ticker lists, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
+        "Do not submit confidential, regulated, illegal, harmful, or sensitive information that you do not want processed by the service."
+      ],
+    },
+    {
+      title: "10. Privacy and communications",
+      text: [
+        "Eval may process account information, usage information, device information, authentication information, and submitted content to operate the service, improve features, prevent abuse, communicate with users, and comply with legal obligations. Third-party services such as authentication, hosting, analytics, payment, email, AI, market-data, and security providers may process information as needed to provide the service.",
+        "By using Eval, you consent to receiving service-related emails such as account verification, password reset, security notices, plan notices, legal notices, and important product updates."
+      ],
+    },
+    {
+      title: "11. Third-party services and links",
+      text: [
+        "Eval may link to or integrate with third-party websites, APIs, data providers, payment providers, authentication providers, AI providers, company websites, brokers, or news sources. Eval does not control third-party services and is not responsible for their content, availability, accuracy, policies, fees, outages, or actions.",
+        "Your use of third-party services may be governed by their own terms and privacy policies."
+      ],
+    },
+    {
+      title: "12. Disclaimers of warranties",
+      text: [
+        "Eval is provided on an AS IS and AS AVAILABLE basis. To the maximum extent permitted by law, Eval disclaims all warranties, express, implied, statutory, or otherwise, including warranties of accuracy, completeness, timeliness, merchantability, fitness for a particular purpose, title, non-infringement, availability, security, and uninterrupted operation.",
+        "Eval does not warrant that the service will be error-free, secure, uninterrupted, profitable, accurate, compatible with your needs, or free from harmful components."
+      ],
+    },
+    {
+      title: "13. Limitation of liability",
+      text: [
+        "To the maximum extent permitted by law, Eval and its owners, operators, affiliates, contractors, providers, and licensors will not be liable for indirect, incidental, consequential, special, exemplary, punitive, lost-profit, lost-revenue, lost-data, trading-loss, investment-loss, business-interruption, reputational, or reliance damages, even if advised of the possibility of such damages.",
+        "To the maximum extent permitted by law, Eval’s total liability for any claim arising out of or relating to the service or these Terms will not exceed the greater of the amount you paid to Eval for the service during the three months before the claim arose or one hundred U.S. dollars. Some jurisdictions do not allow certain limitations, so some limitations may not apply to you."
+      ],
+    },
+    {
+      title: "14. Indemnification",
+      text: [
+        "You agree to defend, indemnify, and hold harmless Eval and its owners, operators, affiliates, contractors, providers, and licensors from and against claims, damages, losses, liabilities, costs, and expenses, including reasonable attorneys’ fees, arising out of or related to your use of Eval, your investment decisions, your violation of these Terms, your violation of law, your user content, your misuse of data, or your infringement of rights."
+      ],
+    },
+    {
+      title: "15. Arbitration agreement and class-action waiver",
+      text: [
+        "PLEASE READ THIS SECTION CAREFULLY. To the maximum extent permitted by law, you and Eval agree that any dispute, claim, or controversy arising out of or relating to these Terms, Eval, your account, your subscription, your use of the service, data, scores, AI outputs, or any relationship between you and Eval will be resolved by binding individual arbitration rather than in court, except that either party may bring an individual claim in small-claims court if eligible.",
+        "The arbitration will be conducted on an individual basis. You and Eval waive the right to a jury trial and waive the right to participate in a class action, class arbitration, consolidated action, representative action, private attorney general action, or any proceeding brought on behalf of other users or the general public. The arbitrator may award relief only to the individual party seeking relief and only to the extent necessary to resolve that individual party’s claim.",
+        "Before starting arbitration, the party seeking relief must send written notice describing the dispute and requested relief. The parties will try in good faith to resolve the dispute informally for at least 30 days. If the dispute is not resolved, either party may start arbitration under the rules of a recognized arbitration provider selected by Eval unless applicable law requires otherwise.",
+        "If any part of this arbitration or class-action waiver section is found unenforceable, the unenforceable part will be severed to the extent permitted by law, and the remaining terms will continue in effect. If the class-action waiver is found unenforceable for a claim, that claim must proceed in court and not in arbitration."
+      ],
+      important: true,
+    },
+    {
+      title: "16. Governing law and venue",
+      text: [
+        "These Terms are governed by the laws of the State of Delaware, without regard to conflict-of-law principles, except to the extent federal law or mandatory local law applies. Subject to the arbitration section, any permitted court proceeding will be brought in state or federal courts located in Delaware, and you consent to personal jurisdiction and venue there."
+      ],
+    },
+    {
+      title: "17. Changes to Eval and these Terms",
+      text: [
+        "Eval may update these Terms from time to time. Material changes may be shown in the app, emailed, or posted on the website. Continued use of Eval after changes become effective means you accept the updated Terms. If you do not agree to the updated Terms, stop using Eval."
+      ],
+    },
+    {
+      title: "18. Contact and legal notices",
+      text: [
+        "Questions, support requests, or legal notices should be sent through the contact method provided by Eval. If no separate contact method is available, use the account email or support channel associated with the service."
+      ],
+    },
+  ];
+
+  return (
+    <main className="terms-page">
+      <div className="terms-orb terms-orb-one" />
+      <div className="terms-orb terms-orb-two" />
+
+      <section className="terms-shell">
+        <div className="terms-hero">
+          <div>
+            <div className="terms-kicker">
+              <Scale size={16} /> Required before entering Eval
+            </div>
+            <h1>Terms and Conditions</h1>
+            <p>
+              {requireAgreement
+                ? "Review and accept these terms before using the dashboard. This page is designed for a stock-analysis education product, with extra focus on market-risk disclaimers, no-advice language, liability limits, and arbitration."
+                : "Review the current Eval Terms and Conditions at any time from your dashboard."}
+            </p>
+          </div>
+
+          <div className="terms-mini-card">
+            <FileText size={23} />
+            <span>Version</span>
+            <strong>{TERMS_VERSION}</strong>
+            <small>Educational use only. Not financial advice.</small>
+          </div>
+        </div>
+
+        <div className="terms-alert">
+          <AlertTriangle size={18} />
+          <p>
+            This template is not legal advice. Have an attorney review it before launch,
+            especially the arbitration, privacy, subscription, and liability sections.
+          </p>
+        </div>
+
+        <div className="terms-body">
+          {sections.map((section) => (
+            <article className={section.important ? "terms-section important" : "terms-section"} key={section.title}>
+              <h2>{section.title}</h2>
+              {section.text.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </article>
+          ))}
+        </div>
+
+        {requireAgreement ? (
+          <div className="terms-accept-panel">
+            <div>
+              <div className="terms-accept-title">
+                <LockKeyhole size={17} /> Agreement required
+              </div>
+              <p>
+                Check the box and type <b>I AGREE</b> to unlock the dashboard for this account.
+                After this account accepts the current version, this step will not appear again
+                unless the terms version changes or the browser data is cleared.
+              </p>
+            </div>
+
+            <label className="terms-check-row">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+              />
+              <span>
+                I have read and agree to the Eval Terms and Conditions, including the
+                no-investment-advice disclaimer, limitation of liability, arbitration agreement,
+                and class-action waiver.
+              </span>
+            </label>
+
+            <input
+              className="terms-confirm-input"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder="Type I AGREE"
+            />
+
+            <button type="button" className="terms-agree-btn" disabled={!canAgree} onClick={onAgree}>
+              Agree and enter dashboard <ArrowRight size={18} />
+            </button>
+          </div>
+        ) : (
+          <div className="terms-accept-panel terms-read-panel">
+            <div>
+              <div className="terms-accept-title">
+                <CheckCircle2 size={17} /> Terms already accepted
+              </div>
+              <p>
+                This account has already accepted the current terms version. You can review the
+                terms here anytime and return to the dashboard when finished.
+              </p>
+            </div>
+
+            <button type="button" className="terms-agree-btn" onClick={onBack}>
+              Back to dashboard <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function Watchlist({
+  items,
+  symbol,
+  onAdd,
+  onRemove,
+  onAnalyze,
+  onRefresh,
+  loading,
+}) {
   const [manual, setManual] = useState("");
 
   return (
@@ -730,7 +1207,12 @@ function Watchlist({ items, symbol, onAdd, onRemove, onAnalyze, onRefresh, loadi
           <p>Saved in this browser · best score first</p>
         </div>
 
-        <button className="icon-btn" onClick={onRefresh} disabled={loading} title="Refresh scores">
+        <button
+          className="icon-btn"
+          onClick={onRefresh}
+          disabled={loading}
+          title="Refresh scores"
+        >
           <RefreshCw size={16} className={loading ? "spin" : ""} />
         </button>
       </div>
@@ -755,7 +1237,9 @@ function Watchlist({ items, symbol, onAdd, onRemove, onAnalyze, onRefresh, loadi
 
       <div className="watch-list">
         {items.length === 0 ? (
-          <div className="watch-empty">Add stocks here to compare their 0.0–10.0 Eval Scores.</div>
+          <div className="watch-empty">
+            Add stocks here to compare their 0.0–10.0 Eval Scores.
+          </div>
         ) : (
           items.map((item) => (
             <div className="watch-row" key={item.symbol}>
@@ -765,7 +1249,9 @@ function Watchlist({ items, symbol, onAdd, onRemove, onAnalyze, onRefresh, loadi
 
               <div
                 className={`watch-score-ring ${scoreTone(item.score)}`}
-                style={{ "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg` }}
+                style={{
+                  "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
+                }}
               >
                 <strong>{scoreText(item.score)}</strong>
               </div>
@@ -781,10 +1267,29 @@ function Watchlist({ items, symbol, onAdd, onRemove, onAnalyze, onRefresh, loadi
   );
 }
 
+
 function PlansPage({ onBack }) {
+  const plan = {
+    name: "Eval Pro",
+    price: "$9.99/mo",
+    yearly: "$99.99/yr",
+    description:
+      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
+    features: [
+      "Expanded Eval Score with more quality fundamentals",
+      "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
+      "Intrinsic value, WACC, and DCF-style valuation support",
+      "Margin of safety and percent difference from intrinsic value",
+      "News sentiment score from recent company headlines",
+      "AI summaries that explain what the news means",
+      "More detailed metric explanations in plain English",
+      "Expanded Eval AI Assistant access for stock questions",
+    ],
+  };
+
   return (
     <section className="plans-page">
-      <div className="plans-shell">
+      <div className="plans-shell pro-only-shell">
         <div className="plans-page-head">
           <button className="back-btn" onClick={onBack}>
             <ArrowLeft size={18} /> Dashboard
@@ -792,37 +1297,37 @@ function PlansPage({ onBack }) {
 
           <div>
             <div className="plans-kicker">
-              <Crown size={16} /> Eval AI Plans
+              <Crown size={16} /> Eval Pro
             </div>
-            <h2>Upgrade the stock research engine.</h2>
-            <p>One upgraded plan for deeper fundamentals, news sentiment, valuation tools, and expanded AI explanations.</p>
+            <h2>One plan. Deeper stock research.</h2>
+            <p>
+              Eval Pro keeps the upgrade simple: stronger scoring, more company
+              metrics, valuation tools, news sentiment, and cleaner AI-powered
+              explanations for one price.
+            </p>
           </div>
         </div>
 
-        <div className="plans-grid">
-          <article className="plan-card">
-            <div className="plan-top">
+        <div className="plans-grid pro-only-grid">
+          <article className="plan-card pro pro-only-card">
+            <div className="plan-glow" />
+
+            <div className="plan-top pro-only-top">
               <div>
-                <span>Eval Pro</span>
-                <h3>$9.99/mo</h3>
-                <p>$99.99/yr</p>
+                <span>{plan.name}</span>
+                <h3>{plan.price}</h3>
+                <p>{plan.yearly}</p>
               </div>
+
               <div className="plan-icon">
-                <Crown size={24} />
+                <Crown size={28} />
               </div>
             </div>
 
-            <p className="plan-description">
-              More market data, deeper explanations, extra valuation tools, and expanded AI support.
-            </p>
+            <p className="plan-description">{plan.description}</p>
 
-            <div className="plan-features">
-              {[
-                "Full Eval AI Assistant access",
-                "Expanded fundamental metrics",
-                "Intrinsic value, WACC, and DCF support",
-                "News sentiment rating",
-              ].map((feature) => (
+            <div className="plan-features pro-only-features">
+              {plan.features.map((feature) => (
                 <div className="plan-feature" key={feature}>
                   <CheckCircle2 size={16} />
                   <span>{feature}</span>
@@ -830,11 +1335,21 @@ function PlansPage({ onBack }) {
               ))}
             </div>
 
-            <button className="plan-select-btn" type="button">
+            <button
+              type="button"
+              className="plan-select-btn"
+              onClick={() => {}}
+              title="Eval Pro website coming soon"
+            >
               Upgrade to Eval Pro
             </button>
           </article>
         </div>
+
+        <p className="fineprint center">
+          Plan button is a placeholder for now. Connect it later to the live Pro
+          checkout page when it is ready.
+        </p>
       </div>
     </section>
   );
@@ -881,7 +1396,11 @@ function AssistantPage({ current, watchlist, onBack }) {
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(json?.error || json?.message || `Assistant error. Backend returned ${res.status}.`);
+        throw new Error(
+          json?.error ||
+            json?.message ||
+            `Assistant error. Backend returned ${res.status}.`
+        );
       }
 
       setMessages((prev) => [
@@ -896,7 +1415,9 @@ function AssistantPage({ current, watchlist, onBack }) {
         ...prev,
         {
           role: "assistant",
-          content: err.message || "Could not connect to the Render assistant endpoint.",
+          content:
+            err.message ||
+            "Could not connect to the Render assistant endpoint.",
         },
       ]);
     } finally {
@@ -917,7 +1438,10 @@ function AssistantPage({ current, watchlist, onBack }) {
               <BrainCircuit size={16} /> Eval AI Assistant
             </div>
             <h2>Ask stock questions in plain English.</h2>
-            <p>Compare stocks, understand metrics, ask about risk, or get a beginner-friendly breakdown.</p>
+            <p>
+              Compare stocks, understand metrics, ask about risk, or get a
+              beginner-friendly breakdown before making a decision.
+            </p>
           </div>
         </div>
 
@@ -944,7 +1468,6 @@ function AssistantPage({ current, watchlist, onBack }) {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Example: Is AAPL a better buy than NVDA if NVDA has the higher Eval Score?"
               rows="3"
-              maxLength={75}
             />
             <button disabled={loading}>
               {loading ? <RefreshCw className="spin" size={17} /> : <Send size={17} />}
@@ -954,7 +1477,8 @@ function AssistantPage({ current, watchlist, onBack }) {
         </div>
 
         <p className="fineprint center">
-          Educational only. Eval AI Assistant helps explain investing ideas, but it is not a licensed financial advisor.
+          Educational only. Eval AI Assistant helps explain investing ideas, but it
+          is not a licensed financial advisor.
         </p>
       </div>
     </section>
@@ -962,12 +1486,12 @@ function AssistantPage({ current, watchlist, onBack }) {
 }
 
 function Report({ data, onAdd }) {
-  const [openScoreHelp, setOpenScoreHelp] = useState(null);
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
   const tone = scoreTone(edge);
-  const insight = scoreInsight(edge);
+  const scoreInsight = getScoreInsight(edge);
+  const [openScoreHelp, setOpenScoreHelp] = useState(null);
 
   const strongest = useMemo(
     () =>
@@ -986,89 +1510,145 @@ function Report({ data, onAdd }) {
   );
 
   const gradeDescriptions = {
-    growth: "Measures how well revenue and earnings are expanding over time.",
-    profitability: "Measures how efficiently the company turns sales and assets into profit.",
-    financialHealth: "Measures debt, liquidity, balance sheet strength, and company stability.",
-    valuation: "Measures how expensive the stock looks relative to sales, earnings, book value, cash flow, and EBITDA.",
-    momentum: "Measures recent price strength and trend behavior.",
-    reversal: "Measures whether the stock has pulled back enough to create a possible better entry setup.",
+    growth: "Shows how fast the company is expanding sales and earnings. Higher means the business is growing stronger over time.",
+    profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
+    financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
+    valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
+    momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
+    reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
   };
 
-  const gradeMetrics = {
+  const categoryMetrics = {
     growth: [
-      { label: "Revenue Growth" },
-      { label: "Quarterly Revenue Growth" },
-      { label: "3Y Revenue CAGR" },
-      { label: "5Y Revenue CAGR" },
-      { label: "EPS Growth" },
-      { label: "3Y EPS CAGR" },
-      { label: "5Y EPS CAGR" },
+      metricLine("Revenue Growth", metrics.revenueGrowth),
+      metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
+      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
+      metricLine("5-Year Revenue Growth", metrics.revenueGrowth5Y),
+      metricLine("EPS Growth", metrics.epsGrowth),
+      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
+      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
     ],
     profitability: [
-      { label: "ROE" },
-      { label: "ROA" },
-      { label: "ROI" },
-      { label: "Net Margin" },
-      { label: "Operating Margin" },
-      { label: "Gross Margin" },
-      { label: "Pretax Margin" },
+      metricLine("ROE", metrics.roe),
+      metricLine("ROA", metrics.roa),
+      metricLine("ROI / ROIC", metrics.roi),
+      metricLine("Gross Margin", metrics.grossMargin),
+      metricLine("Operating Margin", metrics.operatingMargin),
+      metricLine("Pretax Margin", metrics.pretaxMargin),
+      metricLine("Net Margin", metrics.netMargin),
     ],
     financialHealth: [
-      { label: "Debt-to-Equity" },
-      { label: "Long-Term Debt-to-Equity" },
-      { label: "Current Ratio" },
-      { label: "Quick Ratio" },
-      { label: "Cash Ratio" },
-      { label: "Asset Turnover" },
-      { label: "Market Cap Stability" },
+      metricLine("Debt-to-Equity", metrics.debtToEquity),
+      metricLine("Long-Term Debt-to-Equity", metrics.longTermDebtToEquity),
+      metricLine("Current Ratio", metrics.currentRatio),
+      metricLine("Quick Ratio", metrics.quickRatio),
+      metricLine("Cash Ratio", metrics.cashRatio),
+      metricLine("Asset Turnover", metrics.assetTurnover),
+      metricLine("Market Cap Stability", metrics.marketCapM),
     ],
     valuation: [
-      { label: "P/E Ratio" },
-      { label: "Forward P/E" },
-      { label: "Price-to-Sales" },
-      { label: "Price-to-Book" },
-      { label: "Price-to-Cash-Flow" },
-      { label: "Price-to-Free-Cash-Flow" },
-      { label: "EV/EBITDA" },
-      { label: "PEG Ratio" },
-      { label: "Dividend Yield" },
+      metricLine("P/E Ratio", metrics.peRatio),
+      metricLine("Forward P/E", metrics.forwardPe),
+      metricLine("PEG Ratio", metrics.pegRatio),
+      metricLine("Price-to-Sales", metrics.priceToSales),
+      metricLine("Price-to-Book", metrics.priceToBook),
+      metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
+      metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
+      metricLine("Enterprise Value", metrics.enterpriseValue),
+      metricLine("EBITDA", metrics.ebitda),
+      metricLine("EV/EBITDA", metrics.evToEbitda),
+      metricLine("Dividend Yield", metrics.dividendYield),
     ],
     momentum: [
-      { label: "Day Change %" },
-      { label: "4-Week Return" },
-      { label: "13-Week Return" },
-      { label: "26-Week Return" },
-      { label: "52-Week Return" },
-      { label: "Distance From 52-Week Low" },
-      { label: "Beta Penalty" },
+      metricLine("Beta", metrics.beta),
+      metricLine("Day Change", metrics.dayChangePercent),
+      metricLine("4-Week Return", metrics.priceReturn4Week),
+      metricLine("13-Week Return", metrics.priceReturn13Week),
+      metricLine("26-Week Return", metrics.priceReturn26Week),
+      metricLine("52-Week Return", metrics.priceReturn52Week),
+      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
     ],
     reversal: [
-      { label: "Pullback From 52-Week High" },
-      { label: "4-Week Return" },
-      { label: "13-Week Return" },
-      { label: "Distance From 52-Week Low" },
-      { label: "Day Change %" },
+      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
+      metricLine("4-Week Return", metrics.priceReturn4Week),
+      metricLine("13-Week Return", metrics.priceReturn13Week),
+      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
+      metricLine("Day Change", metrics.dayChangePercent),
     ],
   };
 
   const rows = [
-    ["P/E Ratio", metrics.peRatio, "Price compared to earnings."],
-    ["EV/EBITDA", metrics.evToEbitda, "Enterprise value divided by EBITDA."],
-    ["Price-to-Sales", metrics.priceToSales, "Market value compared with annual sales."],
-    ["Price-to-Book", metrics.priceToBook, "Market value compared with shareholder equity."],
-    ["Current Ratio", metrics.currentRatio, "Current assets divided by current liabilities."],
-    ["Debt-to-Equity", metrics.debtToEquity, "Debt compared with shareholder equity."],
-    ["ROE", metrics.roe, "Net income divided by shareholder equity."],
-    ["Net Margin", metrics.netMargin, "How much sales money becomes profit."],
-    ["Revenue Growth", metrics.revenueGrowth, "Whether the company is selling more over time."],
-    ["52-Week Return", metrics.priceReturn52Week, "Longer-term price momentum over the last year."],
-    ["Beta", metrics.beta, "Volatility compared with the overall market."],
-    ["Market Cap", metrics.marketCapM, "Market capitalization in millions."],
+    [
+      "P/E Ratio",
+      metrics.peRatio,
+      "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
+    ],
+    [
+      "Revenue Growth",
+      metrics.revenueGrowth,
+      "Shows whether the company is increasing sales over time.",
+    ],
+    [
+      "EPS Growth",
+      metrics.epsGrowth,
+      "Tracks whether earnings per share are improving.",
+    ],
+    [
+      "ROE",
+      metrics.roe,
+      "Shows how efficiently the company turns shareholder equity into profit.",
+    ],
+    ["Net Margin", metrics.netMargin, "Shows how much revenue becomes profit after costs."],
+    [
+      "Operating Margin",
+      metrics.operatingMargin,
+      "Shows how profitable the core business is before interest and taxes.",
+    ],
+    [
+      "Debt-to-Equity",
+      metrics.debtToEquity,
+      "Compares company debt with shareholder equity.",
+    ],
+    [
+      "Current Ratio",
+      metrics.currentRatio,
+      "Measures short-term balance-sheet strength.",
+    ],
+    [
+      "Price-to-Sales",
+      metrics.priceToSales,
+      "Compares market value with annual sales.",
+    ],
+    [
+      "Enterprise Value",
+      metrics.enterpriseValue,
+      "Company value estimate calculated as market cap plus total debt minus cash.",
+    ],
+    [
+      "EBITDA",
+      metrics.ebitda,
+      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
+    ],
+    [
+      "EV/EBITDA",
+      metrics.evToEbitda,
+      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
+    ],
+    [
+      "52-Week Return",
+      metrics.priceReturn52Week,
+      "Shows longer-term price momentum over the last year.",
+    ],
+    [
+      "Beta",
+      metrics.beta,
+      "Shows how volatile the stock is compared with the overall market.",
+    ],
   ];
 
   return (
     <>
-      <section className="hero-card">
+      <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
             className={`score-ring ${tone}`}
@@ -1080,21 +1660,21 @@ function Report({ data, onAdd }) {
             </div>
           </div>
 
-          <div className={`score-insight-card ${tone} ${openScoreHelp === "score" ? "popup-active" : ""}`}>
+          <div className={`score-insight-wrap ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
               type="button"
-              className="score-help-btn score-insight-help-btn"
+              className="score-help-btn score-main-help-btn"
               onClick={() => setOpenScoreHelp(openScoreHelp === "score" ? null : "score")}
-              aria-label="Eval Score color meaning"
-              title="Eval Score color meaning"
+              aria-label="Explain Eval Score color"
+              title="Explain Eval Score color"
             >
               <span className="info-letter">?</span>
             </button>
 
             {openScoreHelp === "score" && (
-              <div className="score-popup score-insight-popup">
-                <div className="score-popup-title">{insight.label} score meaning</div>
-                <p>{insight.text}</p>
+              <div className={`score-popup score-insight-popup ${tone}`}>
+                <div className="score-popup-title">{scoreInsight.label}</div>
+                <p>{scoreInsight.text}</p>
               </div>
             )}
           </div>
@@ -1150,12 +1730,11 @@ function Report({ data, onAdd }) {
       </section>
 
       <section className="summary-grid">
-        <div className="story-card big eval-line-card">
+        <div className="story-card big">
           <div className="section-title">
-            <LineChart size={17} /> 10-Week Eval Score Trend
+            <Building2 size={17} /> What this company does
           </div>
-          <p className="eval-line-subtitle">Weekly Eval Score by week starting date.</p>
-          <EvalLineChart score={edge} />
+          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
         </div>
 
         <div className="story-card">
@@ -1164,11 +1743,15 @@ function Report({ data, onAdd }) {
           </div>
           <p>
             <b>Strongest:</b>{" "}
-            {strongest ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})` : "N/A"}
+            {strongest
+              ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})`
+              : "N/A"}
           </p>
           <p>
             <b>Weakest:</b>{" "}
-            {weakest ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})` : "N/A"}
+            {weakest
+              ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})`
+              : "N/A"}
           </p>
           <p>
             <b>Grade:</b> {gradeFrom10(edge)}
@@ -1176,20 +1759,83 @@ function Report({ data, onAdd }) {
         </div>
       </section>
 
-      <section className="summary-card">
-        <div className="section-title">
-          <Gauge size={17} /> Simple evaluation
-        </div>
-        <p>{data.evaluationSummary}</p>
-      </section>
-
       <section className="grade-grid">
-        <Grade name="Growth" value={cats.growth} icon={<TrendingUp size={18} />} description={gradeDescriptions.growth} metricsUsed={gradeMetrics.growth} isOpen={openScoreHelp === "growth"} onToggle={() => setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")} />
-        <Grade name="Profitability" value={cats.profitability} icon={<BarChart3 size={18} />} description={gradeDescriptions.profitability} metricsUsed={gradeMetrics.profitability} isOpen={openScoreHelp === "profitability"} onToggle={() => setOpenScoreHelp(openScoreHelp === "profitability" ? null : "profitability")} />
-        <Grade name="Financial Health" value={cats.financialHealth} icon={<ShieldCheck size={18} />} description={gradeDescriptions.financialHealth} metricsUsed={gradeMetrics.financialHealth} isOpen={openScoreHelp === "financialHealth"} onToggle={() => setOpenScoreHelp(openScoreHelp === "financialHealth" ? null : "financialHealth")} />
-        <Grade name="Valuation" value={cats.valuation} icon={<Target size={18} />} description={gradeDescriptions.valuation} metricsUsed={gradeMetrics.valuation} isOpen={openScoreHelp === "valuation"} onToggle={() => setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")} />
-        <Grade name="Momentum" value={cats.momentum} icon={<LineChart size={18} />} description={gradeDescriptions.momentum} metricsUsed={gradeMetrics.momentum} isOpen={openScoreHelp === "momentum"} onToggle={() => setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")} />
-        <Grade name="Pullback" value={cats.reversal} icon={<Zap size={18} />} description={gradeDescriptions.reversal} metricsUsed={gradeMetrics.reversal} isOpen={openScoreHelp === "reversal"} onToggle={() => setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")} />
+        <Grade
+          id="growth"
+          name="Growth"
+          value={cats.growth}
+          icon={<TrendingUp size={18} />}
+          description={gradeDescriptions.growth}
+          metricsUsed={categoryMetrics.growth}
+          isOpen={openScoreHelp === "growth"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
+          }
+        />
+        <Grade
+          id="profitability"
+          name="Profitability"
+          value={cats.profitability}
+          icon={<BarChart3 size={18} />}
+          description={gradeDescriptions.profitability}
+          metricsUsed={categoryMetrics.profitability}
+          isOpen={openScoreHelp === "profitability"}
+          onToggle={() =>
+            setOpenScoreHelp(
+              openScoreHelp === "profitability" ? null : "profitability"
+            )
+          }
+        />
+        <Grade
+          id="financialHealth"
+          name="Financial Health"
+          value={cats.financialHealth}
+          icon={<ShieldCheck size={18} />}
+          description={gradeDescriptions.financialHealth}
+          metricsUsed={categoryMetrics.financialHealth}
+          isOpen={openScoreHelp === "financialHealth"}
+          onToggle={() =>
+            setOpenScoreHelp(
+              openScoreHelp === "financialHealth" ? null : "financialHealth"
+            )
+          }
+        />
+        <Grade
+          id="valuation"
+          name="Valuation"
+          value={cats.valuation}
+          icon={<Target size={18} />}
+          description={gradeDescriptions.valuation}
+          metricsUsed={categoryMetrics.valuation}
+          isOpen={openScoreHelp === "valuation"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
+          }
+        />
+        <Grade
+          id="momentum"
+          name="Momentum"
+          value={cats.momentum}
+          icon={<LineChart size={18} />}
+          description={gradeDescriptions.momentum}
+          metricsUsed={categoryMetrics.momentum}
+          isOpen={openScoreHelp === "momentum"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
+          }
+        />
+        <Grade
+          id="reversal"
+          name="Pullback"
+          value={cats.reversal}
+          icon={<Zap size={18} />}
+          description={gradeDescriptions.reversal}
+          metricsUsed={categoryMetrics.reversal}
+          isOpen={openScoreHelp === "reversal"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
+          }
+        />
       </section>
 
       <section className="metrics-card">
@@ -1207,125 +1853,54 @@ function Report({ data, onAdd }) {
   );
 }
 
-function EvalLineChart({ score }) {
-  const baseScore = score10(score) ?? 6.5;
+function metricLine(label, item) {
+  if (!item) return { label, value: "Used when available", source: "Score model" };
 
-  const data = Array.from({ length: 10 }, (_, i) => {
-    const date = new Date();
-    const day = date.getDay();
-    const daysSinceMonday = day === 0 ? 6 : day - 1;
-
-    date.setDate(date.getDate() - daysSinceMonday - (9 - i) * 7);
-
-    const smallMove = Math.sin(i * 0.8) * 0.25 + (i - 9) * 0.035;
-    const evalScore = Math.max(0, Math.min(10, baseScore + smallMove));
-
+  if (typeof item === "object" && "value" in item) {
     return {
-      label: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      fullDate: date.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }),
-      score: Number(evalScore.toFixed(1)),
+      label,
+      value: fmt(item.value, item.suffix || ""),
+      source: item.source || "Score model",
     };
-  });
+  }
 
-  const width = 680;
-  const height = 250;
-  const left = 38;
-  const right = 18;
-  const top = 18;
-  const bottom = 38;
-
-  const chartWidth = width - left - right;
-  const chartHeight = height - top - bottom;
-
-  const x = (i) => left + (i / (data.length - 1)) * chartWidth;
-  const y = (value) => top + chartHeight - (value / 10) * chartHeight;
-
-  const points = data.map((item, i) => ({
-    ...item,
-    x: x(i),
-    y: y(item.score),
-  }));
-
-  const linePath = points
-    .map((point, i) => `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`)
-    .join(" ");
-
-  return (
-    <div className="eval-line-wrap">
-      <svg className="eval-line-svg" viewBox={`0 0 ${width} ${height}`}>
-        <rect x={left} y={y(10)} width={chartWidth} height={y(7.5) - y(10)} className="eval-zone eval-zone-green" />
-        <rect x={left} y={y(7.5)} width={chartWidth} height={y(6.5) - y(7.5)} className="eval-zone eval-zone-yellow" />
-        <rect x={left} y={y(6.5)} width={chartWidth} height={y(0) - y(6.5)} className="eval-zone eval-zone-red" />
-
-        {[0, 2, 4, 6, 8, 10].map((tick) => (
-          <g key={tick}>
-            <line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} className="eval-grid-line" />
-            <text x="10" y={y(tick) + 4} className="eval-axis-text">
-              {tick}
-            </text>
-          </g>
-        ))}
-
-        <path d={linePath} className="eval-score-line" />
-
-        {points.map((point) => (
-          <g key={point.fullDate} className="eval-point-group">
-            <circle cx={point.x} cy={point.y} r="5" className="eval-point" />
-            <circle cx={point.x} cy={point.y} r="15" className="eval-point-hit" />
-
-            <g className="eval-tooltip">
-              <rect x={point.x - 50} y={point.y - 62} width="100" height="44" rx="12" />
-              <text x={point.x} y={point.y - 44} textAnchor="middle" className="eval-tooltip-date">
-                {point.fullDate}
-              </text>
-              <text x={point.x} y={point.y - 27} textAnchor="middle" className="eval-tooltip-score">
-                {point.score.toFixed(1)}
-              </text>
-            </g>
-          </g>
-        ))}
-
-        {points.map((point, i) => (
-          <text key={point.label} x={point.x} y={height - 14} textAnchor="middle" className="eval-axis-text">
-            {i % 2 === 0 || i === points.length - 1 ? point.label : ""}
-          </text>
-        ))}
-
-        <text x={width / 2} y={height - 1} textAnchor="middle" className="eval-axis-label">
-          Week Starting
-        </text>
-      </svg>
-
-      <div className="eval-zone-key">
-        <span className="red">Weak</span>
-        <span className="yellow">Mixed</span>
-        <span className="green">Strong</span>
-      </div>
-    </div>
-  );
+  return {
+    label,
+    value: item === null || item === undefined ? "N/A" : String(item),
+    source: "Score model",
+  };
 }
 
-function MiniStat({ icon, label, value, helpTitle, metricsUsed = [], isOpen = false, onToggle }) {
+function MiniStat({
+  icon,
+  label,
+  value,
+  helpTitle,
+  metricsUsed = [],
+  isOpen = false,
+  onToggle,
+}) {
   return (
     <div className={`mini-stat ${isOpen ? "popup-active" : ""}`}>
       <span>
         {icon}
         {label}
       </span>
-      <b>{value}</b>
 
-      {metricsUsed.length > 0 && (
-        <button type="button" className="score-help-btn mini-stat-help-btn" onClick={onToggle} aria-label={helpTitle || `${label} metrics`}>
-          <span className="info-letter">?</span>
-        </button>
-      )}
+      <div className="mini-stat-value-row">
+        <b>{value}</b>
+        {metricsUsed.length > 0 && (
+          <button
+            type="button"
+            className="score-help-btn mini-risk-help-btn"
+            onClick={onToggle}
+            aria-label={helpTitle || `${label} metrics used`}
+            title={helpTitle || `${label} metrics used`}
+          >
+            <span className="info-letter">?</span>
+          </button>
+        )}
+      </div>
 
       {isOpen && (
         <div className="score-popup mini-stat-popup">
@@ -1343,7 +1918,15 @@ function MiniStat({ icon, label, value, helpTitle, metricsUsed = [], isOpen = fa
   );
 }
 
-function Grade({ name, value, icon, description, metricsUsed = [], isOpen = false, onToggle }) {
+function Grade({
+  name,
+  value,
+  icon,
+  description,
+  metricsUsed = [],
+  isOpen = false,
+  onToggle,
+}) {
   const s = score10(value);
   const tone = scoreTone(s);
 
@@ -1405,16 +1988,6 @@ function Metric({ label, item, help }) {
   );
 }
 
-function EmptyReport() {
-  return (
-    <section className="empty-report">
-      <Sparkles size={28} />
-      <h2>Search a ticker to start.</h2>
-      <p>Try AAPL, NVDA, MSFT, TSLA, or any public company ticker.</p>
-    </section>
-  );
-}
-
 function LoadingScreen() {
   return (
     <main className="loading-screen">
@@ -1432,7 +2005,10 @@ function MissingClerkConfig() {
       <div className="loading-card missing-clerk-card">
         <AlertTriangle size={24} />
         <h2>Missing Clerk publishable key</h2>
-        <p>Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables, then redeploy the frontend.</p>
+        <p>
+          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
+          then redeploy the frontend.
+        </p>
       </div>
     </main>
   );
