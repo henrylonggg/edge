@@ -472,15 +472,9 @@ function App() {
             <BrainCircuit size={23} />
           </button>
 
-          <button
-            type="button"
-            className="plans-nav-btn"
-            onClick={() => setView("plans")}
-            aria-label="Eval AI Plans"
-            title="Eval AI Plans"
-          >
-            <Crown size={20} />
-          </button>
+          <SignedIn>
+            <ProfileButton />
+          </SignedIn>
 
           <div>
             <label>Stock Ticker</label>
@@ -505,17 +499,17 @@ function App() {
             <Plus size={18} />
           </button>
 
-          <SignedIn>
-            <ProfileButton />
-          </SignedIn>
+          <button
+            type="button"
+            className="plans-nav-btn"
+            onClick={() => setView("plans")}
+            aria-label="Eval AI Plans"
+            title="Eval AI Plans"
+          >
+            <Crown size={20} />
+          </button>
         </form>
       </header>
-
-      <DashboardLinkRow
-        onHome={() => setView("landing")}
-        onTerms={() => setView("terms")}
-        onSupport={() => setView("support")}
-      />
 
       {error && (
         <div className="error-banner">
@@ -535,7 +529,14 @@ function App() {
         <section className="layout">
           <div className="content">
             {data ? (
-              <Report data={data} onAdd={() => addTicker(data.symbol)} />
+              <>
+                <Report data={data} onAdd={() => addTicker(data.symbol)} />
+                <DashboardLinkRow
+                  onHome={() => setView("landing")}
+                  onTerms={() => setView("terms")}
+                  onSupport={() => setView("support")}
+                />
+              </>
             ) : (
               <EmptyReport />
             )}
@@ -1489,33 +1490,57 @@ function Report({ data, onAdd }) {
   const categoryMetrics = {
     growth: [
       metricLine("Revenue Growth", metrics.revenueGrowth),
-      metricLine("Sales / earnings expansion", metrics.earningsGrowth),
-      metricLine("Growth trend quality", metrics.growthTrend),
+      metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
+      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
+      metricLine("5-Year Revenue Growth", metrics.revenueGrowth5Y),
+      metricLine("EPS Growth", metrics.epsGrowth),
+      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
+      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
     ],
     profitability: [
       metricLine("ROE", metrics.roe),
+      metricLine("ROA", metrics.roa),
+      metricLine("ROI / ROIC", metrics.roi),
+      metricLine("Gross Margin", metrics.grossMargin),
+      metricLine("Operating Margin", metrics.operatingMargin),
+      metricLine("Pretax Margin", metrics.pretaxMargin),
       metricLine("Net Margin", metrics.netMargin),
-      metricLine("Operating efficiency", metrics.operatingMargin),
     ],
     financialHealth: [
       metricLine("Debt-to-Equity", metrics.debtToEquity),
-      metricLine("Balance-sheet strength", metrics.currentRatio),
-      metricLine("Cash / debt pressure", metrics.cashDebtCoverage),
+      metricLine("Long-Term Debt-to-Equity", metrics.longTermDebtToEquity),
+      metricLine("Current Ratio", metrics.currentRatio),
+      metricLine("Quick Ratio", metrics.quickRatio),
+      metricLine("Cash Ratio", metrics.cashRatio),
+      metricLine("Asset Turnover", metrics.assetTurnover),
+      metricLine("Market Cap Stability", metrics.marketCapM),
     ],
     valuation: [
       metricLine("P/E Ratio", metrics.peRatio),
+      metricLine("Forward P/E", metrics.forwardPe),
+      metricLine("PEG Ratio", metrics.pegRatio),
       metricLine("Price-to-Sales", metrics.priceToSales),
       metricLine("Price-to-Book", metrics.priceToBook),
+      metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
+      metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
+      metricLine("EV/EBITDA", metrics.evToEbitda),
+      metricLine("Dividend Yield", metrics.dividendYield),
     ],
     momentum: [
       metricLine("Beta", metrics.beta),
-      metricLine("Recent price trend", metrics.priceMomentum),
-      metricLine("Market strength", metrics.relativeStrength),
+      metricLine("Day Change", metrics.dayChangePercent),
+      metricLine("4-Week Return", metrics.priceReturn4Week),
+      metricLine("13-Week Return", metrics.priceReturn13Week),
+      metricLine("26-Week Return", metrics.priceReturn26Week),
+      metricLine("52-Week Return", metrics.priceReturn52Week),
+      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
     ],
     reversal: [
-      metricLine("Pullback from highs", metrics.pullbackFromHigh),
-      metricLine("Distance from moving average", metrics.movingAverageDistance),
-      metricLine("Oversold / recovery setup", metrics.reversalSetup),
+      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
+      metricLine("4-Week Return", metrics.priceReturn4Week),
+      metricLine("13-Week Return", metrics.priceReturn13Week),
+      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
+      metricLine("Day Change", metrics.dayChangePercent),
     ],
   };
 
@@ -1523,28 +1548,58 @@ function Report({ data, onAdd }) {
     [
       "P/E Ratio",
       metrics.peRatio,
-      "Price compared to earnings. Lower can mean cheaper, but growth stocks often look expensive.",
+      "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
+    ],
+    [
+      "Revenue Growth",
+      metrics.revenueGrowth,
+      "Shows whether the company is increasing sales over time.",
+    ],
+    [
+      "EPS Growth",
+      metrics.epsGrowth,
+      "Tracks whether earnings per share are improving.",
     ],
     [
       "ROE",
       metrics.roe,
-      "How well the company turns shareholder money into profit.",
+      "Shows how efficiently the company turns shareholder equity into profit.",
+    ],
+    ["Net Margin", metrics.netMargin, "Shows how much revenue becomes profit after costs."],
+    [
+      "Operating Margin",
+      metrics.operatingMargin,
+      "Shows how profitable the core business is before interest and taxes.",
     ],
     [
       "Debt-to-Equity",
       metrics.debtToEquity,
-      "How much debt the company has compared with owner value.",
+      "Compares company debt with shareholder equity.",
     ],
-    ["Net Margin", metrics.netMargin, "How much sales money becomes profit."],
     [
-      "Revenue Growth",
-      metrics.revenueGrowth,
-      "Whether the company is selling more over time.",
+      "Current Ratio",
+      metrics.currentRatio,
+      "Measures short-term balance-sheet strength.",
+    ],
+    [
+      "Price-to-Sales",
+      metrics.priceToSales,
+      "Compares market value with annual sales.",
+    ],
+    [
+      "EV/EBITDA",
+      metrics.evToEbitda,
+      "Compares enterprise value with operating earnings before interest, taxes, depreciation, and amortization.",
+    ],
+    [
+      "52-Week Return",
+      metrics.priceReturn52Week,
+      "Shows longer-term price momentum over the last year.",
     ],
     [
       "Beta",
       metrics.beta,
-      "How jumpy the stock usually is compared with the market.",
+      "Shows how volatile the stock is compared with the overall market.",
     ],
   ];
 
@@ -1596,10 +1651,10 @@ function Report({ data, onAdd }) {
             metricsUsed={[
               "Beta",
               "Debt-to-Equity",
-              "Financial Health score",
-              "Profitability score",
-              "Valuation pressure",
-              "Market-cap stability",
+              "Current Ratio",
+              "Market Cap Stability",
+              "Financial Health Score",
+              "Profitability Score",
             ]}
             isOpen={openScoreHelp === "risk"}
             onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
