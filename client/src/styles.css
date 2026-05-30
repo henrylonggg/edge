@@ -4593,3 +4593,35 @@ button:active,
   font-size: 13px;
   line-height: 1.58;
 }
+
+
+/* =========================
+   MAIN SCORE POPUP FRONT-LAYER FIX
+   Forces the new score-color help popup above the hero/card animation layers.
+========================= */
+.hero-card {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.hero-card.score-popup-active {
+  z-index: 2147483000 !important;
+  overflow: visible !important;
+  isolation: isolate;
+}
+
+.hero-card.score-popup-active .score-panel {
+  position: relative !important;
+  z-index: 2147483001 !important;
+  overflow: visible !important;
+}
+
+.hero-card.score-popup-active .score-insight-wrap.popup-active {
+  position: relative !important;
+  z-index: 2147483002 !important;
+}
+
+.hero-card.score-popup-active .score-insight-popup {
+  z-index: 2147483003 !important;
+  pointer-events: auto;
+}
