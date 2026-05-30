@@ -1,2181 +1,756 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import {
-  ClerkProvider,
-  SignIn,
-  SignUp,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useUser,
-} from "@clerk/clerk-react";
-import {
-  Search,
-  RefreshCw,
-  Plus,
-  Trash2,
-  Send,
-  Sparkles,
-  Activity,
-  Building2,
-  ShieldCheck,
-  Target,
-  TrendingUp,
-  BarChart3,
-  LineChart,
-  Zap,
-  BrainCircuit,
-  Crown,
-  CheckCircle2,
-  Star,
-  AlertTriangle,
-  Gauge,
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  Scale,
-  LockKeyhole,
-  Home,
-  Mail,
-  Phone,
-  MessageCircle,
-} from "lucide-react";
-import "./styles.css";
+const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 
-/*
-  HARD-CODED RENDER BACKEND URL
-  This avoids Vercel environment variable problems.
-*/
-const API = "https://edge-1-6dtw.onrender.com";
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-const STORAGE_KEY = "edge-watchlist-v8";
-const TERMS_VERSION = "2026-05-30";
-
-function rawScore(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
-  const n = Number(v);
-  return n <= 10 ? n : n / 10;
+function clamp(value, min = 0, max = 10) {
+  return Math.max(min, Math.min(max, Number(value) || 0));
 }
 
-function score10(v) {
-  const n = rawScore(v);
-  return n === null ? null : Number(n.toFixed(1));
+function safeNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
-function scoreText(v) {
-  const n = score10(v);
-  return n === null ? "N/A" : n.toFixed(1);
+function metric(value, suffix = "", source = "Finnhub", formula = "") {
+  return {
+    value: safeNumber(value),
+    suffix,
+    source,
+    formula,
+  };
 }
 
-function scoreTone(v) {
-  const n = score10(v);
-  if (n === null) return "neutral";
-  if (n <= 5) return "red";
-  if (n <= 7) return "yellow";
-  return "green";
+function firstNumber(...values) {
+  for (const value of values) {
+    const n = safeNumber(value);
+    if (n !== null) return n;
+  }
+  return null;
 }
 
-function gradeFrom10(v) {
-  const n = score10(v);
-  if (n === null) return "N/A";
-  if (n >= 9.3) return "A";
-  if (n >= 8.5) return "B+";
-  if (n >= 7.5) return "B";
-  if (n >= 6.5) return "C+";
-  if (n >= 5.5) return "C";
-  if (n >= 4.5) return "D";
-  return "F";
+function divide(a, b) {
+  const x = safeNumber(a);
+  const y = safeNumber(b);
+  if (x === null || y === null || y === 0) return null;
+  return x / y;
 }
 
-function fmt(v, suffix = "") {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  return `${Number(v).toLocaleString(undefined, {
-    maximumFractionDigits: 1,
-  })}${suffix}`;
+function percentGrowth(current, previous) {
+  const c = safeNumber(current);
+  const p = safeNumber(previous);
+  if (c === null || p === null || p === 0) return null;
+  return ((c - p) / Math.abs(p)) * 100;
 }
 
-function money(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  return Number(v).toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
+function cagr(current, previous, years) {
+  const c = safeNumber(current);
+  const p = safeNumber(previous);
+  const y = safeNumber(years);
+  if (c === null || p === null || y === null || y <= 0 || c <= 0 || p <= 0) return null;
+  return (Math.pow(c / p, 1 / y) - 1) * 100;
+}
+
+function pickMetric(metrics, keys) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(metrics, key)) {
+      const value = safeNumber(metrics[key]);
+      if (value !== null) return value;
+    }
+  }
+  return null;
+}
+
+function pickScaledMetric(metrics, candidates) {
+  for (const candidate of candidates) {
+    const key = typeof candidate === "string" ? candidate : candidate.key;
+    const scale = typeof candidate === "string" ? 1 : candidate.scale || 1;
+
+    if (Object.prototype.hasOwnProperty.call(metrics, key)) {
+      const value = safeNumber(metrics[key]);
+      if (value !== null) return value * scale;
+    }
+  }
+
+  return null;
+}
+
+function availableWeightedAverage(items, fallback = 6.0) {
+  const used = items.filter(
+    (item) => item.score !== null && item.score !== undefined && Number.isFinite(Number(item.score))
+  );
+  if (!used.length) return fallback;
+
+  const totalWeight = used.reduce((sum, item) => sum + (item.weight || 1), 0);
+  if (!totalWeight) return fallback;
+
+  const total = used.reduce((sum, item) => sum + Number(item.score) * (item.weight || 1), 0);
+  return Number(clamp(total / totalWeight).toFixed(1));
+}
+
+function highIsGood(value, poor, excellent) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  if (excellent === poor) return 6.0;
+  const score = ((n - poor) / (excellent - poor)) * 10;
+  return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
+}
+
+function lowIsGood(value, excellent, poor) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  if (poor === excellent) return 6.0;
+  const score = 10 - ((n - excellent) / (poor - excellent)) * 10;
+  return Number(clamp(score + 0.35, 2.0, 10).toFixed(1));
+}
+
+function rangeSweetSpot(value, idealLow, idealHigh, weakLow, weakHigh) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  if (n >= idealLow && n <= idealHigh) return 10;
+  if (n < idealLow) return highIsGood(n, weakLow, idealLow);
+  return lowIsGood(n, idealHigh, weakHigh);
+}
+
+async function fetchFinnhub(path, params = {}) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing FINNHUB_API_KEY in Render environment variables.");
+  }
+
+  const url = new URL(`${FINNHUB_BASE_URL}${path}`);
+
+  Object.entries({ ...params, token: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, value);
+    }
   });
+
+  const response = await fetch(url);
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Finnhub request failed: ${response.status}`);
+  }
+
+  return data;
 }
 
-function compactMoney(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  const n = Number(v);
-
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}T`;
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}B`;
-  return `$${n.toFixed(0)}M`;
-}
-
-function readWatchlist() {
+async function fetchFinnhubOptional(path, params = {}) {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return [];
+    return await fetchFinnhub(path, params);
+  } catch (error) {
+    console.warn(`Optional Finnhub fetch failed for ${path}:`, error?.message || error);
+    return null;
   }
 }
 
-function saveWatchlist(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+function reportRows(statement) {
+  if (!statement) return [];
+  if (Array.isArray(statement)) return statement;
+  if (Array.isArray(statement.data)) return statement.data;
+  return [];
 }
 
-function categoryLabel(key) {
-  return (
-    {
-      growth: "Growth",
-      profitability: "Profitability",
-      financialHealth: "Financial Health",
-      valuation: "Valuation",
-      momentum: "Momentum",
-      reversal: "Pullback",
-    }[key] || key
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function lineValue(statement, concepts = [], labels = []) {
+  const rows = reportRows(statement);
+  if (!rows.length) return null;
+
+  const conceptSet = concepts.map(normalizeText);
+  const labelSet = labels.map(normalizeText);
+
+  for (const row of rows) {
+    const concept = normalizeText(row.concept || row.name || row.key);
+    if (concept && conceptSet.includes(concept)) {
+      const value = safeNumber(row.value ?? row.amount ?? row.val);
+      if (value !== null) return value;
+    }
+  }
+
+  for (const row of rows) {
+    const label = normalizeText(row.label || row.description || row.name || row.concept);
+    if (label && labelSet.some((needle) => label.includes(needle))) {
+      const value = safeNumber(row.value ?? row.amount ?? row.val);
+      if (value !== null) return value;
+    }
+  }
+
+  return null;
+}
+
+function parseReport(report) {
+  const r = report?.report || report || {};
+  const bs = r.bs || r.balanceSheet || r.balance_sheet || [];
+  const ic = r.ic || r.incomeStatement || r.income_statement || [];
+  const cf = r.cf || r.cashFlow || r.cash_flow || [];
+
+  const revenue = lineValue(
+    ic,
+    [
+      "Revenues",
+      "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "SalesRevenueNet",
+      "RevenueFromContractWithCustomerIncludingAssessedTax",
+      "SalesRevenueGoodsNet",
+    ],
+    ["total revenue", "net sales", "revenue"]
   );
-}
 
-function getScoreInsight(score) {
-  const n = score10(score);
+  const grossProfit = lineValue(ic, ["GrossProfit"], ["gross profit"]);
+  const operatingIncome = lineValue(
+    ic,
+    ["OperatingIncomeLoss", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"],
+    ["operating income", "operating loss"]
+  );
+  const pretaxIncome = lineValue(
+    ic,
+    ["IncomeLossFromContinuingOperationsBeforeIncomeTaxes", "IncomeLossBeforeIncomeTaxes"],
+    ["income before income taxes", "pretax income", "pre-tax income"]
+  );
+  const netIncome = lineValue(
+    ic,
+    ["NetIncomeLoss", "ProfitLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"],
+    ["net income", "net earnings", "net loss"]
+  );
+  const epsDiluted = lineValue(
+    ic,
+    ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted"],
+    ["diluted earnings per share", "diluted eps"]
+  );
 
-  if (n === null) {
-    return {
-      label: "Unavailable Evaluation",
-      text: "There is not enough reliable company data available to explain this score yet.",
-    };
-  }
+  const assets = lineValue(bs, ["Assets"], ["total assets"]);
+  const currentAssets = lineValue(bs, ["AssetsCurrent"], ["total current assets", "current assets"]);
+  const liabilities = lineValue(bs, ["Liabilities"], ["total liabilities"]);
+  const currentLiabilities = lineValue(bs, ["LiabilitiesCurrent"], ["total current liabilities", "current liabilities"]);
+  const equity = lineValue(
+    bs,
+    [
+      "StockholdersEquity",
+      "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+      "PartnersCapital",
+    ],
+    ["total shareholders equity", "total stockholders equity", "shareholders equity", "stockholders equity", "total equity"]
+  );
+  const cash = lineValue(
+    bs,
+    [
+      "CashAndCashEquivalentsAtCarryingValue",
+      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "CashAndDueFromBanks",
+    ],
+    ["cash and cash equivalents", "cash cash equivalents", "cash"]
+  );
+  const receivables = lineValue(
+    bs,
+    ["AccountsReceivableNetCurrent", "ReceivablesNetCurrent", "AccountsNotesAndLoansReceivableNetCurrent"],
+    ["accounts receivable", "receivables"]
+  );
+  const inventory = lineValue(bs, ["InventoryNet"], ["inventories", "inventory"]);
+  const shortTermInvestments = lineValue(
+    bs,
+    ["ShortTermInvestments", "MarketableSecuritiesCurrent"],
+    ["short term investments", "marketable securities current"]
+  );
+  const longTermDebt = lineValue(
+    bs,
+    [
+      "LongTermDebtNoncurrent",
+      "LongTermDebtAndFinanceLeaseObligationsNoncurrent",
+      "LongTermDebtAndFinanceLeaseObligations",
+    ],
+    ["long term debt", "long-term debt", "finance lease obligations"]
+  );
+  const shortTermDebt = lineValue(
+    bs,
+    [
+      "ShortTermBorrowings",
+      "ShortTermDebtCurrent",
+      "LongTermDebtCurrent",
+      "LongTermDebtAndFinanceLeaseObligationsCurrent",
+    ],
+    ["short term borrowings", "short-term debt", "current portion of long term debt"]
+  );
+  const totalDebt = firstNumber(
+    lineValue(bs, ["DebtCurrentAndNoncurrent", "LongTermDebtAndShortTermBorrowings"], ["total debt"]),
+    (safeNumber(longTermDebt) || 0) + (safeNumber(shortTermDebt) || 0) || null
+  );
 
-  if (n <= 5) {
-    return {
-      label: "Red Evaluation",
-      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
-    };
-  }
+  const operatingCashFlow = lineValue(
+    cf,
+    ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"],
+    ["net cash provided by operating activities", "cash provided by operating activities", "operating activities"]
+  );
+  const capexRaw = lineValue(
+    cf,
+    ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsForProceedsFromProductiveAssets"],
+    ["payments to acquire property", "capital expenditures", "purchase of property"]
+  );
+  const depreciation = lineValue(
+    cf,
+    ["DepreciationDepletionAndAmortization", "DepreciationDepletionAndAmortizationExpense", "DepreciationAndAmortization"],
+    ["depreciation depletion and amortization", "depreciation and amortization"]
+  );
 
-  if (n <= 7) {
-    return {
-      label: "Yellow Evaluation",
-      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
-    };
-  }
+  const freeCashFlow =
+    operatingCashFlow !== null && capexRaw !== null
+      ? operatingCashFlow - Math.abs(capexRaw)
+      : null;
+
+  const ebitda =
+    operatingIncome !== null && depreciation !== null
+      ? operatingIncome + Math.abs(depreciation)
+      : operatingIncome;
+
+  const quickAssets = firstNumber(
+    currentAssets !== null && inventory !== null ? currentAssets - Math.abs(inventory) : null,
+    [cash, receivables, shortTermInvestments]
+      .map(safeNumber)
+      .filter((x) => x !== null)
+      .reduce((sum, x) => sum + x, 0) || null
+  );
 
   return {
-    label: "Green Evaluation",
-    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
+    revenue,
+    grossProfit,
+    operatingIncome,
+    pretaxIncome,
+    netIncome,
+    epsDiluted,
+    assets,
+    currentAssets,
+    liabilities,
+    currentLiabilities,
+    equity,
+    cash,
+    receivables,
+    inventory,
+    shortTermInvestments,
+    totalDebt,
+    longTermDebt,
+    shortTermDebt,
+    operatingCashFlow,
+    capex: capexRaw,
+    freeCashFlow,
+    depreciation,
+    ebitda,
+    quickAssets,
+    fiscalYear: safeNumber(report?.year),
+    filedDate: report?.filedDate || report?.acceptedDate || report?.startDate || null,
   };
 }
 
-
-function getSafeProfileAccent(user) {
-  const fallbackColors = [
-    "159,92,255",
-    "21,231,255",
-    "133,255,71",
-    "255,214,107",
-    "255,95,115",
-  ];
-
-  const seed = String(user?.id || user?.primaryEmailAddress?.emailAddress || "eval");
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return fallbackColors[Math.abs(hash) % fallbackColors.length];
+function sortedReports(financials) {
+  const data = Array.isArray(financials?.data) ? financials.data : [];
+  return data
+    .map((item) => ({ raw: item, parsed: parseReport(item) }))
+    .sort((a, b) => {
+      const ay = safeNumber(a.parsed.fiscalYear) || 0;
+      const by = safeNumber(b.parsed.fiscalYear) || 0;
+      if (by !== ay) return by - ay;
+      return String(b.parsed.filedDate || "").localeCompare(String(a.parsed.filedDate || ""));
+    });
 }
 
-function ProfileButton() {
-  const { user } = useUser();
-  const [accent, setAccent] = useState(() => getSafeProfileAccent(user));
-
-  useEffect(() => {
-    let cancelled = false;
-    const imageUrl = user?.imageUrl;
-
-    if (!imageUrl) {
-      setAccent(getSafeProfileAccent(user));
-      return;
-    }
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.referrerPolicy = "no-referrer";
-
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const size = 36;
-        canvas.width = size;
-        canvas.height = size;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) throw new Error("Canvas unavailable");
-
-        ctx.drawImage(img, 0, 0, size, size);
-        const pixels = ctx.getImageData(0, 0, size, size).data;
-
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let count = 0;
-
-        for (let i = 0; i < pixels.length; i += 16) {
-          const alpha = pixels[i + 3];
-          if (alpha < 180) continue;
-
-          const pr = pixels[i];
-          const pg = pixels[i + 1];
-          const pb = pixels[i + 2];
-          const brightness = (pr + pg + pb) / 3;
-
-          if (brightness < 24 || brightness > 236) continue;
-
-          r += pr;
-          g += pg;
-          b += pb;
-          count += 1;
-        }
-
-        if (!count) throw new Error("No usable avatar color");
-
-        const color = `${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)}`;
-        if (!cancelled) setAccent(color);
-      } catch {
-        if (!cancelled) setAccent(getSafeProfileAccent(user));
-      }
-    };
-
-    img.onerror = () => {
-      if (!cancelled) setAccent(getSafeProfileAccent(user));
-    };
-
-    img.src = imageUrl;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, user?.imageUrl]);
-
-  return (
-    <div
-      className="topbar-user"
-      style={{ "--profile-accent": accent }}
-      title="Account settings"
-    >
-      <UserButton />
-    </div>
-  );
+function latestWithValue(reports, key) {
+  for (const item of reports) {
+    const value = safeNumber(item.parsed?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
 }
 
-function App() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [symbol, setSymbol] = useState("AAPL");
-  const [data, setData] = useState(null);
-  const [watchlist, setWatchlist] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [watchLoading, setWatchLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [view, setView] = useState("landing");
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  async function analyze(e, overrideSymbol) {
-    e?.preventDefault();
-
-    const clean = (overrideSymbol || symbol).trim().toUpperCase();
-    if (!clean) return null;
-
-    setSymbol(clean);
-    setLoading(true);
-    setError("");
-
-    try {
-      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
-
-      const res = await fetch(url, {
-        method: "GET",
-        mode: "cors",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          json?.error ||
-            json?.message ||
-            `Could not analyze ${clean}. Backend returned ${res.status}.`
-        );
-      }
-
-      setData(json);
-      return json;
-    } catch (err) {
-      setError(
-        err.message ||
-          "Failed to fetch from Render. Check Render logs and browser console."
-      );
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function addTicker(ticker = symbol) {
-    const clean = ticker.trim().toUpperCase();
-    if (!clean) return;
-
-    const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
-    if (!analyzed) return;
-
-    const item = {
-      symbol: clean,
-      name: analyzed.profile?.name || clean,
-      score: score10(analyzed.grades?.edgeScore),
-      rawScore: analyzed.grades?.edgeScore ?? null,
-      grade: gradeFrom10(analyzed.grades?.edgeScore),
-      risk: analyzed.grades?.riskLabel || "N/A",
-      price: analyzed.quote?.c ?? null,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const next = [item, ...watchlist.filter((x) => x.symbol !== clean)].sort(
-      (a, b) => (b.score || 0) - (a.score || 0)
-    );
-
-    setWatchlist(next);
-    saveWatchlist(next);
-  }
-
-  function removeTicker(ticker) {
-    const next = watchlist.filter((x) => x.symbol !== ticker);
-    setWatchlist(next);
-    saveWatchlist(next);
-  }
-
-  async function refreshWatchlist() {
-    if (!watchlist.length) return;
-
-    setWatchLoading(true);
-
-    const refreshed = [];
-
-    for (const item of watchlist) {
-      try {
-        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
-          method: "GET",
-          mode: "cors",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        const json = await res.json().catch(() => null);
-
-        if (res.ok && json) {
-          refreshed.push({
-            ...item,
-            name: json.profile?.name || item.name,
-            score: score10(json.grades?.edgeScore),
-            rawScore: json.grades?.edgeScore ?? null,
-            grade: gradeFrom10(json.grades?.edgeScore),
-            risk: json.grades?.riskLabel || item.risk,
-            price: json.quote?.c ?? item.price,
-            updatedAt: new Date().toISOString(),
-          });
-        } else {
-          refreshed.push(item);
-        }
-      } catch {
-        refreshed.push(item);
-      }
-    }
-
-    const next = refreshed.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    setWatchlist(next);
-    saveWatchlist(next);
-    setWatchLoading(false);
-  }
-
-  useEffect(() => {
-    const saved = readWatchlist().sort(
-      (a, b) => (b.score || 0) - (a.score || 0)
-    );
-
-    setWatchlist(saved);
-    analyze(null, "AAPL");
-  }, []);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !user?.id) {
-      setTermsAccepted(false);
-      return;
-    }
-
-    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
-    setTermsAccepted(localStorage.getItem(key) === "true");
-  }, [isLoaded, isSignedIn, user?.id]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const publicViews = ["landing", "account"];
-    if (!isSignedIn && !publicViews.includes(view)) {
-      setView("account");
-      return;
-    }
-
-    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
-      setView("terms");
-    }
-  }, [isLoaded, isSignedIn, termsAccepted, view]);
-
-  function acceptTerms() {
-    if (user?.id) {
-      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
-      localStorage.setItem(key, "true");
-    }
-
-    setTermsAccepted(true);
-    setView("dashboard");
-  }
-
-  if (!isLoaded) {
-    return <LoadingScreen />;
-  }
-
-  if (view === "landing") {
-    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
-  }
-
-  if (view === "account") {
-    return (
-      <ClerkAccessPage
-        onBack={() => setView("landing")}
-        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
-      />
-    );
-  }
-
-  if (view === "terms") {
-    return (
-      <TermsPage
-        onAgree={acceptTerms}
-        onBack={() => setView("dashboard")}
-        requireAgreement={!termsAccepted}
-      />
-    );
-  }
-
-  if (view === "support") {
-    return (
-      <SupportContactPage
-        onBack={() => setView("dashboard")}
-        onHome={() => setView("landing")}
-        onTerms={() => setView("terms")}
-      />
-    );
-  }
-
-  return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-          <div>
-            <h1>Eval</h1>
-          </div>
-        </div>
-
-        <form onSubmit={analyze} className="searchbar">
-          <button
-            type="button"
-            className="ai-nav-btn"
-            onClick={() => setView("assistant")}
-            title="Eval AI Assistant"
-          >
-            <BrainCircuit size={23} />
-          </button>
-
-          <SignedIn>
-            <ProfileButton />
-          </SignedIn>
-
-          <button
-            type="button"
-            className="plans-nav-btn"
-            onClick={() => setView("plans")}
-            aria-label="Eval AI Plans"
-            title="Eval AI Plans"
-          >
-            <Crown size={20} />
-          </button>
-
-          <div>
-            <label>Stock Ticker</label>
-            <input
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="AAPL"
-            />
-          </div>
-
-          <button disabled={loading} aria-label="Search stock" title="Search stock">
-            {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-          </button>
-
-          <button
-            type="button"
-            className="ghost-btn"
-            onClick={() => addTicker(symbol)}
-            aria-label="Add to watchlist"
-            title="Add to watchlist"
-          >
-            <Plus size={18} />
-          </button>
-        </form>
-      </header>
-
-      {error && (
-        <div className="error-banner">
-          <AlertTriangle size={18} /> {error}
-        </div>
-      )}
-
-      {view === "assistant" ? (
-        <AssistantPage
-          current={data}
-          watchlist={watchlist}
-          onBack={() => setView("dashboard")}
-        />
-      ) : view === "plans" ? (
-        <PlansPage onBack={() => setView("dashboard")} />
-      ) : (
-        <section className="layout">
-          <div className="content">
-            {data ? (
-              <>
-                <Report data={data} onAdd={() => addTicker(data.symbol)} />
-                <DashboardLinkRow
-                  onHome={() => setView("landing")}
-                  onTerms={() => setView("terms")}
-                  onSupport={() => setView("support")}
-                />
-              </>
-            ) : (
-              <EmptyReport />
-            )}
-          </div>
-
-          <Watchlist
-            items={watchlist}
-            symbol={symbol}
-            onAdd={addTicker}
-            onRemove={removeTicker}
-            onAnalyze={(ticker) => analyze(null, ticker)}
-            onRefresh={refreshWatchlist}
-            loading={watchLoading}
-          />
-        </section>
-      )}
-    </main>
-  );
+function valueNPeriodsAgo(reports, key, periodsAgo) {
+  const values = reports.map((item) => safeNumber(item.parsed?.[key])).filter((v) => v !== null);
+  return values[periodsAgo] ?? null;
 }
 
+function statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials) {
+  const annualReports = sortedReports(annualFinancials);
+  const quarterlyReports = sortedReports(quarterlyFinancials);
+  const latestAnnual = annualReports[0]?.parsed || {};
+  const latestQuarter = quarterlyReports[0]?.parsed || {};
 
-function LandingPage({ onContinue }) {
-  const productPoints = [
-    {
-      icon: <Gauge size={20} />,
-      title: "One simple Eval Score",
-      text: "Type a ticker and get a clean 0–10 score that summarizes the stock’s overall setup.",
-    },
-    {
-      icon: <BarChart3 size={20} />,
-      title: "Breakdowns that make sense",
-      text: "See growth, profitability, financial health, valuation, momentum, and pullback in plain English.",
-    },
-    {
-      icon: <ShieldCheck size={20} />,
-      title: "Risk made easier",
-      text: "Eval AI turns volatility, debt, valuation, and business strength into a quick risk read.",
-    },
-    {
-      icon: <BrainCircuit size={20} />,
-      title: "Ask questions instantly*",
-      text: "Ask the assistant to compare stocks, explain metrics, and translate market data into clear, beginner-friendly answers.",
-    },
-  ];
+  const marketCapM = safeNumber(profile?.marketCapitalization);
+  const marketCap = marketCapM !== null ? marketCapM * 1_000_000 : null;
+  const currentPrice = safeNumber(quote?.c);
 
-  return (
-    <main className="landing-page">
-      <div className="landing-orb landing-orb-one" />
-      <div className="landing-orb landing-orb-two" />
-      <div className="landing-grid-glow" />
+  const latestRevenue = firstNumber(latestAnnual.revenue, latestWithValue(annualReports, "revenue"));
+  const priorRevenue = valueNPeriodsAgo(annualReports, "revenue", 1);
+  const revenue3YearsAgo = valueNPeriodsAgo(annualReports, "revenue", 3);
+  const revenue5YearsAgo = valueNPeriodsAgo(annualReports, "revenue", 5);
 
-      <section className="landing-shell">
-        <div className="landing-brand-row">
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-          <div>
-            <h1>Eval</h1>
-          </div>
-        </div>
+  const latestEps = firstNumber(latestAnnual.epsDiluted, latestWithValue(annualReports, "epsDiluted"));
+  const priorEps = valueNPeriodsAgo(annualReports, "epsDiluted", 1);
+  const eps3YearsAgo = valueNPeriodsAgo(annualReports, "epsDiluted", 3);
+  const eps5YearsAgo = valueNPeriodsAgo(annualReports, "epsDiluted", 5);
 
-        <div className="landing-hero">
-          <div className="landing-copy">
-            <div className="landing-kicker">
-              <Sparkles size={16} /> Built for faster stock decisions
-            </div>
+  const quarterlyRevenue = latestWithValue(quarterlyReports, "revenue");
+  const quarterlyRevenueYearAgo = valueNPeriodsAgo(quarterlyReports, "revenue", 4);
 
-            <h2>Turn complicated stock data into one clear answer.</h2>
+  const currentAssets = firstNumber(latestQuarter.currentAssets, latestAnnual.currentAssets);
+  const currentLiabilities = firstNumber(latestQuarter.currentLiabilities, latestAnnual.currentLiabilities);
+  const cash = firstNumber(latestQuarter.cash, latestAnnual.cash);
+  const quickAssets = firstNumber(latestQuarter.quickAssets, latestAnnual.quickAssets);
+  const totalDebt = firstNumber(latestQuarter.totalDebt, latestAnnual.totalDebt);
+  const longTermDebt = firstNumber(latestQuarter.longTermDebt, latestAnnual.longTermDebt);
+  const equity = firstNumber(latestQuarter.equity, latestAnnual.equity);
+  const assets = firstNumber(latestQuarter.assets, latestAnnual.assets);
+  const operatingCashFlow = firstNumber(latestAnnual.operatingCashFlow, latestWithValue(annualReports, "operatingCashFlow"));
+  const freeCashFlow = firstNumber(latestAnnual.freeCashFlow, latestWithValue(annualReports, "freeCashFlow"));
+  const ebitda = firstNumber(latestAnnual.ebitda, latestWithValue(annualReports, "ebitda"));
 
-            <p>
-              Eval AI helps users understand stocks without digging through confusing
-              spreadsheets, finance terms, or long reports. Enter any ticker to get a
-              simple Eval Score, risk rating, company summary, key metrics, watchlist,
-              and plain-English explanations designed to be quick, readable, and useful.
-            </p>
+  const revenue = latestRevenue;
+  const netIncome = firstNumber(latestAnnual.netIncome, latestWithValue(annualReports, "netIncome"));
+  const grossProfit = firstNumber(latestAnnual.grossProfit, latestWithValue(annualReports, "grossProfit"));
+  const operatingIncome = firstNumber(latestAnnual.operatingIncome, latestWithValue(annualReports, "operatingIncome"));
+  const pretaxIncome = firstNumber(latestAnnual.pretaxIncome, latestWithValue(annualReports, "pretaxIncome"));
 
-            <div className="landing-actions">
-              <button type="button" className="landing-continue-btn" onClick={onContinue}>
-                Continue <ArrowRight size={20} />
-              </button>
-              <span>Open the dashboard and start analyzing stocks.</span>
-            </div>
-          </div>
+  const enterpriseValue =
+    marketCap !== null && totalDebt !== null
+      ? marketCap + totalDebt - (cash || 0)
+      : null;
 
-          <div className="landing-score-preview" aria-label="Eval AI preview card">
-            <div className="preview-topline">
-              <span>Live-style report preview</span>
-              <b>NVDA</b>
-            </div>
+  return {
+    currentRatio: divide(currentAssets, currentLiabilities),
+    quickRatio: divide(quickAssets, currentLiabilities),
+    cashRatio: divide(cash, currentLiabilities),
+    debtToEquity: divide(totalDebt, equity),
+    longTermDebtToEquity: divide(longTermDebt, equity),
+    assetTurnover: divide(revenue, assets),
 
-            <div className="preview-score-ring">
-              <strong>9.0</strong>
-            </div>
+    priceToSales: divide(marketCap, revenue),
+    priceToBook: divide(marketCap, equity),
+    priceToCashFlow: divide(marketCap, operatingCashFlow),
+    priceToFreeCashFlow: divide(marketCap, freeCashFlow),
+    grossMargin: divide(grossProfit, revenue) !== null ? divide(grossProfit, revenue) * 100 : null,
+    operatingMargin: divide(operatingIncome, revenue) !== null ? divide(operatingIncome, revenue) * 100 : null,
+    pretaxMargin: divide(pretaxIncome, revenue) !== null ? divide(pretaxIncome, revenue) * 100 : null,
+    netMargin: divide(netIncome, revenue) !== null ? divide(netIncome, revenue) * 100 : null,
+    roe: divide(netIncome, equity) !== null ? divide(netIncome, equity) * 100 : null,
+    roa: divide(netIncome, assets) !== null ? divide(netIncome, assets) * 100 : null,
+    roi: divide(operatingIncome, totalDebt !== null && equity !== null ? totalDebt + equity : null) !== null
+      ? divide(operatingIncome, totalDebt + equity) * 100
+      : null,
 
-            <div className="preview-bars">
-              <div><span>Profitability</span><b style={{ width: "92%" }} /></div>
-              <div><span>Financial Health</span><b style={{ width: "81%" }} /></div>
-              <div><span>Momentum</span><b style={{ width: "74%" }} /></div>
-            </div>
-          </div>
-        </div>
+    revenueGrowth: percentGrowth(latestRevenue, priorRevenue),
+    revenueGrowthQuarterly: percentGrowth(quarterlyRevenue, quarterlyRevenueYearAgo),
+    revenueGrowth3Y: cagr(latestRevenue, revenue3YearsAgo, 3),
+    revenueGrowth5Y: cagr(latestRevenue, revenue5YearsAgo, 5),
+    epsGrowth: percentGrowth(latestEps, priorEps),
+    epsGrowth3Y: cagr(latestEps, eps3YearsAgo, 3),
+    epsGrowth5Y: cagr(latestEps, eps5YearsAgo, 5),
 
-        <div className="landing-points">
-          {productPoints.map((point) => (
-            <article className="landing-point-card" key={point.title}>
-              <div>{point.icon}</div>
-              <h3>{point.title}</h3>
-              <p>{point.text}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="landing-bottom-strip">
-          <span>Eval Score</span>
-          <span>Risk Rating</span>
-          <span>Company Breakdown</span>
-          <span>Watchlist</span>
-          <span>AI Assistant</span>
-        </div>
-
-        <p className="landing-footnote">
-          *Eval AI provides educational explanations only and is not financial advice.
-        </p>
-      </section>
-    </main>
-  );
-}
-
-
-function ClerkAccessPage({ onBack, onSuccess }) {
-  const [mode, setMode] = useState("signIn");
-
-  useEffect(() => {
-    function syncModeFromHash() {
-      const hash = window.location.hash.toLowerCase();
-      if (hash.includes("sign-up") || hash.includes("signup")) {
-        setMode("signUp");
-      } else if (hash.includes("sign-in") || hash.includes("signin")) {
-        setMode("signIn");
-      }
-    }
-
-    syncModeFromHash();
-    window.addEventListener("hashchange", syncModeFromHash);
-    return () => window.removeEventListener("hashchange", syncModeFromHash);
-  }, []);
-
-  function switchMode(nextMode) {
-    setMode(nextMode);
-    window.location.hash = nextMode === "signUp" ? "sign-up" : "sign-in";
-  }
-
-  const clerkAppearance = {
-    variables: {
-      fontFamily: "Oxanium, sans-serif",
-      colorPrimary: "#85d713",
-      colorText: "#f8fbff",
-      colorTextSecondary: "rgba(248,251,255,.66)",
-      colorBackground: "rgba(1,7,16,.88)",
-      colorInputBackground: "rgba(0,0,0,.28)",
-      colorInputText: "#f8fbff",
-      borderRadius: "18px",
-    },
-    elements: {
-      rootBox: "clerk-root-box",
-      card: "clerk-card-shell",
-      headerTitle: "clerk-title",
-      headerSubtitle: "clerk-subtitle",
-      socialButtonsBlock: "clerk-social-hidden",
-      socialButtonsBlockButton: "clerk-social-btn",
-      dividerRow: "clerk-auth-divider-hidden",
-      formButtonPrimary: "clerk-primary-btn",
-      footerActionLink: "clerk-link",
-    },
+    operatingCashFlow,
+    freeCashFlow,
+    currentPrice,
   };
-
-  return (
-    <main className="clerk-access-page">
-      <div className="clerk-access-orb clerk-access-orb-one" />
-      <div className="clerk-access-orb clerk-access-orb-two" />
-      <div className="clerk-access-grid-glow" />
-
-      <section className="clerk-access-shell">
-        <div className="clerk-access-head">
-          <button type="button" className="back-btn clerk-access-back" onClick={onBack}>
-            <ArrowLeft size={18} /> Cover page
-          </button>
-
-          <div className="clerk-access-brand">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
-            <div>
-              <h1>Eval</h1>
-              <p>Secure account access</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="clerk-access-layout">
-          <aside className="clerk-access-copy">
-            <div className="clerk-access-kicker">
-              <ShieldCheck size={16} /> Protected by Clerk
-            </div>
-            <h2>Sign in before entering the dashboard.</h2>
-            <p>
-              Clerk handles email verification, secure passwords, forgot-password recovery,
-              active sessions, and bot sign-up protection from your Clerk dashboard.
-            </p>
-
-            <div className="clerk-access-list">
-              <span><CheckCircle2 size={16} /> Real sign-up and sign-in</span>
-              <span><CheckCircle2 size={16} /> Email verification and password reset</span>
-              <span><CheckCircle2 size={16} /> Bot protection enabled through Clerk</span>
-            </div>
-          </aside>
-
-          <section className="clerk-access-card">
-            <SignedOut>
-              <div className="clerk-access-topline">
-                <span>{mode === "signIn" ? "Welcome back" : "Create your Eval account"}</span>
-                <h3>{mode === "signIn" ? "Sign in to continue." : "Sign up to get started."}</h3>
-              </div>
-
-              <div className="clerk-access-tabs">
-                <button
-                  type="button"
-                  className={mode === "signIn" ? "active" : ""}
-                  onClick={() => switchMode("signIn")}
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  className={mode === "signUp" ? "active" : ""}
-                  onClick={() => switchMode("signUp")}
-                >
-                  Sign up
-                </button>
-              </div>
-
-              <div className="clerk-access-panel">
-                {mode === "signIn" ? (
-                  <SignIn
-                    appearance={clerkAppearance}
-                    routing="hash"
-                    signUpUrl="#sign-up"
-                  />
-                ) : (
-                  <SignUp
-                    appearance={clerkAppearance}
-                    routing="hash"
-                    signInUrl="#sign-in"
-                  />
-                )}
-              </div>
-            </SignedOut>
-
-            <SignedIn>
-              <div className="clerk-access-ready">
-                <div className="clerk-access-user">
-                  <UserButton />
-                </div>
-                <span>Signed in</span>
-                <h3>Your account is ready.</h3>
-                <p>Continue to Eval and start analyzing stocks.</p>
-                <button type="button" className="auth-submit-btn" onClick={onSuccess}>
-                  Continue to dashboard <ArrowRight size={18} />
-                </button>
-              </div>
-            </SignedIn>
-          </section>
-        </div>
-      </section>
-    </main>
-  );
 }
 
-
-function DashboardLinkRow({ onHome, onTerms, onSupport }) {
-  return (
-    <nav className="dashboard-link-row" aria-label="Dashboard navigation">
-      <button type="button" className="dashboard-link-btn" onClick={onHome}>
-        <Home size={16} /> Homepage
-      </button>
-      <button type="button" className="dashboard-link-btn" onClick={onTerms}>
-        <Scale size={16} /> Terms & Conditions
-      </button>
-      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}>
-        <MessageCircle size={16} /> Support & Contact
-      </button>
-    </nav>
-  );
-}
-
-function SupportContactPage({ onBack, onHome, onTerms }) {
-  return (
-    <main className="support-page">
-      <div className="support-orb support-orb-one" />
-      <div className="support-orb support-orb-two" />
-
-      <section className="support-shell">
-        <div className="support-topbar">
-          <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div className="support-mini-nav">
-            <button type="button" onClick={onHome}>
-              <Home size={15} /> Homepage
-            </button>
-            <button type="button" onClick={onTerms}>
-              <Scale size={15} /> Terms
-            </button>
-          </div>
-        </div>
-
-        <div className="support-hero">
-          <div>
-            <div className="support-kicker">
-              <MessageCircle size={16} /> Support & Contact
-            </div>
-            <h1>Need help with Eval?</h1>
-            <p>
-              Reach out with account questions, login issues, dashboard problems, billing
-              questions, feature requests, or general feedback. Emails and direct messages are
-              the fastest way to get a response because they are easier to track and answer clearly.
-            </p>
-          </div>
-
-          <div className="support-contact-card">
-            <span>Primary contact</span>
-            <h2>Henry Long</h2>
-            <a href="mailto:henryl@udel.edu">
-              <Mail size={18} /> henryl@udel.edu
-            </a>
-            <a href="tel:4846024647">
-              <Phone size={18} /> 484-602-4647
-            </a>
-          </div>
-        </div>
-
-        <div className="support-grid">
-          <article className="support-card">
-            <Mail size={22} />
-            <h3>Best option: email</h3>
-            <p>
-              Email is the best way to explain what happened, include screenshots, and get a
-              direct answer. Include your account email, ticker if relevant, and a short
-              description of the issue.
-            </p>
-          </article>
-
-          <article className="support-card">
-            <MessageCircle size={22} />
-            <h3>Direct messages are fastest</h3>
-            <p>
-              Direct messages are usually the quickest route for simple questions or urgent
-              issues. If the problem needs more detail, you may be asked to follow up by email.
-            </p>
-          </article>
-
-          <article className="support-card">
-            <ShieldCheck size={22} />
-            <h3>What to include</h3>
-            <p>
-              Send the email used for your Eval account, what page you were on, what button or
-              ticker caused the issue, and any error message you saw. Do not send passwords.
-            </p>
-          </article>
-        </div>
-
-        <div className="support-note">
-          Eval is an educational stock-analysis tool. Support can help with product access,
-          account issues, and app problems, but cannot provide personalized financial advice.
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function TermsPage({ onAgree, onBack, requireAgreement = true }) {
-  const [checked, setChecked] = useState(false);
-  const [confirmName, setConfirmName] = useState("");
-  const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
-
-  const sections = [
-    {
-      title: "1. Acceptance of these Terms",
-      text: [
-        "These Terms and Conditions govern your access to and use of Eval, including the website, dashboard, Eval Score, risk rating, watchlist, AI assistant, company summaries, key metrics, charts, explanations, paid plan pages, and any related content or features. By creating an account, signing in, clicking I Agree, or using Eval, you agree to these Terms.",
-        "If you do not agree, do not use Eval. If you use Eval on behalf of a company, club, organization, partnership, or other entity, you represent that you have authority to bind that entity to these Terms."
-      ],
-    },
-    {
-      title: "2. Educational information only — no investment advice",
-      text: [
-        "Eval is an educational stock research and data-organization tool. Eval is not a registered investment adviser, financial adviser, broker-dealer, securities dealer, tax adviser, legal adviser, accountant, investment bank, portfolio manager, fiduciary, or trading platform.",
-        "Nothing on Eval is personalized investment advice, financial advice, trading advice, tax advice, legal advice, accounting advice, a recommendation, an offer, a solicitation, or a promise to buy, sell, hold, short, trade, or otherwise transact in any security, ETF, option, cryptocurrency, futures contract, index, fund, financial product, or investment strategy.",
-        "Eval does not consider your investment objectives, net worth, risk tolerance, income, debts, taxes, time horizon, portfolio, personal circumstances, or suitability. You are solely responsible for your own investment decisions and should consult a qualified licensed professional before making financial decisions."
-      ],
-    },
-    {
-      title: "3. No guarantees, no reliance, and market risk",
-      text: [
-        "Investing and trading involve risk, including loss of principal. Securities and markets can move quickly and unpredictably. Past performance, historical data, backtests, analyst opinions, valuation models, ratings, grades, metrics, scores, or AI-generated explanations do not guarantee future results.",
-        "Eval Scores, risk ratings, grades, company summaries, pullback readings, momentum readings, valuation readings, and AI answers are simplified educational outputs. They may be incomplete, delayed, inaccurate, misinterpreted, unavailable, or inappropriate for your situation. Do not rely on Eval as the only basis for an investment decision.",
-        "You agree that your use of Eval is at your own risk and that you are responsible for independently verifying all information before acting on it."
-      ],
-    },
-    {
-      title: "4. Data sources, calculations, and third-party information",
-      text: [
-        "Eval may use market data, company data, financial statements, ratios, profile information, news information, AI responses, and other data from third-party providers, public sources, APIs, company websites, and user inputs. Eval does not guarantee that data is accurate, complete, current, uninterrupted, or error-free.",
-        "Financial metrics may be missing, stale, restated, estimated, calculated differently by different providers, or affected by stock splits, corporate actions, accounting methods, API limits, provider outages, caching, formatting issues, or data-entry errors.",
-        "Eval may modify, remove, reorder, or change metrics, score weights, formulas, plans, features, explanations, provider integrations, or availability at any time without notice."
-      ],
-    },
-    {
-      title: "5. AI assistant and automated explanations",
-      text: [
-        "Eval may include AI-generated summaries, explanations, comparisons, interpretations, and answers. AI can be wrong, outdated, incomplete, overly confident, or misleading. AI responses are for educational use only and are not professional advice.",
-        "You agree not to treat any AI output as a command, recommendation, guarantee, or substitute for your own research or a licensed professional. You should verify AI output with reliable independent sources before using it."
-      ],
-    },
-    {
-      title: "6. Accounts, security, and acceptable use",
-      text: [
-        "You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to provide accurate account information and to keep it updated.",
-        "You may not scrape, copy, resell, overload, attack, reverse engineer, bypass authentication, bypass rate limits, interfere with security, use bots, create fake accounts, share accounts to avoid payment, or use Eval for unlawful, abusive, fraudulent, or harmful purposes.",
-        "Eval may suspend, restrict, or terminate access at any time if misuse, suspicious activity, payment issues, legal risk, security risk, API abuse, or violation of these Terms is suspected."
-      ],
-    },
-    {
-      title: "7. Subscriptions, payments, and plan changes",
-      text: [
-        "Paid plans, pricing, features, limits, trials, and billing terms may change over time. Unless otherwise stated at checkout, subscription fees are billed in advance and may be recurring. You are responsible for reviewing the price, renewal period, and cancellation terms before purchasing.",
-        "Eval may add, remove, or modify features included in free or paid plans. A feature described on a plan page may depend on third-party APIs, market data providers, AI providers, payment providers, or backend availability."
-      ],
-    },
-    {
-      title: "8. Intellectual property and license",
-      text: [
-        "Eval, including its design, interface, branding, scoring structure, explanations, code, layout, text, graphics, and features, is owned by Eval or its licensors and is protected by intellectual-property laws. You receive a limited, revocable, non-exclusive, non-transferable license to use Eval for personal, non-commercial educational research unless a separate written agreement says otherwise.",
-        "You may not copy, modify, distribute, sell, sublicense, frame, mirror, or create derivative works from Eval without written permission."
-      ],
-    },
-    {
-      title: "9. User content and feedback",
-      text: [
-        "If you submit questions, ticker lists, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
-        "Do not submit confidential, regulated, illegal, harmful, or sensitive information that you do not want processed by the service."
-      ],
-    },
-    {
-      title: "10. Privacy and communications",
-      text: [
-        "Eval may process account information, usage information, device information, authentication information, and submitted content to operate the service, improve features, prevent abuse, communicate with users, and comply with legal obligations. Third-party services such as authentication, hosting, analytics, payment, email, AI, market-data, and security providers may process information as needed to provide the service.",
-        "By using Eval, you consent to receiving service-related emails such as account verification, password reset, security notices, plan notices, legal notices, and important product updates."
-      ],
-    },
-    {
-      title: "11. Third-party services and links",
-      text: [
-        "Eval may link to or integrate with third-party websites, APIs, data providers, payment providers, authentication providers, AI providers, company websites, brokers, or news sources. Eval does not control third-party services and is not responsible for their content, availability, accuracy, policies, fees, outages, or actions.",
-        "Your use of third-party services may be governed by their own terms and privacy policies."
-      ],
-    },
-    {
-      title: "12. Disclaimers of warranties",
-      text: [
-        "Eval is provided on an AS IS and AS AVAILABLE basis. To the maximum extent permitted by law, Eval disclaims all warranties, express, implied, statutory, or otherwise, including warranties of accuracy, completeness, timeliness, merchantability, fitness for a particular purpose, title, non-infringement, availability, security, and uninterrupted operation.",
-        "Eval does not warrant that the service will be error-free, secure, uninterrupted, profitable, accurate, compatible with your needs, or free from harmful components."
-      ],
-    },
-    {
-      title: "13. Limitation of liability",
-      text: [
-        "To the maximum extent permitted by law, Eval and its owners, operators, affiliates, contractors, providers, and licensors will not be liable for indirect, incidental, consequential, special, exemplary, punitive, lost-profit, lost-revenue, lost-data, trading-loss, investment-loss, business-interruption, reputational, or reliance damages, even if advised of the possibility of such damages.",
-        "To the maximum extent permitted by law, Eval’s total liability for any claim arising out of or relating to the service or these Terms will not exceed the greater of the amount you paid to Eval for the service during the three months before the claim arose or one hundred U.S. dollars. Some jurisdictions do not allow certain limitations, so some limitations may not apply to you."
-      ],
-    },
-    {
-      title: "14. Indemnification",
-      text: [
-        "You agree to defend, indemnify, and hold harmless Eval and its owners, operators, affiliates, contractors, providers, and licensors from and against claims, damages, losses, liabilities, costs, and expenses, including reasonable attorneys’ fees, arising out of or related to your use of Eval, your investment decisions, your violation of these Terms, your violation of law, your user content, your misuse of data, or your infringement of rights."
-      ],
-    },
-    {
-      title: "15. Arbitration agreement and class-action waiver",
-      text: [
-        "PLEASE READ THIS SECTION CAREFULLY. To the maximum extent permitted by law, you and Eval agree that any dispute, claim, or controversy arising out of or relating to these Terms, Eval, your account, your subscription, your use of the service, data, scores, AI outputs, or any relationship between you and Eval will be resolved by binding individual arbitration rather than in court, except that either party may bring an individual claim in small-claims court if eligible.",
-        "The arbitration will be conducted on an individual basis. You and Eval waive the right to a jury trial and waive the right to participate in a class action, class arbitration, consolidated action, representative action, private attorney general action, or any proceeding brought on behalf of other users or the general public. The arbitrator may award relief only to the individual party seeking relief and only to the extent necessary to resolve that individual party’s claim.",
-        "Before starting arbitration, the party seeking relief must send written notice describing the dispute and requested relief. The parties will try in good faith to resolve the dispute informally for at least 30 days. If the dispute is not resolved, either party may start arbitration under the rules of a recognized arbitration provider selected by Eval unless applicable law requires otherwise.",
-        "If any part of this arbitration or class-action waiver section is found unenforceable, the unenforceable part will be severed to the extent permitted by law, and the remaining terms will continue in effect. If the class-action waiver is found unenforceable for a claim, that claim must proceed in court and not in arbitration."
-      ],
-      important: true,
-    },
-    {
-      title: "16. Governing law and venue",
-      text: [
-        "These Terms are governed by the laws of the State of Delaware, without regard to conflict-of-law principles, except to the extent federal law or mandatory local law applies. Subject to the arbitration section, any permitted court proceeding will be brought in state or federal courts located in Delaware, and you consent to personal jurisdiction and venue there."
-      ],
-    },
-    {
-      title: "17. Changes to Eval and these Terms",
-      text: [
-        "Eval may update these Terms from time to time. Material changes may be shown in the app, emailed, or posted on the website. Continued use of Eval after changes become effective means you accept the updated Terms. If you do not agree to the updated Terms, stop using Eval."
-      ],
-    },
-    {
-      title: "18. Contact and legal notices",
-      text: [
-        "Questions, support requests, or legal notices should be sent through the contact method provided by Eval. If no separate contact method is available, use the account email or support channel associated with the service."
-      ],
-    },
-  ];
-
-  return (
-    <main className="terms-page">
-      <div className="terms-orb terms-orb-one" />
-      <div className="terms-orb terms-orb-two" />
-
-      <section className="terms-shell">
-        <div className="terms-hero">
-          <div>
-            <div className="terms-kicker">
-              <Scale size={16} /> Required before entering Eval
-            </div>
-            <h1>Terms and Conditions</h1>
-            <p>
-              {requireAgreement
-                ? "Review and accept these terms before using the dashboard. This page is designed for a stock-analysis education product, with extra focus on market-risk disclaimers, no-advice language, liability limits, and arbitration."
-                : "Review the current Eval Terms and Conditions at any time from your dashboard."}
-            </p>
-          </div>
-
-          <div className="terms-mini-card">
-            <FileText size={23} />
-            <span>Version</span>
-            <strong>{TERMS_VERSION}</strong>
-            <small>Educational use only. Not financial advice.</small>
-          </div>
-        </div>
-
-        <div className="terms-alert">
-          <AlertTriangle size={18} />
-          <p>
-            This template is not legal advice. Have an attorney review it before launch,
-            especially the arbitration, privacy, subscription, and liability sections.
-          </p>
-        </div>
-
-        <div className="terms-body">
-          {sections.map((section) => (
-            <article className={section.important ? "terms-section important" : "terms-section"} key={section.title}>
-              <h2>{section.title}</h2>
-              {section.text.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </article>
-          ))}
-        </div>
-
-        {requireAgreement ? (
-          <div className="terms-accept-panel">
-            <div>
-              <div className="terms-accept-title">
-                <LockKeyhole size={17} /> Agreement required
-              </div>
-              <p>
-                Check the box and type <b>I AGREE</b> to unlock the dashboard for this account.
-                After this account accepts the current version, this step will not appear again
-                unless the terms version changes or the browser data is cleared.
-              </p>
-            </div>
-
-            <label className="terms-check-row">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-              />
-              <span>
-                I have read and agree to the Eval Terms and Conditions, including the
-                no-investment-advice disclaimer, limitation of liability, arbitration agreement,
-                and class-action waiver.
-              </span>
-            </label>
-
-            <input
-              className="terms-confirm-input"
-              value={confirmName}
-              onChange={(e) => setConfirmName(e.target.value)}
-              placeholder="Type I AGREE"
-            />
-
-            <button type="button" className="terms-agree-btn" disabled={!canAgree} onClick={onAgree}>
-              Agree and enter dashboard <ArrowRight size={18} />
-            </button>
-          </div>
-        ) : (
-          <div className="terms-accept-panel terms-read-panel">
-            <div>
-              <div className="terms-accept-title">
-                <CheckCircle2 size={17} /> Terms already accepted
-              </div>
-              <p>
-                This account has already accepted the current terms version. You can review the
-                terms here anytime and return to the dashboard when finished.
-              </p>
-            </div>
-
-            <button type="button" className="terms-agree-btn" onClick={onBack}>
-              Back to dashboard <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
-      </section>
-    </main>
-  );
-}
-
-function Watchlist({
-  items,
-  symbol,
-  onAdd,
-  onRemove,
-  onAnalyze,
-  onRefresh,
-  loading,
-}) {
-  const [manual, setManual] = useState("");
-
-  return (
-    <aside className="watch-panel">
-      <div className="panel-head">
-        <div>
-          <h2>
-            <Star size={18} /> Watchlist
-          </h2>
-          <p>Saved in this browser · best score first</p>
-        </div>
-
-        <button
-          className="icon-btn"
-          onClick={onRefresh}
-          disabled={loading}
-          title="Refresh scores"
-        >
-          <RefreshCw size={16} className={loading ? "spin" : ""} />
-        </button>
-      </div>
-
-      <form
-        className="watch-add"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onAdd(manual || symbol);
-          setManual("");
-        }}
-      >
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value.toUpperCase())}
-          placeholder="Add ticker"
-        />
-        <button>
-          <Plus size={16} />
-        </button>
-      </form>
-
-      <div className="watch-list">
-        {items.length === 0 ? (
-          <div className="watch-empty">
-            Add stocks here to compare their 0.0–10.0 Eval Scores.
-          </div>
-        ) : (
-          items.map((item) => (
-            <div className="watch-row" key={item.symbol}>
-              <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
-                <strong>{item.symbol}</strong>
-              </button>
-
-              <div
-                className={`watch-score-ring ${scoreTone(item.score)}`}
-                style={{
-                  "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
-                }}
-              >
-                <strong>{scoreText(item.score)}</strong>
-              </div>
-
-              <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </aside>
-  );
-}
-
-
-function PlansPage({ onBack }) {
-  const plan = {
-    name: "Eval Pro",
-    price: "$9.99/mo",
-    yearly: "$99.99/yr",
-    description:
-      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
-    features: [
-      "Expanded Eval Score with more quality fundamentals",
-      "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
-      "Intrinsic value, WACC, and DCF-style valuation support",
-      "Margin of safety and percent difference from intrinsic value",
-      "News sentiment score from recent company headlines",
-      "AI summaries that explain what the news means",
-      "More detailed metric explanations in plain English",
-      "Expanded Eval AI Assistant access for stock questions",
-    ],
-  };
-
-  return (
-    <section className="plans-page">
-      <div className="plans-shell pro-only-shell">
-        <div className="plans-page-head">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div>
-            <div className="plans-kicker">
-              <Crown size={16} /> Eval Pro
-            </div>
-            <h2>One plan. Deeper stock research.</h2>
-            <p>
-              Eval Pro keeps the upgrade simple: stronger scoring, more company
-              metrics, valuation tools, news sentiment, and cleaner AI-powered
-              explanations for one price.
-            </p>
-          </div>
-        </div>
-
-        <div className="plans-grid pro-only-grid">
-          <article className="plan-card pro pro-only-card">
-            <div className="plan-glow" />
-
-            <div className="plan-top pro-only-top">
-              <div>
-                <span>{plan.name}</span>
-                <h3>{plan.price}</h3>
-                <p>{plan.yearly}</p>
-              </div>
-
-              <div className="plan-icon">
-                <Crown size={28} />
-              </div>
-            </div>
-
-            <p className="plan-description">{plan.description}</p>
-
-            <div className="plan-features pro-only-features">
-              {plan.features.map((feature) => (
-                <div className="plan-feature" key={feature}>
-                  <CheckCircle2 size={16} />
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="plan-select-btn"
-              onClick={() => {}}
-              title="Eval Pro website coming soon"
-            >
-              Upgrade to Eval Pro
-            </button>
-          </article>
-        </div>
-
-        <p className="fineprint center">
-          Plan button is a placeholder for now. Connect it later to the live Pro
-          checkout page when it is ready.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function AssistantPage({ current, watchlist, onBack }) {
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Ask a stock question in 75 characters or less. I’ll answer in simple terms.",
-    },
+function scoreGrowth(metrics) {
+  return availableWeightedAverage([
+    { score: highIsGood(metrics.revenueGrowth, -8, 30), weight: 1.45 },
+    { score: highIsGood(metrics.revenueGrowthQuarterly, -8, 25), weight: 1.05 },
+    { score: highIsGood(metrics.revenueGrowth3Y, -5, 22), weight: 0.9 },
+    { score: highIsGood(metrics.revenueGrowth5Y, -3, 18), weight: 0.75 },
+    { score: highIsGood(metrics.epsGrowth, -12, 30), weight: 1.35 },
+    { score: highIsGood(metrics.epsGrowth3Y, -8, 22), weight: 0.8 },
+    { score: highIsGood(metrics.epsGrowth5Y, -5, 18), weight: 0.65 },
   ]);
-  const [loading, setLoading] = useState(false);
+}
 
-  async function ask(e) {
-    e.preventDefault();
+function scoreProfitability(metrics) {
+  return availableWeightedAverage([
+    { score: highIsGood(metrics.roe, 0, 35), weight: 1.35 },
+    { score: highIsGood(metrics.roa, 0, 18), weight: 0.85 },
+    { score: highIsGood(metrics.roi, 0, 22), weight: 0.75 },
+    { score: highIsGood(metrics.netMargin, 0, 28), weight: 1.15 },
+    { score: highIsGood(metrics.operatingMargin, 0, 30), weight: 1.0 },
+    { score: highIsGood(metrics.grossMargin, 15, 65), weight: 0.55 },
+    { score: highIsGood(metrics.pretaxMargin, 0, 28), weight: 0.55 },
+  ]);
+}
 
-    const clean = question.trim().slice(0, 75);
-    if (!clean) return;
+function scoreFinancialHealth(metrics) {
+  return availableWeightedAverage([
+    { score: lowIsGood(metrics.debtToEquity, 0.2, 4.0), weight: 1.35 },
+    { score: lowIsGood(metrics.longTermDebtToEquity, 0.15, 3.0), weight: 0.75 },
+    { score: rangeSweetSpot(metrics.currentRatio, 1.4, 3.5, 0.55, 7.0), weight: 0.95 },
+    { score: rangeSweetSpot(metrics.quickRatio, 1.0, 2.8, 0.35, 6.0), weight: 0.75 },
+    { score: rangeSweetSpot(metrics.cashRatio, 0.25, 2.0, 0.02, 5.0), weight: 0.45 },
+    { score: highIsGood(metrics.assetTurnover, 0.1, 1.2), weight: 0.3 },
+    { score: highIsGood(metrics.marketCapM, 5_000, 750_000), weight: 0.45 },
+  ]);
+}
 
-    const userMessage = { role: "user", content: clean };
+function scoreValuation(metrics, growthScore, profitabilityScore) {
+  const raw = availableWeightedAverage([
+    { score: lowIsGood(metrics.peRatio, 10, 75), weight: 1.2 },
+    { score: lowIsGood(metrics.forwardPe, 10, 60), weight: 0.65 },
+    { score: lowIsGood(metrics.priceToSales, 1.0, 18), weight: 0.9 },
+    { score: lowIsGood(metrics.priceToBook, 1.0, 14), weight: 0.75 },
+    { score: lowIsGood(metrics.priceToCashFlow, 8, 55), weight: 0.65 },
+    { score: lowIsGood(metrics.priceToFreeCashFlow, 10, 70), weight: 0.65 },
+    { score: lowIsGood(metrics.pegRatio, 0.7, 3.5), weight: 0.45 },
+    { score: highIsGood(metrics.dividendYield, 0, 4.5), weight: 0.2 },
+  ], 5.9);
 
-    setMessages((prev) => [...prev, userMessage]);
-    setQuestion("");
-    setLoading(true);
+  const qualityAdjustment =
+    (growthScore >= 7.7 ? 0.45 : growthScore >= 6.8 ? 0.25 : 0) +
+    (profitabilityScore >= 7.7 ? 0.45 : profitabilityScore >= 6.8 ? 0.25 : 0);
 
-    try {
-      const res = await fetch(`${API}/api/assistant`, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          question: clean,
-          current,
-          watchlist,
-        }),
-      });
+  return Number(clamp(raw + qualityAdjustment, 2.5, 10).toFixed(1));
+}
 
-      const json = await res.json().catch(() => null);
+function scoreMomentum(metrics) {
+  const betaPenalty = metrics.beta !== null && metrics.beta > 1.8 ? -0.35 : 0;
 
-      if (!res.ok) {
-        throw new Error(
-          json?.error ||
-            json?.message ||
-            `Assistant error. Backend returned ${res.status}.`
-        );
-      }
+  const raw = availableWeightedAverage([
+    { score: highIsGood(metrics.dayChangePercent, -4, 5), weight: 0.55 },
+    { score: highIsGood(metrics.priceReturn4Week, -8, 14), weight: 0.85 },
+    { score: highIsGood(metrics.priceReturn13Week, -12, 24), weight: 1.0 },
+    { score: highIsGood(metrics.priceReturn26Week, -18, 35), weight: 0.9 },
+    { score: highIsGood(metrics.priceReturn52Week, -25, 55), weight: 0.75 },
+    { score: highIsGood(metrics.distanceFrom52WeekLow, 0, 80), weight: 0.35 },
+  ]);
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: json?.answer || "I could not create a response.",
-        },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            err.message ||
-            "Could not connect to the Render assistant endpoint.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  return Number(clamp(raw + betaPenalty).toFixed(1));
+}
+
+function scorePullback(metrics) {
+  return availableWeightedAverage([
+    { score: highIsGood(metrics.pullbackFromHigh, 0, 35), weight: 1.15 },
+    { score: lowIsGood(metrics.priceReturn4Week, -10, 18), weight: 0.55 },
+    { score: lowIsGood(metrics.priceReturn13Week, -15, 28), weight: 0.45 },
+    { score: rangeSweetSpot(metrics.distanceFrom52WeekLow, 18, 75, 0, 180), weight: 0.35 },
+    { score: lowIsGood(metrics.dayChangePercent, -4, 5), weight: 0.25 },
+  ], 6.0);
+}
+
+function getRiskLabel(metrics, financialHealthScore, profitabilityScore) {
+  let riskPoints = 0;
+
+  if (metrics.beta !== null) {
+    if (metrics.beta >= 2.3) riskPoints += 4;
+    else if (metrics.beta >= 1.8) riskPoints += 3;
+    else if (metrics.beta >= 1.25) riskPoints += 2;
+    else if (metrics.beta <= 0.65) riskPoints -= 1;
   }
 
-  return (
-    <section className="assistant-page">
-      <div className="assistant-shell">
-        <div className="assistant-page-head">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div>
-            <div className="assistant-kicker">
-              <BrainCircuit size={16} /> Eval AI Assistant
-            </div>
-            <h2>Ask stock questions in plain English.</h2>
-            <p>
-              Compare stocks, understand metrics, ask about risk, or get a
-              beginner-friendly breakdown before making a decision.
-            </p>
-          </div>
-        </div>
-
-        <div className="chat-panel">
-          <div className="chat-messages">
-            {messages.map((msg, index) => (
-              <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
-                <span>{msg.role === "user" ? "You" : "Eval AI"}</span>
-                <p>{msg.content}</p>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="chat-bubble assistant">
-                <span>Eval AI</span>
-                <p>Thinking through that question...</p>
-              </div>
-            )}
-          </div>
-
-          <form className="chat-input" onSubmit={ask}>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value.slice(0, 75))}
-              maxLength={75}
-              placeholder="Ask a stock question. Max 75 characters."
-              rows="3"
-            />
-            <button disabled={loading}>
-              {loading ? <RefreshCw className="spin" size={17} /> : <Send size={17} />}
-              Ask
-            </button>
-          </form>
-        </div>
-
-        <p className="fineprint center">
-          Educational only. Eval AI Assistant helps explain investing ideas, but it
-          is not a licensed financial advisor.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-
-function StockPriceChart({ symbol }) {
-  const [points, setPoints] = useState([]);
-  const [range, setRange] = useState("1y");
-  const [loading, setLoading] = useState(false);
-  const [chartError, setChartError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadChart() {
-      if (!symbol) return;
-
-      setLoading(true);
-      setChartError("");
-
-      try {
-        const res = await fetch(
-          `${API}/api/chart/${encodeURIComponent(symbol)}?range=${encodeURIComponent(range)}`,
-          {
-            method: "GET",
-            mode: "cors",
-            headers: { Accept: "application/json" },
-          }
-        );
-
-        const json = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          throw new Error(json?.error || json?.message || "Chart data unavailable.");
-        }
-
-        const raw = Array.isArray(json?.points)
-          ? json.points
-          : Array.isArray(json?.candles)
-            ? json.candles
-            : Array.isArray(json)
-              ? json
-              : [];
-
-        const next = raw
-          .map((point) => ({
-            date: point.date || point.time || point.t || point.label,
-            close: Number(point.close ?? point.c ?? point.price ?? point.value),
-          }))
-          .filter((point) => Number.isFinite(point.close));
-
-        if (!cancelled) setPoints(next);
-      } catch (err) {
-        if (!cancelled) {
-          setPoints([]);
-          setChartError(err.message || "Chart data unavailable.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadChart();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [symbol, range]);
-
-  const chart = useMemo(() => {
-    if (!points.length) return null;
-
-    const width = 760;
-    const height = 260;
-    const paddingX = 16;
-    const paddingY = 22;
-    const values = points.map((point) => point.close);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const spread = max - min || 1;
-
-    const path = points
-      .map((point, index) => {
-        const x = paddingX + (index / Math.max(points.length - 1, 1)) * (width - paddingX * 2);
-        const y = paddingY + ((max - point.close) / spread) * (height - paddingY * 2);
-        return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
-      })
-      .join(" ");
-
-    const area = `${path} L${width - paddingX} ${height - paddingY} L${paddingX} ${height - paddingY} Z`;
-    const first = points[0]?.close ?? null;
-    const last = points[points.length - 1]?.close ?? null;
-    const change = first && last ? ((last - first) / Math.abs(first)) * 100 : null;
-
-    return { width, height, path, area, min, max, first, last, change };
-  }, [points]);
-
-  return (
-    <div className="stock-chart-card story-card big">
-      <div className="stock-chart-head">
-        <div>
-          <div className="section-title">
-            <LineChart size={17} /> Stock chart
-          </div>
-          <p>{symbol} price movement from Finnhub candle data.</p>
-        </div>
-
-        <div className="stock-chart-controls" aria-label="Chart range controls">
-          {["1m", "3m", "6m", "1y"].map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={range === option ? "active" : ""}
-              onClick={() => setRange(option)}
-            >
-              {option.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="stock-chart-empty">
-          <RefreshCw className="spin" size={18} /> Loading chart...
-        </div>
-      ) : chart ? (
-        <>
-          <div className="stock-chart-stats">
-            <span>Latest <b>{money(chart.last)}</b></span>
-            <span>High <b>{money(chart.max)}</b></span>
-            <span>Low <b>{money(chart.min)}</b></span>
-            <span className={chart.change >= 0 ? "positive" : "negative"}>
-              Change <b>{chart.change === null ? "N/A" : `${chart.change.toFixed(1)}%`}</b>
-            </span>
-          </div>
-
-          <svg
-            className="stock-chart-svg"
-            viewBox={`0 0 ${chart.width} ${chart.height}`}
-            role="img"
-            aria-label={`${symbol} stock price chart`}
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id={`chartArea-${symbol}`} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="rgba(133,215,19,.34)" />
-                <stop offset="100%" stopColor="rgba(133,215,19,0)" />
-              </linearGradient>
-            </defs>
-            <path d={chart.area} fill={`url(#chartArea-${symbol})`} />
-            <path d={chart.path} fill="none" stroke="rgba(133,255,71,.95)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </>
-      ) : (
-        <div className="stock-chart-empty">
-          {chartError || "No chart data returned for this ticker."}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Report({ data, onAdd }) {
-  const cats = data?.grades?.categories || {};
-  const metrics = data?.metrics || {};
-  const edge = score10(data.grades?.edgeScore);
-  const tone = scoreTone(edge);
-  const scoreInsight = getScoreInsight(edge);
-  const [openScoreHelp, setOpenScoreHelp] = useState(null);
-
-  const strongest = useMemo(
-    () =>
-      Object.entries(cats)
-        .filter(([, v]) => v != null)
-        .sort((a, b) => score10(b[1]) - score10(a[1]))[0],
-    [cats]
-  );
-
-  const weakest = useMemo(
-    () =>
-      Object.entries(cats)
-        .filter(([, v]) => v != null)
-        .sort((a, b) => score10(a[1]) - score10(b[1]))[0],
-    [cats]
-  );
-
-  const gradeDescriptions = {
-    growth: "Shows how fast the company is expanding sales and earnings. Higher means the business is growing stronger over time.",
-    profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
-    financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
-    valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
-    momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
-    reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-  };
-
-  const categoryMetrics = {
-    growth: [
-      metricLine("Revenue Growth", metrics.revenueGrowth),
-      metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
-      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
-      metricLine("5-Year Revenue Growth", metrics.revenueGrowth5Y),
-      metricLine("EPS Growth", metrics.epsGrowth),
-      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
-      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
-    ],
-    profitability: [
-      metricLine("ROE", metrics.roe),
-      metricLine("ROA", metrics.roa),
-      metricLine("ROI / ROIC", metrics.roi),
-      metricLine("Gross Margin", metrics.grossMargin),
-      metricLine("Operating Margin", metrics.operatingMargin),
-      metricLine("Pretax Margin", metrics.pretaxMargin),
-      metricLine("Net Margin", metrics.netMargin),
-    ],
-    financialHealth: [
-      metricLine("Debt-to-Equity", metrics.debtToEquity),
-      metricLine("Long-Term Debt-to-Equity", metrics.longTermDebtToEquity),
-      metricLine("Current Ratio", metrics.currentRatio),
-      metricLine("Quick Ratio", metrics.quickRatio),
-      metricLine("Cash Ratio", metrics.cashRatio),
-      metricLine("Asset Turnover", metrics.assetTurnover),
-      metricLine("Market Cap Stability", metrics.marketCapM),
-    ],
-    valuation: [
-      metricLine("P/E Ratio", metrics.peRatio),
-      metricLine("Forward P/E", metrics.forwardPe),
-      metricLine("PEG Ratio", metrics.pegRatio),
-      metricLine("Price-to-Sales", metrics.priceToSales),
-      metricLine("Price-to-Book", metrics.priceToBook),
-      metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
-      metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
-      metricLine("Enterprise Value", metrics.enterpriseValue),
-      metricLine("Dividend Yield", metrics.dividendYield),
-    ],
-    momentum: [
-      metricLine("Beta", metrics.beta),
-      metricLine("Day Change", metrics.dayChangePercent),
-      metricLine("4-Week Return", metrics.priceReturn4Week),
-      metricLine("13-Week Return", metrics.priceReturn13Week),
-      metricLine("26-Week Return", metrics.priceReturn26Week),
-      metricLine("52-Week Return", metrics.priceReturn52Week),
-      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-    ],
-    reversal: [
-      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
-      metricLine("4-Week Return", metrics.priceReturn4Week),
-      metricLine("13-Week Return", metrics.priceReturn13Week),
-      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-      metricLine("Day Change", metrics.dayChangePercent),
-    ],
-  };
-
-  const rows = [
-    [
-      "P/E Ratio",
-      metrics.peRatio,
-      "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
-    ],
-    [
-      "Revenue Growth",
-      metrics.revenueGrowth,
-      "Shows whether the company is increasing sales over time.",
-    ],
-    [
-      "EPS Growth",
-      metrics.epsGrowth,
-      "Tracks whether earnings per share are improving.",
-    ],
-    [
-      "ROE",
-      metrics.roe,
-      "Shows how efficiently the company turns shareholder equity into profit.",
-    ],
-    ["Net Margin", metrics.netMargin, "Shows how much revenue becomes profit after costs."],
-    [
-      "Operating Margin",
-      metrics.operatingMargin,
-      "Shows how profitable the core business is before interest and taxes.",
-    ],
-    [
-      "Debt-to-Equity",
-      metrics.debtToEquity,
-      "Compares company debt with shareholder equity.",
-    ],
-    [
-      "Current Ratio",
-      metrics.currentRatio,
-      "Measures short-term balance-sheet strength.",
-    ],
-    [
-      "Price-to-Sales",
-      metrics.priceToSales,
-      "Compares market value with annual sales.",
-    ],
-    [
-      "Enterprise Value",
-      metrics.enterpriseValue,
-      "Company value estimate calculated as market cap plus total debt minus cash.",
-    ],
-    [
-      "EBITDA",
-      metrics.ebitda,
-      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
-    ],
-    [
-      "EV/EBITDA",
-      metrics.evToEbitda,
-      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
-    ],
-    [
-      "52-Week Return",
-      metrics.priceReturn52Week,
-      "Shows longer-term price momentum over the last year.",
-    ],
-    [
-      "Beta",
-      metrics.beta,
-      "Shows how volatile the stock is compared with the overall market.",
-    ],
-  ];
-
-  return (
-    <>
-      <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel">
-          <div
-            className={`score-ring ${tone}`}
-            style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
-          >
-            <div className="score-core">
-              <span>EVAL SCORE</span>
-              <strong>{scoreText(edge)}</strong>
-            </div>
-          </div>
-
-          <div className={`score-insight-wrap ${openScoreHelp === "score" ? "popup-active" : ""}`}>
-            <button
-              type="button"
-              className="score-help-btn score-main-help-btn"
-              onClick={() => setOpenScoreHelp(openScoreHelp === "score" ? null : "score")}
-              aria-label="Explain Eval Score color"
-              title="Explain Eval Score color"
-            >
-              <span className="info-letter">?</span>
-            </button>
-
-            {openScoreHelp === "score" && (
-              <div className={`score-popup score-insight-popup ${tone}`}>
-                <div className="score-popup-title">{scoreInsight.label}</div>
-                <p>{scoreInsight.text}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="company-panel">
-          <div className="eyebrow">
-            <Sparkles size={15} /> Current stock report
-          </div>
-
-          <h2>{data.profile?.name || data.symbol}</h2>
-          <p className="subline">
-            {data.symbol} · {data.profile?.finnhubIndustry || "Public company"}
-          </p>
-
-          <div className="hero-actions">
-            <button onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
-              <Plus size={17} />
-            </button>
-
-            {data.profile?.weburl && (
-              <a href={data.profile.weburl} target="_blank" rel="noreferrer">
-                Company site
-              </a>
-            )}
-          </div>
-        </div>
-
-        <div className="snapshot-grid">
-          <MiniStat icon={<Activity size={17} />} label="Price" value={money(data.quote?.c)} />
-          <MiniStat
-            icon={<ShieldCheck size={17} />}
-            label="Risk"
-            value={data.grades.riskLabel}
-            helpTitle="Risk metrics used"
-            metricsUsed={[
-              "Beta",
-              "Debt-to-Equity",
-              "Current Ratio",
-              "Market Cap Stability",
-              "Financial Health Score",
-              "Profitability Score",
-            ]}
-            isOpen={openScoreHelp === "risk"}
-            onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
-          />
-          <MiniStat
-            icon={<Building2 size={17} />}
-            label="Market Cap"
-            value={compactMoney(data.grades.context?.marketCapM)}
-          />
-        </div>
-      </section>
-
-      <section className="summary-grid">
-        <StockPriceChart symbol={data.symbol} />
-
-        <div className="story-card">
-          <div className="section-title">
-            <Target size={17} /> Fast read
-          </div>
-          <p>
-            <b>Strongest:</b>{" "}
-            {strongest
-              ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})`
-              : "N/A"}
-          </p>
-          <p>
-            <b>Weakest:</b>{" "}
-            {weakest
-              ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})`
-              : "N/A"}
-          </p>
-          <p>
-            <b>Grade:</b> {gradeFrom10(edge)}
-          </p>
-        </div>
-      </section>
-
-      <section className="grade-grid">
-        <Grade
-          id="growth"
-          name="Growth"
-          value={cats.growth}
-          icon={<TrendingUp size={18} />}
-          description={gradeDescriptions.growth}
-          metricsUsed={categoryMetrics.growth}
-          isOpen={openScoreHelp === "growth"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
-          }
-        />
-        <Grade
-          id="profitability"
-          name="Profitability"
-          value={cats.profitability}
-          icon={<BarChart3 size={18} />}
-          description={gradeDescriptions.profitability}
-          metricsUsed={categoryMetrics.profitability}
-          isOpen={openScoreHelp === "profitability"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "profitability" ? null : "profitability"
-            )
-          }
-        />
-        <Grade
-          id="financialHealth"
-          name="Financial Health"
-          value={cats.financialHealth}
-          icon={<ShieldCheck size={18} />}
-          description={gradeDescriptions.financialHealth}
-          metricsUsed={categoryMetrics.financialHealth}
-          isOpen={openScoreHelp === "financialHealth"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "financialHealth" ? null : "financialHealth"
-            )
-          }
-        />
-        <Grade
-          id="valuation"
-          name="Valuation"
-          value={cats.valuation}
-          icon={<Target size={18} />}
-          description={gradeDescriptions.valuation}
-          metricsUsed={categoryMetrics.valuation}
-          isOpen={openScoreHelp === "valuation"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
-          }
-        />
-        <Grade
-          id="momentum"
-          name="Momentum"
-          value={cats.momentum}
-          icon={<LineChart size={18} />}
-          description={gradeDescriptions.momentum}
-          metricsUsed={categoryMetrics.momentum}
-          isOpen={openScoreHelp === "momentum"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
-          }
-        />
-        <Grade
-          id="reversal"
-          name="Pullback"
-          value={cats.reversal}
-          icon={<Zap size={18} />}
-          description={gradeDescriptions.reversal}
-          metricsUsed={categoryMetrics.reversal}
-          isOpen={openScoreHelp === "reversal"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
-          }
-        />
-      </section>
-
-      <section className="metrics-card">
-        <div className="section-title">
-          <Gauge size={17} /> Key metrics
-        </div>
-
-        <div className="metric-grid">
-          {rows.map(([label, item, help]) => (
-            <Metric key={label} label={label} item={item} help={help} />
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function metricLine(label, item) {
-  if (!item) return { label, value: "Used when available", source: "Score model" };
-
-  if (typeof item === "object" && "value" in item) {
-    return {
-      label,
-      value: fmt(item.value, item.suffix || ""),
-      source: item.source || "Score model",
-    };
+  if (metrics.debtToEquity !== null) {
+    if (metrics.debtToEquity >= 5) riskPoints += 4;
+    else if (metrics.debtToEquity >= 3) riskPoints += 3;
+    else if (metrics.debtToEquity >= 1.5) riskPoints += 2;
+    else if (metrics.debtToEquity <= 0.5) riskPoints -= 1;
   }
+
+  if (metrics.currentRatio !== null) {
+    if (metrics.currentRatio < 0.75) riskPoints += 2;
+    else if (metrics.currentRatio >= 1.5) riskPoints -= 1;
+  }
+
+  if (metrics.marketCapM !== null) {
+    if (metrics.marketCapM < 2_000) riskPoints += 2;
+    else if (metrics.marketCapM >= 200_000) riskPoints -= 1;
+  }
+
+  if (financialHealthScore <= 4.5) riskPoints += 2;
+  if (profitabilityScore <= 4.5) riskPoints += 1;
+
+  if (riskPoints >= 7) return "Very High";
+  if (riskPoints >= 5) return "High";
+  if (riskPoints >= 3) return "Medium";
+  if (riskPoints <= -2) return "Very Low";
+  return "Low";
+}
+
+function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFinancials) {
+  const currentPrice = safeNumber(quote?.c);
+  const weekHigh = pickMetric(m, ["52WeekHigh", "52WeekHighAdjusted"]);
+  const weekLow = pickMetric(m, ["52WeekLow", "52WeekLowAdjusted"]);
+
+  const pullbackFromHigh =
+    currentPrice !== null && weekHigh !== null && weekHigh > 0
+      ? ((weekHigh - currentPrice) / weekHigh) * 100
+      : null;
+
+  const distanceFrom52WeekLow =
+    currentPrice !== null && weekLow !== null && weekLow > 0
+      ? ((currentPrice - weekLow) / weekLow) * 100
+      : null;
+
+  const derived = statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials);
 
   return {
-    label,
-    value: item === null || item === undefined ? "N/A" : String(item),
-    source: "Score model",
+    peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
+    forwardPe: pickMetric(m, ["forwardPE", "peForward", "forwardPeAnnual"]),
+    pegRatio: pickMetric(m, ["pegRatio", "pegTTM", "pegAnnual"]),
+    priceToSales: firstNumber(derived.priceToSales, pickMetric(m, ["psTTM", "psAnnual", "priceToSalesTTM"])),
+    priceToBook: firstNumber(derived.priceToBook, pickMetric(m, ["pbQuarterly", "pbAnnual", "priceToBookAnnual"])),
+    priceToCashFlow: firstNumber(derived.priceToCashFlow, pickMetric(m, ["pcfShareTTM", "pcfShareAnnual", "priceToCashFlowTTM"])),
+    priceToFreeCashFlow: firstNumber(derived.priceToFreeCashFlow, pickMetric(m, ["pfcfShareTTM", "pfcfShareAnnual", "priceToFreeCashFlowTTM"])),
+    dividendYield: pickMetric(m, ["dividendYieldIndicatedAnnual", "currentDividendYieldTTM", "dividendYield5Y"]),
+
+    roe: firstNumber(derived.roe, pickMetric(m, ["roeTTM", "roeRfy", "roeAnnual"])),
+    roa: firstNumber(derived.roa, pickMetric(m, ["roaTTM", "roaRfy", "roaAnnual"])),
+    roi: firstNumber(derived.roi, pickMetric(m, ["roiTTM", "roiAnnual", "roicTTM", "roicAnnual"])),
+    grossMargin: firstNumber(derived.grossMargin, pickMetric(m, ["grossMarginTTM", "grossMarginAnnual"])),
+    operatingMargin: firstNumber(derived.operatingMargin, pickMetric(m, ["operatingMarginTTM", "operatingMarginAnnual"])),
+    pretaxMargin: firstNumber(derived.pretaxMargin, pickMetric(m, ["pretaxMarginTTM", "pretaxMarginAnnual"])),
+    netMargin: firstNumber(derived.netMargin, pickMetric(m, ["netProfitMarginTTM", "netProfitMarginAnnual"])),
+
+    revenueGrowth: firstNumber(derived.revenueGrowth, pickMetric(m, ["revenueGrowthTTMYoy", "revenueGrowthYOY", "revenueGrowthAnnualYoy"])),
+    revenueGrowthQuarterly: firstNumber(derived.revenueGrowthQuarterly, pickMetric(m, ["revenueGrowthQuarterlyYoy", "revenueGrowthQuarterly"])),
+    revenueGrowth3Y: firstNumber(derived.revenueGrowth3Y, pickMetric(m, ["revenueGrowth3Y", "revenueGrowth3YCAGR"])),
+    revenueGrowth5Y: firstNumber(derived.revenueGrowth5Y, pickMetric(m, ["revenueGrowth5Y", "revenueGrowth5YCAGR"])),
+    epsGrowth: firstNumber(derived.epsGrowth, pickMetric(m, ["epsGrowthTTMYoy", "epsGrowthYOY", "epsGrowthAnnualYoy"])),
+    epsGrowth3Y: firstNumber(derived.epsGrowth3Y, pickMetric(m, ["epsGrowth3Y", "epsGrowth3YCAGR"])),
+    epsGrowth5Y: firstNumber(derived.epsGrowth5Y, pickMetric(m, ["epsGrowth5Y", "epsGrowth5YCAGR"])),
+
+    debtToEquity: firstNumber(derived.debtToEquity, pickMetric(m, ["totalDebt/totalEquityAnnual", "totalDebt/totalEquityQuarterly"])),
+    longTermDebtToEquity: firstNumber(derived.longTermDebtToEquity, pickMetric(m, ["longTermDebt/equityAnnual", "longTermDebt/equityQuarterly"])),
+    currentRatio: firstNumber(derived.currentRatio, pickMetric(m, ["currentRatioAnnual", "currentRatioQuarterly"])),
+    quickRatio: firstNumber(derived.quickRatio, pickMetric(m, ["quickRatioAnnual", "quickRatioQuarterly"])),
+    cashRatio: firstNumber(derived.cashRatio, pickMetric(m, ["cashRatioAnnual", "cashRatioQuarterly"])),
+    assetTurnover: firstNumber(derived.assetTurnover, pickMetric(m, ["assetTurnoverAnnual", "assetTurnoverTTM"])),
+
+    beta: pickMetric(m, ["beta"]),
+    dayChangePercent: safeNumber(quote?.dp),
+    priceReturn4Week: pickMetric(m, ["4WeekPriceReturnDaily", "monthToDatePriceReturnDaily"]),
+    priceReturn13Week: pickMetric(m, ["13WeekPriceReturnDaily"]),
+    priceReturn26Week: pickMetric(m, ["26WeekPriceReturnDaily"]),
+    priceReturn52Week: pickMetric(m, ["52WeekPriceReturnDaily"]),
+    weekHigh,
+    weekLow,
+    pullbackFromHigh,
+    distanceFrom52WeekLow,
+
+    marketCapM: safeNumber(profile?.marketCapitalization),
+    operatingCashFlow: derived.operatingCashFlow,
+    freeCashFlow: derived.freeCashFlow,
   };
 }
 
-function MiniStat({
-  icon,
-  label,
-  value,
-  helpTitle,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-}) {
-  return (
-    <div className={`mini-stat ${isOpen ? "popup-active" : ""}`}>
-      <span>
-        {icon}
-        {label}
-      </span>
+export async function buildStockAnalysis(symbol) {
+  const cleanSymbol = String(symbol || "").trim().toUpperCase();
 
-      <div className="mini-stat-value-row">
-        <b>{value}</b>
-        {metricsUsed.length > 0 && (
-          <button
-            type="button"
-            className="score-help-btn mini-risk-help-btn"
-            onClick={onToggle}
-            aria-label={helpTitle || `${label} metrics used`}
-            title={helpTitle || `${label} metrics used`}
-          >
-            <span className="info-letter">?</span>
-          </button>
-        )}
-      </div>
-
-      {isOpen && (
-        <div className="score-popup mini-stat-popup">
-          <div className="score-popup-title">{helpTitle || "Metrics used"}</div>
-          <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric}>
-                <span>{metric}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Grade({
-  name,
-  value,
-  icon,
-  description,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-}) {
-  const s = score10(value);
-  const tone = scoreTone(s);
-
-  return (
-    <div className={`grade-card ${isOpen ? "popup-active" : ""}`}>
-      <div className="grade-head">
-        <span>{icon}</span>
-        <h3>{name}</h3>
-      </div>
-
-      <div className="grade-line">
-        <span className={tone} style={{ width: `${(s || 0) * 10}%` }} />
-      </div>
-
-      <div className="grade-score-row">
-        <strong className={tone}>{scoreText(s)}</strong>
-        <button
-          type="button"
-          className="score-help-btn"
-          onClick={onToggle}
-          aria-label={`${name} metrics used`}
-          title={`${name} metrics used`}
-        >
-          <span className="info-letter">?</span>
-        </button>
-      </div>
-
-      {isOpen && (
-        <div className="score-popup">
-          <div className="score-popup-title">Metrics used</div>
-          <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric.label}>
-                <span>{metric.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <p className="grade-description">{description}</p>
-    </div>
-  );
-}
-
-function Metric({ label, item, help }) {
-  return (
-    <div className="metric-tile">
-      <div>
-        <h3>{label}</h3>
-        <span>{item?.source || "Unavailable"}</span>
-      </div>
-
-      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
-      <p>{help}</p>
-
-      {item?.formula && <small>{item.formula}</small>}
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <main className="loading-screen">
-      <div className="loading-card">
-        <RefreshCw className="spin" size={22} />
-        <span>Loading Eval...</span>
-      </div>
-    </main>
-  );
-}
-
-function MissingClerkConfig() {
-  return (
-    <main className="loading-screen">
-      <div className="loading-card missing-clerk-card">
-        <AlertTriangle size={24} />
-        <h2>Missing Clerk publishable key</h2>
-        <p>
-          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
-          then redeploy the frontend.
-        </p>
-      </div>
-    </main>
-  );
-}
-
-function Root() {
-  if (!CLERK_PUBLISHABLE_KEY) {
-    return <MissingClerkConfig />;
+  if (!cleanSymbol) {
+    throw new Error("Missing ticker symbol.");
   }
 
-  return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <App />
-    </ClerkProvider>
-  );
-}
+  const [profile, quote, metricsRaw, annualFinancials, quarterlyFinancials] = await Promise.all([
+    fetchFinnhub("/stock/profile2", { symbol: cleanSymbol }),
+    fetchFinnhub("/quote", { symbol: cleanSymbol }),
+    fetchFinnhub("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
+    fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }),
+    fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "quarterly" }),
+  ]);
 
-createRoot(document.getElementById("root")).render(<Root />);
+  if (!profile || !profile.ticker) {
+    throw new Error(`No company profile found for ${cleanSymbol}.`);
+  }
+
+  const rawMetricData = metricsRaw?.metric || {};
+  const extracted = buildExtractedMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials);
+
+  const growthScore = scoreGrowth(extracted);
+  const profitabilityScore = scoreProfitability(extracted);
+  const healthScore = scoreFinancialHealth(extracted);
+  const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
+  const momentumScore = scoreMomentum(extracted);
+  const reversalScore = scorePullback(extracted);
+
+  const edgeScore = availableWeightedAverage([
+    { score: growthScore, weight: 0.235 },
+    { score: profitabilityScore, weight: 0.225 },
+    { score: healthScore, weight: 0.195 },
+    { score: valuationScore, weight: 0.145 },
+    { score: momentumScore, weight: 0.115 },
+    { score: reversalScore, weight: 0.085 },
+  ], 6.0);
+
+  const riskLabel = getRiskLabel(extracted, healthScore, profitabilityScore);
+
+  return {
+    symbol: cleanSymbol,
+    profile,
+    quote,
+
+    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${
+      profile.finnhubIndustry || "market"
+    } industry.`,
+
+    evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
+      1
+    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data.`,
+
+    metrics: {
+      peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / Earnings"),
+      forwardPe: metric(extracted.forwardPe, "", "Finnhub", "Forward Price / Earnings"),
+      pegRatio: metric(extracted.pegRatio, "", "Finnhub", "P/E adjusted by expected growth"),
+      priceToSales: metric(extracted.priceToSales, "", extracted.priceToSales !== null ? "Calculated" : "Finnhub", "Market Cap / Revenue"),
+      priceToBook: metric(extracted.priceToBook, "", extracted.priceToBook !== null ? "Calculated" : "Finnhub", "Market Cap / Shareholders' Equity"),
+      priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
+      priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
+      dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
+
+      roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
+      roa: metric(extracted.roa, "%", extracted.roa !== null ? "Calculated" : "Finnhub", "Net Income / Assets"),
+      roi: metric(extracted.roi, "%", extracted.roi !== null ? "Calculated" : "Finnhub", "Operating Income / Invested Capital"),
+      grossMargin: metric(extracted.grossMargin, "%", extracted.grossMargin !== null ? "Calculated" : "Finnhub", "Gross Profit / Revenue"),
+      operatingMargin: metric(extracted.operatingMargin, "%", extracted.operatingMargin !== null ? "Calculated" : "Finnhub", "Operating Income / Revenue"),
+      pretaxMargin: metric(extracted.pretaxMargin, "%", extracted.pretaxMargin !== null ? "Calculated" : "Finnhub", "Pretax Income / Revenue"),
+      netMargin: metric(extracted.netMargin, "%", extracted.netMargin !== null ? "Calculated" : "Finnhub", "Net Income / Revenue"),
+
+      revenueGrowth: metric(extracted.revenueGrowth, "%", extracted.revenueGrowth !== null ? "Calculated" : "Finnhub", "Annual revenue growth"),
+      revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", extracted.revenueGrowthQuarterly !== null ? "Calculated" : "Finnhub", "Quarterly revenue growth year over year"),
+      revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", extracted.revenueGrowth3Y !== null ? "Calculated" : "Finnhub", "3-year revenue CAGR"),
+      revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", extracted.revenueGrowth5Y !== null ? "Calculated" : "Finnhub", "5-year revenue CAGR"),
+      epsGrowth: metric(extracted.epsGrowth, "%", extracted.epsGrowth !== null ? "Calculated" : "Finnhub", "Annual diluted EPS growth"),
+      epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", extracted.epsGrowth3Y !== null ? "Calculated" : "Finnhub", "3-year EPS CAGR"),
+      epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", extracted.epsGrowth5Y !== null ? "Calculated" : "Finnhub", "5-year EPS CAGR"),
+
+      debtToEquity: metric(extracted.debtToEquity, "", extracted.debtToEquity !== null ? "Calculated" : "Finnhub", "Total Debt / Total Equity"),
+      longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", extracted.longTermDebtToEquity !== null ? "Calculated" : "Finnhub", "Long-Term Debt / Equity"),
+      currentRatio: metric(extracted.currentRatio, "", extracted.currentRatio !== null ? "Calculated" : "Finnhub", "Current Assets / Current Liabilities"),
+      quickRatio: metric(extracted.quickRatio, "", extracted.quickRatio !== null ? "Calculated" : "Finnhub", "Quick Assets / Current Liabilities"),
+      cashRatio: metric(extracted.cashRatio, "", extracted.cashRatio !== null ? "Calculated" : "Finnhub", "Cash / Current Liabilities"),
+      assetTurnover: metric(extracted.assetTurnover, "", extracted.assetTurnover !== null ? "Calculated" : "Finnhub", "Revenue / Assets"),
+
+      operatingCashFlow: metric(extracted.operatingCashFlow, "", "Calculated", "Cash flow from operations"),
+      freeCashFlow: metric(extracted.freeCashFlow, "", "Calculated", "Operating Cash Flow - Capital Expenditures"),
+      beta: metric(extracted.beta, "", "Finnhub", "Volatility compared with market"),
+      dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current day price move"),
+      priceReturn4Week: metric(extracted.priceReturn4Week, "%", "Finnhub", "4-week price return"),
+      priceReturn13Week: metric(extracted.priceReturn13Week, "%", "Finnhub", "13-week price return"),
+      priceReturn26Week: metric(extracted.priceReturn26Week, "%", "Finnhub", "26-week price return"),
+      priceReturn52Week: metric(extracted.priceReturn52Week, "%", "Finnhub", "52-week price return"),
+      weekHigh: metric(extracted.weekHigh, "", "Finnhub", "52-week high price"),
+      weekLow: metric(extracted.weekLow, "", "Finnhub", "52-week low price"),
+      pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Calculated", "Distance below 52-week high"),
+      distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Calculated", "Distance above 52-week low"),
+
+      marketCapM: metric(extracted.marketCapM, "M", "Finnhub", "Market capitalization in millions"),
+    },
+
+    grades: {
+      edgeScore: Number(edgeScore.toFixed(1)),
+      riskLabel,
+      categories: {
+        growth: growthScore,
+        profitability: profitabilityScore,
+        financialHealth: healthScore,
+        valuation: valuationScore,
+        momentum: momentumScore,
+        reversal: reversalScore,
+      },
+      context: {
+        marketCapM: extracted.marketCapM,
+      },
+    },
+  };
+}
