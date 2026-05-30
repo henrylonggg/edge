@@ -550,14 +550,15 @@ button {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 12px;
   margin-top: 18px;
 }
 
 .metric-tile {
-  padding: 17px;
-  border-radius: 20px;
+  min-height: 158px;
+  padding: 14px;
+  border-radius: 18px;
   background: rgba(0,0,0,.18);
   border: 1px solid rgba(255,255,255,.09);
   overflow: hidden;
@@ -566,45 +567,49 @@ button {
 .metric-tile div {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  align-items: start;
+  gap: 8px;
+  align-items: flex-start;
 }
 
 .metric-tile h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.18;
   color: var(--text);
   font-weight: 700;
 }
 
 .metric-tile div span {
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.25;
   color: var(--soft);
   text-align: right;
-  max-width: 45%;
+  max-width: 48%;
   overflow-wrap: anywhere;
 }
 
 .metric-tile strong {
   display: block;
-  font-size: 25px;
-  margin: 12px 0 7px;
+  font-size: 22px;
+  line-height: 1.05;
+  margin: 11px 0 7px;
   color: var(--text);
   background: transparent !important;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .metric-tile p,
 .metric-tile small {
   color: var(--muted);
-  line-height: 1.5;
-  font-size: 13px;
+  line-height: 1.42;
+  font-size: 12px;
 }
 
 .metric-tile small {
   color: var(--soft);
   display: block;
-  margin-top: 8px;
+  margin-top: 7px;
   overflow-wrap: anywhere;
 }
 
@@ -919,6 +924,12 @@ button {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1340px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
   }
 }
 
