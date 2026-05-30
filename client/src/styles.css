@@ -4349,3 +4349,81 @@ button:active,
     width: 100%;
   }
 }
+
+/* =========================================================
+   PROFILE BUTTON — AVATAR COLOR MATCHING GLOW
+   Uses --profile-accent from the signed-in user's Clerk profile image.
+========================================================= */
+.topbar-user {
+  --profile-accent: 159,92,255;
+  border-color: rgba(var(--profile-accent), .52) !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.30), transparent 22%),
+    radial-gradient(circle at 76% 78%, rgba(var(--profile-accent), .44), transparent 43%),
+    linear-gradient(145deg, rgba(var(--profile-accent), .34), rgba(21,231,255,.12) 48%, rgba(var(--profile-accent), .24)) !important;
+  box-shadow:
+    0 0 24px rgba(var(--profile-accent), .36),
+    0 0 54px rgba(var(--profile-accent), .18),
+    0 18px 42px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+.topbar-user::before {
+  background: linear-gradient(135deg, rgba(var(--profile-accent), .82), rgba(255,255,255,.22), rgba(var(--profile-accent), .58)) !important;
+  opacity: .58 !important;
+}
+
+.topbar-user:hover {
+  border-color: rgba(var(--profile-accent), .86) !important;
+  box-shadow:
+    0 0 34px rgba(var(--profile-accent), .54),
+    0 0 72px rgba(var(--profile-accent), .28),
+    0 24px 52px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+
+.topbar-user .cl-avatarBox {
+  border-color: rgba(var(--profile-accent), .55) !important;
+  box-shadow:
+    0 0 20px rgba(var(--profile-accent), .46),
+    inset 0 0 16px rgba(0,0,0,.24) !important;
+}
+
+.topbar-user .cl-userButtonTrigger {
+  box-shadow:
+    0 0 16px rgba(var(--profile-accent), .22),
+    inset 0 0 18px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.topbar-user .cl-avatarFallback {
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.24), transparent 24%),
+    linear-gradient(145deg, rgba(var(--profile-accent), .90), rgba(var(--profile-accent), .58), rgba(1,8,16,.78)) !important;
+}
+
+.topbar-user .cl-userButtonPopoverCard {
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.44),
+    0 0 48px rgba(var(--profile-accent), .18) !important;
+}
+
+/* =========================
+   CLERK EMAIL-ONLY AUTH CLEANUP
+   Removes Google/Apple social provider buttons from the embedded Clerk UI.
+========================= */
+.clerk-social-hidden,
+.clerk-social-hidden *,
+.cl-socialButtonsBlockButton,
+.cl-socialButtonsBlockButtonText,
+.cl-socialButtons,
+.cl-socialButtonsBlock,
+.cl-dividerRow,
+.clerk-auth-divider-hidden {
+  display: none !important;
+}
+
+.clerk-access-panel .cl-card,
+.clerk-access-panel .clerk-card-shell {
+  padding-top: 30px !important;
+}
