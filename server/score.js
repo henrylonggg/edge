@@ -34,6 +34,13 @@ function divide(a, b) {
   return x / y;
 }
 
+
+function toMillions(value) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  return n / 1_000_000;
+}
+
 function percentGrowth(current, previous) {
   const c = safeNumber(current);
   const p = safeNumber(previous);
@@ -585,6 +592,18 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
 
   const derived = statementDerivedMetrics(profile, quote, annualFinancials, quarterlyFinancials);
 
+  const fallbackEnterpriseValue = pickScaledMetric(m, [
+    { key: "enterpriseValue", scale: 1_000_000 },
+    { key: "enterpriseValueTTM", scale: 1_000_000 },
+    { key: "enterpriseValueAnnual", scale: 1_000_000 },
+    { key: "enterpriseValueQuarterly", scale: 1_000_000 },
+    { key: "enterpriseValueMil", scale: 1_000_000 },
+    { key: "evMil", scale: 1_000_000 },
+    { key: "ev", scale: 1_000_000 },
+  ]);
+
+  const enterpriseValue = firstNumber(derived.enterpriseValue, fallbackEnterpriseValue);
+
   return {
     peRatio: pickMetric(m, ["peNormalizedAnnual", "peTTM", "peBasicExclExtraTTM", "peInclExtraTTM"]),
     forwardPe: pickMetric(m, ["forwardPE", "peForward", "forwardPeAnnual"]),
@@ -632,6 +651,7 @@ function buildExtractedMetrics(profile, quote, m, annualFinancials, quarterlyFin
     marketCapM: safeNumber(profile?.marketCapitalization),
     operatingCashFlow: derived.operatingCashFlow,
     freeCashFlow: derived.freeCashFlow,
+    enterpriseValue,
   };
 }
 
@@ -696,6 +716,7 @@ export async function buildStockAnalysis(symbol) {
       priceToBook: metric(extracted.priceToBook, "", extracted.priceToBook !== null ? "Calculated" : "Finnhub", "Market Cap / Shareholders' Equity"),
       priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
       priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
+      enterpriseValue: metric(toMillions(extracted.enterpriseValue), "M", extracted.enterpriseValue !== null ? "Calculated" : "Finnhub", "Market Cap + Total Debt - Cash, shown in millions"),
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
 
       roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
