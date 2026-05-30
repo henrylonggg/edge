@@ -95,13 +95,6 @@ function fmt(v, suffix = "") {
   })}${suffix}`;
 }
 
-function signedFmt(v, suffix = "") {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  const n = Number(v);
-  const sign = n > 0 ? "+" : "";
-  return `${sign}${n.toLocaleString(undefined, { maximumFractionDigits: 1 })}${suffix}`;
-}
-
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
   return Number(v).toLocaleString(undefined, {
@@ -1500,12 +1493,6 @@ function Report({ data, onAdd }) {
   const tone = scoreTone(edge);
   const scoreInsight = getScoreInsight(edge);
   const [openScoreHelp, setOpenScoreHelp] = useState(null);
-  const [qualityPriceWeeks, setQualityPriceWeeks] = useState(10);
-  const qualityPriceLookbacks = [4, 10, 26, 52];
-  const qualityPriceComparison =
-    data?.qualityPriceComparisons?.[qualityPriceWeeks] ||
-    data?.qualityPriceComparisons?.[String(qualityPriceWeeks)] ||
-    null;
 
   const strongest = useMemo(
     () =>
@@ -1592,22 +1579,6 @@ function Report({ data, onAdd }) {
   };
 
   const rows = [
-    [
-      `${qualityPriceWeeks}W Quality vs Price`,
-      {
-        value: qualityPriceComparison?.value ?? null,
-        displayValue:
-          qualityPriceComparison?.value === null || qualityPriceComparison?.value === undefined
-            ? "N/A"
-            : signedFmt(qualityPriceComparison.value, " pts"),
-        source: qualityPriceComparison?.source || `${qualityPriceWeeks}-week start vs current`,
-        formula: qualityPriceComparison?.formula || "Start-date Eval Score % change minus start-date price % change",
-        label: qualityPriceComparison?.label || "N/A",
-      },
-      qualityPriceComparison?.description ||
-        `Shows the point gap between Eval Score % change and price % change over ${qualityPriceWeeks} weeks. It only compares the start date to today. Missing historical metrics are ignored, not counted as zero. Positive pts mean quality improved more than price; negative pts mean price ran ahead of quality.`,
-      true,
-    ],
     [
       "P/E Ratio",
       metrics.peRatio,
@@ -1869,37 +1840,13 @@ function Report({ data, onAdd }) {
       </section>
 
       <section className="metrics-card">
-        <div className="metrics-card-head">
-          <div className="section-title">
-            <Gauge size={17} /> Key metrics
-          </div>
+        <div className="section-title">
+          <Gauge size={17} /> Key metrics
         </div>
 
         <div className="metric-grid">
-          {rows.map(([label, item, help, highlighted]) => (
-            <Metric
-              key={label}
-              label={label}
-              item={item}
-              help={help}
-              highlighted={highlighted}
-              controls={
-                highlighted ? (
-                  <div className="metric-tile-toggle" aria-label="Quality versus price lookback">
-                    {qualityPriceLookbacks.map((weeks) => (
-                      <button
-                        key={weeks}
-                        type="button"
-                        className={qualityPriceWeeks === weeks ? "active" : ""}
-                        onClick={() => setQualityPriceWeeks(weeks)}
-                      >
-                        {weeks}W
-                      </button>
-                    ))}
-                  </div>
-                ) : null
-              }
-            />
+          {rows.map(([label, item, help]) => (
+            <Metric key={label} label={label} item={item} help={help} />
           ))}
         </div>
       </section>
@@ -2026,19 +1973,15 @@ function Grade({
   );
 }
 
-function Metric({ label, item, help, highlighted = false, controls = null }) {
+function Metric({ label, item, help }) {
   return (
-    <div className={`metric-tile ${highlighted ? "metric-tile-featured" : ""}`}>
-      <div className="metric-tile-head">
-        <div>
-          <h3>{label}</h3>
-          <span>{item?.source || "Unavailable"}</span>
-        </div>
-        {controls}
+    <div className="metric-tile">
+      <div>
+        <h3>{label}</h3>
+        <span>{item?.source || "Unavailable"}</span>
       </div>
 
-      {item?.label && <em>{item.label}</em>}
-      <strong>{item?.displayValue || fmt(item?.value, item?.suffix || "")}</strong>
+      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
       <p>{help}</p>
 
       {item?.formula && <small>{item.formula}</small>}
