@@ -3526,3 +3526,159 @@ button:active,
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   DASHBOARD PROFILE BUTTON — PREMIUM EVAL UPGRADE
+   Makes Clerk profile button stand out in the dashboard topbar.
+========================================================= */
+.topbar-user {
+  position: relative !important;
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  padding: 4px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 22px !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  border: 1px solid rgba(133,255,71,.34) !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.28), transparent 22%),
+    radial-gradient(circle at 76% 78%, rgba(159,92,255,.34), transparent 42%),
+    linear-gradient(145deg, rgba(21,231,255,.18), rgba(133,255,71,.13) 44%, rgba(159,92,255,.20)) !important;
+  box-shadow:
+    0 0 22px rgba(133,255,71,.20),
+    0 0 38px rgba(21,231,255,.12),
+    0 18px 42px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+  transition:
+    transform .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    background .22s ease !important;
+}
+
+.topbar-user::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(21,231,255,.55), rgba(133,255,71,.48), rgba(159,92,255,.50));
+  opacity: .46;
+  filter: blur(12px);
+  z-index: -1;
+  transition: opacity .22s ease, filter .22s ease;
+}
+
+.topbar-user::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 20px;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.22), transparent 34%, rgba(255,255,255,.08));
+  z-index: 2;
+}
+
+.topbar-user:hover {
+  transform: translateY(-3px) scale(1.035) !important;
+  border-color: rgba(255,255,255,.34) !important;
+  box-shadow:
+    0 0 28px rgba(133,255,71,.34),
+    0 0 54px rgba(21,231,255,.20),
+    0 24px 52px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+
+.topbar-user:hover::before {
+  opacity: .74;
+  filter: blur(15px);
+}
+
+.topbar-user .cl-userButtonBox,
+.topbar-user .cl-userButtonTrigger,
+.topbar-user .cl-avatarBox,
+.topbar-user button {
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  border-radius: 18px !important;
+}
+
+.topbar-user .cl-userButtonTrigger {
+  position: relative !important;
+  z-index: 4 !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.14), transparent 32%),
+    rgba(1,8,16,.58) !important;
+  box-shadow:
+    inset 0 0 18px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+  transition: transform .2s ease, box-shadow .2s ease !important;
+}
+
+.topbar-user .cl-userButtonTrigger:hover {
+  transform: scale(1.03) !important;
+}
+
+.topbar-user .cl-avatarBox {
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+  box-shadow:
+    0 0 18px rgba(133,255,71,.22),
+    inset 0 0 16px rgba(0,0,0,.24) !important;
+}
+
+.topbar-user .cl-avatarImage,
+.topbar-user .cl-avatarFallback {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 17px !important;
+}
+
+.topbar-user .cl-avatarFallback {
+  display: grid !important;
+  place-items: center !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  font-size: 18px !important;
+  letter-spacing: .02em !important;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.22), transparent 24%),
+    linear-gradient(145deg, rgba(21,231,255,.62), rgba(133,255,71,.50) 48%, rgba(159,92,255,.64)) !important;
+  text-shadow:
+    0 0 10px rgba(255,255,255,.28),
+    0 1px 2px rgba(0,0,0,.42) !important;
+}
+
+.topbar-user .cl-userButtonPopoverCard {
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(3,9,20,.92) !important;
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.44),
+    0 0 42px rgba(21,231,255,.12) !important;
+  backdrop-filter: blur(22px) !important;
+}
+
+@media (max-width: 680px) {
+  .topbar-user {
+    width: 100% !important;
+    height: 56px !important;
+    min-width: 0 !important;
+    border-radius: 18px !important;
+  }
+
+  .topbar-user .cl-userButtonBox,
+  .topbar-user .cl-userButtonTrigger,
+  .topbar-user .cl-avatarBox,
+  .topbar-user button {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+}
