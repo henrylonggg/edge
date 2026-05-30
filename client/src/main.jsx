@@ -506,6 +506,16 @@ function App() {
             <ProfileButton />
           </SignedIn>
 
+          <button
+            type="button"
+            className="plans-nav-btn"
+            onClick={() => setView("plans")}
+            aria-label="Eval AI Plans"
+            title="Eval AI Plans"
+          >
+            <Crown size={20} />
+          </button>
+
           <div>
             <label>Stock Ticker</label>
             <input
@@ -527,16 +537,6 @@ function App() {
             title="Add to watchlist"
           >
             <Plus size={18} />
-          </button>
-
-          <button
-            type="button"
-            className="plans-nav-btn"
-            onClick={() => setView("plans")}
-            aria-label="Eval AI Plans"
-            title="Eval AI Plans"
-          >
-            <Crown size={20} />
           </button>
         </form>
       </header>
@@ -1361,7 +1361,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask me anything stock-related — comparisons, metrics, valuation, risk, or beginner investing questions. I’ll keep it simple and practical.",
+        "Ask a stock question in 75 characters or less. I’ll answer in simple terms.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -1369,7 +1369,7 @@ function AssistantPage({ current, watchlist, onBack }) {
   async function ask(e) {
     e.preventDefault();
 
-    const clean = question.trim();
+    const clean = question.trim().slice(0, 75);
     if (!clean) return;
 
     const userMessage = { role: "user", content: clean };
@@ -1465,8 +1465,9 @@ function AssistantPage({ current, watchlist, onBack }) {
           <form className="chat-input" onSubmit={ask}>
             <textarea
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Example: Is AAPL a better buy than NVDA if NVDA has the higher Eval Score?"
+              onChange={(e) => setQuestion(e.target.value.slice(0, 75))}
+              maxLength={75}
+              placeholder="Ask a stock question. Max 75 characters."
               rows="3"
             />
             <button disabled={loading}>
