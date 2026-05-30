@@ -71,8 +71,8 @@ function scoreText(v) {
 function scoreTone(v) {
   const n = score10(v);
   if (n === null) return "neutral";
-  if (n <= 6.4) return "red";
-  if (n <= 7.4) return "yellow";
+  if (n <= 5) return "red";
+  if (n <= 7) return "yellow";
   return "green";
 }
 
@@ -136,6 +136,36 @@ function categoryLabel(key) {
       reversal: "Pullback",
     }[key] || key
   );
+}
+
+function getScoreInsight(score) {
+  const n = score10(score);
+
+  if (n === null) {
+    return {
+      label: "Unavailable Evaluation",
+      text: "There is not enough reliable company data available to explain this score yet.",
+    };
+  }
+
+  if (n <= 5) {
+    return {
+      label: "Red Evaluation",
+      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
+    };
+  }
+
+  if (n <= 7) {
+    return {
+      label: "Yellow Evaluation",
+      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
+    };
+  }
+
+  return {
+    label: "Green Evaluation",
+    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
+  };
 }
 
 
@@ -1460,6 +1490,7 @@ function Report({ data, onAdd }) {
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
   const tone = scoreTone(edge);
+  const scoreInsight = getScoreInsight(edge);
   const [openScoreHelp, setOpenScoreHelp] = useState(null);
 
   const strongest = useMemo(
@@ -1615,6 +1646,25 @@ function Report({ data, onAdd }) {
               <span>EVAL SCORE</span>
               <strong>{scoreText(edge)}</strong>
             </div>
+          </div>
+
+          <div className={`score-insight-wrap ${openScoreHelp === "score" ? "popup-active" : ""}`}>
+            <button
+              type="button"
+              className="score-help-btn score-main-help-btn"
+              onClick={() => setOpenScoreHelp(openScoreHelp === "score" ? null : "score")}
+              aria-label="Explain Eval Score color"
+              title="Explain Eval Score color"
+            >
+              <span className="info-letter">?</span>
+            </button>
+
+            {openScoreHelp === "score" && (
+              <div className={`score-popup score-insight-popup ${tone}`}>
+                <div className="score-popup-title">{scoreInsight.label}</div>
+                <p>{scoreInsight.text}</p>
+              </div>
+            )}
           </div>
         </div>
 
