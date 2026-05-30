@@ -16,6 +16,198 @@ const PORT = process.env.PORT || 5050;
 const MAX_ASSISTANT_QUESTION_CHARS = 75;
 const MAX_ASSISTANT_ANSWER_CHARS = 150;
 
+const QUALITY_PRICE_LOOKBACKS = [4, 10, 26, 52];
+
+function asFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function pctChange(current, start) {
+  const c = asFiniteNumber(current);
+  const s = asFiniteNumber(start);
+
+  if (c === null || s === null || s === 0) return null;
+  return ((c - s) / Math.abs(s)) * 100;
+}
+
+function roundOne(value) {
+  const n = asFiniteNumber(value);
+  return n === null ? null : Number(n.toFixed(1));
+}
+
+function getLookbackStartDate(weeks) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - Number(weeks) * 7);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+function toUnixSeconds(date) {
+  return Math.floor(date.getTime() / 1000);
+}
+
+function getHistoricalEvalScore(analysis = {}, weeks) {
+  const possibleObjects = [
+    analysis.qualityPriceHistory,
+    analysis.evalScoreHistory,
+    analysis.scoreHistory,
+    analysis.historicalScores,
+    analysis.grades?.history,
+    analysis.grades?.scoreHistory,
+  ].filter(Boolean);
+
+  for (const obj of possibleObjects) {
+    const direct =
+      obj?.[weeks] ??
+      obj?.[String(weeks)] ??
+      obj?.[`${weeks}w`] ??
+      obj?.[`${weeks}W`] ??
+      obj?.[`week${weeks}`] ??
+      obj?.[`weeks${weeks}`];
+
+    if (direct && typeof direct === "object") {
+      const score = asFiniteNumber(direct.evalScore ?? direct.edgeScore ?? direct.score ?? direct.value);
+      if (score !== null) return score;
+    }
+
+    const directNumber = asFiniteNumber(direct);
+    if (directNumber !== null) return directNumber;
+  }
+
+  const possibleArrays = [
+    analysis.qualityPriceHistory,
+    analysis.evalScoreHistory,
+    analysis.scoreHistory,
+    analysis.historicalScores,
+    analysis.grades?.history,
+    analysis.grades?.scoreHistory,
+  ].filter(Array.isArray);
+
+  for (const arr of possibleArrays) {
+    const match = arr.find((row) => {
+      const w = asFiniteNumber(row?.weeks ?? row?.lookbackWeeks ?? row?.periodWeeks ?? row?.lookback);
+      return w === Number(weeks);
+    });
+
+    const score = asFiniteNumber(match?.evalScore ?? match?.edgeScore ?? match?.score ?? match?.value);
+    if (score !== null) return score;
+  }
+
+  return null;
+}
+
+async function fetchStartPriceForLookback(symbol, weeks) {
+  const token = process.env.FINNHUB_API_KEY || process.env.FINNHUB_KEY;
+  if (!token) return null;
+
+  const startDate = getLookbackStartDate(weeks);
+  const fromDate = new Date(startDate);
+  const toDate = new Date(startDate);
+
+  fromDate.setUTCDate(fromDate.getUTCDate() - 4);
+  toDate.setUTCDate(toDate.getUTCDate() + 4);
+
+  try {
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=D&from=${toUnixSeconds(fromDate)}&to=${toUnixSeconds(toDate)}&token=${token}`;
+    const res = await fetch(url);
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || json?.s !== "ok" || !Array.isArray(json?.c) || !json.c.length) {
+      return null;
+    }
+
+    const target = toUnixSeconds(startDate);
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+
+    for (let i = 0; i < json.c.length; i += 1) {
+      const t = Number(json.t?.[i]);
+      const distance = Number.isFinite(t) ? Math.abs(t - target) : Infinity;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+
+    return asFiniteNumber(json.c[bestIndex]);
+  } catch (error) {
+    console.error(`Start price lookup failed for ${symbol} ${weeks}w:`, error?.message || error);
+    return null;
+  }
+}
+
+function getQualityPriceLabel(value) {
+  const n = asFiniteNumber(value);
+
+  if (n === null) return "N/A";
+  if (n >= 20) return "Quality improving faster";
+  if (n >= 7) return "Slight quality advantage";
+  if (n <= -20) return "Price running ahead";
+  if (n <= -7) return "Slight price advantage";
+  return "Balanced";
+}
+
+function getQualityPriceDescription(value, weeks) {
+  const n = asFiniteNumber(value);
+
+  if (n === null) {
+    return `Not enough ${weeks}-week start-date data is available to compare Eval Score change against price change.`;
+  }
+
+  if (n >= 20) {
+    return `Over ${weeks} weeks, the Eval Score improved much more than price. The company setup may be getting better before price fully reflects it.`;
+  }
+
+  if (n >= 7) {
+    return `Over ${weeks} weeks, the Eval Score improved slightly more than price. Quality has modestly outpaced price.`;
+  }
+
+  if (n <= -20) {
+    return `Over ${weeks} weeks, price moved much more than the Eval Score. The stock may be running ahead of business quality.`;
+  }
+
+  if (n <= -7) {
+    return `Over ${weeks} weeks, price slightly outpaced the Eval Score. Price strength is ahead of quality improvement.`;
+  }
+
+  return `Over ${weeks} weeks, the Eval Score and price moved mostly together.`;
+}
+
+async function buildQualityPriceComparisons(symbol, analysis = {}) {
+  const currentEvalScore = asFiniteNumber(analysis.grades?.edgeScore);
+  const currentPrice = asFiniteNumber(analysis.quote?.c);
+  const comparisons = {};
+
+  await Promise.all(
+    QUALITY_PRICE_LOOKBACKS.map(async (weeks) => {
+      const startEvalScore = getHistoricalEvalScore(analysis, weeks);
+      const startPrice = await fetchStartPriceForLookback(symbol, weeks);
+      const evalChange = pctChange(currentEvalScore, startEvalScore);
+      const priceChange = pctChange(currentPrice, startPrice);
+      const divergence = evalChange === null || priceChange === null ? null : evalChange - priceChange;
+
+      comparisons[weeks] = {
+        weeks,
+        startDate: getLookbackStartDate(weeks).toISOString().slice(0, 10),
+        currentEvalScore: roundOne(currentEvalScore),
+        startEvalScore: roundOne(startEvalScore),
+        currentPrice: roundOne(currentPrice),
+        startPrice: roundOne(startPrice),
+        evalChangePct: roundOne(evalChange),
+        priceChangePct: roundOne(priceChange),
+        value: roundOne(divergence),
+        label: getQualityPriceLabel(divergence),
+        description: getQualityPriceDescription(divergence, weeks),
+        formula: "Eval Score % change minus price % change, using only start date and current values.",
+        source: `${weeks}-week start vs current`,
+      };
+    })
+  );
+
+  return comparisons;
+}
+
 function shortAssistantAnswer(text = "") {
   const cleaned = String(text || "")
     .replace(/\s+/g, " ")
@@ -644,6 +836,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
     }
 
     const analysis = await buildStockAnalysis(symbol);
+    analysis.qualityPriceComparisons = await buildQualityPriceComparisons(symbol, analysis);
     const finnhubAbout = await fetchFinnhubAbout(symbol);
 
     if (finnhubAbout) {
