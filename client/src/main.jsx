@@ -1601,11 +1601,11 @@ function Report({ data, onAdd }) {
             ? "N/A"
             : signedFmt(qualityPriceComparison.value, " pts"),
         source: qualityPriceComparison?.source || `${qualityPriceWeeks}-week start vs current`,
-        formula: qualityPriceComparison?.formula || "Eval Score % change minus price % change",
+        formula: qualityPriceComparison?.formula || "Start-date Eval Score % change minus start-date price % change",
         label: qualityPriceComparison?.label || "N/A",
       },
       qualityPriceComparison?.description ||
-        `Shows the percentage-point gap between Eval Score change and price change over ${qualityPriceWeeks} weeks. Positive pts mean quality improved more than price. Negative pts mean price moved ahead of quality.`,
+        `Shows the point gap between Eval Score % change and price % change over ${qualityPriceWeeks} weeks. It only compares the start date to today. Missing historical metrics are ignored, not counted as zero. Positive pts mean quality improved more than price; negative pts mean price ran ahead of quality.`,
       true,
     ],
     [
