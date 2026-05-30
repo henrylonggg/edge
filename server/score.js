@@ -485,7 +485,7 @@ function scoreValuation(metrics, growthScore, profitabilityScore) {
     { score: lowIsGood(metrics.priceToBook, 1.0, 14), weight: 0.75 },
     { score: lowIsGood(metrics.priceToCashFlow, 8, 55), weight: 0.65 },
     { score: lowIsGood(metrics.priceToFreeCashFlow, 10, 70), weight: 0.65 },
-    { score: lowIsGood(metrics.evToEbitda, 8, 45), weight: 0.8 },
+    { score: lowIsGood(metrics.evToEbitda, 8, 35), weight: 1.05 },
     { score: lowIsGood(metrics.pegRatio, 0.7, 3.5), weight: 0.45 },
     { score: highIsGood(metrics.dividendYield, 0, 4.5), weight: 0.2 },
   ], 5.9);
@@ -680,7 +680,7 @@ export async function buildStockAnalysis(symbol) {
 
     evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
       1
-    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data.`,
+    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback opportunity using available quote, basic-financial, and reported financial-statement data. Valuation now includes calculated EV/EBITDA when enterprise value and EBITDA can be built from Finnhub data.`,
 
     metrics: {
       peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / Earnings"),
@@ -690,7 +690,7 @@ export async function buildStockAnalysis(symbol) {
       priceToBook: metric(extracted.priceToBook, "", extracted.priceToBook !== null ? "Calculated" : "Finnhub", "Market Cap / Shareholders' Equity"),
       priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
       priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
-      evToEbitda: metric(extracted.evToEbitda, "", extracted.evToEbitda !== null ? "Calculated" : "Finnhub", "Enterprise Value / EBITDA"),
+      evToEbitda: metric(extracted.evToEbitda, "", extracted.evToEbitda !== null ? "Calculated" : "Finnhub", "EV / EBITDA, where EV = Market Cap + Total Debt - Cash and EBITDA = Operating Income + Depreciation & Amortization"),
       dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
 
       roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
