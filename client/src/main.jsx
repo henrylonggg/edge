@@ -32,6 +32,13 @@ import {
   Gauge,
   ArrowLeft,
   ArrowRight,
+  FileText,
+  Scale,
+  LockKeyhole,
+  Home,
+  Mail,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import "./styles.css";
 
@@ -43,6 +50,7 @@ const API = "https://edge-1-6dtw.onrender.com";
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
+const TERMS_VERSION = "2026-05-30";
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -131,7 +139,7 @@ function categoryLabel(key) {
 }
 
 function App() {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -139,6 +147,7 @@ function App() {
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState("landing");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -271,27 +280,72 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user?.id) {
+      setTermsAccepted(false);
+      return;
+    }
+
+    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+    setTermsAccepted(localStorage.getItem(key) === "true");
+  }, [isLoaded, isSignedIn, user?.id]);
+
+  useEffect(() => {
     if (!isLoaded) return;
 
     const publicViews = ["landing", "account"];
     if (!isSignedIn && !publicViews.includes(view)) {
       setView("account");
+      return;
     }
-  }, [isLoaded, isSignedIn, view]);
+
+    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
+      setView("terms");
+    }
+  }, [isLoaded, isSignedIn, termsAccepted, view]);
+
+  function acceptTerms() {
+    if (user?.id) {
+      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+      localStorage.setItem(key, "true");
+    }
+
+    setTermsAccepted(true);
+    setView("dashboard");
+  }
 
   if (!isLoaded) {
     return <LoadingScreen />;
   }
 
   if (view === "landing") {
-    return <LandingPage onContinue={() => setView("account")} />;
+    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
   }
 
   if (view === "account") {
     return (
       <ClerkAccessPage
         onBack={() => setView("landing")}
-        onSuccess={() => setView("dashboard")}
+        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
+      />
+    );
+  }
+
+  if (view === "terms") {
+    return (
+      <TermsPage
+        onAgree={acceptTerms}
+        onBack={() => setView("dashboard")}
+        requireAgreement={!termsAccepted}
+      />
+    );
+  }
+
+  if (view === "support") {
+    return (
+      <SupportContactPage
+        onBack={() => setView("dashboard")}
+        onHome={() => setView("landing")}
+        onTerms={() => setView("terms")}
       />
     );
   }
@@ -356,6 +410,12 @@ function App() {
           </SignedIn>
         </form>
       </header>
+
+      <DashboardLinkRow
+        onHome={() => setView("landing")}
+        onTerms={() => setView("terms")}
+        onSupport={() => setView("support")}
+      />
 
       {error && (
         <div className="error-banner">
@@ -645,6 +705,351 @@ function ClerkAccessPage({ onBack, onSuccess }) {
             </SignedIn>
           </section>
         </div>
+      </section>
+    </main>
+  );
+}
+
+
+function DashboardLinkRow({ onHome, onTerms, onSupport }) {
+  return (
+    <nav className="dashboard-link-row" aria-label="Dashboard navigation">
+      <button type="button" className="dashboard-link-btn" onClick={onHome}>
+        <Home size={16} /> Homepage
+      </button>
+      <button type="button" className="dashboard-link-btn" onClick={onTerms}>
+        <Scale size={16} /> Terms & Conditions
+      </button>
+      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}>
+        <MessageCircle size={16} /> Support & Contact
+      </button>
+    </nav>
+  );
+}
+
+function SupportContactPage({ onBack, onHome, onTerms }) {
+  return (
+    <main className="support-page">
+      <div className="support-orb support-orb-one" />
+      <div className="support-orb support-orb-two" />
+
+      <section className="support-shell">
+        <div className="support-topbar">
+          <button className="back-btn" type="button" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
+          <div className="support-mini-nav">
+            <button type="button" onClick={onHome}>
+              <Home size={15} /> Homepage
+            </button>
+            <button type="button" onClick={onTerms}>
+              <Scale size={15} /> Terms
+            </button>
+          </div>
+        </div>
+
+        <div className="support-hero">
+          <div>
+            <div className="support-kicker">
+              <MessageCircle size={16} /> Support & Contact
+            </div>
+            <h1>Need help with Eval?</h1>
+            <p>
+              Reach out with account questions, login issues, dashboard problems, billing
+              questions, feature requests, or general feedback. Emails and direct messages are
+              the fastest way to get a response because they are easier to track and answer clearly.
+            </p>
+          </div>
+
+          <div className="support-contact-card">
+            <span>Primary contact</span>
+            <h2>Henry Long</h2>
+            <a href="mailto:henryl@udel.edu">
+              <Mail size={18} /> henryl@udel.edu
+            </a>
+            <a href="tel:4846024647">
+              <Phone size={18} /> 484-602-4647
+            </a>
+          </div>
+        </div>
+
+        <div className="support-grid">
+          <article className="support-card">
+            <Mail size={22} />
+            <h3>Best option: email</h3>
+            <p>
+              Email is the best way to explain what happened, include screenshots, and get a
+              direct answer. Include your account email, ticker if relevant, and a short
+              description of the issue.
+            </p>
+          </article>
+
+          <article className="support-card">
+            <MessageCircle size={22} />
+            <h3>Direct messages are fastest</h3>
+            <p>
+              Direct messages are usually the quickest route for simple questions or urgent
+              issues. If the problem needs more detail, you may be asked to follow up by email.
+            </p>
+          </article>
+
+          <article className="support-card">
+            <ShieldCheck size={22} />
+            <h3>What to include</h3>
+            <p>
+              Send the email used for your Eval account, what page you were on, what button or
+              ticker caused the issue, and any error message you saw. Do not send passwords.
+            </p>
+          </article>
+        </div>
+
+        <div className="support-note">
+          Eval is an educational stock-analysis tool. Support can help with product access,
+          account issues, and app problems, but cannot provide personalized financial advice.
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function TermsPage({ onAgree, onBack, requireAgreement = true }) {
+  const [checked, setChecked] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
+
+  const sections = [
+    {
+      title: "1. Acceptance of these Terms",
+      text: [
+        "These Terms and Conditions govern your access to and use of Eval, including the website, dashboard, Eval Score, risk rating, watchlist, AI assistant, company summaries, key metrics, charts, explanations, paid plan pages, and any related content or features. By creating an account, signing in, clicking I Agree, or using Eval, you agree to these Terms.",
+        "If you do not agree, do not use Eval. If you use Eval on behalf of a company, club, organization, partnership, or other entity, you represent that you have authority to bind that entity to these Terms."
+      ],
+    },
+    {
+      title: "2. Educational information only — no investment advice",
+      text: [
+        "Eval is an educational stock research and data-organization tool. Eval is not a registered investment adviser, financial adviser, broker-dealer, securities dealer, tax adviser, legal adviser, accountant, investment bank, portfolio manager, fiduciary, or trading platform.",
+        "Nothing on Eval is personalized investment advice, financial advice, trading advice, tax advice, legal advice, accounting advice, a recommendation, an offer, a solicitation, or a promise to buy, sell, hold, short, trade, or otherwise transact in any security, ETF, option, cryptocurrency, futures contract, index, fund, financial product, or investment strategy.",
+        "Eval does not consider your investment objectives, net worth, risk tolerance, income, debts, taxes, time horizon, portfolio, personal circumstances, or suitability. You are solely responsible for your own investment decisions and should consult a qualified licensed professional before making financial decisions."
+      ],
+    },
+    {
+      title: "3. No guarantees, no reliance, and market risk",
+      text: [
+        "Investing and trading involve risk, including loss of principal. Securities and markets can move quickly and unpredictably. Past performance, historical data, backtests, analyst opinions, valuation models, ratings, grades, metrics, scores, or AI-generated explanations do not guarantee future results.",
+        "Eval Scores, risk ratings, grades, company summaries, pullback readings, momentum readings, valuation readings, and AI answers are simplified educational outputs. They may be incomplete, delayed, inaccurate, misinterpreted, unavailable, or inappropriate for your situation. Do not rely on Eval as the only basis for an investment decision.",
+        "You agree that your use of Eval is at your own risk and that you are responsible for independently verifying all information before acting on it."
+      ],
+    },
+    {
+      title: "4. Data sources, calculations, and third-party information",
+      text: [
+        "Eval may use market data, company data, financial statements, ratios, profile information, news information, AI responses, and other data from third-party providers, public sources, APIs, company websites, and user inputs. Eval does not guarantee that data is accurate, complete, current, uninterrupted, or error-free.",
+        "Financial metrics may be missing, stale, restated, estimated, calculated differently by different providers, or affected by stock splits, corporate actions, accounting methods, API limits, provider outages, caching, formatting issues, or data-entry errors.",
+        "Eval may modify, remove, reorder, or change metrics, score weights, formulas, plans, features, explanations, provider integrations, or availability at any time without notice."
+      ],
+    },
+    {
+      title: "5. AI assistant and automated explanations",
+      text: [
+        "Eval may include AI-generated summaries, explanations, comparisons, interpretations, and answers. AI can be wrong, outdated, incomplete, overly confident, or misleading. AI responses are for educational use only and are not professional advice.",
+        "You agree not to treat any AI output as a command, recommendation, guarantee, or substitute for your own research or a licensed professional. You should verify AI output with reliable independent sources before using it."
+      ],
+    },
+    {
+      title: "6. Accounts, security, and acceptable use",
+      text: [
+        "You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to provide accurate account information and to keep it updated.",
+        "You may not scrape, copy, resell, overload, attack, reverse engineer, bypass authentication, bypass rate limits, interfere with security, use bots, create fake accounts, share accounts to avoid payment, or use Eval for unlawful, abusive, fraudulent, or harmful purposes.",
+        "Eval may suspend, restrict, or terminate access at any time if misuse, suspicious activity, payment issues, legal risk, security risk, API abuse, or violation of these Terms is suspected."
+      ],
+    },
+    {
+      title: "7. Subscriptions, payments, and plan changes",
+      text: [
+        "Paid plans, pricing, features, limits, trials, and billing terms may change over time. Unless otherwise stated at checkout, subscription fees are billed in advance and may be recurring. You are responsible for reviewing the price, renewal period, and cancellation terms before purchasing.",
+        "Eval may add, remove, or modify features included in free or paid plans. A feature described on a plan page may depend on third-party APIs, market data providers, AI providers, payment providers, or backend availability."
+      ],
+    },
+    {
+      title: "8. Intellectual property and license",
+      text: [
+        "Eval, including its design, interface, branding, scoring structure, explanations, code, layout, text, graphics, and features, is owned by Eval or its licensors and is protected by intellectual-property laws. You receive a limited, revocable, non-exclusive, non-transferable license to use Eval for personal, non-commercial educational research unless a separate written agreement says otherwise.",
+        "You may not copy, modify, distribute, sell, sublicense, frame, mirror, or create derivative works from Eval without written permission."
+      ],
+    },
+    {
+      title: "9. User content and feedback",
+      text: [
+        "If you submit questions, ticker lists, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
+        "Do not submit confidential, regulated, illegal, harmful, or sensitive information that you do not want processed by the service."
+      ],
+    },
+    {
+      title: "10. Privacy and communications",
+      text: [
+        "Eval may process account information, usage information, device information, authentication information, and submitted content to operate the service, improve features, prevent abuse, communicate with users, and comply with legal obligations. Third-party services such as authentication, hosting, analytics, payment, email, AI, market-data, and security providers may process information as needed to provide the service.",
+        "By using Eval, you consent to receiving service-related emails such as account verification, password reset, security notices, plan notices, legal notices, and important product updates."
+      ],
+    },
+    {
+      title: "11. Third-party services and links",
+      text: [
+        "Eval may link to or integrate with third-party websites, APIs, data providers, payment providers, authentication providers, AI providers, company websites, brokers, or news sources. Eval does not control third-party services and is not responsible for their content, availability, accuracy, policies, fees, outages, or actions.",
+        "Your use of third-party services may be governed by their own terms and privacy policies."
+      ],
+    },
+    {
+      title: "12. Disclaimers of warranties",
+      text: [
+        "Eval is provided on an AS IS and AS AVAILABLE basis. To the maximum extent permitted by law, Eval disclaims all warranties, express, implied, statutory, or otherwise, including warranties of accuracy, completeness, timeliness, merchantability, fitness for a particular purpose, title, non-infringement, availability, security, and uninterrupted operation.",
+        "Eval does not warrant that the service will be error-free, secure, uninterrupted, profitable, accurate, compatible with your needs, or free from harmful components."
+      ],
+    },
+    {
+      title: "13. Limitation of liability",
+      text: [
+        "To the maximum extent permitted by law, Eval and its owners, operators, affiliates, contractors, providers, and licensors will not be liable for indirect, incidental, consequential, special, exemplary, punitive, lost-profit, lost-revenue, lost-data, trading-loss, investment-loss, business-interruption, reputational, or reliance damages, even if advised of the possibility of such damages.",
+        "To the maximum extent permitted by law, Eval’s total liability for any claim arising out of or relating to the service or these Terms will not exceed the greater of the amount you paid to Eval for the service during the three months before the claim arose or one hundred U.S. dollars. Some jurisdictions do not allow certain limitations, so some limitations may not apply to you."
+      ],
+    },
+    {
+      title: "14. Indemnification",
+      text: [
+        "You agree to defend, indemnify, and hold harmless Eval and its owners, operators, affiliates, contractors, providers, and licensors from and against claims, damages, losses, liabilities, costs, and expenses, including reasonable attorneys’ fees, arising out of or related to your use of Eval, your investment decisions, your violation of these Terms, your violation of law, your user content, your misuse of data, or your infringement of rights."
+      ],
+    },
+    {
+      title: "15. Arbitration agreement and class-action waiver",
+      text: [
+        "PLEASE READ THIS SECTION CAREFULLY. To the maximum extent permitted by law, you and Eval agree that any dispute, claim, or controversy arising out of or relating to these Terms, Eval, your account, your subscription, your use of the service, data, scores, AI outputs, or any relationship between you and Eval will be resolved by binding individual arbitration rather than in court, except that either party may bring an individual claim in small-claims court if eligible.",
+        "The arbitration will be conducted on an individual basis. You and Eval waive the right to a jury trial and waive the right to participate in a class action, class arbitration, consolidated action, representative action, private attorney general action, or any proceeding brought on behalf of other users or the general public. The arbitrator may award relief only to the individual party seeking relief and only to the extent necessary to resolve that individual party’s claim.",
+        "Before starting arbitration, the party seeking relief must send written notice describing the dispute and requested relief. The parties will try in good faith to resolve the dispute informally for at least 30 days. If the dispute is not resolved, either party may start arbitration under the rules of a recognized arbitration provider selected by Eval unless applicable law requires otherwise.",
+        "If any part of this arbitration or class-action waiver section is found unenforceable, the unenforceable part will be severed to the extent permitted by law, and the remaining terms will continue in effect. If the class-action waiver is found unenforceable for a claim, that claim must proceed in court and not in arbitration."
+      ],
+      important: true,
+    },
+    {
+      title: "16. Governing law and venue",
+      text: [
+        "These Terms are governed by the laws of the State of Delaware, without regard to conflict-of-law principles, except to the extent federal law or mandatory local law applies. Subject to the arbitration section, any permitted court proceeding will be brought in state or federal courts located in Delaware, and you consent to personal jurisdiction and venue there."
+      ],
+    },
+    {
+      title: "17. Changes to Eval and these Terms",
+      text: [
+        "Eval may update these Terms from time to time. Material changes may be shown in the app, emailed, or posted on the website. Continued use of Eval after changes become effective means you accept the updated Terms. If you do not agree to the updated Terms, stop using Eval."
+      ],
+    },
+    {
+      title: "18. Contact and legal notices",
+      text: [
+        "Questions, support requests, or legal notices should be sent through the contact method provided by Eval. If no separate contact method is available, use the account email or support channel associated with the service."
+      ],
+    },
+  ];
+
+  return (
+    <main className="terms-page">
+      <div className="terms-orb terms-orb-one" />
+      <div className="terms-orb terms-orb-two" />
+
+      <section className="terms-shell">
+        <div className="terms-hero">
+          <div>
+            <div className="terms-kicker">
+              <Scale size={16} /> Required before entering Eval
+            </div>
+            <h1>Terms and Conditions</h1>
+            <p>
+              {requireAgreement
+                ? "Review and accept these terms before using the dashboard. This page is designed for a stock-analysis education product, with extra focus on market-risk disclaimers, no-advice language, liability limits, and arbitration."
+                : "Review the current Eval Terms and Conditions at any time from your dashboard."}
+            </p>
+          </div>
+
+          <div className="terms-mini-card">
+            <FileText size={23} />
+            <span>Version</span>
+            <strong>{TERMS_VERSION}</strong>
+            <small>Educational use only. Not financial advice.</small>
+          </div>
+        </div>
+
+        <div className="terms-alert">
+          <AlertTriangle size={18} />
+          <p>
+            This template is not legal advice. Have an attorney review it before launch,
+            especially the arbitration, privacy, subscription, and liability sections.
+          </p>
+        </div>
+
+        <div className="terms-body">
+          {sections.map((section) => (
+            <article className={section.important ? "terms-section important" : "terms-section"} key={section.title}>
+              <h2>{section.title}</h2>
+              {section.text.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </article>
+          ))}
+        </div>
+
+        {requireAgreement ? (
+          <div className="terms-accept-panel">
+            <div>
+              <div className="terms-accept-title">
+                <LockKeyhole size={17} /> Agreement required
+              </div>
+              <p>
+                Check the box and type <b>I AGREE</b> to unlock the dashboard for this account.
+                After this account accepts the current version, this step will not appear again
+                unless the terms version changes or the browser data is cleared.
+              </p>
+            </div>
+
+            <label className="terms-check-row">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+              />
+              <span>
+                I have read and agree to the Eval Terms and Conditions, including the
+                no-investment-advice disclaimer, limitation of liability, arbitration agreement,
+                and class-action waiver.
+              </span>
+            </label>
+
+            <input
+              className="terms-confirm-input"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder="Type I AGREE"
+            />
+
+            <button type="button" className="terms-agree-btn" disabled={!canAgree} onClick={onAgree}>
+              Agree and enter dashboard <ArrowRight size={18} />
+            </button>
+          </div>
+        ) : (
+          <div className="terms-accept-panel terms-read-panel">
+            <div>
+              <div className="terms-accept-title">
+                <CheckCircle2 size={17} /> Terms already accepted
+              </div>
+              <p>
+                This account has already accepted the current terms version. You can review the
+                terms here anytime and return to the dashboard when finished.
+              </p>
+            </div>
+
+            <button type="button" className="terms-agree-btn" onClick={onBack}>
+              Back to dashboard <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
       </section>
     </main>
   );
