@@ -1486,6 +1486,164 @@ function AssistantPage({ current, watchlist, onBack }) {
   );
 }
 
+
+function StockPriceChart({ symbol }) {
+  const [points, setPoints] = useState([]);
+  const [range, setRange] = useState("1y");
+  const [loading, setLoading] = useState(false);
+  const [chartError, setChartError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChart() {
+      if (!symbol) return;
+
+      setLoading(true);
+      setChartError("");
+
+      try {
+        const res = await fetch(
+          `${API}/api/chart/${encodeURIComponent(symbol)}?range=${encodeURIComponent(range)}`,
+          {
+            method: "GET",
+            mode: "cors",
+            headers: { Accept: "application/json" },
+          }
+        );
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(json?.error || json?.message || "Chart data unavailable.");
+        }
+
+        const raw = Array.isArray(json?.points)
+          ? json.points
+          : Array.isArray(json?.candles)
+            ? json.candles
+            : Array.isArray(json)
+              ? json
+              : [];
+
+        const next = raw
+          .map((point) => ({
+            date: point.date || point.time || point.t || point.label,
+            close: Number(point.close ?? point.c ?? point.price ?? point.value),
+          }))
+          .filter((point) => Number.isFinite(point.close));
+
+        if (!cancelled) setPoints(next);
+      } catch (err) {
+        if (!cancelled) {
+          setPoints([]);
+          setChartError(err.message || "Chart data unavailable.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadChart();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, range]);
+
+  const chart = useMemo(() => {
+    if (!points.length) return null;
+
+    const width = 760;
+    const height = 260;
+    const paddingX = 16;
+    const paddingY = 22;
+    const values = points.map((point) => point.close);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const spread = max - min || 1;
+
+    const path = points
+      .map((point, index) => {
+        const x = paddingX + (index / Math.max(points.length - 1, 1)) * (width - paddingX * 2);
+        const y = paddingY + ((max - point.close) / spread) * (height - paddingY * 2);
+        return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+      })
+      .join(" ");
+
+    const area = `${path} L${width - paddingX} ${height - paddingY} L${paddingX} ${height - paddingY} Z`;
+    const first = points[0]?.close ?? null;
+    const last = points[points.length - 1]?.close ?? null;
+    const change = first && last ? ((last - first) / Math.abs(first)) * 100 : null;
+
+    return { width, height, path, area, min, max, first, last, change };
+  }, [points]);
+
+  return (
+    <div className="stock-chart-card story-card big">
+      <div className="stock-chart-head">
+        <div>
+          <div className="section-title">
+            <LineChart size={17} /> Stock chart
+          </div>
+          <p>{symbol} price movement from Finnhub candle data.</p>
+        </div>
+
+        <div className="stock-chart-controls" aria-label="Chart range controls">
+          {["1m", "3m", "6m", "1y"].map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={range === option ? "active" : ""}
+              onClick={() => setRange(option)}
+            >
+              {option.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="stock-chart-empty">
+          <RefreshCw className="spin" size={18} /> Loading chart...
+        </div>
+      ) : chart ? (
+        <>
+          <div className="stock-chart-stats">
+            <span>Latest <b>{money(chart.last)}</b></span>
+            <span>High <b>{money(chart.max)}</b></span>
+            <span>Low <b>{money(chart.min)}</b></span>
+            <span className={chart.change >= 0 ? "positive" : "negative"}>
+              Change <b>{chart.change === null ? "N/A" : `${chart.change.toFixed(1)}%`}</b>
+            </span>
+          </div>
+
+          <svg
+            className="stock-chart-svg"
+            viewBox={`0 0 ${chart.width} ${chart.height}`}
+            role="img"
+            aria-label={`${symbol} stock price chart`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id={`chartArea-${symbol}`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="rgba(133,215,19,.34)" />
+                <stop offset="100%" stopColor="rgba(133,215,19,0)" />
+              </linearGradient>
+            </defs>
+            <path d={chart.area} fill={`url(#chartArea-${symbol})`} />
+            <path d={chart.path} fill="none" stroke="rgba(133,255,71,.95)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </>
+      ) : (
+        <div className="stock-chart-empty">
+          {chartError || "No chart data returned for this ticker."}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Report({ data, onAdd }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
@@ -1556,8 +1714,6 @@ function Report({ data, onAdd }) {
       metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
       metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
       metricLine("Enterprise Value", metrics.enterpriseValue),
-      metricLine("EBITDA", metrics.ebitda),
-      metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
     ],
     momentum: [
@@ -1731,12 +1887,7 @@ function Report({ data, onAdd }) {
       </section>
 
       <section className="summary-grid">
-        <div className="story-card big">
-          <div className="section-title">
-            <Building2 size={17} /> What this company does
-          </div>
-          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
-        </div>
+        <StockPriceChart symbol={data.symbol} />
 
         <div className="story-card">
           <div className="section-title">
