@@ -1777,6 +1777,15 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   const rows = [
     [
+      "Market Cap",
+      metrics.marketCapM || {
+        value: data.grades?.context?.marketCapM,
+        suffix: "M",
+        source: "Finnhub / calculated",
+      },
+      "Shows the total market value of the company. Bigger companies are usually more established, while smaller companies may have more growth potential but higher risk.",
+    ],
+    [
       "P/E Ratio",
       metrics.peRatio,
       "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
@@ -1911,8 +1920,13 @@ function Report({ data, onAdd, onOpenIndustry }) {
           </div>
         </div>
 
-        <div className="snapshot-grid">
-          <MiniStat icon={<Activity size={17} />} label="Price" value={money(data.quote?.c)} />
+        <div className="snapshot-grid snapshot-grid-refined">
+          <MiniStat
+            icon={<Activity size={17} />}
+            label="Price"
+            value={money(data.quote?.c)}
+            className="price-mini-stat"
+          />
           <MiniStat
             icon={<ShieldCheck size={17} />}
             label="Risk"
@@ -1928,11 +1942,18 @@ function Report({ data, onAdd, onOpenIndustry }) {
             ]}
             isOpen={openScoreHelp === "risk"}
             onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
-          />
-          <MiniStat
-            icon={<Building2 size={17} />}
-            label="Market Cap"
-            value={compactMoney(data.grades.context?.marketCapM)}
+            extra={
+              <div className="risk-strength-summary">
+                <div>
+                  <span>Strongest</span>
+                  <b>{strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A"}</b>
+                </div>
+                <div>
+                  <span>Weakest</span>
+                  <b>{weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A"}</b>
+                </div>
+              </div>
+            }
           />
         </div>
 
@@ -2088,9 +2109,11 @@ function MiniStat({
   metricsUsed = [],
   isOpen = false,
   onToggle,
+  extra = null,
+  className = "",
 }) {
   return (
-    <div className={`mini-stat ${isOpen ? "popup-active" : ""}`}>
+    <div className={`mini-stat ${className} ${isOpen ? "popup-active" : ""}`}>
       <span>
         {icon}
         {label}
@@ -2110,6 +2133,8 @@ function MiniStat({
           </button>
         )}
       </div>
+
+      {extra}
 
       {isOpen && (
         <div className="score-popup mini-stat-popup">
