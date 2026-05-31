@@ -4646,3 +4646,259 @@ button:active,
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================================================
+   COMPACT DASHBOARD TOPBAR UPDATE
+   Keeps the profile separate and makes the ticker/search bubble tighter.
+========================================================= */
+.topbar {
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  align-items: start !important;
+  gap: 20px !important;
+  margin-bottom: 32px !important;
+}
+
+.topbar-actions-stack {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  width: fit-content;
+  margin-left: auto;
+}
+
+.profile-bubble {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.075);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.profile-bubble .topbar-user {
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  min-height: 62px !important;
+  padding: 5px !important;
+  border-radius: 999px !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user::before,
+.profile-bubble .topbar-user::after {
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-avatarImage,
+.profile-bubble .topbar-user .cl-avatarFallback {
+  border-radius: 999px !important;
+}
+
+.compact-searchbar,
+.searchbar.compact-searchbar {
+  width: fit-content !important;
+  max-width: 100% !important;
+  grid-template-columns: 52px 340px 52px 52px 52px !important;
+  gap: 10px !important;
+  align-items: end !important;
+  padding: 10px !important;
+  border-radius: 23px !important;
+}
+
+.compact-searchbar .ticker-field {
+  width: 340px !important;
+  max-width: 340px !important;
+}
+
+.compact-searchbar input {
+  height: 52px !important;
+  padding: 12px 15px !important;
+  font-size: 20px !important;
+}
+
+.compact-searchbar button,
+.compact-searchbar .ai-nav-btn,
+.compact-searchbar .plans-nav-btn,
+.compact-searchbar .ghost-btn {
+  width: 52px !important;
+  min-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+  align-self: end !important;
+}
+
+.compact-searchbar .plans-nav-btn {
+  order: 0;
+}
+
+.compact-searchbar .ticker-field {
+  order: 1;
+}
+
+.compact-searchbar button[aria-label="Search stock"] {
+  order: 2;
+}
+
+.compact-searchbar .ghost-btn {
+  order: 3;
+}
+
+.compact-searchbar .ai-nav-btn {
+  order: 4;
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-actions-stack {
+    justify-items: start;
+    width: 100%;
+  }
+
+  .compact-searchbar,
+  .searchbar.compact-searchbar {
+    grid-template-columns: 52px minmax(190px, 340px) 52px 52px 52px !important;
+  }
+
+  .compact-searchbar .ticker-field {
+    width: auto !important;
+    max-width: 340px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar-actions-stack {
+    justify-items: stretch;
+  }
+
+  .profile-bubble {
+    justify-self: start;
+  }
+
+  .compact-searchbar,
+  .searchbar.compact-searchbar {
+    width: 100% !important;
+    grid-template-columns: repeat(4, 52px) 1fr !important;
+    align-items: end !important;
+  }
+
+  .compact-searchbar .plans-nav-btn {
+    order: 0;
+  }
+
+  .compact-searchbar button[aria-label="Search stock"] {
+    order: 1;
+  }
+
+  .compact-searchbar .ghost-btn {
+    order: 2;
+  }
+
+  .compact-searchbar .ai-nav-btn {
+    order: 3;
+  }
+
+  .compact-searchbar .ticker-field {
+    order: 4;
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* =========================================================
+   DASHBOARD TICKER BUBBLE ABOVE POWER SCORE
+   Keeps controls compact and places the search/add controls in the report column.
+========================================================= */
+.topbar {
+  margin-bottom: 20px !important;
+}
+
+.topbar-actions-stack {
+  justify-items: end !important;
+}
+
+.score-searchbar,
+.searchbar.score-searchbar {
+  justify-self: start !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 0 2px 0 !important;
+  grid-template-columns: 52px 230px 52px 52px 52px !important;
+  align-items: center !important;
+}
+
+.score-searchbar .ticker-field {
+  width: 230px !important;
+  max-width: 230px !important;
+}
+
+.score-searchbar .ticker-field label {
+  display: none !important;
+}
+
+.score-searchbar input {
+  height: 52px !important;
+  padding: 12px 15px !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: .06em !important;
+}
+
+.score-searchbar input::placeholder {
+  color: rgba(248,251,255,.48) !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+}
+
+.watch-add button:disabled,
+.score-searchbar button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+@media (max-width: 1180px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px minmax(190px, 230px) 52px 52px 52px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: auto !important;
+    max-width: 230px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    grid-template-columns: repeat(4, 52px) 1fr !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
