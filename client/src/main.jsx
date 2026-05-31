@@ -1959,36 +1959,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
       </section>
 
-      <section className="summary-grid">
-        <div className="story-card big">
-          <div className="section-title">
-            <Building2 size={17} /> What this company does
-          </div>
-          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
-        </div>
-
-        <div className="story-card">
-          <div className="section-title">
-            <Target size={17} /> Fast read
-          </div>
-          <p>
-            <b>Strongest:</b>{" "}
-            {strongest
-              ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})`
-              : "N/A"}
-          </p>
-          <p>
-            <b>Weakest:</b>{" "}
-            {weakest
-              ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})`
-              : "N/A"}
-          </p>
-          <p>
-            <b>Grade:</b> {gradeFrom10(edge)}
-          </p>
-        </div>
-      </section>
-
       <section className="grade-grid">
         <Grade
           id="growth"
