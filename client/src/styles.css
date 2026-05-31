@@ -8547,3 +8547,85 @@ button:active,
 .preview-score-ring {
   --score-angle: 274deg;
 }
+
+
+/* =========================================================
+   HOMEPAGE PREVIEW PULSE RING + WHITE CATEGORY NUMBERS
+   - Homepage pie/ring matches pulse score rings
+   - Growth/Momentum/etc. numbers are white
+========================================================= */
+
+.preview-score-ring,
+.landing-score-ring,
+.home-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.34);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 30px var(--ring-glow) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.preview-score-ring::before,
+.landing-score-ring::before,
+.home-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  background:
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .44 !important;
+  z-index: -1 !important;
+  animation: evalPulseGlow 2.4s ease-in-out infinite !important;
+}
+
+.preview-score-ring::after,
+.landing-score-ring::after,
+.home-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ring-bright) !important;
+  opacity: .32 !important;
+  box-shadow:
+    0 0 22px var(--ring-glow),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  animation: evalPulseRing 2.4s ease-in-out infinite !important;
+}
+
+/* Make all category score numbers white, while keeping bars colored */
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  color: #ffffff !important;
+  text-shadow:
+    0 0 18px rgba(255,255,255,.16),
+    0 0 28px rgba(255,255,255,.08) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-score-ring::before,
+  .preview-score-ring::after,
+  .landing-score-ring::before,
+  .landing-score-ring::after,
+  .home-score-ring::before,
+  .home-score-ring::after {
+    animation: none !important;
+  }
+}
