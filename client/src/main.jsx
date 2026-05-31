@@ -294,6 +294,9 @@ function App() {
   const [error, setError] = useState("");
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [industryPage, setIndustryPage] = useState(null);
+  const [industryLoading, setIndustryLoading] = useState(false);
+  const [industryError, setIndustryError] = useState("");
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -369,6 +372,51 @@ function App() {
 
     setWatchlist(next);
     saveWatchlist(next);
+  }
+
+  async function openIndustryPage(industry, sourceSymbol = data?.symbol || symbol) {
+    const cleanIndustry = String(industry || "").trim();
+    if (!cleanIndustry || cleanIndustry === "Public company") return;
+
+    setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
+    setIndustryLoading(true);
+    setIndustryError("");
+    setView("industry");
+
+    try {
+      const res = await fetch(
+        `${API}/api/industry-top/${encodeURIComponent(cleanIndustry)}?symbol=${encodeURIComponent(sourceSymbol || "")}`,
+        {
+          method: "GET",
+          mode: "cors",
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Could not load industry leaders.");
+      }
+
+      setIndustryPage({
+        industry: json?.industry || cleanIndustry,
+        leaders: Array.isArray(json?.leaders) ? json.leaders : [],
+        sourceSymbol,
+        cachedForHours: json?.cachedForHours || 2,
+      });
+    } catch (err) {
+      setIndustryError(err?.message || "Could not load industry leaders.");
+      setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
+    } finally {
+      setIndustryLoading(false);
+    }
+  }
+
+  async function analyzeFromIndustry(ticker) {
+    await analyze(null, ticker);
+    setView("dashboard");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function removeTicker(ticker) {
@@ -535,6 +583,14 @@ function App() {
         />
       ) : view === "plans" ? (
         <PlansPage onBack={() => setView("dashboard")} />
+      ) : view === "industry" ? (
+        <IndustryPage
+          industryPage={industryPage}
+          loading={industryLoading}
+          error={industryError}
+          onBack={() => setView("dashboard")}
+          onAnalyze={analyzeFromIndustry}
+        />
       ) : (
         <section className="layout">
           <div className="content">
@@ -585,7 +641,7 @@ function App() {
 
             {data ? (
               <>
-                <Report data={data} onAdd={() => addTicker(data.symbol)} />
+                <Report data={data} onAdd={() => addTicker(data.symbol)} onOpenIndustry={openIndustryPage} />
                 <DashboardLinkRow
                   onHome={() => setView("landing")}
                   onTerms={() => setView("terms")}
@@ -612,6 +668,107 @@ function App() {
   );
 }
 
+
+
+function industryDescription(industry = "") {
+  const text = String(industry || "").toLowerCase();
+
+  if (text.includes("technology") || text.includes("software") || text.includes("semiconductor")) {
+    return "This industry is built around software, devices, chips, cloud platforms, and digital infrastructure. Strong companies here usually score well when they grow revenue, protect margins, and keep demand strong.";
+  }
+
+  if (text.includes("health") || text.includes("pharma") || text.includes("biotech") || text.includes("medical")) {
+    return "This industry focuses on medicine, treatments, health services, and medical technology. Strong companies here usually have steady demand, strong profitability, and durable products or services.";
+  }
+
+  if (text.includes("financial") || text.includes("bank") || text.includes("insurance")) {
+    return "This industry includes banks, payment networks, lenders, asset managers, and insurers. Strong companies usually score well when they have stable earnings, strong balance sheets, and controlled risk.";
+  }
+
+  if (text.includes("energy") || text.includes("oil") || text.includes("gas")) {
+    return "This industry is tied to oil, natural gas, energy production, and energy services. Scores can move with commodity prices, cash flow strength, debt levels, and profitability.";
+  }
+
+  if (text.includes("consumer")) {
+    return "This industry depends on consumer spending. Strong companies usually have recognizable brands, steady demand, pricing power, and healthy margins.";
+  }
+
+  if (text.includes("industrial")) {
+    return "This industry includes machinery, transportation, aerospace, defense, and manufacturing. Strong companies usually benefit from stable demand, efficient operations, and solid balance sheets.";
+  }
+
+  return "This industry groups companies with similar business models. Comparing Eval Scores inside the same industry can make the ranking more useful because the stocks face similar risks and opportunities.";
+}
+
+function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
+  const industry = industryPage?.industry || "Industry";
+  const leaders = Array.isArray(industryPage?.leaders) ? industryPage.leaders : [];
+
+  return (
+    <section className="industry-page">
+      <div className="industry-page-shell">
+        <div className="industry-page-head">
+          <button type="button" className="back-btn" onClick={onBack}>
+            <ArrowLeft size={17} /> Dashboard
+          </button>
+
+          <div>
+            <div className="section-title">
+              <BarChart3 size={17} /> Industry ranking
+            </div>
+            <h2>{industry}</h2>
+            <p>{industryDescription(industry)}</p>
+          </div>
+        </div>
+
+        <div className="industry-explain-card">
+          <strong>How to use this page</strong>
+          <p>
+            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="industry-loading-page">
+            <RefreshCw className="spin" size={22} /> Ranking industry stocks from cached Eval data...
+          </div>
+        ) : error ? (
+          <div className="industry-error-page">{error}</div>
+        ) : leaders.length ? (
+          <div className="industry-leader-grid">
+            {leaders.map((item, index) => {
+              const score = score10(item.score);
+              const tone = scoreTone(score);
+              const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
+
+              return (
+                <button
+                  type="button"
+                  className={`industry-leader-card ${rankClass}`}
+                  key={item.symbol}
+                  onClick={() => onAnalyze(item.symbol)}
+                  title={`Open full Eval report for ${item.symbol}`}
+                >
+                  <div className="industry-medal">#{index + 1}</div>
+                  <div className={`industry-score-pie ${tone}`} style={{ "--industry-score-angle": `${(score || 0) * 36}deg` }}>
+                    <strong>{scoreText(score)}</strong>
+                  </div>
+                  <div className="industry-leader-copy">
+                    <h3>{item.symbol}</h3>
+                    <p>{item.name || item.symbol}</p>
+                    <span>Tap to open full dashboard overview</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="industry-error-page">No same-industry rankings are available yet.</div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function LandingPage({ onContinue }) {
   const productPoints = [
@@ -1514,7 +1671,7 @@ function AssistantPage({ current, watchlist, onBack }) {
   );
 }
 
-function Report({ data, onAdd }) {
+function Report({ data, onAdd, onOpenIndustry }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
@@ -1530,34 +1687,7 @@ function Report({ data, onAdd }) {
 
   async function openIndustryPopup() {
     if (!industryName || industryName === "Public company") return;
-
-    setIndustryOpen(true);
-    setIndustryLoading(true);
-    setIndustryError("");
-
-    try {
-      const res = await fetch(
-        `${API}/api/industry-top/${encodeURIComponent(industryName)}?symbol=${encodeURIComponent(data.symbol || "")}`,
-        {
-          method: "GET",
-          mode: "cors",
-          headers: { Accept: "application/json" },
-        }
-      );
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(json?.error || "Could not load industry leaders.");
-      }
-
-      setIndustryLeaders(Array.isArray(json?.leaders) ? json.leaders : []);
-    } catch (err) {
-      setIndustryError(err?.message || "Could not load industry leaders.");
-      setIndustryLeaders([]);
-    } finally {
-      setIndustryLoading(false);
-    }
+    onOpenIndustry?.(industryName, data.symbol);
   }
 
 
@@ -1806,62 +1936,6 @@ function Report({ data, onAdd }) {
           />
         </div>
 
-        {industryOpen && (
-          <div className="industry-modal-backdrop" onClick={() => setIndustryOpen(false)}>
-            <div className="industry-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="industry-modal-head">
-                <div>
-                  <span>Top Eval stocks in</span>
-                  <h3>{industryName}</h3>
-                </div>
-                <button
-                  type="button"
-                  className="industry-close-btn"
-                  onClick={() => setIndustryOpen(false)}
-                  aria-label="Close industry popup"
-                >
-                  ×
-                </button>
-              </div>
-
-              {industryLoading ? (
-                <div className="industry-loading">
-                  <RefreshCw className="spin" size={18} />
-                  Ranking same-industry stocks...
-                </div>
-              ) : industryError ? (
-                <p className="industry-error">{industryError}</p>
-              ) : industryLeaders.length ? (
-                <div className="industry-list">
-                  {industryLeaders.map((item, index) => (
-                    <button
-                      type="button"
-                      className="industry-row"
-                      key={item.symbol}
-                      onClick={() => {
-                        setIndustryOpen(false);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
-                      <span className="industry-rank">#{index + 1}</span>
-                      <div>
-                        <strong>{item.symbol}</strong>
-                        <span>{item.name || item.symbol}</span>
-                      </div>
-                      <b>{scoreText(item.score)}</b>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="industry-error">No same-industry rankings are available yet.</p>
-              )}
-
-              <p className="industry-note">
-                Rankings use Eval Score for a small same-industry stock set and may skip tickers with missing data.
-              </p>
-            </div>
-          </div>
-        )}
       </section>
 
       <section className="summary-grid">
