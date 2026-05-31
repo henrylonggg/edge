@@ -658,6 +658,17 @@ function App() {
                 <BrainCircuit size={22} />
               </button>
 
+              <a
+                className="sofi-referral-btn"
+                href="https://www.sofi.com/invite/invest?gcp=70a9cce6-5672-4453-bd32-e825c424c28d&isAliasGcp=false"
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                title="SoFi referral link"
+                aria-label="Open SoFi referral link"
+              >
+                <span>SoFi</span>
+              </a>
+
               <button
                 type="button"
                 className="mobile-watchlist-nav-btn"
