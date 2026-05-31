@@ -51,6 +51,7 @@ const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
 const TERMS_VERSION = "2026-05-30";
+const MAX_WATCHLIST_ITEMS = 15;
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -329,6 +330,12 @@ function App() {
     const clean = ticker.trim().toUpperCase();
     if (!clean) return;
 
+    const alreadySaved = watchlist.some((item) => item.symbol === clean);
+    if (!alreadySaved && watchlist.length >= MAX_WATCHLIST_ITEMS) {
+      setError(`Watchlist limit reached. Remove a stock before adding another. Max ${MAX_WATCHLIST_ITEMS} stocks.`);
+      return;
+    }
+
     const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
     if (!analyzed) return;
 
@@ -492,53 +499,13 @@ function App() {
           </div>
         </div>
 
-        <form onSubmit={analyze} className="searchbar">
-          <button
-            type="button"
-            className="ai-nav-btn"
-            onClick={() => setView("assistant")}
-            title="Eval AI Assistant"
-          >
-            <BrainCircuit size={23} />
-          </button>
-
+        <div className="topbar-actions-stack">
           <SignedIn>
-            <ProfileButton />
+            <div className="profile-bubble" aria-label="Profile">
+              <ProfileButton />
+            </div>
           </SignedIn>
-
-          <button
-            type="button"
-            className="plans-nav-btn"
-            onClick={() => setView("plans")}
-            aria-label="Eval AI Plans"
-            title="Eval AI Plans"
-          >
-            <Crown size={20} />
-          </button>
-
-          <div>
-            <label>Stock Ticker</label>
-            <input
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="AAPL"
-            />
-          </div>
-
-          <button disabled={loading} aria-label="Search stock" title="Search stock">
-            {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-          </button>
-
-          <button
-            type="button"
-            className="ghost-btn"
-            onClick={() => addTicker(symbol)}
-            aria-label="Add to watchlist"
-            title="Add to watchlist"
-          >
-            <Plus size={18} />
-          </button>
-        </form>
+        </div>
       </header>
 
       {error && (
@@ -558,6 +525,51 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar">
+              <button
+                type="button"
+                className="plans-nav-btn"
+                onClick={() => setView("plans")}
+                aria-label="Eval AI Plans"
+                title="Eval AI Plans"
+              >
+                <Crown size={20} />
+              </button>
+
+              <div className="ticker-field">
+                <input
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  placeholder="Add ticker"
+                  maxLength={8}
+                />
+              </div>
+
+              <button disabled={loading} aria-label="Search stock" title="Search stock">
+                {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
+              </button>
+
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => addTicker(symbol)}
+                aria-label="Add to watchlist"
+                title="Add to watchlist"
+              >
+                <Plus size={18} />
+              </button>
+
+              <button
+                type="button"
+                className="ai-nav-btn"
+                onClick={() => setView("assistant")}
+                title="Eval AI Assistant"
+                aria-label="Eval AI Assistant"
+              >
+                <BrainCircuit size={22} />
+              </button>
+            </form>
+
             {data ? (
               <>
                 <Report data={data} onAdd={() => addTicker(data.symbol)} />
@@ -1204,7 +1216,7 @@ function Watchlist({
           <h2>
             <Star size={18} /> Watchlist
           </h2>
-          <p>Saved in this browser · best score first</p>
+          <p>Saved in this browser · max 15 stocks</p>
         </div>
 
         <button
@@ -1230,7 +1242,10 @@ function Watchlist({
           onChange={(e) => setManual(e.target.value.toUpperCase())}
           placeholder="Add ticker"
         />
-        <button>
+        <button
+          disabled={items.length >= MAX_WATCHLIST_ITEMS && !items.some((item) => item.symbol === (manual || symbol).trim().toUpperCase())}
+          title={items.length >= MAX_WATCHLIST_ITEMS ? "Watchlist limit reached" : "Add to watchlist"}
+        >
           <Plus size={16} />
         </button>
       </form>
