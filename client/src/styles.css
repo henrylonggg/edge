@@ -6394,3 +6394,235 @@ button:active,
     font-size: 12px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE CLEANUP ONLY
+   Desktop/laptop layout stays unchanged.
+   - Hide detailed descriptions on phone
+   - Move watchlist to its own mobile page
+   - Fix ticker/action button alignment under title
+========================================================= */
+
+.mobile-watchlist-nav-btn {
+  display: none !important;
+}
+
+.mobile-watchlist-page {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  /* Remove the longer explanation text only on phone */
+  .grade-description,
+  .metric-tile p,
+  .metric-tile small,
+  .metric-description,
+  .metric-source,
+  .market-cap-explanation {
+    display: none !important;
+  }
+
+  .grade-card {
+    min-height: 0 !important;
+  }
+
+  .metric-tile {
+    min-height: 0 !important;
+  }
+
+  /* Main dashboard should use the full width because watchlist becomes its own page */
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .layout > .watch-panel:not(.mobile-watch-panel) {
+    display: none !important;
+  }
+
+  .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+  }
+
+  .mobile-watchlist-page {
+    display: grid !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .mobile-watchlist-back {
+    width: fit-content !important;
+    min-height: 40px !important;
+    padding: 10px 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  .mobile-watch-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .mobile-watch-panel .panel-head p {
+    display: block !important;
+    font-size: 12px !important;
+  }
+
+  .mobile-watch-panel .watch-add {
+    grid-template-columns: 1fr 46px !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add input {
+    height: 46px !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add button {
+    width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-list {
+    gap: 10px !important;
+  }
+
+  .mobile-watch-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-info strong {
+    font-size: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring strong {
+    font-size: 16px !important;
+  }
+
+  .mobile-watch-panel .delete-btn,
+  .mobile-watch-panel .icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 13px !important;
+  }
+
+  /* Ticker bubble: keep all buttons in a clean row under the title */
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 36px minmax(90px, 1fr) 36px 36px 36px 36px !important;
+    gap: 6px !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 7px !important;
+    border-radius: 17px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 8px 9px !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    letter-spacing: .05em !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    align-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* With no watchlist column, the hero can breathe more on mobile */
+  .hero-card {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+  }
+
+  .score-ring {
+    width: 106px !important;
+    height: 106px !important;
+  }
+
+  .score-core strong {
+    font-size: 42px !important;
+  }
+
+  .grade-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 32px minmax(72px, 1fr) 32px 32px 32px 32px !important;
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar input {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 12px !important;
+  }
+}
