@@ -1486,7 +1486,6 @@ function AssistantPage({ current, watchlist, onBack }) {
   );
 }
 
-
 function Report({ data, onAdd }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
@@ -1557,6 +1556,8 @@ function Report({ data, onAdd }) {
       metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
       metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
       metricLine("Enterprise Value", metrics.enterpriseValue),
+      metricLine("EBITDA", metrics.ebitda),
+      metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
     ],
     momentum: [
@@ -1623,6 +1624,16 @@ function Report({ data, onAdd }) {
       "Enterprise Value",
       metrics.enterpriseValue,
       "Company value estimate calculated as market cap plus total debt minus cash.",
+    ],
+    [
+      "EBITDA",
+      metrics.ebitda,
+      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
+    ],
+    [
+      "EV/EBITDA",
+      metrics.evToEbitda,
+      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
     ],
     [
       "52-Week Return",
@@ -1719,6 +1730,35 @@ function Report({ data, onAdd }) {
         </div>
       </section>
 
+      <section className="summary-grid">
+        <div className="story-card big">
+          <div className="section-title">
+            <Building2 size={17} /> What this company does
+          </div>
+          <p>{data.websiteAbout || data.companyDescription || data.profile?.description || data.profile?.about || "No company about section was returned for this ticker."}</p>
+        </div>
+
+        <div className="story-card">
+          <div className="section-title">
+            <Target size={17} /> Fast read
+          </div>
+          <p>
+            <b>Strongest:</b>{" "}
+            {strongest
+              ? `${categoryLabel(strongest[0])} (${scoreText(strongest[1])})`
+              : "N/A"}
+          </p>
+          <p>
+            <b>Weakest:</b>{" "}
+            {weakest
+              ? `${categoryLabel(weakest[0])} (${scoreText(weakest[1])})`
+              : "N/A"}
+          </p>
+          <p>
+            <b>Grade:</b> {gradeFrom10(edge)}
+          </p>
+        </div>
+      </section>
 
       <section className="grade-grid">
         <Grade
@@ -1945,6 +1985,19 @@ function Metric({ label, item, help }) {
       <p>{help}</p>
 
       {item?.formula && <small>{item.formula}</small>}
+    </div>
+  );
+}
+
+
+function EmptyReport() {
+  return (
+    <div className="empty-report">
+      <div className="center">
+        <Activity size={26} />
+        <h2>No stock report loaded yet</h2>
+        <p>Search a ticker above to generate an Eval report.</p>
+      </div>
     </div>
   );
 }
