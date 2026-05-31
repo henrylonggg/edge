@@ -632,7 +632,7 @@ app.get("/api/health", (req, res) => {
 });
 
 
-const ANALYSIS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
+const ANALYSIS_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const analysisCache = new Map();
 
 function cloneJson(value) {
@@ -696,67 +696,101 @@ async function buildCachedStockAnalysis(symbol) {
   return analysis;
 }
 
-const INDUSTRY_UNIVERSES = [
-  {
-    match: ["technology", "software", "semiconductor", "information"],
-    tickers: ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AVGO", "AMD", "ORCL", "CRM", "ADBE", "NOW", "INTC"],
-  },
-  {
-    match: ["health", "biotech", "pharma", "medical"],
-    tickers: ["LLY", "UNH", "JNJ", "ABBV", "MRK", "TMO", "ABT", "ISRG", "AMGN", "PFE", "DHR"],
-  },
-  {
-    match: ["financial", "bank", "insurance", "capital"],
-    tickers: ["JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "AXP", "BLK", "C", "SCHW"],
-  },
-  {
-    match: ["consumer cyclical", "retail", "auto", "travel", "restaurant"],
-    tickers: ["AMZN", "TSLA", "HD", "MCD", "NKE", "SBUX", "LOW", "BKNG", "TJX", "CMG"],
-  },
-  {
-    match: ["consumer defensive", "staples", "food", "beverage", "household"],
-    tickers: ["WMT", "COST", "PG", "KO", "PEP", "MDLZ", "CL", "PM", "TGT", "KMB"],
-  },
-  {
-    match: ["energy", "oil", "gas"],
-    tickers: ["XOM", "CVX", "COP", "SLB", "EOG", "OXY", "MPC", "PSX"],
-  },
-  {
-    match: ["industrial", "aerospace", "defense", "machinery"],
-    tickers: ["GE", "CAT", "HON", "RTX", "LMT", "BA", "DE", "UPS", "UNP", "ETN"],
-  },
-  {
-    match: ["communication", "telecom", "media", "entertainment"],
-    tickers: ["GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T"],
-  },
-  {
-    match: ["utilities", "utility"],
-    tickers: ["NEE", "DUK", "SO", "AEP", "D", "EXC", "SRE"],
-  },
-  {
-    match: ["real estate", "reit"],
-    tickers: ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR"],
-  },
-  {
-    match: ["basic materials", "materials", "chemical", "mining"],
-    tickers: ["LIN", "APD", "SHW", "FCX", "NEM", "DOW", "DD"],
-  },
-];
+
+const INDUSTRY_UNIVERSES = {
+  "technology": ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
+  "semiconductors": ["NVDA", "AVGO", "AMD", "INTC", "QCOM", "TXN", "MU", "ADI", "MRVL", "NXPI", "MCHP", "ON", "LRCX", "KLAC", "AMAT"],
+  "software": ["MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "SNOW", "DDOG", "PLTR", "NET", "TEAM", "MDB"],
+  "internet content & information": ["GOOGL", "META", "NFLX", "SPOT", "PINS", "RDDT", "SNAP", "MTCH", "BIDU"],
+  "consumer electronics": ["AAPL", "SONY", "DELL", "HPQ", "LOGI", "GRMN"],
+  "retail": ["AMZN", "WMT", "COST", "HD", "LOW", "TGT", "TJX", "ROST", "BBY", "ULTA", "DG", "DLTR"],
+  "travel services": ["BKNG", "EXPE", "ABNB", "TCOM", "TRIP", "MMYT"],
+  "auto manufacturers": ["TSLA", "GM", "F", "RIVN", "LCID", "TM", "HMC", "STLA"],
+  "restaurants": ["MCD", "SBUX", "CMG", "YUM", "DRI", "QSR", "DPZ", "WING", "TXRH", "CAKE"],
+  "banks": ["JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "COF"],
+  "financial services": ["V", "MA", "AXP", "PYPL", "SQ", "BLK", "SCHW", "SPGI", "MCO", "ICE"],
+  "insurance": ["BRK.B", "UNH", "PGR", "CB", "AIG", "MET", "PRU", "AFL", "ALL", "TRV"],
+  "healthcare plans": ["UNH", "ELV", "CI", "HUM", "CNC", "MOH"],
+  "drug manufacturers": ["LLY", "JNJ", "MRK", "ABBV", "PFE", "BMY", "AMGN", "GILD", "VRTX", "REGN", "BIIB"],
+  "medical devices": ["ISRG", "ABT", "SYK", "MDT", "BSX", "EW", "DXCM", "ZBH"],
+  "diagnostics & research": ["TMO", "DHR", "A", "ILMN", "IQV", "CRL", "TECH"],
+  "oil & gas": ["XOM", "CVX", "COP", "EOG", "OXY", "DVN", "FANG", "MPC", "PSX", "VLO"],
+  "aerospace & defense": ["RTX", "LMT", "NOC", "GD", "BA", "TDG", "HWM", "TXT", "LHX"],
+  "farm & heavy construction machinery": ["CAT", "DE", "PCAR", "CNH", "AGCO"],
+  "specialty industrial machinery": ["ETN", "EMR", "ROK", "ITW", "PH", "DOV", "IR"],
+  "railroads": ["UNP", "CSX", "NSC", "CP", "CNI"],
+  "integrated freight & logistics": ["UPS", "FDX", "DHLGY", "XPO", "CHRW"],
+  "utilities": ["NEE", "DUK", "SO", "AEP", "D", "EXC", "SRE", "XEL", "PEG", "ED"],
+  "reit": ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR", "PSA", "CCI", "VICI"],
+  "beverages": ["KO", "PEP", "MNST", "KDP", "CELH", "TAP"],
+  "packaged foods": ["MDLZ", "GIS", "K", "CPB", "HSY", "SJM", "CAG"],
+  "household & personal products": ["PG", "CL", "KMB", "EL", "CHD", "CLX"],
+  "communication services": ["TMUS", "VZ", "T", "CMCSA", "CHTR", "LUMN"],
+  "entertainment": ["NFLX", "DIS", "WBD", "PARA", "LYV", "ROKU"],
+  "chemicals": ["LIN", "APD", "SHW", "DOW", "DD", "ECL", "ALB", "PPG"],
+  "copper": ["FCX", "SCCO", "TECK", "HBM"],
+  "gold": ["NEM", "GOLD", "AEM", "KGC", "AU"],
+};
+
+function normalizeIndustryName(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function industryMatches(requested = "", actual = "") {
+  const req = normalizeIndustryName(requested);
+  const act = normalizeIndustryName(actual);
+
+  if (!req || !act) return false;
+  if (req === act) return true;
+
+  const aliases = {
+    "technology": ["information technology", "consumer electronics", "software", "semiconductors"],
+    "semiconductor": ["semiconductors"],
+    "semiconductors": ["semiconductor equipment and materials", "semiconductor"],
+    "retail": ["specialty retail", "internet retail", "discount stores", "home improvement retail", "apparel retail"],
+    "travel": ["travel services", "lodging", "resorts and casinos"],
+    "travel services": ["travel"],
+    "restaurants": ["restaurant", "restaurants"],
+    "oil and gas": ["oil gas", "oil and gas e p", "oil and gas integrated", "oil and gas refining and marketing"],
+    "reit": ["real estate investment trusts", "reit"],
+    "drug manufacturers": ["drug manufacturers general", "drug manufacturers specialty and generic", "biotechnology"],
+  };
+
+  const reqAliases = aliases[req] || [];
+  if (reqAliases.some((alias) => act === normalizeIndustryName(alias) || act.includes(normalizeIndustryName(alias)))) {
+    return true;
+  }
+
+  const actAliases = aliases[act] || [];
+  if (actAliases.some((alias) => req === normalizeIndustryName(alias) || req.includes(normalizeIndustryName(alias)))) {
+    return true;
+  }
+
+  return false;
+}
 
 function getIndustryUniverse(industry = "", symbol = "") {
-  const cleanIndustry = String(industry || "").toLowerCase();
+  const cleanIndustry = normalizeIndustryName(industry);
   const current = String(symbol || "").trim().toUpperCase();
 
-  const found =
-    INDUSTRY_UNIVERSES.find((group) =>
-      group.match.some((word) => cleanIndustry.includes(word))
-    ) || null;
+  const directKey = Object.keys(INDUSTRY_UNIVERSES).find((key) => {
+    const cleanKey = normalizeIndustryName(key);
+    return cleanIndustry === cleanKey || cleanIndustry.includes(cleanKey) || cleanKey.includes(cleanIndustry);
+  });
 
-  const tickers = found
-    ? found.tickers
-    : ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "JPM", "LLY", "XOM", "COST"];
+  let tickers = directKey ? INDUSTRY_UNIVERSES[directKey] : null;
 
-  return [...new Set([current, ...tickers].filter(Boolean))].slice(0, 12);
+  if (!tickers) {
+    const softerKey = Object.keys(INDUSTRY_UNIVERSES).find((key) => industryMatches(industry, key));
+    tickers = softerKey ? INDUSTRY_UNIVERSES[softerKey] : ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "JPM", "LLY", "XOM", "COST"];
+  }
+
+  return [...new Set([current, ...tickers].filter(Boolean))].slice(0, 16);
 }
 
 app.get("/api/industry-top/:industry", async (req, res) => {
@@ -773,14 +807,21 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
     for (const ticker of candidates) {
       try {
-        const analysis = await buildCachedStockAnalysis(ticker);
+        const analysis = await getCachedStockAnalysis(ticker);
         const score = analysis?.grades?.edgeScore;
+        const actualIndustry = analysis?.profile?.finnhubIndustry || "";
+
+        // Keep the ranking tied to the actual industry label from the app.
+        // If the ticker is the current stock, allow it; otherwise skip mismatched industries.
+        if (ticker !== symbol && actualIndustry && !industryMatches(industry, actualIndustry)) {
+          continue;
+        }
 
         if (score !== null && score !== undefined && Number.isFinite(Number(score))) {
           results.push({
             symbol: ticker,
             name: analysis?.profile?.name || ticker,
-            industry: analysis?.profile?.finnhubIndustry || industry,
+            industry: actualIndustry || industry,
             score: Number(score),
             price: analysis?.quote?.c ?? null,
           });
@@ -797,7 +838,6 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     return res.status(200).json({
       industry,
       leaders,
-      cachedForHours: 2,
     });
   } catch (error) {
     console.error("Industry top route failed:", error);
