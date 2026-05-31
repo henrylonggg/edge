@@ -591,6 +591,26 @@ function App() {
           onBack={() => setView("dashboard")}
           onAnalyze={analyzeFromIndustry}
         />
+      ) : view === "mobile-watchlist" ? (
+        <main className="mobile-watchlist-page">
+          <button type="button" className="back-btn mobile-watchlist-back" onClick={() => setView("dashboard")}>
+            <ArrowLeft size={18} /> Back to dashboard
+          </button>
+
+          <Watchlist
+            items={watchlist}
+            symbol={symbol}
+            onAdd={addTicker}
+            onRemove={removeTicker}
+            onAnalyze={(ticker) => {
+              analyze(null, ticker);
+              setView("dashboard");
+            }}
+            onRefresh={refreshWatchlist}
+            loading={watchLoading}
+            mobilePage
+          />
+        </main>
       ) : (
         <section className="layout">
           <div className="content">
@@ -636,6 +656,16 @@ function App() {
                 aria-label="Eval AI Assistant"
               >
                 <BrainCircuit size={22} />
+              </button>
+
+              <button
+                type="button"
+                className="mobile-watchlist-nav-btn"
+                onClick={() => setView("mobile-watchlist")}
+                title="Open watchlist"
+                aria-label="Open watchlist"
+              >
+                <Star size={18} />
               </button>
             </form>
 
@@ -1376,11 +1406,12 @@ function Watchlist({
   onAnalyze,
   onRefresh,
   loading,
+  mobilePage = false,
 }) {
   const [manual, setManual] = useState("");
 
   return (
-    <aside className="watch-panel">
+    <aside className={`watch-panel ${mobilePage ? "mobile-watch-panel" : ""}`}>
       <div className="panel-head">
         <div>
           <h2>
