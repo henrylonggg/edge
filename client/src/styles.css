@@ -8341,3 +8341,209 @@ button:active,
     margin-top: 0 !important;
   }
 }
+
+
+/* =========================================================
+   DESKTOP-ONLY DASHBOARD ALIGNMENT FIX
+   Mobile stays untouched.
+   - Ticker bubble aligns with left side of Power Score card
+   - Ticker bubble tightened to remove side blank space
+   - Watchlist top aligns with Power Score card
+========================================================= */
+
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .content > .searchbar.score-searchbar,
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    justify-self: start !important;
+    margin: 0 0 22px 0 !important;
+    width: fit-content !important;
+    max-width: none !important;
+    grid-template-columns: 50px 50px 235px 50px 50px 50px !important;
+    grid-template-rows: 50px !important;
+    grid-auto-rows: 50px !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    border-radius: 22px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 235px !important;
+    min-width: 235px !important;
+    max-width: 235px !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: none !important;
+  }
+
+  .score-searchbar input {
+    width: 235px !important;
+    max-width: 235px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 13px 15px !important;
+    font-size: 19px !important;
+    border-radius: 15px !important;
+    text-align: left !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 12px !important;
+  }
+
+  .watch-panel {
+    margin-top: 72px !important;
+  }
+
+  .layout {
+    align-items: start !important;
+  }
+}
+
+/* Wider desktop screens: keep exact same left alignment but allow a slightly larger ticker field */
+@media (min-width: 1320px) {
+  .content > .score-searchbar,
+  .content > .searchbar.score-searchbar,
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px !important;
+    grid-template-rows: 52px !important;
+    grid-auto-rows: 52px !important;
+    gap: 9px !important;
+    padding: 11px !important;
+  }
+
+  .score-searchbar .ticker-field,
+  .score-searchbar input {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+  }
+
+  .score-searchbar input {
+    height: 52px !important;
+    min-height: 52px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+
+/* =========================================================
+   PULSE RINGS — TOP START / TOP FINISH FIX
+   Forces every score ring to fill from 12 o'clock instead of the left.
+   Applies to main score, watchlist scores, industry scores, and previews.
+========================================================= */
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(
+      from -90deg,
+      var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff)))
+      var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))),
+      rgba(255,255,255,.075) 0deg
+    ) !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before,
+.industry-score-pie::before,
+.preview-score-ring::before {
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff)))
+      var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))),
+      transparent 0deg
+    ) !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after,
+.industry-score-pie::after,
+.preview-score-ring::after {
+  transform-origin: center !important;
+}
+
+/* Make sure each ring class maps its own score angle correctly */
+.score-ring {
+  --score-angle: var(--score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+}
