@@ -632,6 +632,70 @@ app.get("/api/health", (req, res) => {
 });
 
 
+const ANALYSIS_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
+const analysisCache = new Map();
+
+function cloneJson(value) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
+function getCachedAnalysis(symbol) {
+  const key = String(symbol || "").trim().toUpperCase();
+  if (!key) return null;
+
+  const cached = analysisCache.get(key);
+  if (!cached) return null;
+
+  if (Date.now() - cached.savedAt > ANALYSIS_CACHE_TTL_MS) {
+    analysisCache.delete(key);
+    return null;
+  }
+
+  return cloneJson(cached.analysis);
+}
+
+function setCachedAnalysis(symbol, analysis) {
+  const key = String(symbol || "").trim().toUpperCase();
+  if (!key || !analysis) return;
+
+  analysisCache.set(key, {
+    savedAt: Date.now(),
+    analysis: cloneJson(analysis),
+  });
+}
+
+async function buildCachedStockAnalysis(symbol) {
+  const key = String(symbol || "").trim().toUpperCase();
+  const cached = getCachedAnalysis(key);
+  if (cached) {
+    return {
+      ...cached,
+      cache: {
+        ...(cached.cache || {}),
+        hit: true,
+        ttlHours: 2,
+      },
+    };
+  }
+
+  const analysis = await buildStockAnalysis(key);
+  setCachedAnalysis(key, {
+    ...analysis,
+    cache: {
+      ...(analysis.cache || {}),
+      hit: false,
+      ttlHours: 2,
+      savedAt: new Date().toISOString(),
+    },
+  });
+
+  return analysis;
+}
+
 const INDUSTRY_UNIVERSES = [
   {
     match: ["technology", "software", "semiconductor", "information"],
@@ -709,7 +773,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
     for (const ticker of candidates) {
       try {
-        const analysis = await buildStockAnalysis(ticker);
+        const analysis = await buildCachedStockAnalysis(ticker);
         const score = analysis?.grades?.edgeScore;
 
         if (score !== null && score !== undefined && Number.isFinite(Number(score))) {
@@ -733,6 +797,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     return res.status(200).json({
       industry,
       leaders,
+      cachedForHours: 2,
     });
   } catch (error) {
     console.error("Industry top route failed:", error);
@@ -755,7 +820,20 @@ app.get("/api/analyze/:symbol", async (req, res) => {
       });
     }
 
-    const analysis = await buildStockAnalysis(symbol);
+    const cachedFullAnalysis = getCachedAnalysis(symbol);
+    if (cachedFullAnalysis?.cache?.full === true) {
+      return res.status(200).json({
+        ...cachedFullAnalysis,
+        cache: {
+          ...(cachedFullAnalysis.cache || {}),
+          hit: true,
+          full: true,
+          ttlHours: 2,
+        },
+      });
+    }
+
+    const analysis = await buildCachedStockAnalysis(symbol);
     const finnhubAbout = await fetchFinnhubAbout(symbol);
 
     if (finnhubAbout) {
@@ -777,7 +855,29 @@ app.get("/api/analyze/:symbol", async (req, res) => {
       };
     }
 
-    return res.status(200).json(analysis);
+    const finalAnalysis = {
+      ...analysis,
+      cache: {
+        ...(analysis.cache || {}),
+        hit: false,
+        full: true,
+        ttlHours: 2,
+        savedAt: new Date().toISOString(),
+      },
+    };
+
+    setCachedAnalysis(symbol, finalAnalysis);
+
+    return res.status(200).json({
+      ...finalAnalysis,
+      cache: {
+        ...(analysis.cache || {}),
+        hit: false,
+        full: true,
+        ttlHours: 2,
+        savedAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     console.error("Analyze route failed:", error);
 
