@@ -8237,3 +8237,107 @@ button:active,
     font-size: 8px !important;
   }
 }
+
+
+/* =========================================================
+   DESKTOP TOPBAR RESTORE — MOBILE SAFE
+   Fixes laptop/desktop ticker bubble after adding SoFi.
+   Mobile rules stay untouched under 680px.
+========================================================= */
+
+@media (min-width: 681px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: min(100%, 760px) !important;
+    max-width: 760px !important;
+    display: grid !important;
+    grid-template-columns: 56px 56px minmax(180px, 285px) 56px 56px 56px !important;
+    grid-template-rows: 56px !important;
+    grid-auto-rows: 56px !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    padding: 12px !important;
+    margin: 0 auto 22px !important;
+    border-radius: 26px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: none !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    max-width: none !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    padding: 15px 16px !important;
+    font-size: 20px !important;
+    text-align: left !important;
+    border-radius: 16px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    padding: 0 !important;
+    border-radius: 18px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 13px !important;
+  }
+
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
