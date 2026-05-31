@@ -5000,3 +5000,75 @@ button:active,
     min-height: 58px !important;
   }
 }
+
+
+/* =========================================================
+   AI ASSISTANT STARTER BUBBLE UPDATE
+   Makes the intro bubble fit the text, adds neon/gold emphasis,
+   and keeps the assistant page clean.
+========================================================= */
+
+.chat-bubble.assistant:first-child,
+.chat-bubble.assistant.intro,
+.chat-messages .chat-bubble.assistant:first-of-type {
+  max-width: 620px !important;
+  width: fit-content !important;
+  min-height: auto !important;
+  padding: 18px 20px !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,214,107,.24), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(133,255,71,.20), transparent 34%),
+    linear-gradient(135deg, rgba(18,58,39,.94), rgba(18,43,31,.84)) !important;
+  border: 1px solid rgba(255,214,107,.72) !important;
+  box-shadow:
+    0 0 0 1px rgba(133,255,71,.18),
+    0 0 24px rgba(255,214,107,.36),
+    0 0 42px rgba(133,255,71,.18),
+    inset 0 1px 0 rgba(255,255,255,.15) !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.chat-bubble.assistant:first-child::before,
+.chat-bubble.assistant.intro::before,
+.chat-messages .chat-bubble.assistant:first-of-type::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 30px;
+  pointer-events: none;
+  border: 1px solid rgba(255,214,107,.58);
+  box-shadow:
+    0 0 18px rgba(255,214,107,.38),
+    0 0 34px rgba(133,255,71,.16);
+}
+
+.chat-bubble.assistant:first-child span,
+.chat-bubble.assistant.intro span,
+.chat-messages .chat-bubble.assistant:first-of-type span {
+  color: rgba(255,214,107,.95) !important;
+  letter-spacing: .04em;
+}
+
+.chat-bubble.assistant:first-child p,
+.chat-bubble.assistant.intro p,
+.chat-messages .chat-bubble.assistant:first-of-type p {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
+  max-width: 560px !important;
+}
+
+.chat-input textarea {
+  min-height: 64px !important;
+}
+
+@media (max-width: 680px) {
+  .chat-bubble.assistant:first-child,
+  .chat-bubble.assistant.intro,
+  .chat-messages .chat-bubble.assistant:first-of-type {
+    max-width: 100% !important;
+    width: auto !important;
+  }
+}
