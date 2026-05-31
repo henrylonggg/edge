@@ -7067,3 +7067,129 @@ button:active,
     height: 13px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE FULL-WIDTH TICKER BUBBLE
+   Desktop/laptop unchanged.
+   Makes the add ticker bubble match the main Power Score card width
+   and enlarges the input/buttons for easier phone typing.
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 8px !important;
+    border-radius: 18px !important;
+    display: grid !important;
+    grid-template-columns: 38px 38px minmax(118px, 1fr) 38px 38px 38px !important;
+    gap: 7px !important;
+    justify-content: stretch !important;
+    justify-items: center !important;
+    align-items: center !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 6 !important;
+    display: inline-flex !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    max-width: none !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 9px 11px !important;
+    font-size: 15px !important;
+    letter-spacing: .055em !important;
+    border-radius: 13px !important;
+    text-align: left !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .score-searchbar svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .score-searchbar:focus-within {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(96px, 1fr) 34px 34px 34px !important;
+    gap: 5px !important;
+    padding: 7px !important;
+  }
+
+  .score-searchbar input {
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 13px !important;
+    padding: 8px 9px !important;
+    border-radius: 12px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+}
