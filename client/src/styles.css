@@ -8629,3 +8629,43 @@ button:active,
     animation: none !important;
   }
 }
+
+
+/* =========================================================
+   HOMEPAGE PREVIEW RING — DASHBOARD GREEN
+   Makes the homepage preview score ring match the dashboard green pulse style.
+========================================================= */
+
+.preview-score-ring,
+.landing-score-ring,
+.home-score-ring {
+  --score-angle: 324deg !important;
+  --ring-bright: #85ff47 !important;
+  --ring-glow: rgba(133,255,71,.38) !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, #85ff47 var(--score-angle), rgba(255,255,255,.075) 0deg) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 34px rgba(133,255,71,.38) !important;
+}
+
+.preview-score-ring::before,
+.landing-score-ring::before,
+.home-score-ring::before {
+  background:
+    conic-gradient(from -90deg, #85ff47 var(--score-angle), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .46 !important;
+}
+
+.preview-score-ring::after,
+.landing-score-ring::after,
+.home-score-ring::after {
+  border-color: #85ff47 !important;
+  box-shadow:
+    0 0 22px rgba(133,255,71,.38),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+}
