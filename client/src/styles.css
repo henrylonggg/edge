@@ -6884,3 +6884,186 @@ button:active,
     height: 13px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE WATCHLIST BUTTON + SEPARATE PAGE
+   Desktop/laptop unchanged.
+========================================================= */
+
+.mobile-watchlist-nav-btn {
+  display: none !important;
+}
+
+.mobile-watchlist-page {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+  }
+
+  /* Keep desktop sidebar hidden on mobile because watchlist has its own page */
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .layout > .watch-panel:not(.mobile-watch-panel) {
+    display: none !important;
+  }
+
+  .mobile-watchlist-page {
+    display: grid !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .mobile-watchlist-back {
+    width: fit-content !important;
+    min-height: 40px !important;
+    padding: 10px 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  .mobile-watch-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .mobile-watch-panel .panel-head p {
+    display: block !important;
+    font-size: 12px !important;
+  }
+
+  .mobile-watch-panel .watch-add {
+    grid-template-columns: 1fr 46px !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add input {
+    height: 46px !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add button {
+    width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-list {
+    gap: 10px !important;
+  }
+
+  .mobile-watch-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-info strong {
+    font-size: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring strong {
+    font-size: 16px !important;
+  }
+
+  .mobile-watch-panel .delete-btn,
+  .mobile-watch-panel .icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 13px !important;
+  }
+
+  /* Final phone ticker order:
+     Plans | Search | Input | Add | AI | Watchlist */
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px 28px minmax(62px, 78px) 28px 28px 28px !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto 10px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    width: 78px !important;
+    max-width: 78px !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar input {
+    width: 78px !important;
+    max-width: 78px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 11px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
