@@ -7253,3 +7253,244 @@ button:active,
     margin-top: 7px !important;
   }
 }
+
+
+/* =========================================================
+   GLASSMORPHISM SCORE RINGS — SITEWIDE
+   Applies to the main Power Score, watchlist mini rings,
+   industry ranking score rings, and landing preview ring.
+   Rings still fill from the top / 12 o'clock position.
+========================================================= */
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255,255,255,.32), transparent 24%),
+    radial-gradient(circle at 68% 76%, rgba(21,231,255,.14), transparent 38%),
+    radial-gradient(circle at 28% 84%, rgba(159,92,255,.15), transparent 36%),
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff))) var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -14px 28px rgba(0,0,0,.28),
+    0 22px 58px rgba(0,0,0,.34),
+    0 0 36px var(--ring-glow, var(--watch-glow, var(--industry-ring-glow, rgba(21,231,255,.26)))) !important;
+  backdrop-filter: blur(16px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
+  overflow: visible !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before {
+  background:
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright)) var(--score-angle, var(--watch-score-angle)), transparent 0deg) !important;
+  filter: blur(12px) !important;
+  opacity: .30 !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after {
+  inset: 9px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.018) 44%, rgba(0,0,0,.16)),
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.18), transparent 28%) !important;
+  box-shadow:
+    inset 0 0 22px rgba(255,255,255,.045),
+    inset 0 0 34px rgba(0,0,0,.36) !important;
+}
+
+.score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.preview-score-ring strong {
+  background:
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.13), transparent 28%),
+    linear-gradient(145deg, rgba(255,255,255,.095), rgba(5,12,24,.68) 38%, rgba(0,0,0,.52)) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 0 30px rgba(0,0,0,.38) !important;
+  backdrop-filter: blur(12px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
+}
+
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green {
+  --ring-bright: rgba(133,255,71,.96);
+  --watch-ring-bright: rgba(133,255,71,.96);
+  --industry-ring-bright: rgba(133,255,71,.96);
+  --ring-glow: rgba(133,255,71,.34);
+  --watch-glow: rgba(133,255,71,.30);
+  --industry-ring-glow: rgba(133,255,71,.28);
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow {
+  --ring-bright: rgba(255,228,95,.98);
+  --watch-ring-bright: rgba(255,228,95,.98);
+  --industry-ring-bright: rgba(255,228,95,.98);
+  --ring-glow: rgba(255,228,95,.34);
+  --watch-glow: rgba(255,228,95,.30);
+  --industry-ring-glow: rgba(255,228,95,.28);
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red {
+  --ring-bright: rgba(255,79,103,.98);
+  --watch-ring-bright: rgba(255,79,103,.98);
+  --industry-ring-bright: rgba(255,79,103,.98);
+  --ring-glow: rgba(255,79,103,.34);
+  --watch-glow: rgba(255,79,103,.30);
+  --industry-ring-glow: rgba(255,79,103,.28);
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.industry-score-pie.neutral {
+  --ring-bright: rgba(21,231,255,.96);
+  --watch-ring-bright: rgba(21,231,255,.96);
+  --industry-ring-bright: rgba(21,231,255,.96);
+  --ring-glow: rgba(21,231,255,.30);
+  --watch-glow: rgba(21,231,255,.26);
+  --industry-ring-glow: rgba(21,231,255,.24);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: rgba(21,231,255,.95);
+  --ring-glow: rgba(21,231,255,.28);
+}
+
+
+/* =========================================================
+   GLASSMORPHISM SCORE BARS — CATEGORY CARDS
+   Keeps Growth / Profitability / Financial Health / Valuation /
+   Momentum / Pullback as bars while matching the glass ring theme.
+========================================================= */
+
+.grade-line {
+  height: 9px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.045)),
+    rgba(0,0,0,.22) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(0,0,0,.28) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.grade-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.18), transparent 24%, rgba(255,255,255,.04) 58%, transparent);
+  opacity: .55;
+}
+
+.grade-line span {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.34), transparent 30%, rgba(255,255,255,.13) 64%, transparent);
+  opacity: .72;
+}
+
+.grade-line span.green {
+  background:
+    linear-gradient(90deg, rgba(81,255,95,.96), rgba(133,255,71,.96), rgba(21,231,255,.72)) !important;
+  box-shadow:
+    0 0 18px rgba(133,255,71,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.yellow {
+  background:
+    linear-gradient(90deg, rgba(255,214,107,.96), rgba(255,228,95,.98), rgba(255,255,255,.55)) !important;
+  box-shadow:
+    0 0 18px rgba(255,228,95,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.red {
+  background:
+    linear-gradient(90deg, rgba(255,79,103,.98), rgba(255,95,115,.92), rgba(255,214,107,.46)) !important;
+  box-shadow:
+    0 0 18px rgba(255,79,103,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.neutral {
+  background:
+    linear-gradient(90deg, rgba(111,140,255,.92), rgba(21,231,255,.92), rgba(255,255,255,.45)) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.30),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.075), transparent 36%),
+    radial-gradient(circle at 96% 18%, rgba(159,92,255,.085), transparent 34%),
+    rgba(255,255,255,.074) !important;
+}
+
+.grade-card strong.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 18px rgba(133,255,71,.18);
+}
+
+.grade-card strong.yellow {
+  color: #ffe45f !important;
+  text-shadow: 0 0 18px rgba(255,228,95,.18);
+}
+
+.grade-card strong.red {
+  color: #ff4f67 !important;
+  text-shadow: 0 0 18px rgba(255,79,103,.18);
+}
+
+.grade-card strong.neutral {
+  color: #15e7ff !important;
+  text-shadow: 0 0 18px rgba(21,231,255,.16);
+}
+
+@media (max-width: 680px) {
+  .grade-line {
+    height: 7px !important;
+  }
+}
