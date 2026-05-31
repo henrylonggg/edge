@@ -5808,3 +5808,75 @@ button:active,
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* =========================================================
+   SLIGHTLY SMALLER WELCOME + PROFILE AREA
+========================================================= */
+
+.profile-welcome-wrap {
+  gap: 20px !important;
+}
+
+.profile-welcome-text {
+  gap: 5px !important;
+}
+
+.profile-welcome-text span {
+  font-size: clamp(18px, 1.25vw, 24px) !important;
+}
+
+.profile-welcome-text strong {
+  font-size: clamp(36px, 3.45vw, 64px) !important;
+  letter-spacing: -1.8px !important;
+}
+
+.profile-bubble .topbar-user {
+  width: clamp(94px, 6.45vw, 112px) !important;
+  height: clamp(94px, 6.45vw, 112px) !important;
+  min-width: clamp(94px, 6.45vw, 112px) !important;
+  min-height: clamp(94px, 6.45vw, 112px) !important;
+  padding: 7px !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: clamp(82px, 5.65vw, 98px) !important;
+  height: clamp(82px, 5.65vw, 98px) !important;
+  min-width: clamp(82px, 5.65vw, 98px) !important;
+  min-height: clamp(82px, 5.65vw, 98px) !important;
+}
+
+@media (max-width: 680px) {
+  .profile-welcome-wrap {
+    gap: 12px !important;
+  }
+
+  .profile-welcome-text span {
+    font-size: 14px !important;
+  }
+
+  .profile-welcome-text strong {
+    font-size: 30px !important;
+    letter-spacing: -.8px !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 74px !important;
+    height: 74px !important;
+    min-width: 74px !important;
+    min-height: 74px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    min-height: 64px !important;
+  }
+}
