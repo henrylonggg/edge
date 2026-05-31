@@ -1107,12 +1107,9 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
 
           <div className="support-contact-card">
             <span>Primary contact</span>
-            <h2>Henry Long</h2>
-            <a href="mailto:henryl@udel.edu">
-              <Mail size={18} /> henryl@udel.edu
-            </a>
-            <a href="tel:4846024647">
-              <Phone size={18} /> 484-602-4647
+            <h2>Eval Support Team</h2>
+            <a href="mailto:getstockeval.gmail.com">
+              <Mail size={18} /> getstockeval.gmail.com
             </a>
           </div>
         </div>
