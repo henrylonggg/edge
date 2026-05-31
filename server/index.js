@@ -803,7 +803,8 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     }
 
     const candidates = getIndustryUniverse(industry, symbol);
-    const results = [];
+    const strictResults = [];
+    const fallbackResults = [];
 
     for (const ticker of candidates) {
       try {
@@ -811,27 +812,31 @@ app.get("/api/industry-top/:industry", async (req, res) => {
         const score = analysis?.grades?.edgeScore;
         const actualIndustry = analysis?.profile?.finnhubIndustry || "";
 
-        // Keep the ranking tied to the actual industry label from the app.
-        // If the ticker is the current stock, allow it; otherwise skip mismatched industries.
-        if (ticker !== symbol && actualIndustry && !industryMatches(industry, actualIndustry)) {
-          continue;
-        }
-
         if (score !== null && score !== undefined && Number.isFinite(Number(score))) {
-          results.push({
+          const row = {
             symbol: ticker,
             name: analysis?.profile?.name || ticker,
             industry: actualIndustry || industry,
             score: Number(score),
             price: analysis?.quote?.c ?? null,
-          });
+          };
+
+          fallbackResults.push(row);
+
+          if (ticker === symbol || !actualIndustry || industryMatches(industry, actualIndustry)) {
+            strictResults.push(row);
+          }
         }
       } catch (error) {
         console.error(`Industry ranking skipped ${ticker}:`, error?.message || error);
       }
     }
 
-    const leaders = results
+    // Use exact Finnhub industry matches first. If Finnhub labels are too narrow/different
+    // and that returns nothing, fall back to the curated same-industry ticker universe.
+    const rankingPool = strictResults.length ? strictResults : fallbackResults;
+
+    const leaders = rankingPool
       .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
       .slice(0, 5);
 
