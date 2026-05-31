@@ -6626,3 +6626,112 @@ button:active,
     font-size: 12px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE ADD TICKER BUBBLE FIX
+   Desktop/laptop unchanged.
+   - Smaller buttons
+   - Smaller ticker input
+   - Watchlist button forced to far right
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 30px minmax(58px, 82px) 30px 30px 30px 30px !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: 5px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 0 auto 8px !important;
+    padding: 6px !important;
+    border-radius: 15px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 82px !important;
+    min-width: 58px !important;
+    max-width: 82px !important;
+  }
+
+  .score-searchbar input {
+    width: 82px !important;
+    max-width: 82px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 6px 7px !important;
+    font-size: 11px !important;
+    letter-spacing: .04em !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+    grid-column: 6 !important;
+    justify-self: end !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px minmax(52px, 70px) 28px 28px 28px 28px !important;
+    gap: 4px !important;
+    padding: 5px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 70px !important;
+    max-width: 70px !important;
+  }
+
+  .score-searchbar input {
+    width: 70px !important;
+    max-width: 70px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 10px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
