@@ -776,6 +776,23 @@ function industryMatches(requested = "", actual = "") {
 
 function getIndustryUniverse(industry = "", symbol = "") {
   const cleanIndustry = normalizeIndustryName(industry);
+
+  if (
+    cleanIndustry.includes("semiconductor") ||
+    cleanIndustry.includes("chip") ||
+    cleanIndustry.includes("semiconductors")
+  ) {
+    const current = String(symbol || "").trim().toUpperCase();
+    return [...new Set([current, "NVDA", "AVGO", "AMD", "INTC", "QCOM", "TXN", "MU", "ADI", "MRVL", "NXPI", "MCHP", "ON", "LRCX", "KLAC", "AMAT"].filter(Boolean))].slice(0, 16);
+  }
+
+  if (
+    cleanIndustry === "technology" ||
+    cleanIndustry.includes("information technology")
+  ) {
+    const current = String(symbol || "").trim().toUpperCase();
+    return [...new Set([current, "AAPL", "MSFT", "NVDA", "AVGO", "AMD", "GOOGL", "META", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "QCOM", "TXN"].filter(Boolean))].slice(0, 16);
+  }
   const current = String(symbol || "").trim().toUpperCase();
 
   const directKey = Object.keys(INDUSTRY_UNIVERSES).find((key) => {
@@ -802,46 +819,46 @@ app.get("/api/industry-top/:industry", async (req, res) => {
       return res.status(400).json({ error: "Missing industry." });
     }
 
+    /*
+      IMPORTANT:
+      Do not hard-filter by Finnhub's returned industry text here.
+      Finnhub can label companies differently from the clicked page label
+      such as "Technology", "Semiconductors", "Software", etc.
+      The curated universe already keeps companies associated with that industry.
+    */
     const candidates = getIndustryUniverse(industry, symbol);
-    const strictResults = [];
-    const fallbackResults = [];
+    const results = [];
 
     for (const ticker of candidates) {
       try {
-        const analysis = await getCachedStockAnalysis(ticker);
+        const analysis =
+          typeof getCachedStockAnalysis === "function"
+            ? await getCachedStockAnalysis(ticker)
+            : await buildStockAnalysis(ticker);
+
         const score = analysis?.grades?.edgeScore;
-        const actualIndustry = analysis?.profile?.finnhubIndustry || "";
 
         if (score !== null && score !== undefined && Number.isFinite(Number(score))) {
-          const row = {
+          results.push({
             symbol: ticker,
             name: analysis?.profile?.name || ticker,
-            industry: actualIndustry || industry,
+            industry: analysis?.profile?.finnhubIndustry || industry,
             score: Number(score),
             price: analysis?.quote?.c ?? null,
-          };
-
-          fallbackResults.push(row);
-
-          if (ticker === symbol || !actualIndustry || industryMatches(industry, actualIndustry)) {
-            strictResults.push(row);
-          }
+          });
         }
       } catch (error) {
         console.error(`Industry ranking skipped ${ticker}:`, error?.message || error);
       }
     }
 
-    // Use exact Finnhub industry matches first. If Finnhub labels are too narrow/different
-    // and that returns nothing, fall back to the curated same-industry ticker universe.
-    const rankingPool = strictResults.length ? strictResults : fallbackResults;
-
-    const leaders = rankingPool
+    const leaders = results
       .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
       .slice(0, 5);
 
     return res.status(200).json({
       industry,
+      candidates,
       leaders,
     });
   } catch (error) {
