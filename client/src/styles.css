@@ -7769,3 +7769,214 @@ button:active,
     height: 9px;
   }
 }
+
+
+/* =========================================================
+   REMOVE WHITE CAPS FROM CATEGORY BARS
+   Keeps the neon/pulse bar theme but removes the white base/end marks.
+========================================================= */
+
+.grade-line span::after {
+  display: none !important;
+  content: none !important;
+}
+
+.grade-line::after {
+  opacity: .18 !important;
+}
+
+.grade-line span {
+  box-shadow:
+    0 0 14px currentColor,
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+
+/* =========================================================
+   SOFI REFERRAL BUTTON + INDUSTRY PULSE RINGS UPDATE
+   - Adds a small SoFi-style referral button next to AI
+   - Ensures industry ranking score rings use the pulse style too
+========================================================= */
+
+.sofi-referral-btn {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 180, 176, .72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: -.2px;
+  background:
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.38), transparent 21%),
+    linear-gradient(135deg, #00b4b0 0%, #008f91 46%, #055b67 100%);
+  box-shadow:
+    0 0 18px rgba(0,180,176,.34),
+    0 0 38px rgba(0,116,128,.20),
+    inset 0 1px 0 rgba(255,255,255,.32);
+}
+
+.sofi-referral-btn span {
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.sofi-referral-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+/* Industry ranking score rings were still carrying older glass styling.
+   Force them into the same pulse/neon language as the main and watchlist rings. */
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--industry-ring-bright, #15e7ff) var(--industry-score-angle, 0deg), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 22px rgba(0,0,0,.32),
+    0 12px 34px rgba(0,0,0,.30),
+    0 0 24px var(--industry-ring-glow, rgba(21,231,255,.28)) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.industry-score-pie::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from -90deg, var(--industry-ring-bright, #15e7ff) var(--industry-score-angle, 0deg), transparent 0deg);
+  filter: blur(11px);
+  opacity: .42;
+  z-index: -1;
+  animation: evalPulseGlow 2.4s ease-in-out infinite;
+}
+
+.industry-score-pie::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--industry-ring-bright, #15e7ff);
+  opacity: .28;
+  box-shadow: 0 0 18px var(--industry-ring-glow, rgba(21,231,255,.28));
+  pointer-events: none;
+  animation: evalPulseRing 2.4s ease-in-out infinite;
+}
+
+.industry-score-pie strong {
+  position: relative;
+  z-index: 1;
+}
+
+.industry-score-pie.green {
+  --industry-ring-bright: #85ff47;
+  --industry-ring-glow: rgba(133,255,71,.32);
+}
+
+.industry-score-pie.yellow {
+  --industry-ring-bright: #ffe45f;
+  --industry-ring-glow: rgba(255,228,95,.32);
+}
+
+.industry-score-pie.red {
+  --industry-ring-bright: #ff4f67;
+  --industry-ring-glow: rgba(255,79,103,.32);
+}
+
+.industry-score-pie.neutral {
+  --industry-ring-bright: #15e7ff;
+  --industry-ring-glow: rgba(21,231,255,.28);
+}
+
+@media (max-width: 680px) {
+  .sofi-referral-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border-radius: 12px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 9px !important;
+    letter-spacing: -.3px;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 38px 38px minmax(95px, 1fr) 38px 38px 38px 38px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 7 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .sofi-referral-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    border-radius: 11px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 8px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(78px, 1fr) 34px 34px 34px 34px !important;
+    gap: 5px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .industry-score-pie::before,
+  .industry-score-pie::after {
+    animation: none !important;
+  }
+}
