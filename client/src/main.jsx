@@ -260,13 +260,26 @@ function ProfileButton() {
     };
   }, [user?.id, user?.imageUrl]);
 
+  const firstName =
+    user?.firstName ||
+    user?.fullName?.split(" ")?.[0] ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
+    "there";
+
   return (
-    <div
-      className="topbar-user"
-      style={{ "--profile-accent": accent }}
-      title="Account settings"
-    >
-      <UserButton />
+    <div className="profile-welcome-wrap">
+      <div className="profile-welcome-text">
+        <span>Welcome,</span>
+        <strong>{firstName}</strong>
+      </div>
+
+      <div
+        className="topbar-user"
+        style={{ "--profile-accent": accent }}
+        title="Account settings"
+      >
+        <UserButton />
+      </div>
     </div>
   );
 }
@@ -1480,7 +1493,7 @@ function AssistantPage({ current, watchlist, onBack }) {
           <form className="chat-input" onSubmit={ask}>
             <textarea
               value={question}
-              onChange={(e) => setQuestion(e.target.value.slice(0, 75))}
+              onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
               placeholder="Ask a stock question. Max 150 characters."
               rows="3"
@@ -1508,6 +1521,45 @@ function Report({ data, onAdd }) {
   const tone = scoreTone(edge);
   const scoreInsight = getScoreInsight(edge);
   const [openScoreHelp, setOpenScoreHelp] = useState(null);
+  const [industryOpen, setIndustryOpen] = useState(false);
+  const [industryLoading, setIndustryLoading] = useState(false);
+  const [industryError, setIndustryError] = useState("");
+  const [industryLeaders, setIndustryLeaders] = useState([]);
+
+  const industryName = data.profile?.finnhubIndustry || "Public company";
+
+  async function openIndustryPopup() {
+    if (!industryName || industryName === "Public company") return;
+
+    setIndustryOpen(true);
+    setIndustryLoading(true);
+    setIndustryError("");
+
+    try {
+      const res = await fetch(
+        `${API}/api/industry-top/${encodeURIComponent(industryName)}?symbol=${encodeURIComponent(data.symbol || "")}`,
+        {
+          method: "GET",
+          mode: "cors",
+          headers: { Accept: "application/json" },
+        }
+      );
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Could not load industry leaders.");
+      }
+
+      setIndustryLeaders(Array.isArray(json?.leaders) ? json.leaders : []);
+    } catch (err) {
+      setIndustryError(err?.message || "Could not load industry leaders.");
+      setIndustryLeaders([]);
+    } finally {
+      setIndustryLoading(false);
+    }
+  }
+
 
   const strongest = useMemo(
     () =>
@@ -1703,7 +1755,17 @@ function Report({ data, onAdd }) {
 
           <h2>{data.profile?.name || data.symbol}</h2>
           <p className="subline">
-            {data.symbol} · {data.profile?.finnhubIndustry || "Public company"}
+            <span>{data.symbol}</span>
+            <span> · </span>
+            <button
+              type="button"
+              className="industry-link"
+              onClick={openIndustryPopup}
+              disabled={!industryName || industryName === "Public company"}
+              title={`View top Eval stocks in ${industryName}`}
+            >
+              {industryName}
+            </button>
           </p>
 
           <div className="hero-actions">
@@ -1743,6 +1805,63 @@ function Report({ data, onAdd }) {
             value={compactMoney(data.grades.context?.marketCapM)}
           />
         </div>
+
+        {industryOpen && (
+          <div className="industry-modal-backdrop" onClick={() => setIndustryOpen(false)}>
+            <div className="industry-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="industry-modal-head">
+                <div>
+                  <span>Top Eval stocks in</span>
+                  <h3>{industryName}</h3>
+                </div>
+                <button
+                  type="button"
+                  className="industry-close-btn"
+                  onClick={() => setIndustryOpen(false)}
+                  aria-label="Close industry popup"
+                >
+                  ×
+                </button>
+              </div>
+
+              {industryLoading ? (
+                <div className="industry-loading">
+                  <RefreshCw className="spin" size={18} />
+                  Ranking same-industry stocks...
+                </div>
+              ) : industryError ? (
+                <p className="industry-error">{industryError}</p>
+              ) : industryLeaders.length ? (
+                <div className="industry-list">
+                  {industryLeaders.map((item, index) => (
+                    <button
+                      type="button"
+                      className="industry-row"
+                      key={item.symbol}
+                      onClick={() => {
+                        setIndustryOpen(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      <span className="industry-rank">#{index + 1}</span>
+                      <div>
+                        <strong>{item.symbol}</strong>
+                        <span>{item.name || item.symbol}</span>
+                      </div>
+                      <b>{scoreText(item.score)}</b>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="industry-error">No same-industry rankings are available yet.</p>
+              )}
+
+              <p className="industry-note">
+                Rankings use Eval Score for a small same-industry stock set and may skip tickers with missing data.
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="summary-grid">
