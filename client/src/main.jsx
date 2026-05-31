@@ -1376,7 +1376,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask a stock question in 75 characters or less. I’ll answer in simple terms.",
+        "Ask about stocks already in your watchlist. I can use recent news, Eval Score context, and plain-English stock impact.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -1481,8 +1481,8 @@ function AssistantPage({ current, watchlist, onBack }) {
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 75))}
-              maxLength={75}
-              placeholder="Ask a stock question. Max 75 characters."
+              maxLength={150}
+              placeholder="Ask a stock question. Max 150 characters."
               rows="3"
             />
             <button disabled={loading}>
