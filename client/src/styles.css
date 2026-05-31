@@ -4902,3 +4902,101 @@ button:active,
     max-width: none !important;
   }
 }
+
+
+/* =========================================================
+   PROFILE + WATCHLIST ALIGNMENT UPDATE
+   Removes the outer profile bubble, centers the avatar with the Eval title,
+   and lowers the watchlist so it starts with the Power Score card.
+========================================================= */
+
+.topbar {
+  align-items: center !important;
+  margin-bottom: 20px !important;
+}
+
+.topbar-actions-stack {
+  align-self: center !important;
+  justify-self: end !important;
+  justify-items: center !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.profile-bubble {
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user {
+  width: 76px !important;
+  height: 76px !important;
+  min-width: 76px !important;
+  min-height: 76px !important;
+  padding: 6px !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-avatarImage,
+.profile-bubble .topbar-user .cl-avatarFallback {
+  border-radius: 999px !important;
+}
+
+.watch-panel {
+  margin-top: 94px !important;
+}
+
+@media (max-width: 1180px) {
+  .topbar-actions-stack {
+    justify-self: start !important;
+  }
+
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .profile-bubble {
+    justify-self: start !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 68px !important;
+    height: 68px !important;
+    min-width: 68px !important;
+    min-height: 68px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+  }
+}
