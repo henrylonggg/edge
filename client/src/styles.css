@@ -7494,3 +7494,278 @@ button:active,
     height: 7px !important;
   }
 }
+
+
+/* =========================================================
+   PULSE RING SCORE STYLE — SITEWIDE
+   Applies to main Power Score, watchlist mini rings,
+   industry ranking rings, and landing preview ring.
+   Rings still fill from the top / 12 o'clock position.
+========================================================= */
+
+@keyframes evalPulseRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: .48;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: .82;
+  }
+}
+
+@keyframes evalPulseGlow {
+  0%, 100% {
+    filter: blur(13px);
+    opacity: .32;
+  }
+  50% {
+    filter: blur(18px);
+    opacity: .62;
+  }
+}
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff))) var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 30px var(--ring-glow, var(--watch-glow, var(--industry-ring-glow, rgba(21,231,255,.28)))) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  background:
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright)) var(--score-angle, var(--watch-score-angle)), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .44 !important;
+  z-index: -1 !important;
+  animation: evalPulseGlow 2.4s ease-in-out infinite !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ring-bright, var(--watch-ring-bright)) !important;
+  opacity: .32 !important;
+  box-shadow:
+    0 0 22px var(--ring-glow, var(--watch-glow)),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  animation: evalPulseRing 2.4s ease-in-out infinite !important;
+}
+
+.score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.preview-score-ring strong {
+  background:
+    radial-gradient(circle at 50% 36%, rgba(255,255,255,.085), transparent 30%),
+    linear-gradient(145deg, rgba(1,8,16,.96), rgba(4,13,26,.82)) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 32px rgba(0,0,0,.48),
+    inset 0 0 18px rgba(255,255,255,.035) !important;
+}
+
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green {
+  --ring-bright: #85ff47;
+  --watch-ring-bright: #85ff47;
+  --industry-ring-bright: #85ff47;
+  --ring-glow: rgba(133,255,71,.42);
+  --watch-glow: rgba(133,255,71,.35);
+  --industry-ring-glow: rgba(133,255,71,.32);
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow {
+  --ring-bright: #ffe45f;
+  --watch-ring-bright: #ffe45f;
+  --industry-ring-bright: #ffe45f;
+  --ring-glow: rgba(255,228,95,.42);
+  --watch-glow: rgba(255,228,95,.36);
+  --industry-ring-glow: rgba(255,228,95,.32);
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red {
+  --ring-bright: #ff4f67;
+  --watch-ring-bright: #ff4f67;
+  --industry-ring-bright: #ff4f67;
+  --ring-glow: rgba(255,79,103,.42);
+  --watch-glow: rgba(255,79,103,.36);
+  --industry-ring-glow: rgba(255,79,103,.32);
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.industry-score-pie.neutral {
+  --ring-bright: #15e7ff;
+  --watch-ring-bright: #15e7ff;
+  --industry-ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.36);
+  --watch-glow: rgba(21,231,255,.30);
+  --industry-ring-glow: rgba(21,231,255,.28);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.32);
+}
+
+/* =========================================================
+   PULSE THEME SCORE BARS — CATEGORY CARDS
+   Bars stay bars, but match the pulse/neon ring theme.
+========================================================= */
+
+.grade-line {
+  height: 9px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.035)),
+    rgba(0,0,0,.24) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.28) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.grade-line span {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 999px !important;
+  overflow: visible !important;
+}
+
+.grade-line span::before {
+  content: "";
+  position: absolute;
+  inset: -5px -8px;
+  border-radius: 999px;
+  background: inherit;
+  filter: blur(10px);
+  opacity: .42;
+  pointer-events: none;
+  animation: evalPulseGlow 2.4s ease-in-out infinite;
+}
+
+.grade-line span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 14px currentColor,
+    0 0 24px currentColor;
+  opacity: .88;
+}
+
+.grade-line span.green {
+  color: #85ff47 !important;
+  background: linear-gradient(90deg, rgba(133,255,71,.52), #85ff47) !important;
+  box-shadow: 0 0 17px rgba(133,255,71,.34) !important;
+}
+
+.grade-line span.yellow {
+  color: #ffe45f !important;
+  background: linear-gradient(90deg, rgba(255,228,95,.52), #ffe45f) !important;
+  box-shadow: 0 0 17px rgba(255,228,95,.34) !important;
+}
+
+.grade-line span.red {
+  color: #ff4f67 !important;
+  background: linear-gradient(90deg, rgba(255,79,103,.52), #ff4f67) !important;
+  box-shadow: 0 0 17px rgba(255,79,103,.34) !important;
+}
+
+.grade-line span.neutral {
+  color: #15e7ff !important;
+  background: linear-gradient(90deg, rgba(21,231,255,.50), #15e7ff) !important;
+  box-shadow: 0 0 17px rgba(21,231,255,.30) !important;
+}
+
+.grade-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.06), transparent 36%),
+    radial-gradient(circle at 96% 18%, rgba(159,92,255,.07), transparent 34%),
+    rgba(255,255,255,.074) !important;
+}
+
+.grade-card strong.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 18px rgba(133,255,71,.20);
+}
+
+.grade-card strong.yellow {
+  color: #ffe45f !important;
+  text-shadow: 0 0 18px rgba(255,228,95,.20);
+}
+
+.grade-card strong.red {
+  color: #ff4f67 !important;
+  text-shadow: 0 0 18px rgba(255,79,103,.20);
+}
+
+.grade-card strong.neutral {
+  color: #15e7ff !important;
+  text-shadow: 0 0 18px rgba(21,231,255,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-ring::before,
+  .score-ring::after,
+  .watch-score-ring::before,
+  .watch-score-ring::after,
+  .grade-line span::before {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .grade-line {
+    height: 7px !important;
+  }
+
+  .grade-line span::after {
+    width: 9px;
+    height: 9px;
+  }
+}
