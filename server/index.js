@@ -631,6 +631,118 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+
+const INDUSTRY_UNIVERSES = [
+  {
+    match: ["technology", "software", "semiconductor", "information"],
+    tickers: ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AVGO", "AMD", "ORCL", "CRM", "ADBE", "NOW", "INTC"],
+  },
+  {
+    match: ["health", "biotech", "pharma", "medical"],
+    tickers: ["LLY", "UNH", "JNJ", "ABBV", "MRK", "TMO", "ABT", "ISRG", "AMGN", "PFE", "DHR"],
+  },
+  {
+    match: ["financial", "bank", "insurance", "capital"],
+    tickers: ["JPM", "V", "MA", "BAC", "WFC", "GS", "MS", "AXP", "BLK", "C", "SCHW"],
+  },
+  {
+    match: ["consumer cyclical", "retail", "auto", "travel", "restaurant"],
+    tickers: ["AMZN", "TSLA", "HD", "MCD", "NKE", "SBUX", "LOW", "BKNG", "TJX", "CMG"],
+  },
+  {
+    match: ["consumer defensive", "staples", "food", "beverage", "household"],
+    tickers: ["WMT", "COST", "PG", "KO", "PEP", "MDLZ", "CL", "PM", "TGT", "KMB"],
+  },
+  {
+    match: ["energy", "oil", "gas"],
+    tickers: ["XOM", "CVX", "COP", "SLB", "EOG", "OXY", "MPC", "PSX"],
+  },
+  {
+    match: ["industrial", "aerospace", "defense", "machinery"],
+    tickers: ["GE", "CAT", "HON", "RTX", "LMT", "BA", "DE", "UPS", "UNP", "ETN"],
+  },
+  {
+    match: ["communication", "telecom", "media", "entertainment"],
+    tickers: ["GOOGL", "META", "NFLX", "DIS", "CMCSA", "TMUS", "VZ", "T"],
+  },
+  {
+    match: ["utilities", "utility"],
+    tickers: ["NEE", "DUK", "SO", "AEP", "D", "EXC", "SRE"],
+  },
+  {
+    match: ["real estate", "reit"],
+    tickers: ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR"],
+  },
+  {
+    match: ["basic materials", "materials", "chemical", "mining"],
+    tickers: ["LIN", "APD", "SHW", "FCX", "NEM", "DOW", "DD"],
+  },
+];
+
+function getIndustryUniverse(industry = "", symbol = "") {
+  const cleanIndustry = String(industry || "").toLowerCase();
+  const current = String(symbol || "").trim().toUpperCase();
+
+  const found =
+    INDUSTRY_UNIVERSES.find((group) =>
+      group.match.some((word) => cleanIndustry.includes(word))
+    ) || null;
+
+  const tickers = found
+    ? found.tickers
+    : ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "JPM", "LLY", "XOM", "COST"];
+
+  return [...new Set([current, ...tickers].filter(Boolean))].slice(0, 12);
+}
+
+app.get("/api/industry-top/:industry", async (req, res) => {
+  try {
+    const industry = String(req.params.industry || "").trim();
+    const symbol = String(req.query.symbol || "").trim().toUpperCase();
+
+    if (!industry) {
+      return res.status(400).json({ error: "Missing industry." });
+    }
+
+    const candidates = getIndustryUniverse(industry, symbol);
+    const results = [];
+
+    for (const ticker of candidates) {
+      try {
+        const analysis = await buildStockAnalysis(ticker);
+        const score = analysis?.grades?.edgeScore;
+
+        if (score !== null && score !== undefined && Number.isFinite(Number(score))) {
+          results.push({
+            symbol: ticker,
+            name: analysis?.profile?.name || ticker,
+            industry: analysis?.profile?.finnhubIndustry || industry,
+            score: Number(score),
+            price: analysis?.quote?.c ?? null,
+          });
+        }
+      } catch (error) {
+        console.error(`Industry ranking skipped ${ticker}:`, error?.message || error);
+      }
+    }
+
+    const leaders = results
+      .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+      .slice(0, 5);
+
+    return res.status(200).json({
+      industry,
+      leaders,
+    });
+  } catch (error) {
+    console.error("Industry top route failed:", error);
+    return res.status(500).json({
+      error: error?.message || "Could not rank this industry.",
+    });
+  }
+});
+
+
 app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = String(req.params.symbol || "")
