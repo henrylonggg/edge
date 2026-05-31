@@ -6735,3 +6735,152 @@ button:active,
     height: 13px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE TICKER BUBBLE HARD ORDER FIX
+   Fixes phone-only control ordering shown in screenshot.
+   Desktop/laptop unchanged.
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 30px 30px minmax(68px, 86px) 30px 30px 30px !important;
+    grid-auto-flow: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    column-gap: 5px !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 26px) !important;
+    margin: 0 auto 10px !important;
+    padding: 6px 8px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Exact mobile order:
+     1 Plans, 2 Search, 3 Ticker input, 4 Add, 5 AI, 6 Watchlist */
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 86px !important;
+    min-width: 68px !important;
+    max-width: 86px !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar input {
+    width: 86px !important;
+    max-width: 86px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 6px 7px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    letter-spacing: .045em !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .score-searchbar label {
+    display: none !important;
+  }
+
+  /* Prevent iPhone text cursor/keyboard focus from stretching the grid */
+  .score-searchbar:focus-within {
+    width: fit-content !important;
+    max-width: calc(100vw - 26px) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px 28px minmax(60px, 74px) 28px 28px 28px !important;
+    column-gap: 4px !important;
+    padding: 5px 7px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 74px !important;
+    min-width: 60px !important;
+    max-width: 74px !important;
+  }
+
+  .score-searchbar input {
+    width: 74px !important;
+    max-width: 74px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 11px !important;
+    padding: 5px 6px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
