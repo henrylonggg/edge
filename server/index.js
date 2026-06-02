@@ -697,39 +697,41 @@ async function buildCachedStockAnalysis(symbol) {
 }
 
 
+
 const INDUSTRY_UNIVERSES = {
-  "technology": ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
-  "semiconductors": ["NVDA", "AVGO", "AMD", "INTC", "QCOM", "TXN", "MU", "ADI", "MRVL", "NXPI", "MCHP", "ON", "LRCX", "KLAC", "AMAT"],
-  "software": ["MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "SNOW", "DDOG", "PLTR", "NET", "TEAM", "MDB"],
-  "internet content & information": ["GOOGL", "META", "NFLX", "SPOT", "PINS", "RDDT", "SNAP", "MTCH", "BIDU"],
-  "consumer electronics": ["AAPL", "SONY", "DELL", "HPQ", "LOGI", "GRMN"],
-  "retail": ["AMZN", "WMT", "COST", "HD", "LOW", "TGT", "TJX", "ROST", "BBY", "ULTA", "DG", "DLTR"],
-  "travel services": ["BKNG", "EXPE", "ABNB", "TCOM", "TRIP", "MMYT"],
-  "auto manufacturers": ["TSLA", "GM", "F", "RIVN", "LCID", "TM", "HMC", "STLA"],
-  "restaurants": ["MCD", "SBUX", "CMG", "YUM", "DRI", "QSR", "DPZ", "WING", "TXRH", "CAKE"],
-  "banks": ["JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "COF"],
-  "financial services": ["V", "MA", "AXP", "PYPL", "SQ", "BLK", "SCHW", "SPGI", "MCO", "ICE"],
-  "insurance": ["BRK.B", "UNH", "PGR", "CB", "AIG", "MET", "PRU", "AFL", "ALL", "TRV"],
-  "healthcare plans": ["UNH", "ELV", "CI", "HUM", "CNC", "MOH"],
-  "drug manufacturers": ["LLY", "JNJ", "MRK", "ABBV", "PFE", "BMY", "AMGN", "GILD", "VRTX", "REGN", "BIIB"],
-  "medical devices": ["ISRG", "ABT", "SYK", "MDT", "BSX", "EW", "DXCM", "ZBH"],
-  "diagnostics & research": ["TMO", "DHR", "A", "ILMN", "IQV", "CRL", "TECH"],
-  "oil & gas": ["XOM", "CVX", "COP", "EOG", "OXY", "DVN", "FANG", "MPC", "PSX", "VLO"],
-  "aerospace & defense": ["RTX", "LMT", "NOC", "GD", "BA", "TDG", "HWM", "TXT", "LHX"],
-  "farm & heavy construction machinery": ["CAT", "DE", "PCAR", "CNH", "AGCO"],
-  "specialty industrial machinery": ["ETN", "EMR", "ROK", "ITW", "PH", "DOV", "IR"],
-  "railroads": ["UNP", "CSX", "NSC", "CP", "CNI"],
-  "integrated freight & logistics": ["UPS", "FDX", "DHLGY", "XPO", "CHRW"],
-  "utilities": ["NEE", "DUK", "SO", "AEP", "D", "EXC", "SRE", "XEL", "PEG", "ED"],
-  "reit": ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR", "PSA", "CCI", "VICI"],
-  "beverages": ["KO", "PEP", "MNST", "KDP", "CELH", "TAP"],
-  "packaged foods": ["MDLZ", "GIS", "K", "CPB", "HSY", "SJM", "CAG"],
-  "household & personal products": ["PG", "CL", "KMB", "EL", "CHD", "CLX"],
-  "communication services": ["TMUS", "VZ", "T", "CMCSA", "CHTR", "LUMN"],
-  "entertainment": ["NFLX", "DIS", "WBD", "PARA", "LYV", "ROKU"],
-  "chemicals": ["LIN", "APD", "SHW", "DOW", "DD", "ECL", "ALB", "PPG"],
-  "copper": ["FCX", "SCCO", "TECK", "HBM"],
-  "gold": ["NEM", "GOLD", "AEM", "KGC", "AU"],
+  "Technology": ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
+  "Software": ["MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "SNOW", "DDOG", "PLTR", "TEAM", "MDB", "NET"],
+  "Semiconductors": ["NVDA", "AVGO", "AMD", "INTC", "QCOM", "TXN", "MU", "ADI", "MRVL", "NXPI", "MCHP", "ON", "LRCX", "KLAC", "AMAT"],
+  "Consumer Electronics": ["AAPL", "SONY", "DELL", "HPQ", "LOGI", "GRMN"],
+  "Internet Content & Information": ["GOOGL", "META", "NFLX", "SPOT", "PINS", "RDDT", "SNAP", "MTCH", "BIDU"],
+  "Communication Services": ["TMUS", "VZ", "T", "CMCSA", "CHTR", "LUMN"],
+  "Entertainment": ["NFLX", "DIS", "WBD", "PARA", "LYV", "ROKU"],
+  "Retail": ["AMZN", "WMT", "COST", "HD", "LOW", "TGT", "TJX", "ROST", "BBY", "ULTA", "DG", "DLTR"],
+  "Travel Services": ["BKNG", "EXPE", "ABNB", "TCOM", "TRIP", "MMYT"],
+  "Restaurants": ["MCD", "SBUX", "CMG", "YUM", "DRI", "QSR", "DPZ", "WING", "TXRH", "CAKE"],
+  "Auto Manufacturers": ["TSLA", "GM", "F", "RIVN", "LCID", "TM", "HMC", "STLA"],
+  "Banks": ["JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "COF"],
+  "Financial Services": ["V", "MA", "AXP", "PYPL", "SQ", "BLK", "SCHW", "SPGI", "MCO", "ICE"],
+  "Insurance": ["BRK.B", "PGR", "CB", "AIG", "MET", "PRU", "AFL", "ALL", "TRV"],
+  "Healthcare Plans": ["UNH", "ELV", "CI", "HUM", "CNC", "MOH"],
+  "Drug Manufacturers": ["LLY", "JNJ", "MRK", "ABBV", "PFE", "BMY", "AMGN", "GILD", "VRTX", "REGN", "BIIB"],
+  "Medical Devices": ["ISRG", "ABT", "SYK", "MDT", "BSX", "EW", "DXCM", "ZBH"],
+  "Diagnostics & Research": ["TMO", "DHR", "A", "ILMN", "IQV", "CRL", "TECH"],
+  "Oil & Gas": ["XOM", "CVX", "COP", "EOG", "OXY", "DVN", "FANG", "MPC", "PSX", "VLO"],
+  "Aerospace & Defense": ["RTX", "LMT", "NOC", "GD", "BA", "TDG", "HWM", "TXT", "LHX"],
+  "Farm & Heavy Construction Machinery": ["CAT", "DE", "PCAR", "CNH", "AGCO"],
+  "Specialty Industrial Machinery": ["ETN", "EMR", "ROK", "ITW", "PH", "DOV", "IR"],
+  "Railroads": ["UNP", "CSX", "NSC", "CP", "CNI"],
+  "Integrated Freight & Logistics": ["UPS", "FDX", "XPO", "CHRW"],
+  "Utilities": ["NEE", "DUK", "SO", "AEP", "D", "EXC", "SRE", "XEL", "PEG", "ED"],
+  "Real Estate": ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR", "PSA", "CCI", "VICI", "AVB", "EQR"],
+  "REIT": ["PLD", "AMT", "EQIX", "SPG", "O", "WELL", "DLR", "PSA", "CCI", "VICI", "AVB", "EQR"],
+  "Beverages": ["KO", "PEP", "MNST", "KDP", "CELH", "TAP"],
+  "Packaged Foods": ["MDLZ", "GIS", "K", "CPB", "HSY", "SJM", "CAG"],
+  "Household & Personal Products": ["PG", "CL", "KMB", "EL", "CHD", "CLX"],
+  "Chemicals": ["LIN", "APD", "SHW", "DOW", "DD", "ECL", "ALB", "PPG"],
+  "Copper": ["FCX", "SCCO", "TECK", "HBM"],
+  "Gold": ["NEM", "GOLD", "AEM", "KGC", "AU"]
 };
 
 function normalizeIndustryName(value = "") {
@@ -741,73 +743,57 @@ function normalizeIndustryName(value = "") {
     .trim();
 }
 
-function industryMatches(requested = "", actual = "") {
-  const req = normalizeIndustryName(requested);
-  const act = normalizeIndustryName(actual);
+const INDUSTRY_ALIASES = [
+  { key: "Semiconductors", terms: ["semiconductor", "semiconductors", "chip", "chips", "semiconductor equipment"] },
+  { key: "Software", terms: ["software", "application software", "infrastructure software", "saas"] },
+  { key: "Consumer Electronics", terms: ["consumer electronics", "computer hardware", "electronic components"] },
+  { key: "Internet Content & Information", terms: ["internet content", "internet information", "interactive media"] },
+  { key: "Communication Services", terms: ["telecom", "telecommunication", "communication services", "wireless"] },
+  { key: "Entertainment", terms: ["entertainment", "media entertainment", "streaming"] },
+  { key: "Travel Services", terms: ["travel", "travel services", "lodging", "hotels", "booking", "resorts"] },
+  { key: "Restaurants", terms: ["restaurant", "restaurants", "coffee", "dining"] },
+  { key: "Auto Manufacturers", terms: ["auto manufacturers", "automobiles", "auto", "vehicles", "ev", "electric vehicles"] },
+  { key: "Retail", terms: ["retail", "specialty retail", "internet retail", "discount stores", "home improvement retail", "apparel retail"] },
+  { key: "Banks", terms: ["bank", "banks", "banking", "regional banks", "diversified banks"] },
+  { key: "Financial Services", terms: ["financial services", "credit services", "asset management", "capital markets", "payments"] },
+  { key: "Insurance", terms: ["insurance", "property casualty", "life insurance"] },
+  { key: "Healthcare Plans", terms: ["healthcare plans", "health care plans", "managed healthcare"] },
+  { key: "Drug Manufacturers", terms: ["drug manufacturer", "drug manufacturers", "biotechnology", "pharmaceutical", "pharma"] },
+  { key: "Medical Devices", terms: ["medical devices", "medical instruments", "medical equipment"] },
+  { key: "Diagnostics & Research", terms: ["diagnostics", "research", "life sciences tools"] },
+  { key: "Oil & Gas", terms: ["oil", "gas", "energy", "oil and gas", "refining", "exploration"] },
+  { key: "Aerospace & Defense", terms: ["aerospace", "defense"] },
+  { key: "Farm & Heavy Construction Machinery", terms: ["farm and heavy", "construction machinery", "heavy machinery", "agricultural machinery"] },
+  { key: "Specialty Industrial Machinery", terms: ["specialty industrial machinery", "industrial machinery", "electrical equipment"] },
+  { key: "Railroads", terms: ["railroad", "railroads"] },
+  { key: "Integrated Freight & Logistics", terms: ["freight", "logistics", "parcel", "shipping"] },
+  { key: "Utilities", terms: ["utility", "utilities", "regulated electric", "electric utilities"] },
+  { key: "Real Estate", terms: ["real estate", "reit", "reits", "real estate investment trusts"] },
+  { key: "Beverages", terms: ["beverage", "beverages", "soft drinks", "brewers"] },
+  { key: "Packaged Foods", terms: ["packaged foods", "food products", "confectioners"] },
+  { key: "Household & Personal Products", terms: ["household", "personal products", "consumer staples"] },
+  { key: "Chemicals", terms: ["chemical", "chemicals", "specialty chemicals"] },
+  { key: "Copper", terms: ["copper"] },
+  { key: "Gold", terms: ["gold"] },
+  { key: "Technology", terms: ["technology", "information technology", "tech"] }
+];
 
-  if (!req || !act) return false;
-  if (req === act) return true;
-
-  const aliases = {
-    "technology": ["information technology", "consumer electronics", "software", "semiconductors"],
-    "semiconductor": ["semiconductors"],
-    "semiconductors": ["semiconductor equipment and materials", "semiconductor"],
-    "retail": ["specialty retail", "internet retail", "discount stores", "home improvement retail", "apparel retail"],
-    "travel": ["travel services", "lodging", "resorts and casinos"],
-    "travel services": ["travel"],
-    "restaurants": ["restaurant", "restaurants"],
-    "oil and gas": ["oil gas", "oil and gas e p", "oil and gas integrated", "oil and gas refining and marketing"],
-    "reit": ["real estate investment trusts", "reit"],
-    "drug manufacturers": ["drug manufacturers general", "drug manufacturers specialty and generic", "biotechnology"],
-  };
-
-  const reqAliases = aliases[req] || [];
-  if (reqAliases.some((alias) => act === normalizeIndustryName(alias) || act.includes(normalizeIndustryName(alias)))) {
-    return true;
+function getIndustryKey(industry = "") {
+  const clean = normalizeIndustryName(industry);
+  for (const group of INDUSTRY_ALIASES) {
+    if (group.terms.some((term) => clean.includes(normalizeIndustryName(term)))) {
+      return group.key;
+    }
   }
-
-  const actAliases = aliases[act] || [];
-  if (actAliases.some((alias) => req === normalizeIndustryName(alias) || req.includes(normalizeIndustryName(alias)))) {
-    return true;
-  }
-
-  return false;
+  const direct = Object.keys(INDUSTRY_UNIVERSES).find((key) => normalizeIndustryName(key) === clean);
+  return direct || null;
 }
 
 function getIndustryUniverse(industry = "", symbol = "") {
-  const cleanIndustry = normalizeIndustryName(industry);
-
-  if (
-    cleanIndustry.includes("semiconductor") ||
-    cleanIndustry.includes("chip") ||
-    cleanIndustry.includes("semiconductors")
-  ) {
-    const current = String(symbol || "").trim().toUpperCase();
-    return [...new Set([current, "NVDA", "AVGO", "AMD", "INTC", "QCOM", "TXN", "MU", "ADI", "MRVL", "NXPI", "MCHP", "ON", "LRCX", "KLAC", "AMAT"].filter(Boolean))].slice(0, 16);
-  }
-
-  if (
-    cleanIndustry === "technology" ||
-    cleanIndustry.includes("information technology")
-  ) {
-    const current = String(symbol || "").trim().toUpperCase();
-    return [...new Set([current, "AAPL", "MSFT", "NVDA", "AVGO", "AMD", "GOOGL", "META", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "QCOM", "TXN"].filter(Boolean))].slice(0, 16);
-  }
   const current = String(symbol || "").trim().toUpperCase();
-
-  const directKey = Object.keys(INDUSTRY_UNIVERSES).find((key) => {
-    const cleanKey = normalizeIndustryName(key);
-    return cleanIndustry === cleanKey || cleanIndustry.includes(cleanKey) || cleanKey.includes(cleanIndustry);
-  });
-
-  let tickers = directKey ? INDUSTRY_UNIVERSES[directKey] : null;
-
-  if (!tickers) {
-    const softerKey = Object.keys(INDUSTRY_UNIVERSES).find((key) => industryMatches(industry, key));
-    tickers = softerKey ? INDUSTRY_UNIVERSES[softerKey] : ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "JPM", "LLY", "XOM", "COST"];
-  }
-
-  return [...new Set([current, ...tickers].filter(Boolean))].slice(0, 16);
+  const key = getIndustryKey(industry);
+  const tickers = key && INDUSTRY_UNIVERSES[key] ? INDUSTRY_UNIVERSES[key] : [];
+  return [...new Set([current, ...tickers].filter(Boolean))].slice(0, 18);
 }
 
 app.get("/api/industry-top/:industry", async (req, res) => {
@@ -819,14 +805,13 @@ app.get("/api/industry-top/:industry", async (req, res) => {
       return res.status(400).json({ error: "Missing industry." });
     }
 
-    /*
-      IMPORTANT:
-      Do not hard-filter by Finnhub's returned industry text here.
-      Finnhub can label companies differently from the clicked page label
-      such as "Technology", "Semiconductors", "Software", etc.
-      The curated universe already keeps companies associated with that industry.
-    */
+    const industryKey = getIndustryKey(industry);
     const candidates = getIndustryUniverse(industry, symbol);
+
+    if (!industryKey || !candidates.length) {
+      return res.status(200).json({ industry, industryKey: industryKey || industry, candidates: [], leaders: [] });
+    }
+
     const results = [];
 
     for (const ticker of candidates) {
@@ -842,7 +827,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
           results.push({
             symbol: ticker,
             name: analysis?.profile?.name || ticker,
-            industry: analysis?.profile?.finnhubIndustry || industry,
+            industry: analysis?.profile?.finnhubIndustry || industryKey,
             score: Number(score),
             price: analysis?.quote?.c ?? null,
           });
@@ -856,16 +841,10 @@ app.get("/api/industry-top/:industry", async (req, res) => {
       .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
       .slice(0, 5);
 
-    return res.status(200).json({
-      industry,
-      candidates,
-      leaders,
-    });
+    return res.status(200).json({ industry, industryKey, candidates, leaders });
   } catch (error) {
     console.error("Industry top route failed:", error);
-    return res.status(500).json({
-      error: error?.message || "Could not rank this industry.",
-    });
+    return res.status(500).json({ error: error?.message || "Could not rank this industry." });
   }
 });
 
