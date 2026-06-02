@@ -8669,3 +8669,67 @@ button:active,
     0 0 22px rgba(133,255,71,.38),
     inset 0 0 18px rgba(255,255,255,.045) !important;
 }
+
+
+/* =========================================================
+   MOBILE DAILY PRICE CHANGE CHIP
+   Mobile only: daily % change bubble beside Price.
+   Desktop remains visually unchanged.
+========================================================= */
+
+.daily-change-chip {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .price-mini-stat b {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+
+  .daily-change-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 44px !important;
+    height: 24px !important;
+    padding: 0 8px !important;
+    margin-left: 7px !important;
+    border-radius: 999px !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: -.15px !important;
+    line-height: 1 !important;
+    border: 1px solid rgba(21,231,255,.42) !important;
+    background:
+      radial-gradient(circle at 25% 20%, rgba(255,255,255,.18), transparent 28%),
+      linear-gradient(135deg, rgba(12,35,40,.90), rgba(19,26,42,.88)) !important;
+    color: #ffffff !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(21,231,255,.15) !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+  }
+
+  .daily-change-chip.up {
+    border-color: rgba(133,255,71,.48) !important;
+    color: #85ff47 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(133,255,71,.18) !important;
+  }
+
+  .daily-change-chip.down {
+    border-color: rgba(255,79,103,.50) !important;
+    color: #ff4f67 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(255,79,103,.18) !important;
+  }
+
+  .daily-change-chip.neutral {
+    color: rgba(255,255,255,.78) !important;
+  }
+}
