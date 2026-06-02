@@ -8733,3 +8733,27 @@ button:active,
     color: rgba(255,255,255,.78) !important;
   }
 }
+
+
+/* =========================================================
+   DESKTOP WATCHLIST ALIGNMENT FIX
+   Lines the watchlist top up with the Power Score/report card.
+   Mobile layout stays untouched.
+========================================================= */
+
+@media (min-width: 681px) {
+  .watch-panel {
+    margin-top: 0 !important;
+    align-self: start !important;
+  }
+
+  .layout {
+    align-items: start !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
