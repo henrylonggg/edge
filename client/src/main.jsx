@@ -96,6 +96,22 @@ function fmt(v, suffix = "") {
   })}${suffix}`;
 }
 
+
+function dailyChangeClass(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "neutral";
+  if (num > 0) return "up";
+  if (num < 0) return "down";
+  return "neutral";
+}
+
+function signedPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "N/A";
+  const sign = num > 0 ? "+" : "";
+  return `${sign}${num.toFixed(2)}%`;
+}
+
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
   return Number(v).toLocaleString(undefined, {
@@ -1965,6 +1981,11 @@ function Report({ data, onAdd, onOpenIndustry }) {
             label="Price"
             value={money(data.quote?.c)}
             className="price-mini-stat"
+            extra={
+              <span className={`daily-change-chip ${dailyChangeClass(data.quote?.dp)}`}>
+                {signedPercent(data.quote?.dp)}
+              </span>
+            }
           />
           <MiniStat
             icon={<ShieldCheck size={17} />}
