@@ -8757,3 +8757,29 @@ button:active,
     margin-top: 0 !important;
   }
 }
+
+
+/* =========================================================
+   DESKTOP-ONLY WATCHLIST LOWER ALIGNMENT
+   Pushes watchlist down so its top aligns with the Power Score card.
+   Mobile layout is untouched.
+========================================================= */
+
+@media (min-width: 681px) {
+  .layout > .watch-panel {
+    margin-top: 128px !important;
+    align-self: start !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .layout > .watch-panel {
+    margin-top: 112px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .layout > .watch-panel {
+    margin-top: 0 !important;
+  }
+}
