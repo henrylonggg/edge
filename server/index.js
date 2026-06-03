@@ -632,7 +632,7 @@ app.get("/api/health", (req, res) => {
 });
 
 
-const ANALYSIS_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const ANALYSIS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const analysisCache = new Map();
 
 function cloneJson(value) {
@@ -677,7 +677,7 @@ async function buildCachedStockAnalysis(symbol) {
       cache: {
         ...(cached.cache || {}),
         hit: true,
-        ttlHours: 2,
+        ttlHours: 24,
       },
     };
   }
@@ -688,7 +688,7 @@ async function buildCachedStockAnalysis(symbol) {
     cache: {
       ...(analysis.cache || {}),
       hit: false,
-      ttlHours: 2,
+      ttlHours: 24,
       savedAt: new Date().toISOString(),
     },
   });
@@ -839,9 +839,9 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
     const leaders = results
       .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
-      .slice(0, 5);
+      .slice(0, 3);
 
-    return res.status(200).json({ industry, industryKey, candidates, leaders });
+    return res.status(200).json({ industry, industryKey, candidates, leaders, limit: 3, cachedForHours: 24 });
   } catch (error) {
     console.error("Industry top route failed:", error);
     return res.status(500).json({ error: error?.message || "Could not rank this industry." });
@@ -869,7 +869,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
           ...(cachedFullAnalysis.cache || {}),
           hit: true,
           full: true,
-          ttlHours: 2,
+          ttlHours: 24,
         },
       });
     }
@@ -902,7 +902,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
         ...(analysis.cache || {}),
         hit: false,
         full: true,
-        ttlHours: 2,
+        ttlHours: 24,
         savedAt: new Date().toISOString(),
       },
     };
@@ -915,7 +915,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
         ...(analysis.cache || {}),
         hit: false,
         full: true,
-        ttlHours: 2,
+        ttlHours: 24,
         savedAt: new Date().toISOString(),
       },
     });
@@ -952,7 +952,7 @@ app.post("/api/assistant", async (req, res) => {
     }
 
     const prompt = `
-You are Eval AI Assistant Only answer questions about stocks already in the user's watchlist when watchlist context is provided. Use recent news context if available, explain how it may slightly impact the stock, and connect it back to the Eval Score. Keep the final answer under 100 characters and easy to understand., a simple stock-analysis helper.
+You are Eval AI Assistant You can answer any stock-related question, including company basics, market news, valuation, ratios, risk, DCF/WACC concepts, ETFs, sectors, and simple investing terms. Use provided app data when relevant, use outside market/news context when available, and say when current data is unavailable. Keep replies brief, plain-English, and under 100 characters unless the user explicitly asks for more detail. Answer any stock-related question. Use outside market/news context when available, but do not invent facts. Keep the final answer under 100 characters and easy to understand., a simple stock-analysis helper.
 Do not give licensed financial advice.
 Use easy words. Answer in 150 characters or fewer.
 
