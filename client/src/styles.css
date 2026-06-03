@@ -9727,3 +9727,151 @@ button:active,
     height: 30px !important;
   }
 }
+
+
+/* =========================================================
+   WATCHLIST PAGE TIGHT ROW LAYOUT + STRONG/WEAK
+   Removes the huge gap between ticker and score.
+   Keeps 15 stocks fitting vertically better.
+========================================================= */
+
+.watchlist-page {
+  width: min(660px, 100%) !important;
+  margin: 20px auto 0 !important;
+}
+
+.watchlist-page-panel {
+  padding: 16px !important;
+  border-radius: 24px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 6px !important;
+}
+
+.watchlist-page-panel .watch-row {
+  width: fit-content !important;
+  min-width: min(100%, 560px) !important;
+  max-width: 100% !important;
+  grid-template-columns: minmax(230px, 360px) 50px 32px !important;
+  justify-content: start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 7px 9px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-info {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 4px !important;
+  text-align: left !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.watchlist-page-panel .watch-row-sw {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.watchlist-page-panel .watch-row-sw span {
+  color: rgba(226,234,242,.68) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  letter-spacing: .015em !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 46px !important;
+  height: 46px !important;
+  padding: 4px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 12px !important;
+}
+
+.watchlist-page-panel .delete-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 11px !important;
+}
+
+.watchlist-page-panel .delete-btn svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+/* Keep the top 3 color system on the tighter watchlist rows */
+.watchlist-page-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.30) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.28) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.30) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+@media (max-width: 680px) {
+  .watchlist-page {
+    width: 100% !important;
+    margin: 12px auto 0 !important;
+  }
+
+  .watchlist-page-panel {
+    padding: 12px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: minmax(0, 1fr) 42px 30px !important;
+    gap: 7px !important;
+    padding: 6px 8px !important;
+  }
+
+  .watchlist-page-panel .watch-info strong {
+    font-size: 14px !important;
+  }
+
+  .watchlist-page-panel .watch-row-sw span {
+    font-size: 8px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .watchlist-page-panel .delete-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
