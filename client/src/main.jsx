@@ -130,11 +130,15 @@ function compactMoney(v) {
   return `$${n.toFixed(0)}M`;
 }
 
+const DEFAULT_WATCHLIST = [];
+const MAG7_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"];
+const MAGNIFICENT_SEVEN_SYMBOLS = MAG7_SYMBOLS;
+
 function readWatchlist() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch {
-    return [];
+    return DEFAULT_WATCHLIST;
   }
 }
 
@@ -305,8 +309,10 @@ function App() {
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
+  const [mag7List, setMag7List] = useState(MAG7_SYMBOLS.map((symbol) => ({ symbol, score: null })));
   const [loading, setLoading] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
+  const [mag7Loading, setMag7Loading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -358,6 +364,60 @@ function App() {
     }
   }
 
+
+  function buildStockListItem(analyzed, fallbackSymbol) {
+    const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
+    const cats = analyzed?.grades?.categories || {};
+    const orderedCats = Object.entries(cats)
+      .filter(([, value]) => value !== null && value !== undefined && Number.isFinite(Number(score10(value))))
+      .sort((a, b) => Number(score10(b[1])) - Number(score10(a[1])));
+
+    const strongest = orderedCats[0];
+    const weakest = orderedCats[orderedCats.length - 1];
+
+    return {
+      symbol: clean,
+      name: analyzed?.profile?.name || clean,
+      score: score10(analyzed?.grades?.edgeScore),
+      rawScore: analyzed?.grades?.edgeScore ?? null,
+      grade: gradeFrom10(analyzed?.grades?.edgeScore),
+      risk: analyzed?.grades?.riskLabel || "N/A",
+      price: analyzed?.quote?.c ?? null,
+      strongest: strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A",
+      weakest: weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A",
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async function refreshMag7() {
+    setMag7Loading(true);
+
+    const refreshed = [];
+
+    for (const ticker of MAG7_SYMBOLS) {
+      try {
+        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(ticker)}`, {
+          method: "GET",
+          mode: "cors",
+          headers: { Accept: "application/json" },
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json) {
+          refreshed.push(buildStockListItem(json, ticker));
+        } else {
+          refreshed.push(mag7List.find((item) => item.symbol === ticker) || { symbol: ticker, score: null });
+        }
+      } catch {
+        refreshed.push(mag7List.find((item) => item.symbol === ticker) || { symbol: ticker, score: null });
+      }
+    }
+
+    setMag7List(refreshed.sort((a, b) => Number(b.score || 0) - Number(a.score || 0)));
+    setMag7Loading(false);
+  }
+
   async function addTicker(ticker = symbol) {
     const clean = ticker.trim().toUpperCase();
     if (!clean) return;
@@ -371,16 +431,7 @@ function App() {
     const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
     if (!analyzed) return;
 
-    const item = {
-      symbol: clean,
-      name: analyzed.profile?.name || clean,
-      score: score10(analyzed.grades?.edgeScore),
-      rawScore: analyzed.grades?.edgeScore ?? null,
-      grade: gradeFrom10(analyzed.grades?.edgeScore),
-      risk: analyzed.grades?.riskLabel || "N/A",
-      price: analyzed.quote?.c ?? null,
-      updatedAt: new Date().toISOString(),
-    };
+    const item = buildStockListItem(analyzed, clean);
 
     const next = [item, ...watchlist.filter((x) => x.symbol !== clean)].sort(
       (a, b) => (b.score || 0) - (a.score || 0)
@@ -419,7 +470,7 @@ function App() {
         industry: json?.industry || cleanIndustry,
         leaders: Array.isArray(json?.leaders) ? json.leaders : [],
         sourceSymbol,
-        cachedForHours: json?.cachedForHours || 2,
+        cachedForHours: json?.cachedForHours || 24,
       });
     } catch (err) {
       setIndustryError(err?.message || "Could not load industry leaders.");
@@ -461,16 +512,7 @@ function App() {
         const json = await res.json().catch(() => null);
 
         if (res.ok && json) {
-          refreshed.push({
-            ...item,
-            name: json.profile?.name || item.name,
-            score: score10(json.grades?.edgeScore),
-            rawScore: json.grades?.edgeScore ?? null,
-            grade: gradeFrom10(json.grades?.edgeScore),
-            risk: json.grades?.riskLabel || item.risk,
-            price: json.quote?.c ?? item.price,
-            updatedAt: new Date().toISOString(),
-          });
+          refreshed.push({ ...item, ...buildStockListItem(json, item.symbol) });
         } else {
           refreshed.push(item);
         }
@@ -493,6 +535,7 @@ function App() {
 
     setWatchlist(saved);
     analyze(null, "AAPL");
+    refreshMag7();
   }, []);
 
   useEffect(() => {
@@ -607,9 +650,9 @@ function App() {
           onBack={() => setView("dashboard")}
           onAnalyze={analyzeFromIndustry}
         />
-      ) : view === "mobile-watchlist" ? (
-        <main className="mobile-watchlist-page">
-          <button type="button" className="back-btn mobile-watchlist-back" onClick={() => setView("dashboard")}>
+      ) : view === "watchlist" ? (
+        <main className="watchlist-page">
+          <button type="button" className="back-btn watchlist-page-back" onClick={() => setView("dashboard")}>
             <ArrowLeft size={18} /> Back to dashboard
           </button>
 
@@ -624,7 +667,7 @@ function App() {
             }}
             onRefresh={refreshWatchlist}
             loading={watchLoading}
-            mobilePage
+            pageMode
           />
         </main>
       ) : (
@@ -687,8 +730,8 @@ function App() {
 
               <button
                 type="button"
-                className="mobile-watchlist-nav-btn"
-                onClick={() => setView("mobile-watchlist")}
+                className="watchlist-nav-btn"
+                onClick={() => setView("watchlist")}
                 title="Open watchlist"
                 aria-label="Open watchlist"
               >
@@ -710,14 +753,11 @@ function App() {
             )}
           </div>
 
-          <Watchlist
-            items={watchlist}
-            symbol={symbol}
-            onAdd={addTicker}
-            onRemove={removeTicker}
+          <Mag7DashboardPanel
+            items={mag7List}
+            loading={mag7Loading}
+            onRefresh={refreshMag7}
             onAnalyze={(ticker) => analyze(null, ticker)}
-            onRefresh={refreshWatchlist}
-            loading={watchLoading}
           />
         </section>
       )}
@@ -793,7 +833,7 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
           <div className="industry-error-page">{error}</div>
         ) : leaders.length ? (
           <div className="industry-leader-grid">
-            {leaders.map((item, index) => {
+            {leaders.slice(0, 3).map((item, index) => {
               const score = score10(item.score);
               const tone = scoreTone(score);
               const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
@@ -1422,6 +1462,69 @@ function TermsPage({ onAgree, onBack, requireAgreement = true }) {
   );
 }
 
+
+function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
+  const ranked = [...items].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+  const leader = ranked[0];
+
+  return (
+    <aside className="mag7-panel">
+      <div className="panel-head">
+        <div>
+          <h2>
+            <Sparkles size={18} /> Mag 7
+          </h2>
+          <p>Magnificent 7 prebuilt Eval Score list</p>
+        </div>
+
+        <button
+          className="icon-btn"
+          onClick={onRefresh}
+          disabled={loading}
+          title="Refresh Mag 7 scores"
+        >
+          <RefreshCw size={16} className={loading ? "spin" : ""} />
+        </button>
+      </div>
+
+      <div className="mag7-list">
+        {ranked.map((item, index) => (
+          <button
+            className={`mag7-row rank-${index + 1}`}
+            key={item.symbol}
+            type="button"
+            onClick={() => onAnalyze(item.symbol)}
+          >
+            <span className="mag7-rank">{index + 1}</span>
+            <strong>{item.symbol}</strong>
+            <div
+              className={`watch-score-ring ${scoreTone(item.score)}`}
+              style={{
+                "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
+              }}
+            >
+              <strong>{scoreText(item.score)}</strong>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="mag7-summary">
+        <span>Top stock read</span>
+        <div>
+          <b>Strongest</b>
+          <strong>{leader?.strongest || "Refresh to load"}</strong>
+        </div>
+        <div>
+          <b>Weakest</b>
+          <strong>{leader?.weakest || "Refresh to load"}</strong>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+
 function Watchlist({
   items,
   symbol,
@@ -1431,11 +1534,12 @@ function Watchlist({
   onRefresh,
   loading,
   mobilePage = false,
+  pageMode = false,
 }) {
   const [manual, setManual] = useState("");
 
   return (
-    <aside className={`watch-panel ${mobilePage ? "mobile-watch-panel" : ""}`}>
+    <aside className={`watch-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
       <div className="panel-head">
         <div>
           <h2>
@@ -1478,7 +1582,7 @@ function Watchlist({
       <div className="watch-list">
         {items.length === 0 ? (
           <div className="watch-empty">
-            Add stocks here to compare their 0.0–10.0 Eval Scores.
+            Your watchlist is empty. Add a ticker above to start building your own list.
           </div>
         ) : (
           items.map((item) => (
@@ -1601,7 +1705,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask about stocks already in your watchlist. I can use recent news, Eval Score context, and plain-English stock impact.",
+        "Ask any stock-related question. I’ll keep it brief, clear, and easy to understand.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -1707,7 +1811,7 @@ function AssistantPage({ current, watchlist, onBack }) {
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask a stock question. Max 150 characters."
+              placeholder="Ask any stock question. Max 150 characters."
               rows="3"
             />
             <button disabled={loading}>
