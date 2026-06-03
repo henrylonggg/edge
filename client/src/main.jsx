@@ -1496,7 +1496,14 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
             onClick={() => onAnalyze(item.symbol)}
           >
             <span className="mag7-rank">{index + 1}</span>
-            <strong>{item.symbol}</strong>
+            <div className="mag7-main">
+              <strong>{item.symbol}</strong>
+              <div className="row-sw">
+                <span>Strong: {item.strongest || "N/A"}</span>
+                <span>Weak: {item.weakest || "N/A"}</span>
+              </div>
+            </div>
+
             <div
               className={`watch-score-ring ${scoreTone(item.score)}`}
               style={{
@@ -1589,6 +1596,10 @@ function Watchlist({
             <div className="watch-row" key={item.symbol}>
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
+                <div className="row-sw watch-row-sw">
+                  <span>Strong: {item.strongest || "N/A"}</span>
+                  <span>Weak: {item.weakest || "N/A"}</span>
+                </div>
               </button>
 
               <div
