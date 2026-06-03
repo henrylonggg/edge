@@ -8814,3 +8814,526 @@ button:active,
     transform: none !important;
   }
 }
+
+
+/* =========================================================
+   WATCHLIST MOVED TO SEPARATE PAGE
+   Removes dashboard sidebar and opens watchlist from its own button.
+========================================================= */
+
+.watchlist-nav-btn {
+  display: inline-flex !important;
+}
+
+.layout > .watch-panel:not(.watchlist-page-panel) {
+  display: none !important;
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.watchlist-page {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.watchlist-page-back {
+  width: fit-content;
+}
+
+.watchlist-page-panel {
+  display: block !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 0 !important;
+  transform: none !important;
+  padding: 24px !important;
+  border-radius: 30px !important;
+  overflow: visible !important;
+}
+
+.watchlist-page-panel .panel-head h2 {
+  font-size: 30px !important;
+}
+
+.watchlist-page-panel .panel-head p {
+  display: block !important;
+  font-size: 13px !important;
+}
+
+.watchlist-page-panel .watch-add {
+  grid-template-columns: 1fr 56px !important;
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+.watchlist-page-panel .watch-add input {
+  height: 56px !important;
+  padding: 14px 16px !important;
+  font-size: 19px !important;
+  border-radius: 17px !important;
+}
+
+.watchlist-page-panel .watch-add button {
+  width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 17px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 12px !important;
+}
+
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 1fr 76px 44px !important;
+  gap: 14px !important;
+  padding: 14px 16px !important;
+  border-radius: 22px !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 22px !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 70px !important;
+  height: 70px !important;
+  padding: 8px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 18px !important;
+}
+
+.watchlist-page-panel .delete-btn,
+.watchlist-page-panel .icon-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 15px !important;
+}
+
+/* Top 3 ranked rings: gold / silver / bronze look while keeping pulse ring style */
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+  border-color: rgba(255,215,107,.55) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+  border-color: rgba(223,229,238,.52) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+  border-color: rgba(205,127,50,.52) !important;
+}
+
+/* Desktop ticker row now has one extra watchlist button */
+@media (min-width: 681px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 50px 50px 235px 50px 50px 50px 50px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 1320px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+/* Mobile: keep same separate-page idea and fit all controls */
+@media (max-width: 680px) {
+  .watchlist-page {
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .watchlist-page-panel {
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .watchlist-page-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px 34px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+}
+
+
+/* =========================================================
+   MAG 7 DASHBOARD PANEL + EMPTY USER WATCHLIST PAGE
+   Mag 7 is separate from the user's watchlist.
+========================================================= */
+
+.mag7-panel {
+  position: static !important;
+  align-self: start !important;
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 92% 20%, rgba(159,92,255,.10), transparent 34%),
+    rgba(255,255,255,.075);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 24px 70px rgba(0,0,0,.30);
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 420px) !important;
+}
+
+.layout > .watch-panel:not(.watchlist-page-panel) {
+  display: none !important;
+}
+
+.mag7-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mag7-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px 1fr 62px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.12);
+  color: #ffffff;
+  text-align: left;
+}
+
+.mag7-row:hover {
+  background: rgba(255,255,255,.08);
+}
+
+.mag7-rank {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.mag7-row.rank-1 .mag7-rank {
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f);
+  color: #16130a;
+}
+
+.mag7-row.rank-2 .mag7-rank {
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5);
+  color: #111722;
+}
+
+.mag7-row.rank-3 .mag7-rank {
+  background: linear-gradient(135deg, #e0a05d, #9a5b24);
+  color: #fff4e8;
+}
+
+.mag7-row strong {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: .03em;
+}
+
+.mag7-row .watch-score-ring {
+  width: 58px !important;
+  height: 58px !important;
+  padding: 6px !important;
+}
+
+.mag7-row .watch-score-ring strong {
+  font-size: 15px !important;
+}
+
+.mag7-row.rank-1 .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.mag7-row.rank-2 .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.mag7-row.rank-3 .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+.mag7-summary {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(0,0,0,.14);
+  display: grid;
+  gap: 9px;
+}
+
+.mag7-summary > span {
+  color: var(--soft);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.mag7-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.mag7-summary b {
+  color: var(--soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.mag7-summary strong {
+  color: #ffffff;
+  font-size: 13px;
+  text-align: right;
+}
+
+.watchlist-page-panel .watch-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px dashed rgba(255,255,255,.16);
+  color: var(--muted);
+  background: rgba(255,255,255,.04);
+}
+
+@media (min-width: 681px) {
+  body .app-shell .layout > aside.mag7-panel {
+    transform: none !important;
+    margin-top: 0 !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 50px 50px 235px 50px 50px 50px 50px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 1320px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mag7-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .mag7-row {
+    grid-template-columns: 30px 1fr 56px;
+    gap: 9px;
+    padding: 9px 10px;
+  }
+
+  .mag7-row .watch-score-ring {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .mag7-row strong {
+    font-size: 16px;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px 34px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+}
+
+
+/* =========================================================
+   INDUSTRY TOP 3 ONLY — GOLD / SILVER / BRONZE
+========================================================= */
+
+.industry-row:nth-child(n+4) {
+  display: none !important;
+}
+
+.industry-row:nth-child(1) .industry-rank,
+.industry-card:nth-child(1) .industry-rank {
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f) !important;
+  color: #16130a !important;
+  border-color: rgba(255,215,107,.58) !important;
+}
+
+.industry-row:nth-child(2) .industry-rank,
+.industry-card:nth-child(2) .industry-rank {
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5) !important;
+  color: #111722 !important;
+  border-color: rgba(223,229,238,.56) !important;
+}
+
+.industry-row:nth-child(3) .industry-rank,
+.industry-card:nth-child(3) .industry-rank {
+  background: linear-gradient(135deg, #e0a05d, #9a5b24) !important;
+  color: #fff4e8 !important;
+  border-color: rgba(205,127,50,.56) !important;
+}
+
+.industry-row:nth-child(1) .industry-score-pie {
+  --industry-ring-bright: #ffd76b !important;
+  --industry-ring-glow: rgba(255,215,107,.40) !important;
+}
+
+.industry-row:nth-child(2) .industry-score-pie {
+  --industry-ring-bright: #dfe5ee !important;
+  --industry-ring-glow: rgba(223,229,238,.34) !important;
+}
+
+.industry-row:nth-child(3) .industry-score-pie {
+  --industry-ring-bright: #cd7f32 !important;
+  --industry-ring-glow: rgba(205,127,50,.34) !important;
+}
