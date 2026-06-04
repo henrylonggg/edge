@@ -1574,6 +1574,7 @@ function Watchlist({
         ) : (
           items.map((item) => (
             <div className="watch-row" key={item.symbol}>
+              <span className={`watch-rank-number rank-${index + 1}`}>{index + 1}</span>
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
                 <div className="row-sw watch-row-sw">
@@ -2290,7 +2291,7 @@ function metricLine(label, item) {
 
   if (typeof item === "object" && "value" in item) {
     const value = Number(item.value);
-    if (!Number.isFinite(value)) return null;
+    if (!Number.isFinite(value) || value === 0) return null;
 
     return {
       label,
@@ -2299,7 +2300,7 @@ function metricLine(label, item) {
     };
   }
 
-  if (item === null || item === undefined || item === "N/A") return null;
+  if (item === null || item === undefined || item === "N/A" || item === 0 || item === "0") return null;
 
   return {
     label,
@@ -2309,7 +2310,11 @@ function metricLine(label, item) {
 }
 
 function usableMetricLines(lines = []) {
-  return lines.filter(Boolean);
+  return lines.filter((line) => {
+    if (!line) return false;
+    const value = String(line.value ?? "").trim();
+    return value && value !== "0" && value !== "0.0" && value !== "N/A";
+  });
 }
 
 function MiniStat({
