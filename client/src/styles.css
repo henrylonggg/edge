@@ -10804,3 +10804,116 @@ button:active,
 .stock-main h1 {
   margin-top: 0 !important;
 }
+
+
+/* =========================================================
+   CLEAN FIX: SEARCH BAR, PRICE BUBBLE, WATCHLIST SPACING
+========================================================= */
+
+/* Search bubble: compact, aligned, no weird open right space */
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .searchbar.score-searchbar,
+  form.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 52px 52px 270px 52px 52px !important;
+    width: 520px !important;
+    max-width: 520px !important;
+    min-width: 0 !important;
+    justify-content: start !important;
+    justify-items: stretch !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    margin: 0 0 24px 0 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 270px !important;
+    max-width: 270px !important;
+    min-width: 270px !important;
+  }
+
+  .score-searchbar .ticker-field input {
+    width: 100% !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+}
+
+/* Price card: match Risk bubble style and kill turquoise accent */
+.price-box,
+.price-card,
+.price-stat,
+.price-bubble,
+.stat-card.price,
+.mini-stat.price,
+.report-side > :first-child,
+.stat-stack > :first-child {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.74), rgba(22,20,34,.74)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.20) !important;
+}
+
+.price-box::before,
+.price-card::before,
+.price-stat::before,
+.price-bubble::before,
+.stat-card.price::before,
+.mini-stat.price::before,
+.report-side > :first-child::before,
+.stat-stack > :first-child::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Watchlist: move score ring left, keep delete clean and visible */
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 34px minmax(0, 1fr) 58px 38px !important;
+  column-gap: 9px !important;
+  padding-right: 12px !important;
+  overflow: visible !important;
+}
+
+.watch-panel .watch-score-ring,
+.watchlist-page-panel .watch-score-ring {
+  justify-self: start !important;
+  margin-right: 8px !important;
+}
+
+.watch-panel .delete-btn,
+.watchlist-page-panel .delete-btn {
+  justify-self: end !important;
+  z-index: 3 !important;
+  position: relative !important;
+}
+
+/* Remove old current stock report kicker if text was removed */
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty {
+  display: none !important;
+}
