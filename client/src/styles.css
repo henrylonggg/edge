@@ -12171,3 +12171,178 @@ button:active,
     padding: 13px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE REPORT FIX USING ACTUAL CLASSES
+   Actual markup: .hero-card > .score-panel + .company-panel + .snapshot-grid
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Big report bubble becomes a single-column layout */
+  .hero-card {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-height: auto !important;
+    padding: 26px 18px 24px !important;
+    border-radius: 30px !important;
+
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 18px !important;
+    align-items: center !important;
+    justify-items: center !important;
+    overflow: hidden !important;
+  }
+
+  /* Company name centered at top */
+  .hero-card .company-panel {
+    grid-area: company !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    display: grid !important;
+    justify-items: center !important;
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .hero-card .company-panel .eyebrow,
+  .hero-card .company-panel > svg:first-child {
+    display: none !important;
+  }
+
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    margin: 0 auto 8px !important;
+    font-size: clamp(42px, 11.5vw, 64px) !important;
+    line-height: .96 !important;
+    letter-spacing: -0.045em !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+
+  .hero-card .company-panel .subline,
+  .hero-card .company-panel p {
+    text-align: center !important;
+    justify-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .hero-card .company-panel .hero-actions {
+    justify-content: center !important;
+    justify-self: center !important;
+    margin-top: 14px !important;
+  }
+
+  /* Eval Score centered underneath company buttons */
+  .hero-card .score-panel {
+    grid-area: score !important;
+    justify-self: center !important;
+    align-self: center !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 8px auto 2px !important;
+    transform: scale(1.18) !important;
+    transform-origin: center center !important;
+    z-index: 2 !important;
+  }
+
+  .hero-card .score-panel .score-ring {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Price/Risk at bottom in two columns */
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    grid-area: stats !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas: "price risk" !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 118px !important;
+    box-sizing: border-box !important;
+    border-radius: 22px !important;
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child {
+    grid-area: price !important;
+  }
+
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    grid-area: risk !important;
+  }
+
+  /* Match price/risk theme; remove black/cyan look */
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .hero-card .mini-stat,
+  .hero-card .price-mini-stat {
+    border-color: rgba(255,255,255,.10) !important;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,.05), transparent 42%),
+      linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.065),
+      0 18px 44px rgba(0,0,0,.22) !important;
+  }
+
+  .hero-card .snapshot-grid > *::before,
+  .hero-card .snapshot-grid-refined > *::before,
+  .hero-card .mini-stat::before,
+  .hero-card .price-mini-stat::before {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card {
+    padding: 22px 14px 20px !important;
+    row-gap: 15px !important;
+  }
+
+  .hero-card .score-panel {
+    transform: scale(1.10) !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    gap: 8px !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > * {
+    min-height: 108px !important;
+    padding: 13px !important;
+  }
+}
