@@ -1773,7 +1773,7 @@ function AssistantPage({ current, watchlist, onBack }) {
             <div className="assistant-kicker">
               <BrainCircuit size={16} /> Eval AI Assistant
             </div>
-            <h2>Ask stock questions in plain English.</h2>
+            <h2>Ask about this Eval report.</h2>
             <p>
               Compare stocks, understand metrics, ask about risk, or get a
               beginner-friendly breakdown before making a decision.
@@ -1803,7 +1803,7 @@ function AssistantPage({ current, watchlist, onBack }) {
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask any stock question. Max 150 characters."
+              placeholder="Ask about this Eval report or watchlist. Max 150 characters."
               rows="3"
             />
             <button disabled={loading}>
