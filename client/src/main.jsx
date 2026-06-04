@@ -1532,7 +1532,7 @@ function Watchlist({
           <h2>
             <Star size={18} /> Watchlist
           </h2>
-          <p>Saved in this browser · max 15 stocks</p>
+          <p>Max 15 stocks</p>
         </div>
 
         <button
