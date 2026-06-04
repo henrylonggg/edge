@@ -1,3 +1,4 @@
+// Eval mobile report layout: centered company, centered score, bottom price/risk.
 // Eval UI update: company icon removed, mobile score layout adjusted, price/risk theme synced.
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
