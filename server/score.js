@@ -1,4 +1,9 @@
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
+const MASSIVE_BASE_URL = "https://api.massive.com";
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
+
 
 function clamp(value, min = 0, max = 10) {
   return Math.max(min, Math.min(max, Number(value) || 0));
@@ -149,6 +154,390 @@ async function fetchFinnhubOptional(path, params = {}) {
     console.warn(`Optional Finnhub fetch failed for ${path}:`, error?.message || error);
     return null;
   }
+}
+
+
+async function fetchFmpOptional(path, params = {}) {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(`${FMP_BASE_URL}${path}`);
+    Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    const response = await fetch(url);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.warn(`Optional FMP fetch failed for ${path}:`, response.status, data?.Error || data?.error || "");
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.warn(`Optional FMP fetch failed for ${path}:`, error?.message || error);
+    return null;
+  }
+}
+
+async function fetchMassiveOptional(path, params = {}) {
+  const apiKey = process.env.MASSIVE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(`${MASSIVE_BASE_URL}${path}`);
+    Object.entries({ ...params, apiKey }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    const response = await fetch(url);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.warn(`Optional Massive fetch failed for ${path}:`, response.status, data?.error || data?.message || "");
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.warn(`Optional Massive fetch failed for ${path}:`, error?.message || error);
+    return null;
+  }
+}
+
+async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !Array.isArray(newsItems) || !newsItems.length) {
+    return null;
+  }
+
+  const compactNews = newsItems
+    .slice(0, 8)
+    .map((item, index) => ({
+      n: index + 1,
+      date: item.publishedDate || item.datetime || item.date || "",
+      source: item.site || item.source || "",
+      title: item.title || item.headline || "",
+      text: item.text || item.summary || "",
+      url: item.url || "",
+    }))
+    .filter((item) => item.title || item.text);
+
+  if (!compactNews.length) return null;
+
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: NEWS_SENTIMENT_MODEL,
+        temperature: 0.15,
+        max_tokens: 220,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You score recent stock news sentiment. Return only valid JSON with keys score, label, summary. score is 0-10. label is Bullish, Neutral, or Bearish. summary must be exactly 3 short sentences. Do not give financial advice.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              ticker: symbol,
+              company: profile?.name || symbol,
+              news: compactNews,
+            }),
+          },
+        ],
+      }),
+    });
+
+    const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.warn("OpenAI news sentiment failed:", response.status, json?.error?.message || "");
+      return null;
+    }
+
+    const content = json?.choices?.[0]?.message?.content || "";
+    const parsed = JSON.parse(content);
+    const score = clamp(parsed.score, 0, 10);
+
+    return {
+      score: Number(score.toFixed(1)),
+      label: parsed.label || (score >= 7 ? "Bullish" : score <= 4 ? "Bearish" : "Neutral"),
+      summary: String(parsed.summary || "").trim(),
+      articleCount: compactNews.length,
+      source: "OpenAI + recent news",
+      model: NEWS_SENTIMENT_MODEL,
+    };
+  } catch (error) {
+    console.warn("OpenAI news sentiment parse failed:", error?.message || error);
+    return null;
+  }
+}
+
+function arrayFirst(value) {
+  return Array.isArray(value) && value.length ? value[0] : null;
+}
+
+async function fetchFmpBundle(symbol) {
+  const clean = String(symbol || "").trim().toUpperCase();
+  if (!process.env.FMP_API_KEY) return null;
+
+  const [
+    profile,
+    quote,
+    ratiosTtm,
+    keyMetricsTtm,
+    incomeAnnual,
+    balanceAnnual,
+    cashflowAnnual,
+    growthAnnual,
+    enterpriseValues,
+    news,
+  ] = await Promise.all([
+    fetchFmpOptional(`/profile/${clean}`),
+    fetchFmpOptional(`/quote/${clean}`),
+    fetchFmpOptional(`/ratios-ttm/${clean}`),
+    fetchFmpOptional(`/key-metrics-ttm/${clean}`),
+    fetchFmpOptional(`/income-statement/${clean}`, { period: "annual", limit: 6 }),
+    fetchFmpOptional(`/balance-sheet-statement/${clean}`, { period: "annual", limit: 6 }),
+    fetchFmpOptional(`/cash-flow-statement/${clean}`, { period: "annual", limit: 6 }),
+    fetchFmpOptional(`/financial-growth/${clean}`, { period: "annual", limit: 6 }),
+    fetchFmpOptional(`/enterprise-values/${clean}`, { period: "annual", limit: 2 }),
+    fetchFmpOptional(`/stock_news`, { tickers: clean, limit: 8 }),
+  ]);
+
+  return {
+    profile: arrayFirst(profile),
+    quote: arrayFirst(quote),
+    ratiosTtm: arrayFirst(ratiosTtm),
+    keyMetricsTtm: arrayFirst(keyMetricsTtm),
+    incomeAnnual: Array.isArray(incomeAnnual) ? incomeAnnual : [],
+    balanceAnnual: Array.isArray(balanceAnnual) ? balanceAnnual : [],
+    cashflowAnnual: Array.isArray(cashflowAnnual) ? cashflowAnnual : [],
+    growthAnnual: Array.isArray(growthAnnual) ? growthAnnual : [],
+    enterpriseValues: Array.isArray(enterpriseValues) ? enterpriseValues : [],
+    news: Array.isArray(news) ? news : [],
+  };
+}
+
+async function fetchMassiveQuote(symbol) {
+  const clean = String(symbol || "").trim().toUpperCase();
+  const data = await fetchMassiveOptional(`/v2/snapshot/locale/us/markets/stocks/tickers/${clean}`);
+  const t = data?.ticker || data?.results || null;
+  if (!t) return null;
+
+  const current = firstNumber(t?.lastTrade?.p, t?.day?.c, t?.prevDay?.c);
+  const previousClose = safeNumber(t?.prevDay?.c);
+  const change = firstNumber(
+    t?.todaysChange,
+    current !== null && previousClose !== null ? current - previousClose : null
+  );
+  const changePercent = firstNumber(
+    t?.todaysChangePerc,
+    change !== null && previousClose ? (change / previousClose) * 100 : null
+  );
+
+  return current !== null
+    ? {
+        c: current,
+        d: change,
+        dp: changePercent,
+        source: "Massive snapshot",
+      }
+    : null;
+}
+
+function fmpDerivedMetrics(fmp, fallbackProfile = {}, fallbackQuote = {}) {
+  if (!fmp) return {};
+
+  const profile = fmp.profile || {};
+  const quote = fmp.quote || {};
+  const ratios = fmp.ratiosTtm || {};
+  const keyMetrics = fmp.keyMetricsTtm || {};
+  const income = fmp.incomeAnnual?.[0] || {};
+  const priorIncome = fmp.incomeAnnual?.[1] || {};
+  const income3 = fmp.incomeAnnual?.[3] || {};
+  const income5 = fmp.incomeAnnual?.[5] || {};
+  const balance = fmp.balanceAnnual?.[0] || {};
+  const cashflow = fmp.cashflowAnnual?.[0] || {};
+  const growth = fmp.growthAnnual?.[0] || {};
+  const ev = fmp.enterpriseValues?.[0] || {};
+
+  const marketCap = firstNumber(profile.mktCap, quote.marketCap, ev.marketCapitalization, safeNumber(fallbackProfile?.marketCapitalization) !== null ? fallbackProfile.marketCapitalization * 1_000_000 : null);
+  const currentPrice = firstNumber(quote.price, fallbackQuote?.c);
+  const sharesOutstanding = firstNumber(profile.sharesOutstanding, ev.numberOfShares, currentPrice ? marketCap / currentPrice : null);
+
+  const revenue = firstNumber(income.revenue);
+  const grossProfit = firstNumber(income.grossProfit);
+  const operatingIncome = firstNumber(income.operatingIncome);
+  const ebitda = firstNumber(income.ebitda);
+  const ebit = firstNumber(income.ebit, operatingIncome);
+  const pretaxIncome = firstNumber(income.incomeBeforeTax);
+  const incomeTaxExpense = firstNumber(income.incomeTaxExpense);
+  const interestExpense = Math.abs(firstNumber(income.interestExpense) || 0) || null;
+  const netIncome = firstNumber(income.netIncome);
+  const eps = firstNumber(income.epsdiluted, income.eps);
+
+  const currentAssets = firstNumber(balance.totalCurrentAssets);
+  const currentLiabilities = firstNumber(balance.totalCurrentLiabilities);
+  const cash = firstNumber(balance.cashAndCashEquivalents, balance.cashAndShortTermInvestments);
+  const totalDebt = firstNumber(balance.totalDebt, (safeNumber(balance.shortTermDebt) || 0) + (safeNumber(balance.longTermDebt) || 0) || null);
+  const longTermDebt = firstNumber(balance.longTermDebt);
+  const equity = firstNumber(balance.totalStockholdersEquity, balance.totalEquity);
+  const assets = firstNumber(balance.totalAssets);
+
+  const operatingCashFlow = firstNumber(cashflow.operatingCashFlow, cashflow.netCashProvidedByOperatingActivities);
+  const capex = firstNumber(cashflow.capitalExpenditure, cashflow.capitalExpenditures);
+  const freeCashFlow = firstNumber(cashflow.freeCashFlow, operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
+
+  const enterpriseValue = firstNumber(ev.enterpriseValue, marketCap !== null && totalDebt !== null ? marketCap + totalDebt - (cash || 0) : null);
+
+  return {
+    source: "FMP",
+    marketCap,
+    marketCapM: marketCap !== null ? marketCap / 1_000_000 : null,
+    currentPrice,
+    sharesOutstanding,
+    revenue,
+    grossProfit,
+    operatingIncome,
+    ebit,
+    ebitda,
+    pretaxIncome,
+    incomeTaxExpense,
+    interestExpense,
+    netIncome,
+    eps,
+    currentAssets,
+    currentLiabilities,
+    cash,
+    totalDebt,
+    longTermDebt,
+    equity,
+    assets,
+    operatingCashFlow,
+    capex,
+    freeCashFlow,
+    enterpriseValue,
+
+    peRatio: firstNumber(ratios.priceEarningsRatioTTM, keyMetrics.peRatioTTM),
+    forwardPe: null,
+    pegRatio: firstNumber(ratios.priceEarningsToGrowthRatioTTM),
+    priceToSales: firstNumber(ratios.priceToSalesRatioTTM, keyMetrics.priceToSalesRatioTTM),
+    priceToBook: firstNumber(ratios.priceToBookRatioTTM, keyMetrics.pbRatioTTM),
+    priceToCashFlow: firstNumber(ratios.priceCashFlowRatioTTM, keyMetrics.pocfratioTTM),
+    priceToFreeCashFlow: firstNumber(ratios.priceToFreeCashFlowsRatioTTM, keyMetrics.pfcfRatioTTM),
+    evToSales: firstNumber(keyMetrics.enterpriseValueMultipleTTM, enterpriseValue !== null && revenue ? enterpriseValue / revenue : null),
+    evToEbitda: firstNumber(keyMetrics.enterpriseValueOverEBITDATTM, enterpriseValue !== null && ebitda ? enterpriseValue / ebitda : null),
+
+    roe: firstNumber(ratios.returnOnEquityTTM, keyMetrics.roeTTM, divide(netIncome, equity) !== null ? divide(netIncome, equity) * 100 : null),
+    roa: firstNumber(ratios.returnOnAssetsTTM, keyMetrics.roaTTM, divide(netIncome, assets) !== null ? divide(netIncome, assets) * 100 : null),
+    roi: firstNumber(ratios.returnOnCapitalEmployedTTM, keyMetrics.roicTTM),
+    grossMargin: firstNumber(ratios.grossProfitMarginTTM, divide(grossProfit, revenue) !== null ? divide(grossProfit, revenue) * 100 : null),
+    operatingMargin: firstNumber(ratios.operatingProfitMarginTTM, divide(operatingIncome, revenue) !== null ? divide(operatingIncome, revenue) * 100 : null),
+    pretaxMargin: firstNumber(divide(pretaxIncome, revenue) !== null ? divide(pretaxIncome, revenue) * 100 : null),
+    netMargin: firstNumber(ratios.netProfitMarginTTM, divide(netIncome, revenue) !== null ? divide(netIncome, revenue) * 100 : null),
+
+    revenueGrowth: firstNumber(growth.revenueGrowth, percentGrowth(revenue, priorIncome.revenue)),
+    revenueGrowth3Y: cagr(revenue, income3.revenue, 3),
+    revenueGrowth5Y: cagr(revenue, income5.revenue, 5),
+    epsGrowth: firstNumber(growth.epsgrowth, percentGrowth(eps, priorIncome.epsdiluted || priorIncome.eps)),
+    epsGrowth3Y: cagr(eps, income3.epsdiluted || income3.eps, 3),
+    epsGrowth5Y: cagr(eps, income5.epsdiluted || income5.eps, 5),
+
+    debtToEquity: firstNumber(ratios.debtEquityRatioTTM, divide(totalDebt, equity)),
+    longTermDebtToEquity: divide(longTermDebt, equity),
+    currentRatio: firstNumber(ratios.currentRatioTTM, divide(currentAssets, currentLiabilities)),
+    quickRatio: firstNumber(ratios.quickRatioTTM),
+    cashRatio: firstNumber(ratios.cashRatioTTM, divide(cash, currentLiabilities)),
+    assetTurnover: firstNumber(ratios.assetTurnoverTTM, divide(revenue, assets)),
+    dividendYield: firstNumber(keyMetrics.dividendYieldTTM),
+  };
+}
+
+function calculateWaccAndDcf(inputs = {}, metrics = {}) {
+  const marketCap = firstNumber(inputs.marketCap, inputs.marketCapM !== null && inputs.marketCapM !== undefined ? inputs.marketCapM * 1_000_000 : null);
+  const totalDebt = firstNumber(inputs.totalDebt, 0);
+  const cash = firstNumber(inputs.cash, 0);
+  const interestExpense = safeNumber(inputs.interestExpense);
+  const pretaxIncome = safeNumber(inputs.pretaxIncome);
+  const taxExpense = safeNumber(inputs.incomeTaxExpense);
+  const beta = firstNumber(metrics.beta, inputs.beta, 1.0);
+  const freeCashFlow = safeNumber(inputs.freeCashFlow);
+  const sharesOutstanding = safeNumber(inputs.sharesOutstanding);
+  const revenueGrowth = firstNumber(metrics.revenueGrowth3Y, metrics.revenueGrowth5Y, metrics.revenueGrowth, 5);
+
+  const riskFreeRate = safeNumber(process.env.RISK_FREE_RATE) ?? 0.045;
+  const equityRiskPremium = safeNumber(process.env.EQUITY_RISK_PREMIUM) ?? 0.055;
+  const terminalGrowthRate = safeNumber(process.env.TERMINAL_GROWTH_RATE) ?? 0.025;
+
+  const taxRate =
+    pretaxIncome !== null && pretaxIncome > 0 && taxExpense !== null
+      ? clamp(taxExpense / pretaxIncome, 0, 0.35)
+      : 0.21;
+
+  const costOfEquity = riskFreeRate + beta * equityRiskPremium;
+  const costOfDebt =
+    totalDebt && interestExpense !== null && interestExpense > 0
+      ? clamp(interestExpense / totalDebt, 0.01, 0.18)
+      : 0.055;
+
+  const totalCapital = (marketCap || 0) + (totalDebt || 0);
+  const wacc =
+    totalCapital > 0
+      ? ((marketCap || 0) / totalCapital) * costOfEquity + ((totalDebt || 0) / totalCapital) * costOfDebt * (1 - taxRate)
+      : null;
+
+  if (wacc === null || freeCashFlow === null || freeCashFlow <= 0 || sharesOutstanding === null || sharesOutstanding <= 0 || wacc <= terminalGrowthRate) {
+    return {
+      wacc: wacc !== null ? wacc * 100 : null,
+      intrinsicValue: null,
+      dcfEnterpriseValue: null,
+      intrinsicValueGap: null,
+      source: "Calculated when enough FMP/Finnhub data exists",
+    };
+  }
+
+  const cappedGrowth = clamp((revenueGrowth || 5) / 100, -0.02, 0.12);
+  const projectionGrowth = Math.min(cappedGrowth, wacc - 0.01);
+
+  let projected = freeCashFlow;
+  const projectedFcfs = [];
+
+  for (let year = 1; year <= 5; year += 1) {
+    projected *= 1 + projectionGrowth;
+    projectedFcfs.push(projected);
+  }
+
+  const pvFcfs = projectedFcfs.reduce((sum, fcf, index) => sum + fcf / Math.pow(1 + wacc, index + 1), 0);
+  const terminalValue = projectedFcfs[4] * (1 + terminalGrowthRate) / (wacc - terminalGrowthRate);
+  const pvTerminalValue = terminalValue / Math.pow(1 + wacc, 5);
+  const enterpriseValue = pvFcfs + pvTerminalValue;
+  const equityValue = enterpriseValue + (cash || 0) - (totalDebt || 0);
+  const intrinsicValue = equityValue / sharesOutstanding;
+  const currentPrice = safeNumber(inputs.currentPrice);
+  const intrinsicValueGap = currentPrice !== null && intrinsicValue > 0 ? ((intrinsicValue - currentPrice) / currentPrice) * 100 : null;
+
+  return {
+    wacc: wacc * 100,
+    intrinsicValue,
+    dcfEnterpriseValue: enterpriseValue,
+    intrinsicValueGap,
+    dcfGrowthRate: projectionGrowth * 100,
+    terminalGrowthRate: terminalGrowthRate * 100,
+    source: "Calculated from financial statements",
+  };
 }
 
 function reportRows(statement) {
@@ -662,20 +1051,91 @@ export async function buildStockAnalysis(symbol) {
     throw new Error("Missing ticker symbol.");
   }
 
-  const [profile, quote, metricsRaw, annualFinancials, quarterlyFinancials] = await Promise.all([
+  const [
+    finnhubProfile,
+    finnhubQuote,
+    metricsRaw,
+    annualFinancials,
+    quarterlyFinancials,
+    fmpBundle,
+    massiveQuote,
+    finnhubNews,
+  ] = await Promise.all([
     fetchFinnhub("/stock/profile2", { symbol: cleanSymbol }),
     fetchFinnhub("/quote", { symbol: cleanSymbol }),
     fetchFinnhub("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
     fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }),
     fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "quarterly" }),
+    fetchFmpBundle(cleanSymbol),
+    fetchMassiveQuote(cleanSymbol),
+    fetchFinnhubOptional("/company-news", {
+      symbol: cleanSymbol,
+      from: new Date(Date.now() - 1000 * 60 * 60 * 24 * 21).toISOString().slice(0, 10),
+      to: new Date().toISOString().slice(0, 10),
+    }),
   ]);
+
+  const profile = {
+    ...(finnhubProfile || {}),
+    ...(fmpBundle?.profile
+      ? {
+          name: fmpBundle.profile.companyName || finnhubProfile?.name,
+          ticker: fmpBundle.profile.symbol || finnhubProfile?.ticker || cleanSymbol,
+          marketCapitalization:
+            safeNumber(finnhubProfile?.marketCapitalization) ??
+            (safeNumber(fmpBundle.profile.mktCap) !== null ? fmpBundle.profile.mktCap / 1_000_000 : null),
+          finnhubIndustry: finnhubProfile?.finnhubIndustry || fmpBundle.profile.industry || fmpBundle.profile.sector,
+          weburl: finnhubProfile?.weburl || fmpBundle.profile.website,
+          logo: finnhubProfile?.logo || fmpBundle.profile.image,
+        }
+      : {}),
+  };
+
+  const quote = {
+    ...(finnhubQuote || {}),
+    ...(fmpBundle?.quote?.price ? { c: fmpBundle.quote.price, d: fmpBundle.quote.change, dp: fmpBundle.quote.changesPercentage } : {}),
+    ...(massiveQuote || {}),
+  };
 
   if (!profile || !profile.ticker) {
     throw new Error(`No company profile found for ${cleanSymbol}.`);
   }
 
   const rawMetricData = metricsRaw?.metric || {};
-  const extracted = buildExtractedMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials);
+  const finnhubExtracted = buildExtractedMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials);
+  const fmpExtracted = fmpDerivedMetrics(fmpBundle, profile, quote);
+
+  const extracted = {
+    ...finnhubExtracted,
+    ...Object.fromEntries(
+      Object.entries(fmpExtracted).filter(([, value]) => value !== null && value !== undefined)
+    ),
+    beta: firstNumber(finnhubExtracted.beta, fmpBundle?.profile?.beta),
+    dayChangePercent: firstNumber(quote?.dp, finnhubExtracted.dayChangePercent),
+    priceReturn4Week: firstNumber(finnhubExtracted.priceReturn4Week),
+    priceReturn13Week: firstNumber(finnhubExtracted.priceReturn13Week),
+    priceReturn26Week: firstNumber(finnhubExtracted.priceReturn26Week),
+    priceReturn52Week: firstNumber(finnhubExtracted.priceReturn52Week),
+    weekHigh: firstNumber(finnhubExtracted.weekHigh, fmpBundle?.quote?.yearHigh),
+    weekLow: firstNumber(finnhubExtracted.weekLow, fmpBundle?.quote?.yearLow),
+  };
+
+  extracted.pullbackFromHigh =
+    extracted.currentPrice !== null && extracted.currentPrice !== undefined && extracted.weekHigh
+      ? ((extracted.weekHigh - extracted.currentPrice) / extracted.weekHigh) * 100
+      : extracted.pullbackFromHigh;
+
+  extracted.distanceFrom52WeekLow =
+    extracted.currentPrice !== null && extracted.currentPrice !== undefined && extracted.weekLow
+      ? ((extracted.currentPrice - extracted.weekLow) / extracted.weekLow) * 100
+      : extracted.distanceFrom52WeekLow;
+
+  const valuationModel = calculateWaccAndDcf(extracted, extracted);
+  const newsSentiment = await fetchOpenAiNewsSentiment(
+    cleanSymbol,
+    profile,
+    Array.isArray(fmpBundle?.news) && fmpBundle.news.length ? fmpBundle.news : finnhubNews
+  );
 
   const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
@@ -683,6 +1143,7 @@ export async function buildStockAnalysis(symbol) {
   const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
+  const newsSentimentScore = newsSentiment?.score ?? null;
 
   const edgeScore = availableWeightedAverage([
     { score: growthScore, weight: 0.235 },
@@ -717,7 +1178,9 @@ export async function buildStockAnalysis(symbol) {
       priceToCashFlow: metric(extracted.priceToCashFlow, "", extracted.priceToCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Operating Cash Flow"),
       priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", extracted.priceToFreeCashFlow !== null ? "Calculated" : "Finnhub", "Market Cap / Free Cash Flow"),
       enterpriseValue: metric(toMillions(extracted.enterpriseValue), "M", extracted.enterpriseValue !== null ? "Calculated" : "Finnhub", "Market Cap + Total Debt - Cash, shown in millions"),
-      dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
+      ebitda: metric(toMillions(extracted.ebitda), "M", firstNumber(fmpExtracted.ebitda) !== null ? "FMP" : "Calculated", "EBITDA shown in millions"),
+      evToEbitda: metric(extracted.evToEbitda, "", firstNumber(fmpExtracted.evToEbitda) !== null ? "FMP" : "Calculated", "Enterprise Value / EBITDA"),
+      dividendYield: metric(extracted.dividendYield, "%", "Finnhub/FMP", "Annual dividend yield"),
 
       roe: metric(extracted.roe, "%", extracted.roe !== null ? "Calculated" : "Finnhub", "Net Income / Shareholder Equity"),
       roa: metric(extracted.roa, "%", extracted.roa !== null ? "Calculated" : "Finnhub", "Net Income / Assets"),
@@ -755,7 +1218,20 @@ export async function buildStockAnalysis(symbol) {
       pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Calculated", "Distance below 52-week high"),
       distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Calculated", "Distance above 52-week low"),
 
-      marketCapM: metric(extracted.marketCapM, "M", "Finnhub", "Market capitalization in millions"),
+      wacc: metric(valuationModel.wacc, "%", valuationModel.source, "WACC = weighted cost of equity and after-tax debt"),
+      dcfEnterpriseValue: metric(toMillions(valuationModel.dcfEnterpriseValue), "M", valuationModel.source, "Present value of projected FCF + terminal value"),
+      intrinsicValue: metric(valuationModel.intrinsicValue, "", valuationModel.source, "DCF equity value / shares outstanding"),
+      intrinsicValueGap: metric(valuationModel.intrinsicValueGap, "%", valuationModel.source, "(Intrinsic Value - Current Price) / Current Price"),
+      dcfGrowthRate: metric(valuationModel.dcfGrowthRate, "%", valuationModel.source, "Capped projected FCF growth rate used in DCF"),
+      newsSentiment: metric(newsSentimentScore, "", newsSentiment?.source || "OpenAI + recent news", "AI score from recent company news headlines/snippets"),
+      marketCapM: metric(extracted.marketCapM, "M", firstNumber(fmpExtracted.marketCapM) !== null ? "FMP" : "Finnhub", "Market capitalization in millions"),
+    },
+
+    newsSentiment: newsSentiment || {
+      score: null,
+      label: "Unavailable",
+      summary: "Recent news sentiment was not available. Add OPENAI_API_KEY plus FMP_API_KEY or FINNHUB_API_KEY news access. This does not affect the Eval Score.",
+      articleCount: 0,
     },
 
     grades: {
@@ -768,9 +1244,14 @@ export async function buildStockAnalysis(symbol) {
         valuation: valuationScore,
         momentum: momentumScore,
         reversal: reversalScore,
+        newsSentiment: newsSentimentScore,
       },
       context: {
         marketCapM: extracted.marketCapM,
+        wacc: valuationModel.wacc,
+        intrinsicValue: valuationModel.intrinsicValue,
+        intrinsicValueGap: valuationModel.intrinsicValueGap,
+        newsSentiment: newsSentiment,
       },
     },
   };
