@@ -10650,3 +10650,73 @@ button:active,
     font-size: 15px !important;
   }
 }
+
+
+/* =========================================================
+   FINAL HOTFIX: WATCHLIST RANKS WITHOUT JS index
+   Prevents blank screen from ReferenceError: index is not defined.
+========================================================= */
+
+.watch-panel .watch-list,
+.watchlist-page-panel .watch-list {
+  counter-reset: watchRank !important;
+}
+
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  counter-increment: watchRank !important;
+  grid-template-columns: 34px minmax(0, 1fr) 52px 34px !important;
+}
+
+.watch-rank-number {
+  width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  color: rgba(255,255,255,.88) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.08) !important;
+  flex: 0 0 auto !important;
+}
+
+.watch-rank-number::before {
+  content: counter(watchRank) !important;
+}
+
+.watch-panel .watch-row:nth-child(1) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(1) .watch-rank-number {
+  color: #16130a !important;
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f) !important;
+  border-color: rgba(255,215,107,.58) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(2) .watch-rank-number {
+  color: #111722 !important;
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5) !important;
+  border-color: rgba(223,229,238,.56) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(3) .watch-rank-number {
+  color: #fff4e8 !important;
+  background: linear-gradient(135deg, #e0a05d, #9a5b24) !important;
+  border-color: rgba(205,127,50,.56) !important;
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 28px minmax(0, 1fr) 42px 30px !important;
+  }
+
+  .watch-rank-number {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 8px !important;
+    font-size: 10px !important;
+  }
+}
