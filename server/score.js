@@ -96,19 +96,6 @@ function pickScaledMetric(metrics, candidates) {
   return null;
 }
 
-function availableWeightedAverage(items, fallback = 6.0) {
-  const used = items.filter(
-    (item) => item.score !== null && item.score !== undefined && Number.isFinite(Number(item.score))
-  );
-  if (!used.length) return fallback;
-
-  const totalWeight = used.reduce((sum, item) => sum + (item.weight || 1), 0);
-  if (!totalWeight) return fallback;
-
-  const total = used.reduce((sum, item) => sum + Number(item.score) * (item.weight || 1), 0);
-  return Number(clamp(total / totalWeight).toFixed(1));
-}
-
 function highIsGood(value, poor, excellent) {
   const n = safeNumber(value);
   if (n === null) return null;
