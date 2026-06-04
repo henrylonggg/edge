@@ -229,7 +229,7 @@ async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
   }
 
   const compactNews = newsItems
-    .slice(0, 8)
+    .slice(0, 12)
     .map((item, index) => ({
       n: index + 1,
       date: item.publishedDate || item.datetime || item.date || "",
@@ -251,14 +251,14 @@ async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
       },
       body: JSON.stringify({
         model: NEWS_SENTIMENT_MODEL,
-        temperature: 0.15,
-        max_tokens: 220,
+        temperature: 0.12,
+        max_tokens: 650,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "You score recent stock news sentiment. Return only valid JSON with keys score, label, summary. score is 0-10. label is Bullish, Neutral, or Bearish. summary must be exactly 3 short sentences. Do not give financial advice.",
+              "You score recent stock news sentiment. Group the articles into the 3 most important news topics for the stock. Weight each topic by likely stock impact. Return only valid JSON: {score,label,summary,topics}. score is 0.0-10.0 where 0 is very bad, 5 neutral, 10 very good. label is Bullish, Neutral, or Bearish. summary is exactly 3 short sentences. topics is an array of exactly 3 objects with title, summary, score, weight, impact, url. Each topic summary is exactly 3 short sentences. Each weight is a percent and all topic weights must total 100. Use provided article URLs. Do not give financial advice.",
           },
           {
             role: "user",
@@ -280,14 +280,50 @@ async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
 
     const content = json?.choices?.[0]?.message?.content || "";
     const parsed = JSON.parse(content || "{}");
-    const score = clamp(parsed.score, 0, 10);
+    const topics = Array.isArray(parsed.topics)
+      ? parsed.topics.slice(0, 3).map((topic, index) => {
+          const score = clamp(topic?.score, 0, 10);
+          const weight = Math.max(0, Math.min(100, safeNumber(topic?.weight) ?? (index === 0 ? 45 : index === 1 ? 35 : 20)));
+          const fallbackArticle = compactNews[index] || compactNews[0] || {};
+          return {
+            title: String(topic?.title || fallbackArticle.title || `News topic ${index + 1}`).trim(),
+            summary: String(topic?.summary || topic?.impact || fallbackArticle.text || "No summary available.").trim(),
+            score: Number(score.toFixed(1)),
+            weight,
+            impact: String(topic?.impact || "").trim(),
+            url: String(topic?.url || fallbackArticle.url || "").trim(),
+            source: fallbackArticle.source || "",
+          };
+        })
+      : [];
+
+    while (topics.length < Math.min(3, compactNews.length)) {
+      const item = compactNews[topics.length] || {};
+      topics.push({
+        title: item.title || `News topic ${topics.length + 1}`,
+        summary: item.text || "No summary available.",
+        score: 5.0,
+        weight: topics.length === 0 ? 45 : topics.length === 1 ? 35 : 20,
+        impact: "Neutral impact.",
+        url: item.url || "",
+        source: item.source || "",
+      });
+    }
+
+    const totalWeight = topics.reduce((sum, topic) => sum + (safeNumber(topic.weight) || 0), 0) || 100;
+    const weightedScore = topics.length
+      ? topics.reduce((sum, topic) => sum + Number(topic.score || 5) * ((safeNumber(topic.weight) || 0) / totalWeight), 0)
+      : clamp(parsed.score, 0, 10);
+
+    const score = Number(clamp(parsed.score ?? weightedScore, 0, 10).toFixed(1));
 
     return {
-      score: Number(score.toFixed(1)),
+      score,
       label: parsed.label || (score >= 7 ? "Bullish" : score <= 4 ? "Bearish" : "Neutral"),
       summary: String(parsed.summary || "").trim(),
+      topics,
       articleCount: compactNews.length,
-      source: "OpenAI + recent news",
+      source: "OpenAI weighted top 3 news topics",
       model: NEWS_SENTIMENT_MODEL,
     };
   } catch (error) {
@@ -295,6 +331,7 @@ async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
     return null;
   }
 }
+
 
 function arrayFirst(value) {
   return Array.isArray(value) && value.length ? value[0] : null;
@@ -637,6 +674,157 @@ function calculateWaccAndDcf(inputs = {}, metrics = {}) {
 }
 
 
+
+function metricScore(value, points) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+
+  for (const [threshold, score] of points) {
+    if (n >= threshold) return score;
+  }
+
+  return points.length ? points[points.length - 1][1] : null;
+}
+
+function inverseMetricScore(value, points) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+
+  for (const [threshold, score] of points) {
+    if (n <= threshold) return score;
+  }
+
+  return points.length ? points[points.length - 1][1] : null;
+}
+
+function availableWeightedAverage(items = [], fallback = null) {
+  let total = 0;
+  let weight = 0;
+
+  for (const item of items) {
+    const score = safeNumber(item?.score);
+    const w = safeNumber(item?.weight) ?? 1;
+
+    if (score !== null && Number.isFinite(score) && w > 0) {
+      total += score * w;
+      weight += w;
+    }
+  }
+
+  if (!weight) return fallback;
+  return Number((total / weight).toFixed(1));
+}
+
+function scoreGrowth(m = {}) {
+  return availableWeightedAverage(
+    [
+      { score: metricScore(m.revenueGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.30 },
+      { score: metricScore(m.revenueGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.20 },
+      { score: metricScore(m.revenueGrowth5Y, [[20, 10], [14, 9], [9, 8], [5, 7], [2, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.15 },
+      { score: metricScore(m.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.25 },
+      { score: metricScore(m.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.10 },
+    ],
+    null
+  );
+}
+
+function scoreProfitability(m = {}) {
+  return availableWeightedAverage(
+    [
+      { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3]]), weight: 0.22 },
+      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0, 5], [-999, 3]]), weight: 0.14 },
+      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0, 5], [-999, 3]]), weight: 0.14 },
+      { score: metricScore(m.grossMargin, [[70, 10], [55, 9], [40, 8], [28, 7], [18, 6], [8, 5], [-999, 3]]), weight: 0.13 },
+      { score: metricScore(m.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.20 },
+      { score: metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.17 },
+    ],
+    null
+  );
+}
+
+function scoreFinancialHealth(m = {}) {
+  return availableWeightedAverage(
+    [
+      { score: inverseMetricScore(m.debtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6], [3.0, 4], [999, 2]]), weight: 0.28 },
+      { score: inverseMetricScore(m.longTermDebtToEquity, [[0.25, 10], [0.6, 9], [1.0, 8], [1.8, 6], [2.8, 4], [999, 2]]), weight: 0.16 },
+      { score: metricScore(m.currentRatio, [[3.0, 9], [2.0, 8.5], [1.5, 8], [1.1, 6.5], [0.8, 4.5], [-999, 2]]), weight: 0.22 },
+      { score: metricScore(m.quickRatio, [[2.0, 9], [1.4, 8], [1.0, 7], [0.75, 5], [-999, 3]]), weight: 0.14 },
+      { score: metricScore(m.cashRatio, [[1.0, 9], [0.5, 8], [0.25, 6.5], [0.1, 5], [-999, 3]]), weight: 0.10 },
+      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8], [0.5, 7], [0.25, 5.5], [-999, 4]]), weight: 0.10 },
+    ],
+    null
+  );
+}
+
+function scoreValuation(m = {}, growthScore = null, profitabilityScore = null) {
+  const qualityBonus = availableWeightedAverage(
+    [
+      { score: growthScore, weight: 0.5 },
+      { score: profitabilityScore, weight: 0.5 },
+    ],
+    6
+  );
+
+  const raw = availableWeightedAverage(
+    [
+      { score: inverseMetricScore(m.peRatio, [[12, 9.5], [18, 8.5], [25, 7.5], [35, 6.5], [50, 5.5], [75, 4.5], [9999, 3.5]]), weight: 0.22 },
+      { score: inverseMetricScore(m.forwardPe, [[14, 9], [20, 8], [28, 7], [40, 6], [60, 5], [9999, 3.5]]), weight: 0.10 },
+      { score: inverseMetricScore(m.pegRatio, [[0.8, 9.5], [1.2, 8.5], [1.8, 7.5], [2.5, 6], [4, 4.5], [9999, 3]]), weight: 0.10 },
+      { score: inverseMetricScore(m.priceToSales, [[2, 9], [4, 8], [7, 6.5], [12, 5], [20, 3.5], [9999, 2.5]]), weight: 0.15 },
+      { score: inverseMetricScore(m.priceToBook, [[2, 9], [4, 8], [7, 6.5], [12, 5], [20, 3.5], [9999, 2.5]]), weight: 0.12 },
+      { score: inverseMetricScore(m.priceToFreeCashFlow, [[15, 9], [25, 8], [40, 6.5], [65, 5], [100, 3.5], [9999, 2.5]]), weight: 0.16 },
+      { score: metricScore(m.intrinsicValueGap, [[35, 10], [20, 9], [10, 8], [0, 7], [-10, 5.5], [-25, 4], [-999, 3]]), weight: 0.15 },
+    ],
+    null
+  );
+
+  if (raw === null) return null;
+
+  const adjusted = raw + Math.max(-0.5, Math.min(0.8, (qualityBonus - 6) * 0.12));
+  return Number(Math.max(0, Math.min(10, adjusted)).toFixed(1));
+}
+
+function scoreMomentum(m = {}) {
+  return availableWeightedAverage(
+    [
+      { score: metricScore(m.priceReturn4Week, [[15, 10], [8, 9], [3, 8], [0, 7], [-5, 5], [-12, 4], [-999, 3]]), weight: 0.22 },
+      { score: metricScore(m.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), weight: 0.25 },
+      { score: metricScore(m.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), weight: 0.22 },
+      { score: metricScore(m.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), weight: 0.21 },
+      { score: metricScore(m.dayChangePercent, [[5, 9], [2, 8], [0, 6.5], [-2, 5], [-5, 4], [-999, 3]]), weight: 0.10 },
+    ],
+    null
+  );
+}
+
+function scorePullback(m = {}) {
+  return availableWeightedAverage(
+    [
+      { score: metricScore(m.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), weight: 0.42 },
+      { score: inverseMetricScore(m.priceReturn4Week, [[-8, 8.5], [-4, 7.5], [0, 6.5], [5, 5], [12, 4], [999, 3]]), weight: 0.25 },
+      { score: metricScore(m.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), weight: 0.18 },
+      { score: inverseMetricScore(m.dayChangePercent, [[-5, 8.5], [-2, 7.5], [0, 6.5], [3, 5.5], [8, 4], [999, 3]]), weight: 0.15 },
+    ],
+    null
+  );
+}
+
+function getRiskLabel(m = {}, healthScore = null, profitabilityScore = null) {
+  const beta = safeNumber(m.beta);
+  const debtToEquity = safeNumber(m.debtToEquity);
+
+  if ((beta !== null && beta >= 1.8) || (debtToEquity !== null && debtToEquity >= 3) || (healthScore !== null && healthScore <= 4)) {
+    return "High";
+  }
+
+  if ((beta !== null && beta >= 1.25) || (debtToEquity !== null && debtToEquity >= 1.5) || (healthScore !== null && healthScore <= 6)) {
+    return "Medium";
+  }
+
+  return "Low";
+}
+
+
 export async function buildStockAnalysis(symbol) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
 
@@ -751,13 +939,13 @@ export async function buildStockAnalysis(symbol) {
   const newsSentimentScore = newsSentiment?.score ?? null;
 
   const edgeScore = availableWeightedAverage([
-    { score: growthScore, weight: 0.216 },
-    { score: profitabilityScore, weight: 0.207 },
-    { score: healthScore, weight: 0.179 },
-    { score: valuationScore, weight: 0.133 },
-    { score: momentumScore, weight: 0.106 },
-    { score: reversalScore, weight: 0.079 },
-    { score: newsSentimentScore, weight: 0.08 },
+    { score: growthScore, weight: 0.211 },
+    { score: profitabilityScore, weight: 0.202 },
+    { score: healthScore, weight: 0.175 },
+    { score: valuationScore, weight: 0.130 },
+    { score: momentumScore, weight: 0.104 },
+    { score: reversalScore, weight: 0.078 },
+    { score: newsSentimentScore, weight: 0.10 },
   ], 6.0);
 
   const riskLabel = getRiskLabel(extracted, healthScore, profitabilityScore);
