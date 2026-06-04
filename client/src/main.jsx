@@ -815,7 +815,7 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
                   onClick={() => onAnalyze(item.symbol)}
                   title={`Open full Eval report for ${item.symbol}`}
                 >
-                  <div className="industry-medal">#{index + 1}</div>
+                  <div className="industry-medal">#</div>
                   <div className={`industry-score-pie ${tone}`} style={{ "--industry-score-angle": `${(score || 0) * 36}deg` }}>
                     <strong>{scoreText(score)}</strong>
                   </div>
@@ -1470,12 +1470,12 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
       <div className="mag7-list">
         {ranked.map((item, index) => (
           <button
-            className={`mag7-row rank-${index + 1}`}
+            className={`mag7-row rank-$`}
             key={item.symbol}
             type="button"
             onClick={() => onAnalyze(item.symbol)}
           >
-            <span className="mag7-rank">{index + 1}</span>
+            <span className="mag7-rank"></span>
             <div className="mag7-main">
               <strong>{item.symbol}</strong>
               <div className="row-sw">
@@ -1574,7 +1574,7 @@ function Watchlist({
         ) : (
           items.map((item) => (
             <div className="watch-row" key={item.symbol}>
-              <span className={`watch-rank-number rank-${index + 1}`}>{index + 1}</span>
+              <span className="watch-rank-number" aria-hidden="true" />
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
                 <div className="row-sw watch-row-sw">
@@ -2170,7 +2170,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
               <article className="news-topic-card" key={`${topic.title}-${index}`}>
                 <div className="news-topic-head">
                   <div>
-                    <span>Topic {index + 1} · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
+                    <span>Topic  · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
                     <h3>{topic.title}</h3>
                   </div>
                   <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
