@@ -11535,3 +11535,411 @@ button:active,
     overflow: visible !important;
   }
 }
+
+
+/* =========================================================
+   FINAL REPORT CARD CLEANUP:
+   remove icon above company name, fit Price/Risk, mobile reorder.
+========================================================= */
+
+/* Hide the leftover decorative icon above company name */
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child,
+.report-main .report-kicker,
+.company-main .report-kicker,
+.stock-main .report-kicker,
+.hero-main .report-kicker,
+.report-main .stock-label,
+.company-main .stock-label,
+.stock-main .stock-label,
+.hero-main .stock-label,
+.report-main .title-chip,
+.company-main .title-chip,
+.stock-main .title-chip,
+.hero-main .title-chip {
+  display: none !important;
+}
+
+/* Desktop: Price/Risk stack fits content instead of huge empty cards */
+@media (min-width: 981px) {
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    width: fit-content !important;
+    min-width: 205px !important;
+    max-width: 235px !important;
+    justify-self: end !important;
+    display: grid !important;
+    gap: 12px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 205px !important;
+    max-width: 205px !important;
+    min-width: 205px !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side h3,
+  .report-side h3,
+  .stock-side h3,
+  .stat-stack h3,
+  .hero-side strong,
+  .report-side strong,
+  .stock-side strong,
+  .stat-stack strong {
+    white-space: nowrap !important;
+  }
+}
+
+/* Force Price and Risk to exactly the same non-black theme on desktop and mobile */
+.hero-side > *,
+.report-side > *,
+.stock-side > *,
+.stat-stack > *,
+.price-card,
+.price-box,
+.price-stat,
+.price-bubble,
+.risk-card,
+.risk-box,
+.risk-stat,
+.risk-bubble,
+[class*="price" i],
+[class*="risk" i] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.045), transparent 42%),
+    linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.065),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+.hero-side > *::before,
+.report-side > *::before,
+.stock-side > *::before,
+.stat-stack > *::before,
+.price-card::before,
+.price-box::before,
+.price-stat::before,
+.price-bubble::before,
+.risk-card::before,
+.risk-box::before,
+.risk-stat::before,
+.risk-bubble::before,
+[class*="price" i]::before,
+[class*="risk" i]::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Mobile: company/buttons first, Eval Score centered and larger, then Price left + Risk right */
+@media (max-width: 680px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "company company"
+      "score score"
+      "stats stats" !important;
+    row-gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    text-align: center !important;
+    justify-self: center !important;
+    width: 100% !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-area: score !important;
+    justify-self: center !important;
+    transform: scale(1.08) !important;
+    transform-origin: center !important;
+    margin: 4px auto 2px !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side > :first-child,
+  .report-side > :first-child,
+  .stock-side > :first-child,
+  .stat-stack > :first-child {
+    grid-column: 1 !important;
+  }
+
+  .hero-side > :nth-child(2),
+  .report-side > :nth-child(2),
+  .stock-side > :nth-child(2),
+  .stat-stack > :nth-child(2) {
+    grid-column: 2 !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 10vw, 56px) !important;
+    line-height: .98 !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    transform: scale(1.02) !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    gap: 8px !important;
+  }
+}
+
+
+/* Eval UI update: hard price/risk + mobile score layout sync */
+
+/* Remove leftover decorative report icon above company name */
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child,
+.report-main .report-kicker,
+.company-main .report-kicker,
+.stock-main .report-kicker,
+.hero-main .report-kicker,
+.report-main .stock-label,
+.company-main .stock-label,
+.stock-main .stock-label,
+.hero-main .stock-label,
+.report-main .title-chip,
+.company-main .title-chip,
+.stock-main .title-chip,
+.hero-main .title-chip {
+  display: none !important;
+}
+
+/* Desktop: make Price/Risk compact and matching */
+@media (min-width: 981px) {
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    width: fit-content !important;
+    min-width: 205px !important;
+    max-width: 235px !important;
+    justify-self: end !important;
+    display: grid !important;
+    gap: 12px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 205px !important;
+    max-width: 205px !important;
+    min-width: 205px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Match Price and Risk bubble theme everywhere */
+.hero-side > *,
+.report-side > *,
+.stock-side > *,
+.stat-stack > *,
+.price-card,
+.price-box,
+.price-stat,
+.price-bubble,
+.risk-card,
+.risk-box,
+.risk-stat,
+.risk-bubble,
+[class*="price" i],
+[class*="risk" i] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.045), transparent 42%),
+    linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.065),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+.hero-side > *::before,
+.report-side > *::before,
+.stock-side > *::before,
+.stat-stack > *::before,
+.price-card::before,
+.price-box::before,
+.price-stat::before,
+.price-bubble::before,
+.risk-card::before,
+.risk-box::before,
+.risk-stat::before,
+.risk-bubble::before,
+[class*="price" i]::before,
+[class*="risk" i]::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Mobile: company/buttons, then centered score, then price left and risk right */
+@media (max-width: 680px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "company company"
+      "score score"
+      "stats stats" !important;
+    row-gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    text-align: center !important;
+    justify-self: center !important;
+    width: 100% !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-area: score !important;
+    justify-self: center !important;
+    transform: scale(1.08) !important;
+    transform-origin: center !important;
+    margin: 4px auto 2px !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side > :first-child,
+  .report-side > :first-child,
+  .stock-side > :first-child,
+  .stat-stack > :first-child {
+    grid-column: 1 !important;
+  }
+
+  .hero-side > :nth-child(2),
+  .report-side > :nth-child(2),
+  .stock-side > :nth-child(2),
+  .stat-stack > :nth-child(2) {
+    grid-column: 2 !important;
+  }
+}
