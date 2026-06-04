@@ -1867,6 +1867,9 @@ function Report({ data, onAdd, onOpenIndustry }) {
   const [industryLeaders, setIndustryLeaders] = useState([]);
 
   const industryName = data.profile?.finnhubIndustry || "Public company";
+  const newsTopics = Array.isArray(data.newsSentiment?.topics)
+    ? data.newsSentiment.topics.slice(0, 3)
+    : [];
 
   async function openIndustryPopup() {
     if (!industryName || industryName === "Public company") return;
@@ -1897,7 +1900,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-    newsSentiment: "Shows whether recent company news looks bullish, neutral, or bearish. Higher means recent headlines are more positive.",
+    newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
   };
 
   const categoryMetrics = {
@@ -1966,7 +1969,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Day Change", metrics.dayChangePercent),
     ]),
     newsSentiment: usableMetricLines([
-      metricLine("News Sentiment Score", metrics.newsSentiment),
+      metricLine("Weighted News Score", metrics.newsSentiment),
     ]),
   };
 
@@ -2178,6 +2181,45 @@ function Report({ data, onAdd, onOpenIndustry }) {
         </div>
 
       </section>
+
+      {newsTopics.length > 0 && (
+        <section className="news-sentiment-card">
+          <div className="section-title news-section-title">
+            <Newspaper size={17} />
+            News Sentiment
+            <span className={`news-score-pill ${scoreTone(data.newsSentiment?.score)}`}>
+              {scoreText(data.newsSentiment?.score)}
+            </span>
+            <small>{data.newsSentiment?.label || "Recent news"}</small>
+          </div>
+
+          {data.newsSentiment?.summary && (
+            <p className="news-overall-summary">{data.newsSentiment.summary}</p>
+          )}
+
+          <div className="news-topic-list">
+            {newsTopics.map((topic, index) => (
+              <article className="news-topic-card" key={`${topic.title}-${index}`}>
+                <div className="news-topic-head">
+                  <div>
+                    <span>Topic {index + 1} · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
+                    <h3>{topic.title}</h3>
+                  </div>
+                  <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
+                </div>
+
+                <p>{topic.summary}</p>
+
+                {topic.url && (
+                  <a href={topic.url} target="_blank" rel="noreferrer">
+                    Read article
+                  </a>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grade-grid">
         <Grade
