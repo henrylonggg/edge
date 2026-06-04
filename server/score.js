@@ -222,6 +222,12 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     quickRatio: firstNumber(raw.quickRatioQuarterly, raw.quickRatioAnnual),
     cashRatio: firstNumber(raw.cashRatioQuarterly, raw.cashRatioAnnual),
     assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual),
+    interestCoverage: firstNumber(raw.interestCoverageTTM, raw.interestCoverageAnnual),
+    cashFlowToDebt: firstNumber(raw.cashFlowToDebtTTM, raw.cashFlowToDebtAnnual),
+    operatingCashFlowPerShare: firstNumber(raw.operatingCashFlowPerShareTTM, raw.operatingCashFlowPerShareAnnual),
+    freeCashFlowPerShare: firstNumber(raw.freeCashFlowPerShareTTM, raw.freeCashFlowPerShareAnnual),
+    totalDebtToCapital: firstNumber(raw.totalDebtToCapitalizationQuarterly, raw.totalDebtToCapitalizationAnnual),
+    netDebtToEbitda: firstNumber(raw.netDebtToEBITDATTM, raw.netDebtToEBITDAAnnual),
 
     priceReturn4Week: firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily),
     priceReturn13Week: firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"]),
@@ -264,18 +270,94 @@ function scoreProfitability(m = {}) {
 }
 
 function scoreFinancialHealth(m = {}) {
-  return availableWeightedAverage(
+  const leverageScore = availableWeightedAverage(
     [
-      { score: inverseMetricScore(m.debtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6], [3.0, 4], [999, 2]]), weight: 0.28 },
-      { score: inverseMetricScore(m.longTermDebtToEquity, [[0.25, 10], [0.6, 9], [1.0, 8], [1.8, 6], [2.8, 4], [999, 2]]), weight: 0.16 },
-      { score: metricScore(m.currentRatio, [[3.0, 9], [2.0, 8.5], [1.5, 8], [1.1, 6.5], [0.8, 4.5], [-999, 2]]), weight: 0.22 },
-      { score: metricScore(m.quickRatio, [[2.0, 9], [1.4, 8], [1.0, 7], [0.75, 5], [-999, 3]]), weight: 0.14 },
-      { score: metricScore(m.cashRatio, [[1.0, 9], [0.5, 8], [0.25, 6.5], [0.1, 5], [-999, 3]]), weight: 0.10 },
-      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8], [0.5, 7], [0.25, 5.5], [-999, 4]]), weight: 0.10 },
+      { score: inverseMetricScore(m.debtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6.8], [3.0, 5.8], [999, 4.6]]), weight: 0.38 },
+      { score: inverseMetricScore(m.longTermDebtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6.8], [3.0, 5.8], [999, 4.6]]), weight: 0.25 },
+      { score: inverseMetricScore(m.totalDebtToCapital, [[0.25, 10], [0.4, 9], [0.6, 7.8], [0.8, 6.4], [1.0, 5.2], [999, 4.4]]), weight: 0.20 },
+      { score: inverseMetricScore(m.netDebtToEbitda, [[0.5, 10], [1.5, 9], [2.5, 8], [4, 6.8], [6, 5.5], [999, 4.4]]), weight: 0.17 },
     ],
-    6
+    null
   );
+
+  const liquidityScore = availableWeightedAverage(
+    [
+      { score: metricScore(m.currentRatio, [[3, 9.2], [2, 8.7], [1.5, 8.2], [1, 7.2], [0.75, 6.0], [-999, 5.0]]), weight: 0.45 },
+      { score: metricScore(m.quickRatio, [[2, 9], [1.4, 8.5], [1, 7.7], [0.7, 6.2], [-999, 5.0]]), weight: 0.30 },
+      { score: metricScore(m.cashRatio, [[1, 9], [0.5, 8.2], [0.25, 7], [0.1, 5.8], [-999, 5.0]]), weight: 0.25 },
+    ],
+    null
+  );
+
+  const coverageScore = availableWeightedAverage(
+    [
+      { score: metricScore(m.interestCoverage, [[40, 10], [20, 9.3], [10, 8.5], [5, 7.2], [2, 6], [0.5, 4.8], [-999, 4]]), weight: 0.45 },
+      { score: metricScore(m.cashFlowToDebt, [[0.7, 10], [0.45, 9], [0.25, 8], [0.12, 6.8], [0.05, 5.5], [-999, 4.5]]), weight: 0.25 },
+      { score: metricScore(m.operatingCashFlowPerShare, [[20, 10], [10, 9], [5, 8], [2, 7], [0.5, 5.8], [-999, 4.5]]), weight: 0.15 },
+      { score: metricScore(m.freeCashFlowPerShare, [[15, 10], [7.5, 9], [3, 8], [1, 6.8], [0.25, 5.6], [-999, 4.5]]), weight: 0.15 },
+    ],
+    null
+  );
+
+  const profitabilitySupport = availableWeightedAverage(
+    [
+      { score: metricScore(m.operatingMargin, [[35, 10], [25, 9.2], [15, 8.4], [8, 7.2], [3, 6.2], [0.5, 5], [-999, 4]]), weight: 0.36 },
+      { score: metricScore(m.netMargin, [[30, 10], [20, 9.1], [12, 8.3], [7, 7.2], [3, 6.2], [0.5, 5], [-999, 4]]), weight: 0.24 },
+      { score: metricScore(m.roe, [[60, 10], [35, 9.2], [20, 8.4], [12, 7.4], [5, 6.2], [0.5, 5], [-999, 4]]), weight: 0.22 },
+      { score: metricScore(m.roa, [[18, 10], [12, 9.2], [8, 8.4], [5, 7.4], [2, 6.2], [0.5, 5], [-999, 4]]), weight: 0.18 },
+    ],
+    null
+  );
+
+  const sizeSupport = metricScore(m.marketCapM, [[1_000_000, 9.0], [500_000, 8.6], [100_000, 7.8], [25_000, 7.0], [5_000, 6.0], [-999, 5.0]]);
+
+  const availableHealthInputs = [
+    m.debtToEquity,
+    m.longTermDebtToEquity,
+    m.totalDebtToCapital,
+    m.netDebtToEbitda,
+    m.currentRatio,
+    m.quickRatio,
+    m.cashRatio,
+    m.interestCoverage,
+    m.cashFlowToDebt,
+    m.operatingCashFlowPerShare,
+    m.freeCashFlowPerShare,
+  ].filter((value) => scoreInputNumber(value) !== null).length;
+
+  const coreScore = availableWeightedAverage(
+    [
+      { score: leverageScore, weight: leverageScore === null ? 0 : 0.34 },
+      { score: liquidityScore, weight: liquidityScore === null ? 0 : 0.24 },
+      { score: coverageScore, weight: coverageScore === null ? 0 : 0.24 },
+      { score: profitabilitySupport, weight: profitabilitySupport === null ? 0 : 0.18 },
+    ],
+    null
+  );
+
+  const supportScore = availableWeightedAverage(
+    [
+      { score: profitabilitySupport, weight: profitabilitySupport === null ? 0 : 0.68 },
+      { score: sizeSupport, weight: sizeSupport === null ? 0 : 0.32 },
+    ],
+    null
+  );
+
+  // If the API only gives 1-2 usable balance-sheet fields, do not let a single weak ratio
+  // crush companies with massive scale and strong margins/returns.
+  const supportWeight = availableHealthInputs >= 6 ? 0.20 : availableHealthInputs >= 3 ? 0.35 : 0.55;
+
+  const finalScore = availableWeightedAverage(
+    [
+      { score: coreScore, weight: coreScore === null ? 0 : 1 - supportWeight },
+      { score: supportScore, weight: supportScore === null ? 0 : supportWeight },
+    ],
+    supportScore ?? coreScore ?? 6.5
+  );
+
+  return Number(clamp(finalScore, 0, 10).toFixed(1));
 }
+
 
 function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
   const raw = availableWeightedAverage(
@@ -457,6 +539,12 @@ export async function buildStockAnalysis(symbol) {
       quickRatio: metric(extracted.quickRatio, "", "Finnhub", "Quick assets / current liabilities"),
       cashRatio: metric(extracted.cashRatio, "", "Finnhub", "Cash / current liabilities"),
       assetTurnover: metric(extracted.assetTurnover, "", "Finnhub", "Revenue / assets"),
+      interestCoverage: metric(extracted.interestCoverage, "", "Finnhub", "EBIT / interest expense"),
+      cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "Finnhub", "Operating cash flow / total debt"),
+      operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "Finnhub", "Operating cash flow / share"),
+      freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", "Finnhub", "Free cash flow / share"),
+      totalDebtToCapital: metric(extracted.totalDebtToCapital, "", "Finnhub", "Debt / total capital"),
+      netDebtToEbitda: metric(extracted.netDebtToEbitda, "", "Finnhub", "Net debt / EBITDA"),
 
       peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / earnings"),
       forwardPe: metric(extracted.forwardPe, "", "Finnhub", "Forward price / earnings"),
