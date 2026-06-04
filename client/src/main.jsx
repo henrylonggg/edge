@@ -2075,7 +2075,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
         <div className="company-panel">
           <div className="eyebrow">
-            <Sparkles size={15} /> Current stock report
+            <Sparkles size={15} /> 
           </div>
 
           <h2>{data.profile?.name || data.symbol}</h2>
