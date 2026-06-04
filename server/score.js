@@ -369,6 +369,64 @@ async function fetchMassiveQuote(symbol) {
     : null;
 }
 
+
+function buildExtractedMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials) {
+  if (typeof extractMetrics === "function") {
+    return extractMetrics(profile, quote, rawMetricData, annualFinancials, quarterlyFinancials);
+  }
+
+  const metric = rawMetricData || {};
+  const price = safeNumber(quote?.c);
+  const marketCapM = safeNumber(profile?.marketCapitalization);
+
+  return {
+    currentPrice: price,
+    marketCapM,
+    beta: firstNumber(metric.beta, metric.betaAnnual),
+    peRatio: firstNumber(metric.peNormalizedAnnual, metric.peTTM, metric.peBasicExclExtraTTM),
+    forwardPe: firstNumber(metric.forwardPE),
+    pegRatio: firstNumber(metric.pegRatio),
+    priceToSales: firstNumber(metric.psAnnual, metric.psTTM),
+    priceToBook: firstNumber(metric.pbAnnual, metric.pbQuarterly),
+    priceToCashFlow: firstNumber(metric.pcfShareTTM),
+    priceToFreeCashFlow: firstNumber(metric.pfcfShareTTM),
+    dividendYield: firstNumber(metric.currentDividendYieldTTM, metric.dividendYieldIndicatedAnnual),
+    revenueGrowth: firstNumber(metric.revenueGrowthTTMYoy, metric.revenueGrowthQuarterlyYoy, metric.revenueGrowth5Y),
+    revenueGrowthQuarterly: firstNumber(metric.revenueGrowthQuarterlyYoy),
+    revenueGrowth3Y: firstNumber(metric.revenueGrowth3Y),
+    revenueGrowth5Y: firstNumber(metric.revenueGrowth5Y),
+    epsGrowth: firstNumber(metric.epsGrowthTTMYoy, metric.epsGrowthQuarterlyYoy),
+    epsGrowth3Y: firstNumber(metric.epsGrowth3Y),
+    epsGrowth5Y: firstNumber(metric.epsGrowth5Y),
+    roe: firstNumber(metric.roeTTM, metric.roeRfy),
+    roa: firstNumber(metric.roaTTM, metric.roaRfy),
+    roi: firstNumber(metric.roiTTM, metric.roiAnnual),
+    grossMargin: firstNumber(metric.grossMarginTTM, metric.grossMarginAnnual),
+    operatingMargin: firstNumber(metric.operatingMarginTTM, metric.operatingMarginAnnual),
+    pretaxMargin: firstNumber(metric.pretaxMarginTTM, metric.pretaxMarginAnnual),
+    netMargin: firstNumber(metric.netProfitMarginTTM, metric.netProfitMarginAnnual),
+    debtToEquity: firstNumber(metric.totalDebtToEquityQuarterly, metric.totalDebtToEquityAnnual),
+    longTermDebtToEquity: firstNumber(metric.longTermDebtToEquityQuarterly, metric.longTermDebtToEquityAnnual),
+    currentRatio: firstNumber(metric.currentRatioQuarterly, metric.currentRatioAnnual),
+    quickRatio: firstNumber(metric.quickRatioQuarterly, metric.quickRatioAnnual),
+    cashRatio: firstNumber(metric.cashRatioQuarterly, metric.cashRatioAnnual),
+    assetTurnover: firstNumber(metric.assetTurnoverTTM, metric.assetTurnoverAnnual),
+    weekHigh: firstNumber(metric["52WeekHigh"], metric['52WeekHigh']),
+    weekLow: firstNumber(metric["52WeekLow"], metric['52WeekLow']),
+    dayChangePercent: firstNumber(quote?.dp),
+    enterpriseValue: null,
+    ebitda: null,
+    evToEbitda: null,
+    priceReturn4Week: null,
+    priceReturn13Week: null,
+    priceReturn26Week: null,
+    priceReturn52Week: null,
+    pullbackFromHigh: null,
+    distanceFrom52WeekLow: null,
+  };
+}
+
+
 function fmpDerivedMetrics(fmp, fallbackProfile = {}, fallbackQuote = {}) {
   if (!fmp) return {};
 
