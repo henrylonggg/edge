@@ -1,5 +1,7 @@
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
 function safeNumber(value) {
   const number = Number(value);
@@ -429,6 +431,159 @@ function labelCategory(key) {
   return labels[key] || key;
 }
 
+
+async function fetchRecentNews(symbol) {
+  const to = new Date();
+  const from = new Date(Date.now() - 1000 * 60 * 60 * 24 * 21);
+
+  const news = await fetchFinnhubOptional("/company-news", {
+    symbol,
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  });
+
+  if (!Array.isArray(news)) return [];
+
+  return news
+    .filter((item) => item?.headline || item?.title || item?.summary)
+    .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0))
+    .slice(0, 3)
+    .map((item, index) => ({
+      n: index + 1,
+      title: item.headline || item.title || `News article ${index + 1}`,
+      summary: item.summary || "",
+      source: item.source || "",
+      url: item.url || "",
+      datetime: item.datetime || null,
+    }));
+}
+
+function fallbackNewsSentiment(news = []) {
+  return {
+    score: 5.0,
+    label: "Neutral",
+    summary:
+      news.length > 0
+        ? "AI news scoring is unavailable right now, so this is a neutral placeholder. The articles still appear below when available. Add OPENAI_API_KEY in Render to turn on weighted AI scoring."
+        : "No recent company news was available from the data provider. This is a neutral placeholder so the report can still load. News sentiment has limited effect when article data is missing.",
+    topics: news.map((item, index) => ({
+      title: item.title || `News article ${index + 1}`,
+      summary: item.summary || "No summary was available for this article.",
+      url: item.url || "",
+      source: item.source || "",
+      score: 5.0,
+      weight: index === 0 ? 45 : index === 1 ? 35 : 20,
+      impact: "Neutral impact.",
+    })),
+    articleCount: news.length,
+    source: "Fallback",
+  };
+}
+
+function normalizeTopicWeights(topics) {
+  if (!Array.isArray(topics) || !topics.length) return [];
+
+  const cleaned = topics.slice(0, 3).map((topic, index) => ({
+    title: String(topic?.title || `News article ${index + 1}`).trim(),
+    summary: String(topic?.summary || "No summary available.").trim(),
+    url: String(topic?.url || "").trim(),
+    source: String(topic?.source || "").trim(),
+    score: Number((clamp(topic?.score, 0, 10) ?? 5).toFixed(1)),
+    weight: Math.max(0, Math.min(100, safeNumber(topic?.weight) ?? (index === 0 ? 45 : index === 1 ? 35 : 20))),
+    impact: String(topic?.impact || "").trim(),
+  }));
+
+  const total = cleaned.reduce((sum, topic) => sum + topic.weight, 0);
+  if (total <= 0) return cleaned;
+
+  return cleaned.map((topic) => ({
+    ...topic,
+    weight: Number(((topic.weight / total) * 100).toFixed(0)),
+  }));
+}
+
+async function scoreNewsSentiment(symbol, profile, news = []) {
+  const openAiKey = process.env.OPENAI_API_KEY;
+
+  if (!openAiKey || !news.length) {
+    return fallbackNewsSentiment(news);
+  }
+
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openAiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: NEWS_SENTIMENT_MODEL,
+        temperature: 0.12,
+        max_tokens: 750,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a stock-news sentiment rater. Analyze exactly the latest 3 news articles provided. Return only valid JSON with keys score, label, summary, topics. score must be a 0.0-10.0 number to one decimal where 0.0 is very bad for the stock, 5.0 is neutral, and 10.0 is very good. label must be Bullish, Neutral, or Bearish. summary must be brief and easy to understand, explaining why the overall score got that number. topics must be an array of 3 objects. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences. Each topic score must be 0.0-10.0 to one decimal. Weight each topic by importance/stock impact, and weights should total 100. Do not give buy/sell advice.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              ticker: symbol,
+              company: profile?.name || symbol,
+              articles: news,
+            }),
+          },
+        ],
+      }),
+    });
+
+    const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.warn("OpenAI news sentiment failed:", response.status, json?.error?.message || "");
+      return fallbackNewsSentiment(news);
+    }
+
+    const parsed = JSON.parse(json?.choices?.[0]?.message?.content || "{}");
+    let topics = normalizeTopicWeights(parsed.topics);
+
+    topics = news.map((article, index) => {
+      const topic = topics[index] || {};
+      return {
+        title: topic.title || article.title || `News article ${index + 1}`,
+        summary: topic.summary || article.summary || "No summary available.",
+        url: topic.url || article.url || "",
+        source: topic.source || article.source || "",
+        score: Number((clamp(topic.score, 0, 10) ?? 5).toFixed(1)),
+        weight: topic.weight ?? (index === 0 ? 45 : index === 1 ? 35 : 20),
+        impact: topic.impact || "Neutral impact.",
+      };
+    });
+
+    topics = normalizeTopicWeights(topics);
+    const totalWeight = topics.reduce((sum, topic) => sum + topic.weight, 0) || 100;
+    const weightedScore = topics.reduce((sum, topic) => sum + topic.score * (topic.weight / totalWeight), 0);
+    const finalScore = Number((clamp(parsed.score, 0, 10) ?? weightedScore).toFixed(1));
+
+    return {
+      score: finalScore,
+      label: parsed.label || (finalScore >= 7 ? "Bullish" : finalScore <= 4 ? "Bearish" : "Neutral"),
+      summary:
+        String(parsed.summary || "").trim() ||
+        `The latest 3 articles create a ${finalScore.toFixed(1)} out of 10 news sentiment score based on weighted impact.`,
+      topics,
+      articleCount: topics.length,
+      source: "OpenAI weighted top 3 news articles",
+      model: NEWS_SENTIMENT_MODEL,
+    };
+  } catch (error) {
+    console.warn("AI news sentiment scoring failed:", error?.message || error);
+    return fallbackNewsSentiment(news);
+  }
+}
+
+
 export async function buildStockAnalysis(symbol) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
   if (!cleanSymbol) throw new Error("Missing ticker symbol.");
@@ -445,6 +600,8 @@ export async function buildStockAnalysis(symbol) {
 
   const raw = metricsRaw?.metric || {};
   const extracted = buildExtractedMetrics(profile, quote, raw);
+  const recentNews = await fetchRecentNews(cleanSymbol);
+  const newsSentiment = await scoreNewsSentiment(cleanSymbol, profile, recentNews);
 
   const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
@@ -453,8 +610,7 @@ export async function buildStockAnalysis(symbol) {
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
 
-  // Temporarily neutral until news sentiment is rebuilt cleanly.
-  const newsSentimentScore = 5.0;
+  const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
 
   const categories = {
     growth: growthScore,
@@ -578,14 +734,8 @@ export async function buildStockAnalysis(symbol) {
       intrinsicValueGap: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
       dcfGrowthRate: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
 
-      newsSentiment: metric(newsSentimentScore, "", "Neutral temporary score", "Temporary 5.0 until news model is rebuilt"),
+      newsSentiment: metric(newsSentimentScore, "", newsSentiment?.source || "OpenAI + Finnhub news", "Weighted AI score from the latest 3 stock news articles"),
     },
-    newsSentiment: {
-      score: newsSentimentScore,
-      label: "Neutral",
-      summary: "News sentiment is temporarily neutral while the backend is reset. The app is stable first. The weighted AI news feature should be added back after this version is live.",
-      topics: [],
-      articleCount: 0,
-    },
+    newsSentiment,
   };
 }
