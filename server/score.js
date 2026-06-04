@@ -43,7 +43,7 @@ function toMillions(value) {
 }
 
 function percentFromDecimal(value) {
-  const n = safeNumber(value);
+  const n = scoreInputNumber(value);
   if (n === null) return null;
   return Math.abs(n) <= 1.5 ? n * 100 : n;
 }
