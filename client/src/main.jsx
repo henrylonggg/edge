@@ -132,15 +132,15 @@ function compactMoney(v) {
   return `$${n.toFixed(0)}M`;
 }
 
-const DEFAULT_WATCHLIST = [];
-const MAG7_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA"];
-const MAGNIFICENT_SEVEN_SYMBOLS = MAG7_SYMBOLS;
+const DEFAULT_WATCHLIST = ["NVDA", "GOOGL", "AAPL", "MSFT", "AMZN"];
 
 function readWatchlist() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+    return DEFAULT_WATCHLIST.map((symbol) => ({ symbol, score: null }));
   } catch {
-    return DEFAULT_WATCHLIST;
+    return DEFAULT_WATCHLIST.map((symbol) => ({ symbol, score: null }));
   }
 }
 
@@ -311,10 +311,8 @@ function App() {
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
-  const [mag7List, setMag7List] = useState(MAG7_SYMBOLS.map((symbol) => ({ symbol, score: null })));
   const [loading, setLoading] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
-  const [mag7Loading, setMag7Loading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -391,34 +389,6 @@ function App() {
     };
   }
 
-  async function refreshMag7() {
-    setMag7Loading(true);
-
-    const refreshed = [];
-
-    for (const ticker of MAG7_SYMBOLS) {
-      try {
-        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(ticker)}`, {
-          method: "GET",
-          mode: "cors",
-          headers: { Accept: "application/json" },
-        });
-
-        const json = await res.json().catch(() => null);
-
-        if (res.ok && json) {
-          refreshed.push(buildStockListItem(json, ticker));
-        } else {
-          refreshed.push(mag7List.find((item) => item.symbol === ticker) || { symbol: ticker, score: null });
-        }
-      } catch {
-        refreshed.push(mag7List.find((item) => item.symbol === ticker) || { symbol: ticker, score: null });
-      }
-    }
-
-    setMag7List(refreshed.sort((a, b) => Number(b.score || 0) - Number(a.score || 0)));
-    setMag7Loading(false);
-  }
 
   async function addTicker(ticker = symbol) {
     const clean = ticker.trim().toUpperCase();
@@ -494,14 +464,14 @@ function App() {
     saveWatchlist(next);
   }
 
-  async function refreshWatchlist() {
-    if (!watchlist.length) return;
+  async function refreshWatchlistItems(items) {
+    if (!items.length) return;
 
     setWatchLoading(true);
 
     const refreshed = [];
 
-    for (const item of watchlist) {
+    for (const item of items) {
       try {
         const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
           method: "GET",
@@ -530,6 +500,10 @@ function App() {
     setWatchLoading(false);
   }
 
+  async function refreshWatchlist() {
+    return refreshWatchlistItems(watchlist);
+  }
+
   useEffect(() => {
     const saved = readWatchlist().sort(
       (a, b) => (b.score || 0) - (a.score || 0)
@@ -537,7 +511,7 @@ function App() {
 
     setWatchlist(saved);
     analyze(null, "AAPL");
-    refreshMag7();
+    refreshWatchlistItems(saved);
   }, []);
 
   useEffect(() => {
@@ -678,12 +652,12 @@ function App() {
             <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar">
               <button
                 type="button"
-                className="plans-nav-btn"
-                onClick={() => setView("plans")}
-                aria-label="Eval AI Plans"
-                title="Eval AI Plans"
+                className="ai-nav-btn desktop-ai-left-btn"
+                onClick={() => setView("assistant")}
+                title="Eval AI Assistant"
+                aria-label="Eval AI Assistant"
               >
-                <Crown size={20} />
+                <BrainCircuit size={22} />
               </button>
 
               <div className="ticker-field">
@@ -709,16 +683,6 @@ function App() {
                 <Plus size={18} />
               </button>
 
-              <button
-                type="button"
-                className="ai-nav-btn"
-                onClick={() => setView("assistant")}
-                title="Eval AI Assistant"
-                aria-label="Eval AI Assistant"
-              >
-                <BrainCircuit size={22} />
-              </button>
-
               <a
                 className="sofi-referral-btn"
                 href="https://www.sofi.com/invite/invest?gcp=70a9cce6-5672-4453-bd32-e825c424c28d&isAliasGcp=false"
@@ -732,7 +696,7 @@ function App() {
 
               <button
                 type="button"
-                className="watchlist-nav-btn"
+                className="watchlist-nav-btn mobile-only-watchlist-btn"
                 onClick={() => setView("watchlist")}
                 title="Open watchlist"
                 aria-label="Open watchlist"
@@ -755,11 +719,14 @@ function App() {
             )}
           </div>
 
-          <Mag7DashboardPanel
-            items={mag7List}
-            loading={mag7Loading}
-            onRefresh={refreshMag7}
+          <Watchlist
+            items={watchlist}
+            symbol={symbol}
+            onAdd={addTicker}
+            onRemove={removeTicker}
             onAnalyze={(ticker) => analyze(null, ticker)}
+            onRefresh={refreshWatchlist}
+            loading={watchLoading}
           />
         </section>
       )}
@@ -2314,17 +2281,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
         />
       </section>
 
-      <section className="metrics-card">
-        <div className="section-title">
-          <Gauge size={17} /> Key metrics
-        </div>
-
-        <div className="metric-grid">
-          {rows.map(([label, item, help]) => (
-            <Metric key={label} label={label} item={item} help={help} />
-          ))}
-        </div>
-      </section>
     </>
   );
 }
