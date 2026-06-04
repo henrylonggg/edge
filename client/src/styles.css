@@ -11191,3 +11191,122 @@ button:active,
     display: none !important;
   }
 }
+
+
+/* =========================================================
+   CLEAN NEWS DISPLAY + COMPANY NAME FIT
+========================================================= */
+
+/* Hide any accidental raw/plain News Sentiment output.
+   Styled .stock-news-card stays visible. */
+.report-main > h2,
+.company-main > h2,
+.stock-main > h2,
+.content > h2 {
+  display: none !important;
+}
+
+/* Keep the styled top news bubble and score-card News Sentiment visible */
+.stock-news-card h2,
+.grade-card h2,
+.score-card h2,
+.section-title h2 {
+  display: initial !important;
+}
+
+/* Make long company names fit without squeezing Price/Risk cards */
+@media (min-width: 981px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns: minmax(250px, 360px) minmax(0, 1fr) minmax(220px, 270px) !important;
+    column-gap: clamp(22px, 2.2vw, 34px) !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(44px, 4.7vw, 66px) !important;
+    line-height: .98 !important;
+    letter-spacing: -0.035em !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side {
+    width: 100% !important;
+    min-width: 220px !important;
+    max-width: 270px !important;
+    justify-self: end !important;
+  }
+}
+
+@media (min-width: 981px) and (max-width: 1320px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns: minmax(210px, 310px) minmax(0, 1fr) minmax(205px, 245px) !important;
+    column-gap: 20px !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 4.25vw, 58px) !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side {
+    min-width: 205px !important;
+    max-width: 245px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 11vw, 58px) !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+/* Remove leftover icon above company name */
+.report-kicker,
+.stock-kicker,
+.current-report-kicker,
+.report-label,
+.stock-label {
+  min-height: 0 !important;
+}
+
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty,
+.report-label:empty,
+.stock-label:empty {
+  display: none !important;
+}
+
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child {
+  display: none !important;
+}
