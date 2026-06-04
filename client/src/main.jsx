@@ -1925,6 +1925,11 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Enterprise Value", metrics.enterpriseValue),
       metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
+      metricLine("WACC", metrics.wacc),
+      metricLine("DCF Enterprise Value", metrics.dcfEnterpriseValue),
+      metricLine("Intrinsic Value", metrics.intrinsicValue),
+      metricLine("Intrinsic Value Gap", metrics.intrinsicValueGap),
+      metricLine("News Sentiment", metrics.newsSentiment),
       metricLine("Dividend Yield", metrics.dividendYield),
     ],
     momentum: [
@@ -2000,6 +2005,26 @@ function Report({ data, onAdd, onOpenIndustry }) {
       "Enterprise Value",
       metrics.enterpriseValue,
       "Company value estimate calculated as market cap plus total debt minus cash.",
+    ],
+    [
+      "WACC",
+      metrics.wacc,
+      "Estimated discount rate from cost of equity and after-tax cost of debt.",
+    ],
+    [
+      "Intrinsic Value",
+      metrics.intrinsicValue,
+      "DCF equity value per share using projected free cash flow.",
+    ],
+    [
+      "Intrinsic Value Gap",
+      metrics.intrinsicValueGap,
+      "Percent difference between intrinsic value and current stock price.",
+    ],
+    [
+      "News Sentiment",
+      metrics.newsSentiment,
+      data.newsSentiment?.summary || "AI score from recent company news.",
     ],
     [
       "EBITDA",
@@ -2235,7 +2260,7 @@ function metricLine(label, item) {
     return {
       label,
       value: fmt(item.value, item.suffix || ""),
-      source: item.source || "Score model",
+      source: item.formula ? `${item.source || "Score model"} · ${item.formula}` : item.source || "Score model",
     };
   }
 
