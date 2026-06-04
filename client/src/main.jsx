@@ -2189,7 +2189,45 @@ function Report({ data, onAdd, onOpenIndustry }) {
         </section>
       )}
 
-      <section className="grade-grid">
+      
+      {newsTopics.length > 0 && (
+        <section className="stock-news-card">
+          <div className="stock-news-head">
+            <div>
+              <h2>News Sentiment</h2>
+              <p>{data.newsSentiment?.summary || "Latest company news summarized in plain English."}</p>
+            </div>
+
+            <div className={`stock-news-score ${scoreTone(data.newsSentiment?.score)}`}>
+              <strong>{scoreText(data.newsSentiment?.score)}</strong>
+              <span>{data.newsSentiment?.label || "News score"}</span>
+            </div>
+          </div>
+
+          <div className="stock-news-grid">
+            {newsTopics.map((topic, index) => (
+              <article className="stock-news-topic" key={`${topic.title}-${index}`}>
+                <div className="stock-news-topic-top">
+                  <span>{Number(topic.weight || 0).toFixed(0)}% impact</span>
+                  <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
+                </div>
+
+                {topic.url ? (
+                  <a href={topic.url} target="_blank" rel="noreferrer" className="stock-news-title">
+                    {topic.title}
+                  </a>
+                ) : (
+                  <h3 className="stock-news-title">{topic.title}</h3>
+                )}
+
+                <p>{topic.summary}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+<section className="grade-grid">
         <Grade
           id="growth"
           name="Growth"
