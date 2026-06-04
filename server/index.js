@@ -241,6 +241,171 @@ app.get("/api/industry-top/:industry", async (req, res) => {
   }
 });
 
+
+app.post("/api/assistant", async (req, res) => {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    const question = String(req.body?.question || "").trim().slice(0, 150);
+    const current = req.body?.current || null;
+    const watchlist = Array.isArray(req.body?.watchlist) ? req.body.watchlist : [];
+
+    if (!question) {
+      return res.status(400).json({ error: "Missing question." });
+    }
+
+    const allowedWebsiteTerms = [
+      "eval",
+      "score",
+      "power score",
+      "stock",
+      "ticker",
+      "watchlist",
+      "price",
+      "risk",
+      "industry",
+      "news",
+      "sentiment",
+      "growth",
+      "profitability",
+      "financial health",
+      "valuation",
+      "momentum",
+      "pullback",
+      "company",
+      "report",
+      "metric",
+      "category",
+      "strong",
+      "weak",
+      "strongest",
+      "weakest",
+      "dashboard",
+      "website",
+      "app",
+      "add",
+      "delete",
+      "refresh",
+      "chart",
+      "article",
+      "bubble",
+      "green",
+      "yellow",
+      "red",
+      "rank",
+      "ranking",
+    ];
+
+    const normalizedQuestion = question.toLowerCase();
+    const hasWebsiteTerm = allowedWebsiteTerms.some((term) => normalizedQuestion.includes(term));
+    const currentSymbol = String(current?.symbol || current?.profile?.ticker || "").toLowerCase();
+    const currentName = String(current?.profile?.name || "").toLowerCase();
+    const watchlistSymbols = watchlist
+      .map((item) => String(item?.symbol || item?.ticker || "").toLowerCase())
+      .filter(Boolean);
+
+    const mentionsKnownTicker =
+      (currentSymbol && normalizedQuestion.includes(currentSymbol)) ||
+      watchlistSymbols.some((symbol) => normalizedQuestion.includes(symbol));
+
+    const asksGeneralUnrelated =
+      /\b(weather|sports|homework|essay|recipe|movie|music|dating|politics|history|math|science|coding|code|html|css|javascript|render|vercel|clerk|api key|openai|joke|story|song|lyrics|college|fraternity|hockey|travel)\b/i.test(question) &&
+      !hasWebsiteTerm &&
+      !mentionsKnownTicker;
+
+    if ((!hasWebsiteTerm && !mentionsKnownTicker && !currentName.includes(normalizedQuestion)) || asksGeneralUnrelated) {
+      return res.json({
+        answer:
+          "I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.",
+      });
+    }
+
+    if (!apiKey) {
+      return res.status(200).json({
+        answer:
+          "Eval AI is not connected yet. Add OPENAI_API_KEY in Render environment variables to enable assistant responses.",
+      });
+    }
+
+    const watchlistContext = watchlist
+      .slice(0, 15)
+      .map((item) => {
+        const symbol = item?.symbol || item?.ticker || "";
+        const score = item?.score ?? item?.edgeScore ?? "N/A";
+        const strongest = item?.strongest || item?.strength || "N/A";
+        const weakest = item?.weakest || item?.weakness || "N/A";
+        return `${symbol}: Eval Score ${score}, Strong: ${strongest}, Weak: ${weakest}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+    const currentContext = current
+      ? JSON.stringify({
+          symbol: current.symbol,
+          name: current.profile?.name,
+          industry: current.profile?.finnhubIndustry,
+          price: current.quote?.c,
+          dailyChangePercent: current.quote?.dp,
+          evalScore: current.grades?.edgeScore,
+          risk: current.grades?.riskLabel,
+          categories: current.grades?.categories,
+          strengths: current.strengths,
+          weaknesses: current.weaknesses,
+          newsSentiment: current.newsSentiment,
+          metrics: current.metrics,
+        })
+      : "No current stock loaded.";
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_ASSISTANT_MODEL || "gpt-4.1-nano",
+        temperature: 0.15,
+        max_tokens: 125,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Eval AI, the assistant inside the Eval stock website. You may ONLY answer questions about information available in the Eval website/app: the currently loaded stock report, Eval Score, category scores, metrics, price, risk, news sentiment, industry, watchlist, rankings, and how to use these website features. Do NOT answer unrelated questions, general finance questions not tied to the shown Eval data, technical/code/deployment questions, school questions, personal questions, or anything outside the website. If the user asks something unrelated, reply exactly: 'I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.' Keep valid answers under 75 words. Do not give buy/sell commands or financial advice.",
+          },
+          {
+            role: "user",
+            content: `Question: ${question}\n\nCurrent Eval website stock context:\n${currentContext}\n\nEval website watchlist context:\n${watchlistContext || "No watchlist context."}`,
+          },
+        ],
+      }),
+    });
+
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.error("OpenAI assistant failed:", response.status, json?.error?.message || "");
+      return res.status(200).json({
+        answer:
+          "Eval AI could not reach OpenAI right now. Check your OPENAI_API_KEY or billing settings in Render.",
+      });
+    }
+
+    const answer = json?.choices?.[0]?.message?.content?.trim();
+
+    return res.json({
+      answer:
+        answer ||
+        "I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.",
+    });
+  } catch (error) {
+    console.error("Assistant route failed:", error?.stack || error?.message || error);
+    return res.status(500).json({
+      error: error?.message || "Assistant route failed.",
+      route: "api/assistant",
+    });
+  }
+});
+
+
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
