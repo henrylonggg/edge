@@ -10355,3 +10355,166 @@ button:active,
     border-radius: 16px;
   }
 }
+
+
+/* =========================================================
+   WATCHLIST INLINE PANEL + MOMENTUM FIX COMPANION STYLES
+========================================================= */
+
+/* Hide Mag 7 panel entirely if old component remains in bundle */
+.mag7-panel {
+  display: none !important;
+}
+
+/* Main desktop layout gets watchlist back on the right */
+@media (min-width: 681px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 420px) !important;
+    column-gap: 24px !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    display: block !important;
+    position: static !important;
+    align-self: start !important;
+    max-width: 420px !important;
+    margin-top: 126px !important;
+    transform: none !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile keeps star watchlist button */
+@media (max-width: 680px) {
+  .mobile-only-watchlist-btn {
+    display: inline-flex !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-only-watchlist-btn {
+    grid-column: 6 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    display: none !important;
+  }
+}
+
+/* Watchlist text a bit bigger than old Mag7 small text */
+.watch-panel .panel-head p {
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  color: rgba(226,234,242,.66) !important;
+}
+
+.watch-panel .watch-info strong {
+  font-size: 18px !important;
+}
+
+.watch-panel .watch-row-sw span,
+.watch-panel .row-sw span {
+  font-size: 10.5px !important;
+  line-height: 1.14 !important;
+}
+
+/* Ranked gold / silver / bronze like Mag 7 */
+.watch-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.34) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,215,107,.12), transparent 36%),
+    rgba(255,255,255,.055) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.30) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(223,229,238,.10), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.32) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(205,127,50,.12), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watch-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+/* Remove key metrics section if any old markup survives */
+.metrics-card {
+  display: none !important;
+}
