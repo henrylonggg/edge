@@ -1,3 +1,4 @@
+// Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
 // Eval mobile report layout: centered company, centered score, bottom price/risk.
 // Eval UI update: company icon removed, mobile score layout adjusted, price/risk theme synced.
 import React, { useEffect, useMemo, useState } from "react";
@@ -2076,11 +2077,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
         </div>
 
         <div className="company-panel">
-          <div className="eyebrow">
-            <Sparkles size={15} /> 
-          </div>
-
-          <h2>{data.profile?.name || data.symbol}</h2>
+<h2>{data.profile?.name || data.symbol}</h2>
           <p className="subline">
             <span>{data.symbol}</span>
             <span> · </span>
