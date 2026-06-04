@@ -39,6 +39,8 @@ import {
   Mail,
   Phone,
   MessageCircle,
+  Newspaper,
+  HelpCircle,
 } from "lucide-react";
 import "./styles.css";
 
@@ -833,7 +835,7 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
           <div className="industry-error-page">{error}</div>
         ) : leaders.length ? (
           <div className="industry-leader-grid">
-            {leaders.slice(0, 3).map((item, index) => {
+            {leaders.slice(0, 5).map((item, index) => {
               const score = score10(item.score);
               const tone = scoreTone(score);
               const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
@@ -1473,6 +1475,17 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
         <div>
           <h2>
             <Sparkles size={18} /> Mag 7
+            <button
+              type="button"
+              className="mag7-help-btn"
+              title="Mag 7 info"
+              aria-label="Mag 7 info"
+            >
+              <HelpCircle size={14} />
+              <span className="mag7-help-pop">
+                The Mag 7 are Apple, Microsoft, Alphabet, Amazon, Nvidia, Meta, and Tesla. They are large mega-cap tech leaders and this panel ranks them by current Eval Score.
+              </span>
+            </button>
           </h2>
           <p>Magnificent 7 prebuilt Eval Score list</p>
         </div>
@@ -1884,10 +1897,11 @@ function Report({ data, onAdd, onOpenIndustry }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
+    newsSentiment: "Shows whether recent company news looks bullish, neutral, or bearish. Higher means recent headlines are more positive.",
   };
 
   const categoryMetrics = {
-    growth: [
+    growth: usableMetricLines([
       metricLine("Revenue Growth", metrics.revenueGrowth),
       metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
       metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
@@ -1895,8 +1909,8 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("EPS Growth", metrics.epsGrowth),
       metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
       metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
-    ],
-    profitability: [
+    ]),
+    profitability: usableMetricLines([
       metricLine("ROE", metrics.roe),
       metricLine("ROA", metrics.roa),
       metricLine("ROI / ROIC", metrics.roi),
@@ -1904,8 +1918,8 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Operating Margin", metrics.operatingMargin),
       metricLine("Pretax Margin", metrics.pretaxMargin),
       metricLine("Net Margin", metrics.netMargin),
-    ],
-    financialHealth: [
+    ]),
+    financialHealth: usableMetricLines([
       metricLine("Debt-to-Equity", metrics.debtToEquity),
       metricLine("Long-Term Debt-to-Equity", metrics.longTermDebtToEquity),
       metricLine("Current Ratio", metrics.currentRatio),
@@ -1913,8 +1927,8 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Cash Ratio", metrics.cashRatio),
       metricLine("Asset Turnover", metrics.assetTurnover),
       metricLine("Market Cap Stability", metrics.marketCapM),
-    ],
-    valuation: [
+    ]),
+    valuation: usableMetricLines([
       metricLine("P/E Ratio", metrics.peRatio),
       metricLine("Forward P/E", metrics.forwardPe),
       metricLine("PEG Ratio", metrics.pegRatio),
@@ -1926,13 +1940,16 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("WACC", metrics.wacc),
+      metricLine("Cost of Equity", metrics.costOfEquity),
+      metricLine("After-Tax Cost of Debt", metrics.afterTaxCostOfDebt),
+      metricLine("Tax Rate", metrics.taxRate),
       metricLine("DCF Enterprise Value", metrics.dcfEnterpriseValue),
       metricLine("Intrinsic Value", metrics.intrinsicValue),
       metricLine("Intrinsic Value Gap", metrics.intrinsicValueGap),
       metricLine("News Sentiment", metrics.newsSentiment),
       metricLine("Dividend Yield", metrics.dividendYield),
-    ],
-    momentum: [
+    ]),
+    momentum: usableMetricLines([
       metricLine("Beta", metrics.beta),
       metricLine("Day Change", metrics.dayChangePercent),
       metricLine("4-Week Return", metrics.priceReturn4Week),
@@ -1940,14 +1957,17 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("26-Week Return", metrics.priceReturn26Week),
       metricLine("52-Week Return", metrics.priceReturn52Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-    ],
-    reversal: [
+    ]),
+    reversal: usableMetricLines([
       metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
       metricLine("4-Week Return", metrics.priceReturn4Week),
       metricLine("13-Week Return", metrics.priceReturn13Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
       metricLine("Day Change", metrics.dayChangePercent),
-    ],
+    ]),
+    newsSentiment: usableMetricLines([
+      metricLine("News Sentiment Score", metrics.newsSentiment),
+    ]),
   };
 
   const rows = [
@@ -2236,6 +2256,20 @@ function Report({ data, onAdd, onOpenIndustry }) {
             setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
           }
         />
+        <Grade
+          id="newsSentiment"
+          name="News Sentiment"
+          value={cats.newsSentiment}
+          icon={<Newspaper size={18} />}
+          description={gradeDescriptions.newsSentiment}
+          metricsUsed={categoryMetrics.newsSentiment}
+          isOpen={openScoreHelp === "newsSentiment"}
+          onToggle={() =>
+            setOpenScoreHelp(
+              openScoreHelp === "newsSentiment" ? null : "newsSentiment"
+            )
+          }
+        />
       </section>
 
       <section className="metrics-card">
@@ -2254,9 +2288,12 @@ function Report({ data, onAdd, onOpenIndustry }) {
 }
 
 function metricLine(label, item) {
-  if (!item) return { label, value: "Used when available", source: "Score model" };
+  if (!item) return null;
 
   if (typeof item === "object" && "value" in item) {
+    const value = Number(item.value);
+    if (!Number.isFinite(value)) return null;
+
     return {
       label,
       value: fmt(item.value, item.suffix || ""),
@@ -2264,11 +2301,17 @@ function metricLine(label, item) {
     };
   }
 
+  if (item === null || item === undefined || item === "N/A") return null;
+
   return {
     label,
-    value: item === null || item === undefined ? "N/A" : String(item),
+    value: String(item),
     source: "Score model",
   };
+}
+
+function usableMetricLines(lines = []) {
+  return lines.filter(Boolean);
 }
 
 function MiniStat({
@@ -2362,11 +2405,18 @@ function Grade({
         <div className="score-popup">
           <div className="score-popup-title">Metrics used</div>
           <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric.label}>
-                <span>{metric.label}</span>
+            {metricsUsed.length ? (
+              metricsUsed.map((metric) => (
+                <li key={metric.label}>
+                  <span>{metric.label}: {metric.value}</span>
+                  {metric.source && <small>{metric.source}</small>}
+                </li>
+              ))
+            ) : (
+              <li>
+                <span>No usable metrics available yet.</span>
               </li>
-            ))}
+            )}
           </ul>
         </div>
       )}
