@@ -596,9 +596,9 @@ export async function buildStockAnalysis(symbol) {
     massiveQuote,
     finnhubNews,
   ] = await Promise.all([
-    fetchFinnhub("/stock/profile2", { symbol: cleanSymbol }),
-    fetchFinnhub("/quote", { symbol: cleanSymbol }),
-    fetchFinnhub("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
+    fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }),
+    fetchFinnhubOptional("/quote", { symbol: cleanSymbol }),
+    fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
     fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }),
     fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "quarterly" }),
     fetchFmpBundle(cleanSymbol),
@@ -634,8 +634,18 @@ export async function buildStockAnalysis(symbol) {
     ...(massiveQuote || {}),
   };
 
-  if (!profile || !profile.ticker) {
-    throw new Error(`No company profile found for ${cleanSymbol}.`);
+  if (safeNumber(quote.c) === null && safeNumber(fmpBundle?.profile?.price) !== null) {
+    quote.c = fmpBundle.profile.price;
+  }
+
+  if (!profile || (!profile.ticker && !profile.name)) {
+    throw new Error(
+      `No company profile found for ${cleanSymbol}. Check FINNHUB_API_KEY or FMP_API_KEY in Render.`
+    );
+  }
+
+  if (!profile.ticker) {
+    profile.ticker = cleanSymbol;
   }
 
   const rawMetricData = metricsRaw?.metric || {};
