@@ -624,13 +624,13 @@ export async function buildStockAnalysis(symbol) {
 
   const edgeScore = availableWeightedAverage(
     [
-      { score: growthScore, weight: 0.211 },
-      { score: profitabilityScore, weight: 0.202 },
+      { score: growthScore, weight: 0.215 },
+      { score: profitabilityScore, weight: 0.205 },
       { score: healthScore, weight: 0.175 },
-      { score: valuationScore, weight: 0.130 },
-      { score: momentumScore, weight: 0.104 },
-      { score: reversalScore, weight: 0.078 },
-      { score: newsSentimentScore, weight: 0.100 },
+      { score: valuationScore, weight: 0.150 },
+      { score: momentumScore, weight: 0.105 },
+      { score: reversalScore, weight: 0.075 },
+      { score: newsSentimentScore, weight: 0.075 },
     ],
     6
   );
