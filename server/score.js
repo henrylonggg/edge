@@ -1,3 +1,4 @@
+// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 
 function safeNumber(value) {
@@ -89,8 +90,14 @@ async function fetchFinnhubOptional(path, params = {}) {
   }
 }
 
-function metricScore(value, points) {
+function scoreInputNumber(value) {
   const n = safeNumber(value);
+  if (n === null || n === 0) return null;
+  return n;
+}
+
+function metricScore(value, points) {
+  const n = scoreInputNumber(value);
   if (n === null) return null;
 
   for (const [threshold, score] of points) {
@@ -101,7 +108,7 @@ function metricScore(value, points) {
 }
 
 function inverseMetricScore(value, points) {
-  const n = safeNumber(value);
+  const n = scoreInputNumber(value);
   if (n === null) return null;
 
   for (const [threshold, score] of points) {
@@ -216,10 +223,10 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     cashRatio: firstNumber(raw.cashRatioQuarterly, raw.cashRatioAnnual),
     assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual),
 
-    priceReturn4Week: percentFromDecimal(firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily)),
-    priceReturn13Week: percentFromDecimal(firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"])),
-    priceReturn26Week: percentFromDecimal(firstNumber(raw["26WeekPriceReturnDaily"], raw["6MonthPriceReturnDaily"])),
-    priceReturn52Week: percentFromDecimal(firstNumber(raw["52WeekPriceReturnDaily"], raw.yearToDatePriceReturnDaily)),
+    priceReturn4Week: firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily),
+    priceReturn13Week: firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"]),
+    priceReturn26Week: firstNumber(raw["26WeekPriceReturnDaily"], raw["6MonthPriceReturnDaily"]),
+    priceReturn52Week: firstNumber(raw["52WeekPriceReturnDaily"], raw.yearToDatePriceReturnDaily),
     weekHigh,
     weekLow,
     pullbackFromHigh,
