@@ -10917,3 +10917,344 @@ button:active,
 .current-report-kicker:empty {
   display: none !important;
 }
+
+
+/* =========================================================
+   FINAL FIX: PRICE BUBBLE, REMOVE REPORT ICON, WATCHLIST OVERLAP
+========================================================= */
+
+/* Remove any leftover standalone icon/kicker where Current stock report used to be */
+.report-kicker,
+.stock-kicker,
+.current-report-kicker,
+.report-label {
+  min-height: 0 !important;
+}
+
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty,
+.report-label:empty {
+  display: none !important;
+}
+
+/* Price bubble: actual card override. Match Risk bubble and remove cyan/turquoise. */
+.hero-side .mini-card:first-child,
+.hero-side .info-card:first-child,
+.hero-side .stat-card:first-child,
+.hero-side > div:first-child,
+.report-side .mini-card:first-child,
+.report-side .info-card:first-child,
+.report-side .stat-card:first-child,
+.report-side > div:first-child,
+.stock-side .mini-card:first-child,
+.stock-side .info-card:first-child,
+.stock-side .stat-card:first-child,
+.stock-side > div:first-child,
+[class*="price" i],
+[class*="Price"] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.76), rgba(22,20,34,.76)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+/* Kill pseudo-element cyan border/glow on price card */
+.hero-side .mini-card:first-child::before,
+.hero-side .info-card:first-child::before,
+.hero-side .stat-card:first-child::before,
+.hero-side > div:first-child::before,
+.report-side .mini-card:first-child::before,
+.report-side .info-card:first-child::before,
+.report-side .stat-card:first-child::before,
+.report-side > div:first-child::before,
+.stock-side .mini-card:first-child::before,
+.stock-side .info-card:first-child::before,
+.stock-side .stat-card:first-child::before,
+.stock-side > div:first-child::before,
+[class*="price" i]::before,
+[class*="Price"]::before,
+.hero-side .mini-card:first-child::after,
+.hero-side .info-card:first-child::after,
+.hero-side .stat-card:first-child::after,
+.hero-side > div:first-child::after,
+.report-side .mini-card:first-child::after,
+.report-side .info-card:first-child::after,
+.report-side .stat-card:first-child::after,
+.report-side > div:first-child::after,
+.stock-side .mini-card:first-child::after,
+.stock-side .info-card:first-child::after,
+.stock-side .stat-card:first-child::after,
+.stock-side > div:first-child::after,
+[class*="price" i]::after,
+[class*="Price"]::after {
+  opacity: 0 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* If price bubble has inline turquoise color variables, neutralize them */
+.hero-side .mini-card:first-child,
+.report-side .mini-card:first-child,
+.stock-side .mini-card:first-child,
+[class*="price" i],
+[class*="Price"] {
+  --cyan: rgba(255,255,255,.12) !important;
+  --accent: rgba(255,255,255,.12) !important;
+  --glow: rgba(0,0,0,.18) !important;
+  --ring: rgba(255,255,255,.14) !important;
+}
+
+/* Watchlist: create a dedicated score/delete area so the ring does not overlap trash */
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 34px minmax(0, 1fr) 52px 42px !important;
+  column-gap: 12px !important;
+  padding-right: 16px !important;
+  overflow: visible !important;
+}
+
+.watch-panel .watch-score-ring,
+.watchlist-page-panel .watch-score-ring {
+  justify-self: start !important;
+  transform: translateX(-14px) !important;
+  margin-right: 0 !important;
+  z-index: 1 !important;
+}
+
+.watch-panel .delete-btn,
+.watchlist-page-panel .delete-btn {
+  justify-self: end !important;
+  transform: translateX(0) !important;
+  position: relative !important;
+  z-index: 5 !important;
+  margin-left: 0 !important;
+}
+
+/* Make sure the trash hitbox is not covered by glow */
+.watch-panel .watch-score-ring::before,
+.watch-panel .watch-score-ring::after,
+.watchlist-page-panel .watch-score-ring::before,
+.watchlist-page-panel .watch-score-ring::after {
+  pointer-events: none !important;
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 28px minmax(0, 1fr) 42px 34px !important;
+    column-gap: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    transform: translateX(-8px) !important;
+  }
+}
+
+
+/* =========================================================
+   STOCK NEWS SENTIMENT SECTION
+========================================================= */
+
+.stock-news-card {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(21,231,255,.08), transparent 34%),
+    radial-gradient(circle at 92% 12%, rgba(133,255,71,.07), transparent 32%),
+    linear-gradient(145deg, rgba(13, 31, 34, .70), rgba(25, 22, 42, .74));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 22px 70px rgba(0,0,0,.25);
+}
+
+.stock-news-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.stock-news-head h2 {
+  margin: 0 0 6px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: .01em;
+}
+
+.stock-news-head p {
+  margin: 0;
+  color: rgba(226,234,242,.74);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+  max-width: 860px;
+}
+
+.stock-news-score {
+  min-width: 92px;
+  min-height: 70px;
+  display: grid;
+  place-items: center;
+  padding: 10px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.stock-news-score strong {
+  color: #ffffff;
+  font-size: 29px;
+  line-height: 1;
+  font-weight: 1000;
+}
+
+.stock-news-score span {
+  color: rgba(226,234,242,.66);
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.stock-news-score.green {
+  border-color: rgba(133,255,71,.34);
+  box-shadow: 0 0 24px rgba(133,255,71,.10);
+}
+
+.stock-news-score.yellow {
+  border-color: rgba(255,229,107,.34);
+  box-shadow: 0 0 24px rgba(255,229,107,.10);
+}
+
+.stock-news-score.red {
+  border-color: rgba(255,79,103,.34);
+  box-shadow: 0 0 24px rgba(255,79,103,.10);
+}
+
+.stock-news-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stock-news-topic {
+  min-width: 0;
+  padding: 15px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    linear-gradient(145deg, rgba(7,14,24,.62), rgba(32,25,54,.38));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.stock-news-topic-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.stock-news-topic-top span {
+  color: rgba(226,234,242,.55);
+  font-size: 9px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.stock-news-topic-top b {
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 1000;
+}
+
+.stock-news-topic-top b.green {
+  color: #85ff47;
+}
+
+.stock-news-topic-top b.yellow {
+  color: #ffe56b;
+}
+
+.stock-news-topic-top b.red {
+  color: #ff4f67;
+}
+
+.stock-news-title {
+  display: block;
+  margin: 0 0 9px;
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1.22;
+  font-weight: 1000;
+  letter-spacing: .01em;
+  text-decoration: none;
+}
+
+a.stock-news-title:hover {
+  text-decoration: underline;
+}
+
+.stock-news-topic p {
+  margin: 0;
+  color: rgba(226,234,242,.72);
+  font-size: 11.5px;
+  line-height: 1.42;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .stock-news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-news-head {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-news-score {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 680px) {
+  .stock-news-card {
+    padding: 15px;
+    border-radius: 22px;
+    margin-top: 12px;
+  }
+
+  .stock-news-head h2 {
+    font-size: 18px;
+  }
+
+  .stock-news-head p {
+    font-size: 11.5px;
+  }
+
+  .stock-news-topic {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .stock-news-title {
+    font-size: 12px;
+  }
+
+  .stock-news-topic p {
+    font-size: 10.8px;
+  }
+}
