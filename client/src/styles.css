@@ -10720,3 +10720,87 @@ button:active,
     font-size: 10px !important;
   }
 }
+
+
+/* =========================================================
+   CLEANUP: PRICE BUBBLE, SEARCHBAR WIDTH, WATCHLIST TEXT
+========================================================= */
+
+/* Price bubble matches Risk bubble theme, no turquoise accent */
+.price-card,
+.price-stat,
+.price-bubble,
+.stat-card.price,
+.mini-stat.price,
+.stat-card:first-child {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.72), rgba(22,20,34,.72)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.20) !important;
+}
+
+/* Remove cyan/turquoise lines/glows that were attached to price */
+.price-card::before,
+.price-stat::before,
+.price-bubble::before,
+.stat-card.price::before,
+.mini-stat.price::before,
+.stat-card:first-child::before {
+  background: rgba(255,255,255,.08) !important;
+  box-shadow: none !important;
+}
+
+.price-card *,
+.price-stat *,
+.price-bubble *,
+.stat-card.price *,
+.mini-stat.price * {
+  text-shadow: none;
+}
+
+/* Tighten top add ticker/search bubble. Pull right edge closer to add button and shift input left wider. */
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .searchbar.score-searchbar {
+    width: fit-content !important;
+    max-width: none !important;
+    margin-bottom: 10px !important;
+    padding: 10px 12px !important;
+    grid-template-columns: 52px 52px 285px 52px 52px !important;
+    column-gap: 10px !important;
+    justify-content: start !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 285px !important;
+    max-width: 285px !important;
+  }
+
+  .score-searchbar .ticker-field input {
+    width: 100% !important;
+  }
+}
+
+/* Watchlist subtitle cleaned up and slightly stronger */
+.watch-panel .panel-head p,
+.watchlist-page-panel .panel-head p {
+  font-size: 12.5px !important;
+  letter-spacing: .01em !important;
+  color: rgba(226,234,242,.70) !important;
+}
+
+/* Remove visual space left by Current stock report kicker if empty */
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty {
+  display: none !important;
+}
+
+/* If the kicker contained only removed text, tighten company title upward */
+.report-main h1,
+.company-main h1,
+.stock-main h1 {
+  margin-top: 0 !important;
+}
