@@ -279,7 +279,7 @@ async function fetchOpenAiNewsSentiment(symbol, profile, newsItems = []) {
     }
 
     const content = json?.choices?.[0]?.message?.content || "";
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content || "{}");
     const score = clamp(parsed.score, 0, 10);
 
     return {
@@ -497,10 +497,10 @@ function calculateWaccAndDcf(inputs = {}, metrics = {}) {
   const equityRiskPremium = (safeNumber(process.env.EQUITY_RISK_PREMIUM) ?? 5.5) / 100;
   const terminalGrowthRate = (safeNumber(process.env.TERMINAL_GROWTH_RATE) ?? 2.5) / 100;
 
-  const normalizedBeta = clamp(beta, 0.4, 2.8);
+  const normalizedBeta = Math.max(0.4, Math.min(2.8, Number(beta) || 1.0));
   const taxRate =
     pretaxIncome !== null && pretaxIncome > 0 && taxExpense !== null
-      ? clamp(taxExpense / pretaxIncome, 0, 0.35)
+      ? Math.max(0, Math.min(0.35, taxExpense / pretaxIncome))
       : 0.21;
 
   const costOfEquity = riskFreeRate + normalizedBeta * equityRiskPremium;
@@ -510,7 +510,7 @@ function calculateWaccAndDcf(inputs = {}, metrics = {}) {
       ? interestExpense / totalDebt
       : null;
 
-  const costOfDebt = rawCostOfDebt !== null ? clamp(rawCostOfDebt, 0.01, 0.18) : 0.055;
+  const costOfDebt = rawCostOfDebt !== null ? Math.max(0.01, Math.min(0.18, rawCostOfDebt)) : 0.055;
   const equityValue = marketCap || 0;
   const debtValue = totalDebt || 0;
   const totalCapital = equityValue + debtValue;
@@ -540,7 +540,7 @@ function calculateWaccAndDcf(inputs = {}, metrics = {}) {
     };
   }
 
-  const cappedGrowth = clamp((revenueGrowth || 5) / 100, -0.02, Math.min(0.12, wacc - terminalGrowthRate - 0.01));
+  const cappedGrowth = Math.max(-0.02, Math.min(Math.min(0.12, wacc - terminalGrowthRate - 0.01), (revenueGrowth || 5) / 100));
   let projected = freeCashFlow;
   const projectedFcfs = [];
 
@@ -617,8 +617,10 @@ export async function buildStockAnalysis(symbol) {
           name: fmpBundle.profile.companyName || finnhubProfile?.name,
           ticker: fmpBundle.profile.symbol || finnhubProfile?.ticker || cleanSymbol,
           marketCapitalization:
-            safeNumber(finnhubProfile?.marketCapitalization) ??
-            (safeNumber(fmpBundle.profile.mktCap) !== null ? fmpBundle.profile.mktCap / 1_000_000 : null),
+            firstNumber(
+              finnhubProfile?.marketCapitalization,
+              safeNumber(fmpBundle.profile.mktCap) !== null ? fmpBundle.profile.mktCap / 1_000_000 : null
+            ),
           finnhubIndustry: finnhubProfile?.finnhubIndustry || fmpBundle.profile.industry || fmpBundle.profile.sector,
           weburl: finnhubProfile?.weburl || fmpBundle.profile.website,
           logo: finnhubProfile?.logo || fmpBundle.profile.image,
@@ -669,7 +671,7 @@ export async function buildStockAnalysis(symbol) {
   const newsSentiment = await fetchOpenAiNewsSentiment(
     cleanSymbol,
     profile,
-    Array.isArray(fmpBundle?.news) && fmpBundle.news.length ? fmpBundle.news : finnhubNews
+    Array.isArray(fmpBundle?.news) && fmpBundle.news.length ? fmpBundle.news : (Array.isArray(finnhubNews) ? finnhubNews : [])
   );
 
   const growthScore = scoreGrowth(extracted);
