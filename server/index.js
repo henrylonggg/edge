@@ -632,8 +632,9 @@ app.get("/api/health", (req, res) => {
 });
 
 
-const ANALYSIS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const ANALYSIS_CACHE_TTL_MS = 60 * 60 * 1000;
 const analysisCache = new Map();
+const industryTopCache = new Map();
 
 function cloneJson(value) {
   try {
@@ -677,7 +678,7 @@ async function buildCachedStockAnalysis(symbol) {
       cache: {
         ...(cached.cache || {}),
         hit: true,
-        ttlHours: 24,
+        ttlHours: 1,
       },
     };
   }
@@ -688,7 +689,7 @@ async function buildCachedStockAnalysis(symbol) {
     cache: {
       ...(analysis.cache || {}),
       hit: false,
-      ttlHours: 24,
+      ttlHours: 1,
       savedAt: new Date().toISOString(),
     },
   });
@@ -806,6 +807,16 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     }
 
     const industryKey = getIndustryKey(industry);
+    const cacheKey = `${industryKey || normalizeIndustryName(industry)}:${symbol || ""}`;
+    const cachedIndustry = industryTopCache.get(cacheKey);
+
+    if (cachedIndustry && Date.now() - cachedIndustry.savedAt < ANALYSIS_CACHE_TTL_MS) {
+      return res.status(200).json({
+        ...cachedIndustry.data,
+        cache: { hit: true, ttlHours: 1 },
+      });
+    }
+
     const candidates = getIndustryUniverse(industry, symbol);
 
     if (!industryKey || !candidates.length) {
@@ -839,9 +850,11 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
     const leaders = results
       .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
-      .slice(0, 3);
+      .slice(0, 5);
 
-    return res.status(200).json({ industry, industryKey, candidates, leaders, limit: 3, cachedForHours: 24 });
+    const payload = { industry, industryKey, candidates, leaders, limit: 5, cachedForHours: 1, cache: { hit: false, ttlHours: 1 } };
+    industryTopCache.set(cacheKey, { savedAt: Date.now(), data: payload });
+    return res.status(200).json(payload);
   } catch (error) {
     console.error("Industry top route failed:", error);
     return res.status(500).json({ error: error?.message || "Could not rank this industry." });
@@ -869,7 +882,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
           ...(cachedFullAnalysis.cache || {}),
           hit: true,
           full: true,
-          ttlHours: 24,
+          ttlHours: 1,
         },
       });
     }
@@ -902,7 +915,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
         ...(analysis.cache || {}),
         hit: false,
         full: true,
-        ttlHours: 24,
+        ttlHours: 1,
         savedAt: new Date().toISOString(),
       },
     };
@@ -915,7 +928,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
         ...(analysis.cache || {}),
         hit: false,
         full: true,
-        ttlHours: 24,
+        ttlHours: 1,
         savedAt: new Date().toISOString(),
       },
     });
