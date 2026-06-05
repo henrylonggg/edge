@@ -1,5 +1,4 @@
-// Eval update: watchlist mobile cleanup, tablet profile alignment, homepage revamp.
-// Eval update: mobile/tablet watchlist cards and tablet profile alignment.
+// Eval update: reverted homepage/profile, kept mobile-tablet watchlist fixes.
 // Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
 // Eval update: deep AI assistant rules page and iPad mobile-matching layout.
 // Eval update: all metric popups have top-right close buttons.
@@ -451,7 +450,7 @@ function ProfileButton() {
     "there";
 
   return (
-    <div className="profile-welcome-wrap eval-profile-top-right">
+    <div className="profile-welcome-wrap">
       <div className="profile-welcome-text">
         <span>Welcome,</span>
         <strong>{firstName}</strong>
@@ -1001,23 +1000,23 @@ function LandingPage({ onContinue }) {
   const productPoints = [
     {
       icon: <Gauge size={20} />,
-      title: "One clear 0–10 Eval Score",
-      text: "Search a ticker and get a fast company rating that combines fundamentals, valuation, market action, risk, and news sentiment.",
+      title: "One simple Eval Score",
+      text: "Type a ticker and get a clean 0–10 score that summarizes the stock’s overall setup.",
     },
     {
       icon: <BarChart3 size={20} />,
-      title: "Full score breakdowns",
-      text: "See Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment with plain-English explanations.",
+      title: "Breakdowns that make sense",
+      text: "See growth, profitability, financial health, valuation, momentum, and pullback in plain English.",
     },
     {
       icon: <ShieldCheck size={20} />,
-      title: "Watchlist ranking built in",
-      text: "Save up to 15 stocks, rank them by Eval Score, and quickly compare which companies look strongest inside your own list.",
+      title: "Risk made easier",
+      text: "Eval AI turns volatility, debt, valuation, and business strength into a quick risk read.",
     },
     {
       icon: <BrainCircuit size={20} />,
-      title: "Eval AI explanations",
-      text: "Ask about the interface, score categories, metric popups, news sentiment, or any stock already saved in your watchlist.",
+      title: "Ask questions instantly*",
+      text: "Ask the assistant to compare stocks, explain metrics, and translate market data into clear, beginner-friendly answers.",
     },
   ];
 
@@ -1038,23 +1037,23 @@ function LandingPage({ onContinue }) {
         <div className="landing-hero">
           <div className="landing-copy">
             <div className="landing-kicker">
-              <Sparkles size={16} /> AI-powered stock evaluation dashboard
+              <Sparkles size={16} /> Built for faster stock decisions
             </div>
 
-            <h2>Evaluate stocks faster with one clean score.</h2>
+            <h2>Turn complicated stock data into one clear answer.</h2>
 
             <p>
-              Eval turns market data into a clean, visual stock report. Search a ticker to see
-              a 0–10 Eval Score, category ratings, risk, price action, recent news sentiment,
-              and a ranked watchlist built for quick comparison without digging through
-              messy spreadsheets or finance jargon.
+              Eval AI helps users understand stocks without digging through confusing
+              spreadsheets, finance terms, or long reports. Enter any ticker to get a
+              simple Eval Score, risk rating, company summary, key metrics, watchlist,
+              and plain-English explanations designed to be quick, readable, and useful.
             </p>
 
             <div className="landing-actions">
               <button type="button" className="landing-continue-btn" onClick={onContinue}>
                 Continue <ArrowRight size={20} />
               </button>
-              <span>Open the dashboard and start building your watchlist.</span>
+              <span>Open the dashboard and start analyzing stocks.</span>
             </div>
           </div>
 
@@ -1089,13 +1088,13 @@ function LandingPage({ onContinue }) {
         <div className="landing-bottom-strip">
           <span>Eval Score</span>
           <span>Risk Rating</span>
-          <span>News Sentiment</span>
-          <span>Ranked Watchlist</span>
-          <span>Eval AI Assistant</span>
+          <span>Company Breakdown</span>
+          <span>Watchlist</span>
+          <span>AI Assistant</span>
         </div>
 
         <p className="landing-footnote">
-          *Eval is for educational stock evaluation only and is not financial advice.
+          *Eval AI provides educational explanations only and is not financial advice.
         </p>
       </section>
     </main>
