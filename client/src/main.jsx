@@ -1,3 +1,4 @@
+// Eval update: clean text dropdown with click-away close.
 // Eval update: dropdown menu front layer and button rows fixed.
 // Eval update: compact searchbar dropdown menu.
 // Eval update: compare page bottom industry note.
@@ -939,29 +940,38 @@ function App() {
                 </button>
 
                 {menuOpen && (
-                  <div className="dashboard-dropdown-menu">
-                    <button type="button" onClick={() => goMenu("assistant")}>
-                      <BrainCircuit size={16} /> AI Assistant
-                    </button>
-                    <button type="button" onClick={() => { setMenuOpen(false); openComparePage(symbol); }}>
-                      <Scale size={16} /> Compare
-                    </button>
-                    <button type="button" className="dropdown-mobile-only" onClick={() => goMenu("watchlist")}>
-                      <Star size={16} /> Watchlist
-                    </button>
+                  <>
+                    <button
+                      type="button"
+                      className="dropdown-click-away"
+                      onClick={() => setMenuOpen(false)}
+                      aria-label="Close menu"
+                    />
 
-                    <div className="dropdown-divider" />
+                    <div className="dashboard-dropdown-menu">
+                      <button type="button" onClick={() => goMenu("assistant")}>
+                        AI Assistant
+                      </button>
+                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(symbol); }}>
+                        Compare
+                      </button>
+                      <button type="button" className="dropdown-mobile-only" onClick={() => goMenu("watchlist")}>
+                        Watchlist
+                      </button>
 
-                    <button type="button" onClick={() => goMenu("landing")}>
-                      <Home size={16} /> Homepage
-                    </button>
-                    <button type="button" onClick={() => goMenu("terms")}>
-                      <FileText size={16} /> Terms
-                    </button>
-                    <button type="button" onClick={() => goMenu("support")}>
-                      <MessageCircle size={16} /> Contact
-                    </button>
-                  </div>
+                      <div className="dropdown-divider" />
+
+                      <button type="button" onClick={() => goMenu("landing")}>
+                        Homepage
+                      </button>
+                      <button type="button" onClick={() => goMenu("terms")}>
+                        Terms
+                      </button>
+                      <button type="button" onClick={() => goMenu("support")}>
+                        Contact
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
