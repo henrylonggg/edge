@@ -1,3 +1,5 @@
+// Eval score.js update: add Efficiency Score using NOPAT, invested capital, and ROIC.
+// Eval score.js update: use reported financial statements for Earnings Quality.
 // Eval score.js update: earningsQualityScore declaration fix + Earnings Quality 5% weight.
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
@@ -171,6 +173,94 @@ function gradeFrom10(value) {
   return "F";
 }
 
+
+function statementValue(statement = {}, names = []) {
+  const rows = [
+    ...(Array.isArray(statement?.ic) ? statement.ic : []),
+    ...(Array.isArray(statement?.bs) ? statement.bs : []),
+    ...(Array.isArray(statement?.cf) ? statement.cf : []),
+  ];
+
+  for (const name of names) {
+    const needle = String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const row = rows.find((item) => {
+      const concept = String(item?.concept || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const label = String(item?.label || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const rowName = String(item?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return concept.includes(needle) || label.includes(needle) || rowName.includes(needle);
+    });
+
+    const value = firstNumber(row?.value, row?.amount);
+    if (value !== null && value !== 0) return value;
+  }
+
+  return null;
+}
+
+function buildReportedFinancials(reported = {}) {
+  const reports = Array.isArray(reported?.data) ? reported.data : [];
+  const annual = reports
+    .filter((report) => {
+      const form = String(report?.form || "").toUpperCase();
+      const freq = String(report?.freq || "").toLowerCase();
+      return form.includes("10-K") || freq === "annual" || report?.report;
+    })
+    .sort((a, b) => String(b?.endDate || b?.filedDate || b?.year || "").localeCompare(String(a?.endDate || a?.filedDate || a?.year || "")))
+    .slice(0, 4);
+
+  const rows = annual.map((report) => {
+    const r = report?.report || report;
+    const revenue = statementValue(r, ["revenue", "revenues", "salesrevenue", "salesrevenuenet", "sales"]);
+    const netIncome = statementValue(r, ["netincome", "netincomeloss", "profitloss"]);
+    const operatingIncome = statementValue(r, ["operatingincome", "operatingincomeloss", "incomefromoperations"]);
+    const operatingCashFlow = statementValue(r, ["netcashprovidedbyusedinoperatingactivities", "netcashprovidedbyoperatingactivities", "operatingcashflow"]);
+    const capexRaw = statementValue(r, ["paymentstoacquirepropertyplantandequipment", "paymentstoacquireproductiveassets", "capitalexpenditures", "capex"]);
+    const totalAssets = statementValue(r, ["assets", "totalassets"]);
+    const totalDebt = statementValue(r, ["debt", "longtermdebt", "shorttermborrowings", "totaldebt"]);
+    const shareholderEquity = statementValue(r, ["stockholdersequity", "shareholdersequity", "stockholdersequityincludingportionattributabletononcontrollinginterest"]);
+    const cashAndEquivalents = statementValue(r, ["cashandcashequivalents", "cashandcash equivalents", "cashcashequivalentsrestrictedcashandrestrictedcashequivalents"]);
+    const eps = statementValue(r, ["earningspersharediluted", "dilutedearningspershare", "epsdiluted", "earningspershare"]);
+
+    const capex = capexRaw === null ? null : -Math.abs(capexRaw);
+    const freeCashFlow =
+      operatingCashFlow !== null && capex !== null
+        ? operatingCashFlow - Math.abs(capex)
+        : null;
+
+    return {
+      year: report?.year || report?.endDate || report?.filedDate || null,
+      revenue,
+      netIncome,
+      operatingIncome,
+      operatingCashFlow,
+      capex,
+      freeCashFlow,
+      totalAssets,
+      totalDebt,
+      shareholderEquity,
+      cashAndEquivalents,
+      eps,
+    };
+  });
+
+  function pctChange(key) {
+    const usable = rows.filter((row) => scoreInputNumber(row?.[key]) !== null);
+    if (usable.length < 2) return null;
+    const latest = usable[0][key];
+    const oldest = usable[Math.min(usable.length - 1, 3)][key];
+    if (!oldest) return null;
+    return ((latest - oldest) / Math.abs(oldest)) * 100;
+  }
+
+  return {
+    latest: rows[0] || {},
+    revenueGrowth3Y: pctChange("revenue"),
+    netIncomeGrowth3Y: pctChange("netIncome"),
+    epsGrowth3Y: pctChange("eps"),
+  };
+}
+
+
 function buildExtractedMetrics(profile, quote, raw = {}) {
   const currentPrice = safeNumber(quote?.c);
   const marketCapM = safeNumber(profile?.marketCapitalization);
@@ -225,11 +315,15 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     quickRatio: firstNumber(raw.quickRatioQuarterly, raw.quickRatioAnnual),
     cashRatio: firstNumber(raw.cashRatioQuarterly, raw.cashRatioAnnual),
     assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual),
+    operatingIncome: firstNumber(raw.operatingIncomeTTM, raw.operatingIncomeAnnual),
     operatingCashFlow: firstNumber(raw.operatingCashFlowTTM, raw.operatingCashFlowAnnual),
     capex: firstNumber(raw.capexTTM, raw.capexAnnual, raw.capitalExpenditureTTM, raw.capitalExpenditureAnnual),
     freeCashFlow: firstNumber(raw.freeCashFlowTTM, raw.freeCashFlowAnnual),
     netIncome: firstNumber(raw.netIncomeTTM, raw.netIncomeAnnual),
     totalAssets: firstNumber(raw.totalAssetsQuarterly, raw.totalAssetsAnnual),
+    totalDebt: firstNumber(raw.totalDebtQuarterly, raw.totalDebtAnnual),
+    shareholderEquity: firstNumber(raw.totalEquityQuarterly, raw.totalEquityAnnual, raw.bookValuePerShareAnnual && raw.sharesOutstanding ? raw.bookValuePerShareAnnual * raw.sharesOutstanding : null),
+    cashAndEquivalents: firstNumber(raw.cashAndEquivalentsQuarterly, raw.cashAndEquivalentsAnnual, raw.cashPerShareAnnual && raw.sharesOutstanding ? raw.cashPerShareAnnual * raw.sharesOutstanding : null),
     netIncomeGrowth3Y: percentFromDecimal(firstNumber(raw.netIncomeGrowth3Y, raw.netIncomeGrowth3YAnnual, raw["3YearNetIncomeGrowth"])),
     interestCoverage: firstNumber(raw.interestCoverageTTM, raw.interestCoverageAnnual),
     cashFlowToDebt: firstNumber(raw.cashFlowToDebtTTM, raw.cashFlowToDebtAnnual),
@@ -368,6 +462,50 @@ function scoreFinancialHealth(m = {}) {
 }
 
 
+function scoreEfficiency(m = {}) {
+  const roicScore = metricScore(m.roicCalculated, [
+    [35, 10],
+    [25, 9.2],
+    [18, 8.4],
+    [12, 7.4],
+    [8, 6.4],
+    [4, 5.2],
+    [0.5, 4.0],
+    [-999, 3.0],
+  ]);
+
+  const nopatScore = metricScore(m.nopat, [
+    [100000, 10],
+    [50000, 9.2],
+    [20000, 8.4],
+    [5000, 7.4],
+    [1000, 6.4],
+    [100, 5.2],
+    [1, 4.2],
+    [-999999999, 3.0],
+  ]);
+
+  const investedCapitalQuality = inverseMetricScore(
+    m.investedCapital !== null && m.nopat !== null && m.nopat !== 0 ? m.investedCapital / Math.abs(m.nopat) : null,
+    [[3, 9.5], [5, 8.6], [8, 7.4], [12, 6.2], [20, 5.0], [999999, 3.8]]
+  );
+
+  const marginSupport = metricScore(m.operatingMargin, [[35, 10], [25, 9.2], [15, 8.2], [8, 7], [3, 6], [0.5, 5], [-999, 3.4]]);
+
+  const score = availableWeightedAverage(
+    [
+      { score: roicScore, weight: 0.48 },
+      { score: nopatScore, weight: 0.18 },
+      { score: investedCapitalQuality, weight: 0.18 },
+      { score: marginSupport, weight: 0.16 },
+    ],
+    null
+  );
+
+  return score === null ? null : Number(clamp(score, 0, 10).toFixed(1));
+}
+
+
 function scoreEarningsQuality(m = {}) {
   const fcfScore = metricScore(m.freeCashFlow, [[50000, 10], [20000, 9], [5000, 8], [1000, 7], [250, 6], [1, 5], [-999999999, 3.5]]);
 
@@ -427,7 +565,7 @@ function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
     6
   );
 
-  const quality = availableWeightedAverage([{ score: growthScore, weight: 0.208 }, { score: profitabilityScore, weight: 0.198 }], 6);
+  const quality = availableWeightedAverage([{ score: growthScore, weight: 0.202 }, { score: profitabilityScore, weight: 0.192 }], 6);
   return Number(clamp(raw + Math.max(-0.5, Math.min(0.8, (quality - 6) * 0.12))).toFixed(1));
 }
 
@@ -479,6 +617,7 @@ function labelCategory(key) {
     momentum: "Momentum",
     reversal: "Pullback",
     earningsQuality: "Earnings Quality",
+    efficiency: "Efficiency",
     newsSentiment: "News Sentiment",
   };
 
@@ -652,8 +791,62 @@ export async function buildStockAnalysis(symbol) {
     throw new Error(`No company profile found for ${cleanSymbol}.`);
   }
 
+  const financialsReported = await fetchFinnhubOptional("/stock/financials-reported", {
+    symbol: cleanSymbol,
+    freq: "annual",
+  });
+
   const raw = metricsRaw?.metric || {};
   const extracted = buildExtractedMetrics(profile, quote, raw);
+
+  const reportedFinancials = buildReportedFinancials(financialsReported);
+  const reportedLatest = reportedFinancials.latest || {};
+
+  extracted.operatingIncome = firstNumber(extracted.operatingIncome, reportedLatest.operatingIncome);
+  extracted.totalDebt = firstNumber(extracted.totalDebt, reportedLatest.totalDebt);
+  extracted.shareholderEquity = firstNumber(extracted.shareholderEquity, reportedLatest.shareholderEquity);
+  extracted.cashAndEquivalents = firstNumber(extracted.cashAndEquivalents, reportedLatest.cashAndEquivalents);
+  extracted.operatingCashFlow = firstNumber(extracted.operatingCashFlow, reportedLatest.operatingCashFlow);
+  extracted.capex = firstNumber(extracted.capex, reportedLatest.capex);
+  extracted.freeCashFlow = firstNumber(
+    extracted.freeCashFlow,
+    reportedLatest.freeCashFlow,
+    extracted.operatingCashFlow !== null && extracted.capex !== null
+      ? extracted.operatingCashFlow - Math.abs(extracted.capex)
+      : null
+  );
+  extracted.netIncome = firstNumber(extracted.netIncome, reportedLatest.netIncome);
+  extracted.totalAssets = firstNumber(extracted.totalAssets, reportedLatest.totalAssets);
+  extracted.netIncomeGrowth3Y = firstNumber(extracted.netIncomeGrowth3Y, reportedFinancials.netIncomeGrowth3Y);
+  extracted.revenueGrowth3Y = firstNumber(extracted.revenueGrowth3Y, reportedFinancials.revenueGrowth3Y);
+  extracted.epsGrowth3Y = firstNumber(extracted.epsGrowth3Y, reportedFinancials.epsGrowth3Y);
+
+  extracted.cashConversionRatio =
+    scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null
+      ? extracted.freeCashFlow / extracted.netIncome
+      : null;
+  extracted.accrualRatio =
+    scoreInputNumber(extracted.totalAssets) !== null &&
+    scoreInputNumber(extracted.netIncome) !== null &&
+    scoreInputNumber(extracted.freeCashFlow) !== null
+      ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
+      : null;
+
+  extracted.nopat =
+    scoreInputNumber(extracted.operatingIncome) !== null
+      ? extracted.operatingIncome * (1 - 0.21)
+      : null;
+
+  extracted.investedCapital =
+    scoreInputNumber(extracted.totalDebt) !== null &&
+    scoreInputNumber(extracted.shareholderEquity) !== null
+      ? extracted.totalDebt + extracted.shareholderEquity - (safeNumber(extracted.cashAndEquivalents) || 0)
+      : null;
+
+  extracted.roicCalculated =
+    scoreInputNumber(extracted.nopat) !== null && scoreInputNumber(extracted.investedCapital) !== null
+      ? (extracted.nopat / extracted.investedCapital) * 100
+      : null;
 
   extracted.freeCashFlow = firstNumber(
     extracted.freeCashFlow,
@@ -682,6 +875,7 @@ export async function buildStockAnalysis(symbol) {
   const reversalScore = scorePullback(extracted);
 
   const earningsQualityScore = scoreEarningsQuality(extracted);
+  const efficiencyScore = scoreEfficiency(extracted);
   const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
 
   const categories = {
@@ -692,6 +886,7 @@ export async function buildStockAnalysis(symbol) {
     momentum: momentumScore,
     reversal: reversalScore,
     earningsQuality: earningsQualityScore,
+    efficiency: efficiencyScore,
     newsSentiment: newsSentimentScore,
   };
 
@@ -699,12 +894,13 @@ export async function buildStockAnalysis(symbol) {
     [
       { score: growthScore, weight: 0.215 },
       { score: profitabilityScore, weight: 0.205 },
-      { score: healthScore, weight: 0.168 },
-      { score: valuationScore, weight: 0.143 },
-      { score: momentumScore, weight: 0.098 },
-      { score: reversalScore, weight: 0.068 },
-      { score: earningsQualityScore, weight: 0.050 },
-      { score: newsSentimentScore, weight: 0.068 },
+      { score: healthScore, weight: 0.162 },
+      { score: valuationScore, weight: 0.137 },
+      { score: momentumScore, weight: 0.092 },
+      { score: reversalScore, weight: 0.062 },
+      { score: earningsQualityScore, weight: 0.044 },
+      { score: efficiencyScore, weight: 0.050 },
+      { score: newsSentimentScore, weight: 0.062 },
     ],
     6
   );
@@ -776,6 +972,13 @@ export async function buildStockAnalysis(symbol) {
       totalAssets: metric(extracted.totalAssets, "", "Finnhub", "Total assets"),
       cashConversionRatio: metric(extracted.cashConversionRatio, "", "Calculated", "Free cash flow / net income"),
       accrualRatio: metric(extracted.accrualRatio, "", "Calculated", "(Net income - free cash flow) / total assets"),
+      operatingIncome: metric(extracted.operatingIncome, "", "Finnhub / Reported financials", "Operating income"),
+      totalDebt: metric(extracted.totalDebt, "", "Finnhub / Reported financials", "Total debt"),
+      shareholderEquity: metric(extracted.shareholderEquity, "", "Finnhub / Reported financials", "Shareholder equity"),
+      cashAndEquivalents: metric(extracted.cashAndEquivalents, "", "Finnhub / Reported financials", "Cash and cash equivalents"),
+      nopat: metric(extracted.nopat, "", "Calculated", "Operating income × (1 - 21% tax rate)"),
+      investedCapital: metric(extracted.investedCapital, "", "Calculated", "Total debt + shareholder equity - cash & equivalents"),
+      roicCalculated: metric(extracted.roicCalculated, "%", "Calculated", "NOPAT / invested capital"),
       interestCoverage: metric(extracted.interestCoverage, "", "Finnhub", "EBIT / interest expense"),
       cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "Finnhub", "Operating cash flow / total debt"),
       operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "Finnhub", "Operating cash flow / share"),
