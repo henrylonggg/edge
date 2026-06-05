@@ -16178,9 +16178,6 @@ aside .ai-rules-card {
 }
 
 
-
-
-
 /* =========================================================
    WATCHLIST STOCK COMPARISON PAGE
 ========================================================= */
@@ -16190,7 +16187,6 @@ aside .ai-rules-card {
   place-items: center !important;
 }
 
-/* Desktop: order is AI, input, search, add, compare. */
 @media (min-width: 681px) {
   .eval-responsive-searchbar .compare-nav-btn,
   .eval-safe-searchbar .compare-nav-btn,
@@ -16200,7 +16196,6 @@ aside .ai-rules-card {
   }
 }
 
-/* Mobile/tablet: add compare between Add and Watchlist. */
 @media (max-width: 1180px) {
   .eval-responsive-searchbar,
   .eval-safe-searchbar,
@@ -16311,11 +16306,6 @@ aside .ai-rules-card {
   text-transform: uppercase;
 }
 
-.compare-form input:focus {
-  border-color: rgba(133,255,71,.48);
-  box-shadow: 0 0 0 3px rgba(133,255,71,.08);
-}
-
 .compare-vs {
   height: 48px;
   display: grid;
@@ -16337,11 +16327,6 @@ aside .ai-rules-card {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-}
-
-.compare-form button:disabled {
-  opacity: .65;
-  cursor: wait;
 }
 
 .compare-error {
@@ -16412,9 +16397,11 @@ aside .ai-rules-card {
   font-weight: 1000;
 }
 
-.compare-chart-intro {
-  margin: 0 0 12px;
-  padding: 13px 14px;
+.compare-chart-intro,
+.compare-explain,
+.compare-empty {
+  margin-top: 14px;
+  padding: 14px;
   border-radius: 18px;
   background: rgba(0,0,0,.16);
   border: 1px solid rgba(255,255,255,.07);
@@ -16436,6 +16423,7 @@ aside .ai-rules-card {
 .compare-chart {
   display: grid;
   gap: 12px;
+  margin-top: 12px;
 }
 
 .compare-chart-row {
@@ -16512,15 +16500,6 @@ aside .ai-rules-card {
   color: rgba(255,255,255,.50);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.compare-explain,
-.compare-empty {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(0,0,0,.16);
-  border: 1px solid rgba(255,255,255,.07);
 }
 
 .compare-empty {
