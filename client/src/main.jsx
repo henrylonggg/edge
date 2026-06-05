@@ -1,3 +1,4 @@
+// Eval update: earnings quality category + risk UI cleanup.
 // Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
 // Eval mobile report layout: centered company, centered score, bottom price/risk.
 // Eval UI update: company icon removed, mobile score layout adjusted, price/risk theme synced.
@@ -1871,6 +1872,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
+    earningsQuality: "Shows how much reported profit is backed by real cash flow. Higher means earnings look cleaner and more reliable.",
     newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
   };
 
@@ -1938,6 +1940,18 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("13-Week Return", metrics.priceReturn13Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
       metricLine("Day Change", metrics.dayChangePercent),
+    ]),
+    earningsQuality: usableMetricLines([
+      metricLine("Free Cash Flow", metrics.freeCashFlow),
+      metricLine("Operating Cash Flow", metrics.operatingCashFlow),
+      metricLine("Capital Expenditures", metrics.capex),
+      metricLine("Net Income", metrics.netIncome),
+      metricLine("Cash Conversion Ratio", metrics.cashConversionRatio),
+      metricLine("Accrual Ratio", metrics.accrualRatio),
+      metricLine("Revenue Growth 3Y", metrics.revenueGrowth3Y),
+      metricLine("Net Income Growth 3Y", metrics.netIncomeGrowth3Y),
+      metricLine("EPS Growth 3Y", metrics.epsGrowth3Y),
+      metricLine("Total Assets", metrics.totalAssets),
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
@@ -2132,18 +2146,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
             ]}
             isOpen={openScoreHelp === "risk"}
             onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
-            extra={
-              <div className="risk-strength-summary">
-                <div>
-                  <span>Strongest</span>
-                  <b>{strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A"}</b>
-                </div>
-                <div>
-                  <span>Weakest</span>
-                  <b>{weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A"}</b>
-                </div>
-              </div>
-            }
           />
         </div>
 
@@ -2264,6 +2266,17 @@ function Report({ data, onAdd, onOpenIndustry }) {
             setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
           }
         />
+        <Grade
+          id="earningsQuality"
+          name="Earnings Quality"
+          value={cats.earningsQuality}
+          icon={<ShieldCheck size={18} />}
+          description={gradeDescriptions.earningsQuality}
+          metricsUsed={categoryMetrics.earningsQuality}
+          isOpen={openScoreHelp === "earningsQuality"}
+          onToggle={() => setOpenScoreHelp(openScoreHelp === "earningsQuality" ? null : "earningsQuality")}
+        />
+
         <Grade
           id="newsSentiment"
           name="News Sentiment"
