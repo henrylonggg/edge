@@ -1,3 +1,4 @@
+// Eval update: dropdown click-away, mobile homepage, mobile searchbar, footer icon cleanup.
 // Eval update: clean text dropdown with click-away close.
 // Eval update: dropdown menu front layer and button rows fixed.
 // Eval update: compact searchbar dropdown menu.
@@ -928,7 +929,7 @@ function App() {
         <section className="layout">
           <div className="content">
             <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
-              <div className="menu-wrap">
+              <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   className={`menu-trigger ${menuOpen ? "open" : ""}`}
@@ -944,6 +945,8 @@ function App() {
                     <button
                       type="button"
                       className="dropdown-click-away"
+                      onMouseDown={() => setMenuOpen(false)}
+                      onTouchStart={() => setMenuOpen(false)}
                       onClick={() => setMenuOpen(false)}
                       aria-label="Close menu"
                     />
@@ -1688,14 +1691,12 @@ function ClerkAccessPage({ onBack, onSuccess }) {
 function DashboardLinkRow({ onHome, onTerms, onSupport }) {
   return (
     <nav className="dashboard-link-row" aria-label="Dashboard navigation">
-      <button type="button" className="dashboard-link-btn" onClick={onHome}>
-        <Home size={16} /> Homepage
+      <button type="button" className="dashboard-link-btn" onClick={onHome}> Homepage
       </button>
       <button type="button" className="dashboard-link-btn" onClick={onTerms}>
         <Scale size={16} /> Terms & Conditions
       </button>
-      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}>
-        <MessageCircle size={16} /> Support & Contact
+      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}> Support & Contact
       </button>
     </nav>
   );
