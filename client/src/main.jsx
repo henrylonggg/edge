@@ -1,3 +1,4 @@
+// Eval update: watchlist-only stock comparison chart.
 // Eval update: reverted homepage/profile, kept mobile-tablet watchlist fixes.
 // Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
 // Eval update: deep AI assistant rules page and iPad mobile-matching layout.
@@ -318,6 +319,7 @@ function categoryLabel(key) {
       valuation: "Valuation",
       momentum: "Momentum",
       reversal: "Pullback",
+      newsSentiment: "News Sentiment",
     }[key] || key
   );
 }
@@ -480,6 +482,12 @@ function App() {
   const [industryPage, setIndustryPage] = useState(null);
   const [industryLoading, setIndustryLoading] = useState(false);
   const [industryError, setIndustryError] = useState("");
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareLeft, setCompareLeft] = useState("");
+  const [compareRight, setCompareRight] = useState("");
+  const [compareData, setCompareData] = useState(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState("");
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -572,6 +580,64 @@ function App() {
 
     setWatchlist(next);
     saveWatchlist(next);
+  }
+
+  function openCompareModal(prefill = symbol) {
+    setCompareOpen(true);
+    setCompareError("");
+    setCompareData(null);
+    const clean = String(prefill || "").trim().toUpperCase();
+    if (clean && watchlist.some((item) => item.symbol === clean)) {
+      setCompareLeft(clean);
+    }
+  }
+
+  async function runComparison(e) {
+    e?.preventDefault();
+
+    const left = compareLeft.trim().toUpperCase();
+    const right = compareRight.trim().toUpperCase();
+
+    if (!left || !right) {
+      setCompareError("Enter two tickers to compare.");
+      return;
+    }
+
+    if (left === right) {
+      setCompareError("Choose two different tickers.");
+      return;
+    }
+
+    const savedSymbols = watchlist.map((item) => item.symbol);
+    const missing = [left, right].filter((ticker) => !savedSymbols.includes(ticker));
+
+    if (missing.length) {
+      setCompareError(`${missing.join(" and ")} must be saved in your watchlist before comparing.`);
+      return;
+    }
+
+    setCompareLoading(true);
+    setCompareError("");
+
+    try {
+      const [leftReport, rightReport] = await Promise.all([
+        data?.symbol === left ? Promise.resolve(data) : analyze(null, left),
+        data?.symbol === right ? Promise.resolve(data) : analyze(null, right),
+      ]);
+
+      if (!leftReport || !rightReport) {
+        throw new Error("Could not load both stock reports.");
+      }
+
+      setCompareData({
+        left: leftReport,
+        right: rightReport,
+      });
+    } catch (err) {
+      setCompareError(err?.message || "Comparison failed. Try again.");
+    } finally {
+      setCompareLoading(false);
+    }
   }
 
   async function openIndustryPage(industry, sourceSymbol = data?.symbol || symbol) {
@@ -846,12 +912,12 @@ function App() {
 
               <button
                 type="button"
-                className="ghost-btn"
-                onClick={() => addTicker(symbol)}
-                aria-label="Add to watchlist"
-                title="Add to watchlist"
+                className="ghost-btn compare-nav-btn"
+                onClick={() => openCompareModal(symbol)}
+                aria-label="Compare watchlist stocks"
+                title="Compare watchlist stocks"
               >
-                <Plus size={18} />
+                <Scale size={18} />
               </button>
 
               <button
@@ -894,6 +960,172 @@ function App() {
   );
 }
 
+
+
+
+function CompareModal({
+  left,
+  right,
+  setLeft,
+  setRight,
+  data,
+  loading,
+  error,
+  onSubmit,
+  onClose,
+}) {
+  const categories = [
+    "growth",
+    "profitability",
+    "financialHealth",
+    "valuation",
+    "momentum",
+    "reversal",
+    "newsSentiment",
+  ];
+
+  const leftSymbol = data?.left?.symbol || left || "Stock 1";
+  const rightSymbol = data?.right?.symbol || right || "Stock 2";
+  const leftScore = score10(data?.left?.grades?.edgeScore);
+  const rightScore = score10(data?.right?.grades?.edgeScore);
+  const leftCats = data?.left?.grades?.categories || {};
+  const rightCats = data?.right?.grades?.categories || {};
+
+  return (
+    <div className="compare-overlay" role="dialog" aria-modal="true" aria-label="Compare watchlist stocks">
+      <div className="compare-modal">
+        <button
+          type="button"
+          className="compare-close-btn"
+          onClick={onClose}
+          aria-label="Close comparison"
+          title="Close"
+        >
+          ×
+        </button>
+
+        <div className="compare-head">
+          <div>
+            <div className="section-title">
+              <Scale size={17} /> Compare
+            </div>
+            <h2>Compare watchlist stocks</h2>
+            <p>
+              Enter two tickers saved in your watchlist. Eval compares the seven category scores side by side.
+            </p>
+          </div>
+        </div>
+
+        <form className="compare-form" onSubmit={onSubmit}>
+          <label>
+            <span>First ticker</span>
+            <input
+              value={left}
+              onChange={(e) => setLeft(e.target.value.toUpperCase())}
+              placeholder="NVDA"
+              maxLength={8}
+            />
+          </label>
+
+          <div className="compare-vs">v.</div>
+
+          <label>
+            <span>Second ticker</span>
+            <input
+              value={right}
+              onChange={(e) => setRight(e.target.value.toUpperCase())}
+              placeholder="AAPL"
+              maxLength={8}
+            />
+          </label>
+
+          <button type="submit" disabled={loading}>
+            {loading ? <RefreshCw className="spin" size={17} /> : <BarChart3 size={17} />}
+            Compare
+          </button>
+        </form>
+
+        <div className="compare-note">
+          Both tickers must already be in the watchlist so Eval can retrieve the correct saved-stock context.
+        </div>
+
+        {error && <div className="compare-error">{error}</div>}
+
+        {data && (
+          <div className="compare-results">
+            <div className="compare-score-row">
+              <div className={`compare-score-card ${scoreTone(leftScore)}`}>
+                <span>{leftSymbol}</span>
+                <strong>{scoreText(leftScore)}</strong>
+                <small>Power Score</small>
+              </div>
+
+              <div className="compare-score-divider">vs</div>
+
+              <div className={`compare-score-card ${scoreTone(rightScore)}`}>
+                <span>{rightSymbol}</span>
+                <strong>{scoreText(rightScore)}</strong>
+                <small>Power Score</small>
+              </div>
+            </div>
+
+            <div className="compare-chart">
+              {categories.map((key) => {
+                const a = score10(leftCats[key]);
+                const b = score10(rightCats[key]);
+                const max = Math.max(a || 0, b || 0, 1);
+
+                return (
+                  <div className="compare-chart-row" key={key}>
+                    <div className="compare-chart-label">{categoryLabel(key)}</div>
+
+                    <div className="compare-bars">
+                      <div className="compare-bar-line">
+                        <span>{leftSymbol}</span>
+                        <div className="compare-bar-track">
+                          <i
+                            className={scoreTone(a)}
+                            style={{ width: `${Math.max(4, (a || 0) * 10)}%` }}
+                          />
+                        </div>
+                        <strong>{scoreText(a)}</strong>
+                      </div>
+
+                      <div className="compare-bar-line">
+                        <span>{rightSymbol}</span>
+                        <div className="compare-bar-track">
+                          <i
+                            className={scoreTone(b)}
+                            style={{ width: `${Math.max(4, (b || 0) * 10)}%` }}
+                          />
+                        </div>
+                        <strong>{scoreText(b)}</strong>
+                      </div>
+                    </div>
+
+                    <small>
+                      {a === null || b === null
+                        ? "One score is unavailable."
+                        : a > b
+                          ? `${leftSymbol} leads this category by ${(a - b).toFixed(1)}.`
+                          : b > a
+                            ? `${rightSymbol} leads this category by ${(b - a).toFixed(1)}.`
+                            : "Both stocks are even in this category."}
+                    </small>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="compare-explain">
+              Higher bars mean the stock scores better in that category. This comparison is educational and based on Eval's current scoring data, not a buy or sell recommendation.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 
 function industryDescription(industry = "") {
