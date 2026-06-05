@@ -13171,8 +13171,7 @@ button:active,
 }
 
 
-/* =========================================================
-   TIGHT SEARCH BAR — NO SOFI, NO EMPTY RIGHT GAP
+
 ========================================================= */
 
 /* Hide any leftover SoFi/referral button if stale markup still exists */
@@ -13447,5 +13446,217 @@ button[title*="sofi" i] {
     height: 36px !important;
     min-width: 36px !important;
     min-height: 36px !important;
+  }
+}
+
+
+/* =========================================================
+   EXACT FIX: TOP BAR + REPORT BUBBLE
+========================================================= */
+
+/* Search/action bubble: no SoFi, no dead right gap */
+.compact-control-bar {
+  width: fit-content !important;
+  max-width: calc(100vw - 72px) !important;
+  min-width: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.compact-control-bar > * {
+  flex: 0 0 auto !important;
+}
+
+.compact-control-bar .ticker-field {
+  flex: 0 0 285px !important;
+  width: 285px !important;
+  min-width: 285px !important;
+  max-width: 285px !important;
+}
+
+.compact-control-bar .compact-ticker-input,
+.compact-control-bar input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.referral-btn,
+.referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi" i],
+button[aria-label*="sofi" i],
+button[title*="sofi" i] {
+  display: none !important;
+}
+
+/* Report bubble: clean 3-zone layout with no overlap */
+.report-grid-clean {
+  position: relative !important;
+  min-height: 430px !important;
+  padding: 42px 34px 38px !important;
+  display: grid !important;
+  grid-template-columns: 350px minmax(300px, 1fr) 300px !important;
+  grid-template-areas: "score company stats" !important;
+  align-items: center !important;
+  gap: 34px !important;
+  overflow: hidden !important;
+}
+
+.report-grid-clean .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+.report-grid-clean .company-panel {
+  grid-area: company !important;
+  justify-self: start !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+.report-grid-clean .company-panel h2 {
+  margin: 0 0 12px !important;
+  max-width: 100% !important;
+  font-size: clamp(54px, 4.5vw, 78px) !important;
+  line-height: .94 !important;
+  letter-spacing: -0.055em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.report-grid-clean .snapshot-grid,
+.report-grid-clean .snapshot-grid-refined {
+  grid-area: stats !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 300px !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 15px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.report-grid-clean .snapshot-grid > *,
+.report-grid-clean .snapshot-grid-refined > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.report-grid-clean .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  z-index: 12 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.report-grid-clean .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ticker website link */
+.ticker-company-link {
+  color: rgba(255,255,255,.88) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.24) !important;
+}
+
+@media (max-width: 1240px) and (min-width: 901px) {
+  .report-grid-clean {
+    grid-template-columns: 310px minmax(260px, 1fr) 275px !important;
+    gap: 26px !important;
+  }
+
+  .report-grid-clean .company-panel h2 {
+    font-size: clamp(48px, 4.2vw, 66px) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .compact-control-bar {
+    max-width: calc(100vw - 32px) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .compact-control-bar .ticker-field {
+    flex: 0 1 210px !important;
+    width: 210px !important;
+    min-width: 0 !important;
+    max-width: 210px !important;
+  }
+
+  .report-grid-clean {
+    min-height: auto !important;
+    padding: 60px 20px 28px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .report-grid-clean .company-panel {
+    justify-self: center !important;
+    text-align: center !important;
+  }
+
+  .report-grid-clean .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(42px, 11vw, 64px) !important;
+  }
+
+  .report-grid-clean .snapshot-grid,
+  .report-grid-clean .snapshot-grid-refined {
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .report-grid-clean .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 }
