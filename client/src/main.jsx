@@ -1,3 +1,6 @@
+// Eval update: deep AI assistant rules page and iPad mobile-matching layout.
+// Eval update: all metric popups have top-right close buttons.
+// Eval update: force Clerk resend countdown to 60 seconds.
 // Eval update: AI explanation moved to assistant page and tablet uses mobile layout.
 // Eval update: AI page rules, popup close buttons, mobile watchlist/metrics polish.
 // Eval update: mobile score ring actually enlarged with clean spacing.
@@ -70,6 +73,135 @@ import {
   HelpCircle,
 } from "lucide-react";
 import "./styles.css";
+
+
+
+/* Force Clerk resend verification cooldown to 60 seconds.
+   Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
+   keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
+function installClerkResend60Guard() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (window.__evalClerkResend60GuardInstalled) return;
+  window.__evalClerkResend60GuardInstalled = true;
+
+  const COOLDOWN_SECONDS = 60;
+  let cooldownStartedAt = Date.now();
+  let lastFactorTwoPath = "";
+
+  const isAuthVerificationPage = () => {
+    const text = document.body?.innerText || "";
+    const url = window.location.href || "";
+    return (
+      url.includes("factor-two") ||
+      text.includes("Check your phone") ||
+      text.includes("Check your email") ||
+      text.includes("verification code") ||
+      text.includes("Didn't receive a code")
+    );
+  };
+
+  const findResendNodes = () => {
+    const nodes = Array.from(document.querySelectorAll("button, a, span, p, div"));
+    return nodes.filter((node) => {
+      const text = (node.textContent || "").trim();
+      return /didn.?t receive a code\??\s*resend/i.test(text) || /^resend(?:\s*\(\d+\))?$/i.test(text);
+    });
+  };
+
+  const lockNode = (node, secondsLeft) => {
+    const text = (node.textContent || "").trim();
+
+    if (/didn.?t receive a code/i.test(text)) {
+      node.textContent = `Didn't receive a code? Resend (${secondsLeft})`;
+    } else if (/^resend/i.test(text)) {
+      node.textContent = `Resend (${secondsLeft})`;
+    }
+
+    node.setAttribute("aria-disabled", "true");
+    node.setAttribute("data-eval-resend-locked", "true");
+    node.style.pointerEvents = "none";
+    node.style.opacity = "0.72";
+    node.style.cursor = "not-allowed";
+  };
+
+  const unlockNode = (node) => {
+    const text = (node.textContent || "").trim();
+
+    if (/didn.?t receive a code/i.test(text)) {
+      node.textContent = "Didn't receive a code? Resend";
+    } else if (/^resend/i.test(text)) {
+      node.textContent = "Resend";
+    }
+
+    node.removeAttribute("aria-disabled");
+    node.removeAttribute("data-eval-resend-locked");
+    node.style.pointerEvents = "";
+    node.style.opacity = "";
+    node.style.cursor = "";
+  };
+
+  const update = () => {
+    if (!isAuthVerificationPage()) {
+      cooldownStartedAt = Date.now();
+      lastFactorTwoPath = window.location.href;
+      return;
+    }
+
+    if (lastFactorTwoPath !== window.location.href) {
+      lastFactorTwoPath = window.location.href;
+      cooldownStartedAt = Date.now();
+    }
+
+    const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
+    const secondsLeft = Math.max(0, COOLDOWN_SECONDS - elapsed);
+    const nodes = findResendNodes();
+
+    nodes.forEach((node) => {
+      if (secondsLeft > 0) lockNode(node, secondsLeft);
+      else unlockNode(node);
+    });
+  };
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target?.closest?.("button, a, span, p, div");
+      if (!target) return;
+      const text = (target.textContent || "").trim();
+      if (!/resend/i.test(text)) return;
+
+      const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
+      if (isAuthVerificationPage() && elapsed < COOLDOWN_SECONDS) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        update();
+      }
+    },
+    true
+  );
+
+  const observer = new MutationObserver(update);
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
+  window.addEventListener("hashchange", () => {
+    cooldownStartedAt = Date.now();
+    setTimeout(update, 50);
+  });
+
+  window.addEventListener("popstate", () => {
+    cooldownStartedAt = Date.now();
+    setTimeout(update, 50);
+  });
+
+  setInterval(update, 250);
+  setTimeout(update, 50);
+  setTimeout(update, 500);
+  setTimeout(update, 1200);
+}
+
+installClerkResend60Guard();
+
 
 /*
   HARD-CODED RENDER BACKEND URL
@@ -1561,27 +1693,6 @@ function Watchlist({
           <RefreshCw size={16} className={loading ? "spin" : ""} />
         </button>
       </div>
-
-        <section className="ai-rules-card">
-          <div className="ai-rules-eyebrow">What Eval AI can help with</div>
-          <h3>Ask about your dashboard, watchlist stocks, and upcoming earnings.</h3>
-          <div className="ai-rules-grid">
-            <div>
-              <strong>Stock questions</strong>
-              <p>For any specific stock-related question, the ticker must be saved in your watchlist so Eval AI can retrieve the right dashboard data.</p>
-            </div>
-            <div>
-              <strong>Interface help</strong>
-              <p>Ask how to use the dashboard, watchlist, score bubbles, bar-chart metrics, news sentiment, industry pages, and navigation.</p>
-            </div>
-            <div>
-              <strong>Earnings dates</strong>
-              <p>Ask for a watchlist company’s upcoming earnings date and Eval AI will explain it simply.</p>
-            </div>
-          </div>
-          <p className="ai-rules-note">Eval AI will not answer unrelated questions outside the website or stock-evaluation workflow.</p>
-        </section>
-
 <form
         className="watch-add"
         onSubmit={(e) => {
@@ -1734,7 +1845,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask any stock-related question. I’ll keep it brief, clear, and easy to understand.",
+        "Ask about the Eval interface, score metrics, news sentiment, or a stock saved in your watchlist.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -1818,7 +1929,53 @@ function AssistantPage({ current, watchlist, onBack }) {
           </div>
         </div>
 
-        <div className="chat-panel">
+        <div 
+        <section className="ai-rules-card ai-rules-card-full">
+          <div className="ai-rules-eyebrow">What Eval AI can answer</div>
+          <h3>Use Eval AI for this website, your watchlist, and stock-evaluation questions.</h3>
+
+          <div className="ai-rules-grid ai-rules-grid-deep">
+            <div>
+              <strong>Watchlist stock questions</strong>
+              <p>Ask about a specific ticker only if that stock is saved in your watchlist. Eval AI uses watchlist data so it can reference the right score, risk, category ratings, news sentiment, and report values.</p>
+              <span>Examples: “Why is NVDA rated higher than AAPL?” “What is weak about MSFT?” “Explain Tesla’s risk.”</span>
+            </div>
+
+            <div>
+              <strong>Score explanations</strong>
+              <p>Ask what the Eval Score means, why a stock is green/yellow/red, what moved the score, or why one category is stronger or weaker than another.</p>
+              <span>Examples: “Why is profitability strongest?” “What does a 7.2 mean?” “Why is valuation low?”</span>
+            </div>
+
+            <div>
+              <strong>Dashboard navigation</strong>
+              <p>Ask how to use the interface, including the search bar, add button, watchlist, Metrics button, score popups, news cards, industry links, and company website links.</p>
+              <span>Examples: “How do I add a stock?” “Where are the metrics?” “How do I open the company website?”</span>
+            </div>
+
+            <div>
+              <strong>Metric definitions</strong>
+              <p>Ask for plain-English explanations of Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, News Sentiment, and the numbers shown inside metric popups.</p>
+              <span>Examples: “What is pullback?” “Why does momentum matter?” “Explain revenue growth.”</span>
+            </div>
+
+            <div>
+              <strong>News sentiment help</strong>
+              <p>Ask what the recent news section means, why the AI scored articles positively or negatively, and how the top articles affect the overall stock evaluation.</p>
+              <span>Examples: “Was the news good or bad?” “Why is news sentiment bearish?”</span>
+            </div>
+
+            <div>
+              <strong>Comparisons inside Eval</strong>
+              <p>Ask Eval AI to compare stocks already in your watchlist using the website’s available ratings and categories. It should stay focused on the report data and not unrelated topics.</p>
+              <span>Examples: “Compare NVDA and META.” “Which watchlist stock has better financial health?”</span>
+            </div>
+          </div>
+
+          <p className="ai-rules-note">Eval AI should not answer unrelated questions. For stock-specific questions, add the ticker to your watchlist first so Eval can retrieve and explain the right data.</p>
+        </section>
+
+        className="chat-panel">
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
@@ -2440,7 +2597,8 @@ function Grade({
 
       {isOpen && (
         <div className="score-popup">
-          <div className="score-popup-title">Metrics used</div>
+          <button type="button" className="popup-close-btn" onClick={onToggle} aria-label="Close popup" title="Close">×</button>
+        <div className="score-popup-title">Metrics used</div>
           <ul>
             {metricsUsed.length ? (
               metricsUsed.map((metric) => (
