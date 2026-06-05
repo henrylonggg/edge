@@ -1,3 +1,4 @@
+// Eval update: transparent price risk bubbles and desktop AI left search layout.
 // Eval update: global copyright footer.
 // Eval update: remove SoFi everywhere and move AI button to former desktop SoFi position.
 // Eval update: remove SoFi button from mobile and desktop.
@@ -672,7 +673,7 @@ function App() {
             <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar">
               <button
                 type="button"
-                className="ai-nav-btn desktop-ai-left-btn desktop-ai-former-sofi-btn"
+                className="ai-nav-btn desktop-ai-left-btn"
                 onClick={() => setView("assistant")}
                 title="Eval AI Assistant"
                 aria-label="Eval AI Assistant"
