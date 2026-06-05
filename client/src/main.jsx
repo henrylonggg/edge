@@ -1,3 +1,4 @@
+// Eval update: mobile score ring bigger and price/risk backgrounds identical.
 // Eval update: mobile report bubble taller with more vertical spacing.
 // Eval update: mobile price/risk bubbles match desktop exactly.
 // Eval update: transparent price risk bubbles and desktop AI left search layout.
