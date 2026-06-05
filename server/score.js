@@ -1,3 +1,5 @@
+// Eval update: Earnings Quality includes cash ratio and accrual ratio.
+// Eval exact calc fix: exact NOPAT, invested capital, ROIC, and earnings quality from Finnhub statements.
 // Eval sleep fix: stable earnings quality and efficiency calculations using available Finnhub values.
 // Eval score.js update: add Efficiency Score using NOPAT, invested capital, and ROIC.
 // Eval score.js update: use reported financial statements for Earnings Quality.
@@ -175,6 +177,213 @@ function gradeFrom10(value) {
 }
 
 
+
+function cleanConceptKey(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function reportedLineValue(statement = {}, aliases = []) {
+  const rows = [
+    ...(Array.isArray(statement?.ic) ? statement.ic : []),
+    ...(Array.isArray(statement?.bs) ? statement.bs : []),
+    ...(Array.isArray(statement?.cf) ? statement.cf : []),
+  ];
+
+  const cleanedAliases = aliases.map(cleanConceptKey);
+
+  // Pass 1: exact concept match.
+  for (const alias of cleanedAliases) {
+    const row = rows.find((item) => cleanConceptKey(item?.concept) === alias);
+    const value = firstNumber(row?.value, row?.amount);
+    if (value !== null && value !== 0) return value;
+  }
+
+  // Pass 2: exact label/name match.
+  for (const alias of cleanedAliases) {
+    const row = rows.find((item) => cleanConceptKey(item?.label) === alias || cleanConceptKey(item?.name) === alias);
+    const value = firstNumber(row?.value, row?.amount);
+    if (value !== null && value !== 0) return value;
+  }
+
+  // Pass 3: contains match, only if no exact match exists.
+  for (const alias of cleanedAliases) {
+    const row = rows.find((item) => {
+      const concept = cleanConceptKey(item?.concept);
+      const label = cleanConceptKey(item?.label);
+      const name = cleanConceptKey(item?.name);
+      return concept.includes(alias) || label.includes(alias) || name.includes(alias);
+    });
+    const value = firstNumber(row?.value, row?.amount);
+    if (value !== null && value !== 0) return value;
+  }
+
+  return null;
+}
+
+function buildExactReportedFinancials(reported = {}) {
+  const reports = Array.isArray(reported?.data) ? reported.data : [];
+  const annual = reports
+    .filter((report) => {
+      const form = String(report?.form || "").toUpperCase();
+      const freq = String(report?.freq || "").toLowerCase();
+      return form.includes("10-K") || freq === "annual" || report?.report;
+    })
+    .sort((a, b) => String(b?.endDate || b?.filedDate || b?.year || "").localeCompare(String(a?.endDate || a?.filedDate || a?.year || "")))
+    .slice(0, 4);
+
+  const rows = annual.map((report) => {
+    const r = report?.report || report;
+
+    const revenue = reportedLineValue(r, [
+      "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "us-gaap:Revenues",
+      "us-gaap:SalesRevenueNet",
+      "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "Revenues",
+      "SalesRevenueNet",
+    ]);
+
+    const operatingIncome = reportedLineValue(r, [
+      "us-gaap:OperatingIncomeLoss",
+      "OperatingIncomeLoss",
+      "OperatingIncome",
+      "IncomeFromOperations",
+    ]);
+
+    const netIncome = reportedLineValue(r, [
+      "us-gaap:NetIncomeLoss",
+      "us-gaap:ProfitLoss",
+      "NetIncomeLoss",
+      "ProfitLoss",
+      "NetIncome",
+    ]);
+
+    const operatingCashFlow = reportedLineValue(r, [
+      "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+      "NetCashProvidedByUsedInOperatingActivities",
+      "NetCashProvidedByOperatingActivities",
+      "OperatingCashFlow",
+    ]);
+
+    const capexRaw = reportedLineValue(r, [
+      "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "PaymentsToAcquirePropertyPlantAndEquipment",
+      "PaymentsToAcquireProductiveAssets",
+      "CapitalExpenditures",
+      "Capex",
+    ]);
+
+    const totalDebt = reportedLineValue(r, [
+      "us-gaap:LongTermDebtAndFinanceLeaseObligationsCurrent",
+      "us-gaap:ShortTermBorrowings",
+      "us-gaap:LongTermDebtCurrent",
+      "us-gaap:LongTermDebtNoncurrent",
+      "LongTermDebtAndFinanceLeaseObligationsCurrent",
+      "ShortTermBorrowings",
+      "LongTermDebtCurrent",
+      "LongTermDebtNoncurrent",
+      "TotalDebt",
+      "Debt",
+    ]);
+
+    const longDebt = reportedLineValue(r, [
+      "us-gaap:LongTermDebtNoncurrent",
+      "LongTermDebtNoncurrent",
+      "LongTermDebt",
+    ]);
+
+    const currentDebt = reportedLineValue(r, [
+      "us-gaap:LongTermDebtCurrent",
+      "us-gaap:ShortTermBorrowings",
+      "LongTermDebtCurrent",
+      "ShortTermBorrowings",
+    ]);
+
+    const shareholderEquity = reportedLineValue(r, [
+      "us-gaap:StockholdersEquity",
+      "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+      "StockholdersEquity",
+      "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+      "ShareholdersEquity",
+      "ShareholderEquity",
+      "TotalEquity",
+    ]);
+
+    const cashAndEquivalents = reportedLineValue(r, [
+      "us-gaap:CashAndCashEquivalentsAtCarryingValue",
+      "us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "CashAndCashEquivalentsAtCarryingValue",
+      "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents",
+      "CashAndCashEquivalents",
+      "CashEquivalents",
+    ]);
+
+    const totalAssets = reportedLineValue(r, [
+      "us-gaap:Assets",
+      "Assets",
+      "TotalAssets",
+    ]);
+
+    const currentLiabilities = reportedLineValue(r, [
+      "us-gaap:LiabilitiesCurrent",
+      "LiabilitiesCurrent",
+      "CurrentLiabilities",
+      "TotalCurrentLiabilities",
+    ]);
+
+    const eps = reportedLineValue(r, [
+      "us-gaap:EarningsPerShareDiluted",
+      "EarningsPerShareDiluted",
+      "DilutedEarningsPerShare",
+      "EPSDiluted",
+    ]);
+
+    const combinedDebt =
+      totalDebt !== null
+        ? totalDebt
+        : (safeNumber(longDebt) || 0) + (safeNumber(currentDebt) || 0) || null;
+
+    const capex = capexRaw === null ? null : -Math.abs(capexRaw);
+    const freeCashFlow =
+      operatingCashFlow !== null && capex !== null
+        ? operatingCashFlow - Math.abs(capex)
+        : null;
+
+    return {
+      year: report?.year || report?.endDate || report?.filedDate || null,
+      revenue,
+      operatingIncome,
+      netIncome,
+      operatingCashFlow,
+      capex,
+      freeCashFlow,
+      totalDebt: combinedDebt,
+      shareholderEquity,
+      cashAndEquivalents,
+      totalAssets,
+      currentLiabilities,
+      eps,
+    };
+  });
+
+  function pctChange(key) {
+    const usable = rows.filter((row) => scoreInputNumber(row?.[key]) !== null);
+    if (usable.length < 2) return null;
+    const latest = usable[0][key];
+    const oldest = usable[Math.min(usable.length - 1, 3)][key];
+    if (!oldest) return null;
+    return ((latest - oldest) / Math.abs(oldest)) * 100;
+  }
+
+  return {
+    latest: rows[0] || {},
+    revenueGrowth3Y: pctChange("revenue"),
+    netIncomeGrowth3Y: pctChange("netIncome"),
+    epsGrowth3Y: pctChange("eps"),
+  };
+}
+
+
 function statementValue(statement = {}, names = []) {
   const rows = [
     ...(Array.isArray(statement?.ic) ? statement.ic : []),
@@ -322,6 +531,7 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     freeCashFlow: firstNumber(raw.freeCashFlowTTM, raw.freeCashFlowAnnual),
     netIncome: firstNumber(raw.netIncomeTTM, raw.netIncomeAnnual),
     totalAssets: firstNumber(raw.totalAssetsQuarterly, raw.totalAssetsAnnual),
+    currentLiabilities: firstNumber(raw.totalCurrentLiabilitiesQuarterly, raw.totalCurrentLiabilitiesAnnual, raw.currentLiabilitiesQuarterly, raw.currentLiabilitiesAnnual),
     totalDebt: firstNumber(raw.totalDebtQuarterly, raw.totalDebtAnnual),
     shareholderEquity: firstNumber(raw.totalEquityQuarterly, raw.totalEquityAnnual, raw.bookValuePerShareAnnual && raw.sharesOutstanding ? raw.bookValuePerShareAnnual * raw.sharesOutstanding : null),
     cashAndEquivalents: firstNumber(raw.cashAndEquivalentsQuarterly, raw.cashAndEquivalentsAnnual, raw.cashPerShareAnnual && raw.sharesOutstanding ? raw.cashPerShareAnnual * raw.sharesOutstanding : null),
@@ -465,34 +675,39 @@ function scoreFinancialHealth(m = {}) {
 
 function scoreEfficiency(m = {}) {
   const roicScore = metricScore(m.roicCalculated, [
-    [35, 10],
-    [25, 9.2],
-    [18, 8.4],
-    [12, 7.4],
+    [50, 10],
+    [35, 9.4],
+    [25, 8.8],
+    [18, 8.0],
+    [12, 7.2],
     [8, 6.4],
-    [4, 5.2],
-    [0.5, 4.0],
+    [4, 5.4],
+    [0.5, 4.2],
     [-999, 3.0],
   ]);
 
-  const returnSupport = availableWeightedAverage(
+  const operatingEfficiency = availableWeightedAverage(
     [
-      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0.5, 5], [-999, 3.5]]), weight: 0.34 },
-      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0.5, 5], [-999, 3.5]]), weight: 0.33 },
-      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8.2], [0.5, 7.2], [0.25, 6], [0.05, 5], [-999, 3.5]]), weight: 0.33 },
+      { score: metricScore(m.operatingMargin, [[40, 10], [30, 9.2], [22, 8.4], [15, 7.5], [8, 6.5], [3, 5.4], [-999, 3.5]]), weight: 0.45 },
+      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8.2], [0.5, 7.2], [0.25, 6], [0.05, 5], [-999, 3.5]]), weight: 0.25 },
+      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0.5, 5], [-999, 3.5]]), weight: 0.30 },
     ],
     null
   );
 
-  const nopatScore = metricScore(m.nopat, [[100000, 10], [50000, 9.2], [20000, 8.4], [5000, 7.4], [1000, 6.4], [100, 5.2], [1, 4.2], [-999999999, 3.0]]);
-  const marginSupport = metricScore(m.operatingMargin, [[35, 10], [25, 9.2], [15, 8.2], [8, 7], [3, 6], [0.5, 5], [-999, 3.4]]);
+  const capitalSupport = availableWeightedAverage(
+    [
+      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0.5, 5], [-999, 3.5]]), weight: 0.55 },
+      { score: metricScore(m.nopat, [[100000, 10], [50000, 9.2], [20000, 8.4], [5000, 7.4], [1000, 6.4], [100, 5.2], [1, 4.2], [-999999999, 3.0]]), weight: 0.45 },
+    ],
+    null
+  );
 
   const score = availableWeightedAverage(
     [
-      { score: roicScore, weight: 0.36 },
-      { score: returnSupport, weight: 0.34 },
-      { score: marginSupport, weight: 0.18 },
-      { score: nopatScore, weight: 0.12 },
+      { score: roicScore, weight: 0.45 },
+      { score: operatingEfficiency, weight: 0.35 },
+      { score: capitalSupport, weight: 0.20 },
     ],
     null
   );
@@ -502,7 +717,7 @@ function scoreEfficiency(m = {}) {
 
 
 function scoreEarningsQuality(m = {}) {
-  const conversionScore = metricScore(m.cashConversionRatio, [
+  const cashConversionScore = metricScore(m.cashConversionRatio, [
     [1.25, 10],
     [1.0, 9.2],
     [0.8, 8.2],
@@ -522,32 +737,49 @@ function scoreEarningsQuality(m = {}) {
     [999, 3.0],
   ]);
 
-  const cashFlowSupport = availableWeightedAverage(
+  const cashRatioScore = metricScore(m.cashRatioCalculated, [
+    [1.0, 9.5],
+    [0.75, 8.8],
+    [0.50, 8.0],
+    [0.30, 7.0],
+    [0.15, 5.8],
+    [0.05, 4.5],
+    [-999, 3.2],
+  ]);
+
+  const cashFlowPerShareScore = availableWeightedAverage(
     [
-      { score: metricScore(m.freeCashFlowPerShare, [[25, 10], [12, 9], [6, 8], [2, 7], [0.5, 6], [0.01, 5], [-999, 3.5]]), weight: 0.52 },
-      { score: metricScore(m.operatingCashFlowPerShare, [[30, 10], [15, 9], [7, 8], [3, 7], [1, 6], [0.01, 5], [-999, 3.5]]), weight: 0.48 },
+      { score: metricScore(m.freeCashFlowPerShare, [[25, 10], [12, 9], [6, 8], [2, 7], [0.5, 6], [0.01, 5], [-999, 3.5]]), weight: 0.55 },
+      { score: metricScore(m.operatingCashFlowPerShare, [[30, 10], [15, 9], [7, 8], [3, 7], [1, 6], [0.01, 5], [-999, 3.5]]), weight: 0.45 },
     ],
     null
   );
 
   const consistencyScore = availableWeightedAverage(
     [
-      { score: metricScore(m.netIncomeGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.34 },
-      { score: metricScore(m.revenueGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.33 },
-      { score: metricScore(m.epsGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.33 },
+      { score: metricScore(m.netIncomeGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.34 },
+      { score: metricScore(m.revenueGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.33 },
+      { score: metricScore(m.epsGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.33 },
     ],
     null
   );
 
-  const marginSupport = metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0.5, 5], [-999, 3.5]]);
+  const profitabilitySupport = availableWeightedAverage(
+    [
+      { score: metricScore(m.netMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0.5, 5], [-999, 3.5]]), weight: 0.5 },
+      { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3.5]]), weight: 0.5 },
+    ],
+    null
+  );
 
   const score = availableWeightedAverage(
     [
-      { score: conversionScore, weight: 0.28 },
-      { score: accrualScore, weight: 0.24 },
-      { score: cashFlowSupport, weight: 0.24 },
+      { score: cashConversionScore, weight: 0.22 },
+      { score: accrualScore, weight: 0.22 },
+      { score: cashRatioScore, weight: 0.14 },
+      { score: cashFlowPerShareScore, weight: 0.16 },
       { score: consistencyScore, weight: 0.16 },
-      { score: marginSupport, weight: 0.08 },
+      { score: profitabilitySupport, weight: 0.10 },
     ],
     null
   );
@@ -803,13 +1035,17 @@ export async function buildStockAnalysis(symbol) {
   const raw = metricsRaw?.metric || {};
   const extracted = buildExtractedMetrics(profile, quote, raw);
 
-  const reportedFinancials = buildReportedFinancials(financialsReported);
+  const reportedFinancials = buildExactReportedFinancials(financialsReported);
   const reportedLatest = reportedFinancials.latest || {};
 
+  // Exact requested inputs from Finnhub metric endpoint first, then reported statements.
   extracted.operatingIncome = firstNumber(extracted.operatingIncome, reportedLatest.operatingIncome);
+  extracted.netIncome = firstNumber(extracted.netIncome, reportedLatest.netIncome);
   extracted.totalDebt = firstNumber(extracted.totalDebt, reportedLatest.totalDebt);
   extracted.shareholderEquity = firstNumber(extracted.shareholderEquity, reportedLatest.shareholderEquity);
   extracted.cashAndEquivalents = firstNumber(extracted.cashAndEquivalents, reportedLatest.cashAndEquivalents);
+  extracted.totalAssets = firstNumber(extracted.totalAssets, reportedLatest.totalAssets);
+  extracted.currentLiabilities = firstNumber(extracted.currentLiabilities, reportedLatest.currentLiabilities);
   extracted.operatingCashFlow = firstNumber(extracted.operatingCashFlow, reportedLatest.operatingCashFlow);
   extracted.capex = firstNumber(extracted.capex, reportedLatest.capex);
   extracted.freeCashFlow = firstNumber(
@@ -819,22 +1055,48 @@ export async function buildStockAnalysis(symbol) {
       ? extracted.operatingCashFlow - Math.abs(extracted.capex)
       : null
   );
-  extracted.netIncome = firstNumber(extracted.netIncome, reportedLatest.netIncome);
-  extracted.totalAssets = firstNumber(extracted.totalAssets, reportedLatest.totalAssets);
-  extracted.netIncomeGrowth3Y = firstNumber(extracted.netIncomeGrowth3Y, reportedFinancials.netIncomeGrowth3Y);
+
   extracted.revenueGrowth3Y = firstNumber(extracted.revenueGrowth3Y, reportedFinancials.revenueGrowth3Y);
+  extracted.netIncomeGrowth3Y = firstNumber(extracted.netIncomeGrowth3Y, reportedFinancials.netIncomeGrowth3Y);
   extracted.epsGrowth3Y = firstNumber(extracted.epsGrowth3Y, reportedFinancials.epsGrowth3Y);
 
+  // Exact requested calculations.
+  extracted.nopat =
+    scoreInputNumber(extracted.operatingIncome) !== null
+      ? extracted.operatingIncome * (1 - 0.21)
+      : null;
+
+  extracted.investedCapital =
+    scoreInputNumber(extracted.totalDebt) !== null &&
+    scoreInputNumber(extracted.shareholderEquity) !== null
+      ? extracted.totalDebt + extracted.shareholderEquity - (safeNumber(extracted.cashAndEquivalents) || 0)
+      : null;
+
+  extracted.roicCalculated =
+    scoreInputNumber(extracted.nopat) !== null && scoreInputNumber(extracted.investedCapital) !== null
+      ? (extracted.nopat / extracted.investedCapital) * 100
+      : null;
+
+  extracted.cashRatioCalculated =
+    scoreInputNumber(extracted.cashAndEquivalents) !== null &&
+    scoreInputNumber(extracted.currentLiabilities) !== null
+      ? extracted.cashAndEquivalents / extracted.currentLiabilities
+      : firstNumber(extracted.cashRatio);
+
+  // Earnings quality calculations.
   extracted.cashConversionRatio =
     scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null
       ? extracted.freeCashFlow / extracted.netIncome
       : null;
+
   extracted.accrualRatio =
     scoreInputNumber(extracted.totalAssets) !== null &&
     scoreInputNumber(extracted.netIncome) !== null &&
     scoreInputNumber(extracted.freeCashFlow) !== null
       ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
       : null;
+
+
 
   extracted.nopat =
     scoreInputNumber(extracted.operatingIncome) !== null
@@ -968,6 +1230,18 @@ export async function buildStockAnalysis(symbol) {
       quickRatio: metric(extracted.quickRatio, "", "Finnhub", "Quick assets / current liabilities"),
       cashRatio: metric(extracted.cashRatio, "", "Finnhub", "Cash / current liabilities"),
       assetTurnover: metric(extracted.assetTurnover, "", "Finnhub", "Revenue / assets"),
+      operatingIncome: metric(extracted.operatingIncome, "", "Finnhub / Reported financials", "Operating income"),
+      netIncome: metric(extracted.netIncome, "", "Finnhub / Reported financials", "Net income"),
+      totalDebt: metric(extracted.totalDebt, "", "Finnhub / Reported financials", "Total debt"),
+      shareholderEquity: metric(extracted.shareholderEquity, "", "Finnhub / Reported financials", "Shareholder equity"),
+      cashAndEquivalents: metric(extracted.cashAndEquivalents, "", "Finnhub / Reported financials", "Cash and cash equivalents"),
+      nopat: metric(extracted.nopat, "", "Calculated", "Operating income × 79%"),
+      investedCapital: metric(extracted.investedCapital, "", "Calculated", "Total debt + shareholder equity - cash & equivalents"),
+      roicCalculated: metric(extracted.roicCalculated, "%", "Calculated", "NOPAT / invested capital"),
+      cashConversionRatio: metric(extracted.cashConversionRatio, "", "Calculated", "Free cash flow / net income"),
+      cashRatioCalculated: metric(extracted.cashRatioCalculated, "", "Calculated", "Cash & cash equivalents / current liabilities"),
+      currentLiabilities: metric(extracted.currentLiabilities, "", "Finnhub / Reported financials", "Current liabilities"),
+      accrualRatio: metric(extracted.accrualRatio, "", "Calculated", "(Net income - free cash flow) / total assets"),
       operatingCashFlow: metric(extracted.operatingCashFlow, "", "Finnhub", "Operating cash flow"),
       capex: metric(extracted.capex, "", "Finnhub", "Capital expenditures"),
       freeCashFlow: metric(extracted.freeCashFlow, "", "Calculated", "Operating cash flow - capital expenditures"),
