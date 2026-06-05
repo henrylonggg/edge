@@ -1,3 +1,4 @@
+// Eval update: compact searchbar dropdown menu.
 // Eval update: compare page bottom industry note.
 // Eval update: mobile homepage scroll fixed and desktop layout preserved.
 // Eval update: homepage flow bubbles and orbit removed.
@@ -83,6 +84,7 @@ import {
   MessageCircle,
   Newspaper,
   HelpCircle,
+  Menu,
 } from "lucide-react";
 import "./styles.css";
 
@@ -502,6 +504,12 @@ function App() {
   const [compareData, setCompareData] = useState(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function goMenu(nextView) {
+    setMenuOpen(false);
+    setView(nextView);
+  }
 
   async function analyze(e, overrideSymbol) {
     e?.preventDefault();
@@ -917,16 +925,44 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar">
-              <button
-                type="button"
-                className="ai-nav-btn desktop-ai-left-btn"
-                onClick={() => setView("assistant")}
-                title="Eval AI Assistant"
-                aria-label="Eval AI Assistant"
-              >
-                <BrainCircuit size={22} />
-              </button>
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
+              <div className="menu-wrap">
+                <button
+                  type="button"
+                  className={`menu-trigger ${menuOpen ? "open" : ""}`}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Open navigation menu"
+                  title="Menu"
+                >
+                  <Menu size={22} />
+                </button>
+
+                {menuOpen && (
+                  <div className="dashboard-dropdown-menu">
+                    <button type="button" onClick={() => goMenu("assistant")}>
+                      <BrainCircuit size={16} /> AI Assistant
+                    </button>
+                    <button type="button" onClick={() => { setMenuOpen(false); openComparePage(symbol); }}>
+                      <Scale size={16} /> Compare
+                    </button>
+                    <button type="button" className="dropdown-mobile-only" onClick={() => goMenu("watchlist")}>
+                      <Star size={16} /> Watchlist
+                    </button>
+
+                    <div className="dropdown-divider" />
+
+                    <button type="button" onClick={() => goMenu("landing")}>
+                      <Home size={16} /> Homepage
+                    </button>
+                    <button type="button" onClick={() => goMenu("terms")}>
+                      <FileText size={16} /> Terms & Conditions
+                    </button>
+                    <button type="button" onClick={() => goMenu("support")}>
+                      <MessageCircle size={16} /> Contact
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="ticker-field eval-safe-ticker-field">
                 <input
@@ -940,25 +976,6 @@ function App() {
 
               <button disabled={loading} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-              </button>
-<button
-                type="button"
-                className="ghost-btn compare-nav-btn"
-                onClick={() => openComparePage(symbol)}
-                aria-label="Compare watchlist stocks"
-                title="Compare watchlist stocks"
-              >
-                <Scale size={18} />
-              </button>
-
-              <button
-                type="button"
-                className="watchlist-nav-btn mobile-only-watchlist-btn"
-                onClick={() => setView("watchlist")}
-                title="Open watchlist"
-                aria-label="Open watchlist"
-              >
-                <Star size={18} />
               </button>
             </form>
 
