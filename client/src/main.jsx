@@ -1,3 +1,4 @@
+// Eval update: radar labels in front, tighter chart space, mobile same layout.
 // Eval update: radar labels clear, remove breakdown rows, match score rings.
 // Eval update: clearer compare radar legend and outside metric labels.
 // Eval update: compare score rings and radar chart.
@@ -1047,20 +1048,15 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
 
         {categories.map((key, index) => {
           const edge = pointFor(index, 10);
-          const label = pointFor(index, 14.35);
           return (
-            <g key={key}>
-              <line x1={center} y1={center} x2={edge.x} y2={edge.y} className="radar-axis" />
-              <text
-                x={label.x}
-                y={label.y}
-                textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
-                dominantBaseline="middle"
-                className="radar-label"
-              >
-                {categoryLabel(key)}
-              </text>
-            </g>
+            <line
+              key={`${key}-axis`}
+              x1={center}
+              y1={center}
+              x2={edge.x}
+              y2={edge.y}
+              className="radar-axis"
+            />
           );
         })}
 
@@ -1075,6 +1071,22 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
               <circle cx={leftPoint.x} cy={leftPoint.y} r="4.2" className="radar-dot radar-left-dot" />
               <circle cx={rightPoint.x} cy={rightPoint.y} r="4.2" className="radar-dot radar-right-dot" />
             </g>
+          );
+        })}
+
+        {categories.map((key, index) => {
+          const label = pointFor(index, 14.75);
+          return (
+            <text
+              key={`${key}-label`}
+              x={label.x}
+              y={label.y}
+              textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
+              dominantBaseline="middle"
+              className="radar-label radar-label-front"
+            >
+              {categoryLabel(key)}
+            </text>
           );
         })}
       </svg>
