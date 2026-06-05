@@ -1,3 +1,4 @@
+// Eval update: radar labels clear, remove breakdown rows, match score rings.
 // Eval update: clearer compare radar legend and outside metric labels.
 // Eval update: compare score rings and radar chart.
 // Eval update: clean compare page rebuild.
@@ -995,7 +996,7 @@ function App() {
 
 function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats }) {
   const center = 180;
-  const maxRadius = 124;
+  const maxRadius = 104;
   const levels = [0.25, 0.5, 0.75, 1];
 
   const pointFor = (index, value = 10) => {
@@ -1046,7 +1047,7 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
 
         {categories.map((key, index) => {
           const edge = pointFor(index, 10);
-          const label = pointFor(index, 12.65);
+          const label = pointFor(index, 14.35);
           return (
             <g key={key}>
               <line x1={center} y1={center} x2={edge.x} y2={edge.y} className="radar-axis" />
@@ -1201,31 +1202,7 @@ function ComparePage({
               rightCats={rightCats}
             />
 
-            <div className="compare-chart">
-              {categories.map((key) => {
-                const a = score10(leftCats[key]);
-                const b = score10(rightCats[key]);
 
-                return (
-                  <div className="compare-chart-row compact" key={key}>
-                    <div className="compare-chart-label">{categoryLabel(key)}</div>
-                    <div className="compare-mini-values">
-                      <span>{leftSymbol}: <strong>{scoreText(a)}</strong></span>
-                      <span>{rightSymbol}: <strong>{scoreText(b)}</strong></span>
-                    </div>
-                    <small>
-                      {a === null || b === null
-                        ? "One score is unavailable for this category."
-                        : a > b
-                          ? `${leftSymbol} leads by ${(a - b).toFixed(1)}.`
-                          : b > a
-                            ? `${rightSymbol} leads by ${(b - a).toFixed(1)}.`
-                            : "Even category score."}
-                    </small>
-                  </div>
-                );
-              })}
-            </div>
 
             <p className="compare-explain">
               This comparison is based on Eval's current scoring data. It is educational and is not a buy or sell recommendation.
