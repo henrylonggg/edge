@@ -16541,3 +16541,232 @@ aside .ai-rules-card {
     grid-template-columns: 64px minmax(0, 1fr) 42px;
   }
 }
+
+
+/* =========================================================
+   COMPARE SCORE RINGS + RADAR CHART
+========================================================= */
+
+.compare-score-card {
+  gap: 12px !important;
+  align-content: center !important;
+  justify-items: center !important;
+  min-height: 210px !important;
+  padding-top: 20px !important;
+  padding-bottom: 22px !important;
+}
+
+.compare-score-card span {
+  display: block !important;
+  margin-bottom: 6px !important;
+  font-size: 14px !important;
+  letter-spacing: .16em !important;
+  color: rgba(255,255,255,.78) !important;
+}
+
+.compare-score-ring {
+  --score-color: rgba(255,255,255,.45);
+  width: 132px;
+  height: 132px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(8, 13, 18, .98) 0 50%, transparent 51%),
+    conic-gradient(from -90deg, var(--score-color) 0 var(--score-a), rgba(255,255,255,.10) var(--score-a) 360deg);
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--score-color) 36%, transparent),
+    inset 0 0 18px rgba(255,255,255,.06);
+}
+
+.compare-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.08), transparent 38%),
+    #091014;
+  box-shadow: inset 0 0 28px rgba(0,0,0,.52);
+}
+
+.compare-score-ring strong {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 42px !important;
+  line-height: .9;
+  text-shadow: 0 0 18px rgba(255,255,255,.28);
+}
+
+.compare-score-ring.green {
+  --score-color: #72ff41;
+}
+
+.compare-score-ring.yellow {
+  --score-color: #ffe35f;
+}
+
+.compare-score-ring.red {
+  --score-color: #ff5570;
+}
+
+.compare-radar-card {
+  margin: 14px 0 16px;
+  padding: 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(21,231,255,.055), transparent 42%),
+    radial-gradient(circle at 28% 14%, rgba(133,255,71,.07), transparent 36%),
+    rgba(255,255,255,.035);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 22px 60px rgba(0,0,0,.25);
+}
+
+.compare-radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.compare-radar-legend span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .12em;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.055);
+}
+
+.compare-radar-legend .left {
+  box-shadow: 0 0 18px rgba(133,255,71,.14);
+}
+
+.compare-radar-legend .right {
+  box-shadow: 0 0 18px rgba(21,231,255,.14);
+}
+
+.compare-radar-svg {
+  display: block;
+  width: min(100%, 620px);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.radar-grid {
+  fill: none;
+  stroke: rgba(255,255,255,.10);
+  stroke-width: 1;
+}
+
+.radar-axis {
+  stroke: rgba(255,255,255,.10);
+  stroke-width: 1;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.68);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.radar-poly {
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.08));
+}
+
+.radar-left {
+  fill: rgba(133,255,71,.15);
+  stroke: rgba(133,255,71,.92);
+}
+
+.radar-right {
+  fill: rgba(21,231,255,.13);
+  stroke: rgba(21,231,255,.88);
+}
+
+.radar-dot {
+  stroke: rgba(5,8,14,.95);
+  stroke-width: 2;
+}
+
+.radar-left-dot {
+  fill: #72ff41;
+}
+
+.radar-right-dot {
+  fill: #15e7ff;
+}
+
+.compare-chart-row.compact {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.compare-mini-values {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.compare-mini-values span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.07);
+  color: rgba(255,255,255,.70);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.compare-mini-values strong {
+  color: #fff;
+}
+
+.compare-chart-row.compact small {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .compare-score-card {
+    min-height: 190px !important;
+  }
+
+  .compare-score-ring {
+    width: 118px;
+    height: 118px;
+  }
+
+  .compare-score-ring strong {
+    font-size: 38px !important;
+  }
+
+  .compare-radar-card {
+    padding: 12px;
+  }
+
+  .radar-label {
+    font-size: 8px;
+  }
+
+  .compare-chart-row.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-mini-values {
+    justify-content: flex-start;
+  }
+}
