@@ -12646,3 +12646,27 @@ button:active,
     font-size: 13px !important;
   }
 }
+
+
+/* Sleep fix: center actual risk question mark button */
+.snapshot-grid-refined .score-help-btn,
+.snapshot-grid .score-help-btn,
+.mini-stat .score-help-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.snapshot-grid-refined .score-help-btn .info-letter,
+.snapshot-grid .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter {
+  display: block !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateY(-1px) !important;
+  text-align: center !important;
+}
