@@ -18908,3 +18908,293 @@ body {
     max-height: 44px !important;
   }
 }
+
+
+/* =========================================================
+   FINAL MOBILE HOMEPAGE + DROPDOWN CLICKAWAY + FOOTER CLEANUP
+========================================================= */
+
+/* Click-away layer must sit below dropdown but above everything else */
+.dropdown-click-away {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482000 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 100vw !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+.dashboard-dropdown-menu {
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
+/* Mobile/tablet top ticker bar must be: dropdown | input | search */
+@media (max-width: 1180px) {
+  .eval-menu-searchbar {
+    display: grid !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+  }
+
+  .eval-menu-searchbar .menu-wrap {
+    grid-area: menu !important;
+  }
+
+  .eval-menu-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-menu-searchbar .menu-trigger,
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+
+  .eval-menu-searchbar .eval-clean-ticker-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-menu-searchbar {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-menu-searchbar .menu-trigger,
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+/* Homepage mobile scroll fix: no clipping, no transformed shell causing cutoffs */
+html,
+body,
+#root {
+  min-height: 100% !important;
+  height: auto !important;
+}
+
+body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme {
+  min-height: 100dvh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  padding-bottom: max(130px, env(safe-area-inset-bottom)) !important;
+}
+
+.landing-shell,
+.landing-shell-pro,
+.landing-shell-extreme {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Mobile homepage: same design idea as desktop, but not clipped */
+@media (max-width: 680px) {
+  .landing-page,
+  .landing-page-pro,
+  .landing-page-extreme {
+    padding: 10px 0 max(150px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    padding: 14px !important;
+    border-radius: 26px !important;
+    transform: none !important;
+    margin: 0 auto 90px !important;
+  }
+
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: center !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(42px, 13vw, 62px) !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+    margin: 12px 0 12px !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    max-width: 100% !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 530px !important;
+    transform: none !important;
+    transform-origin: center center !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: min(100%, 340px) !important;
+    margin: 0 auto !important;
+    padding: 18px !important;
+  }
+
+  .preview-score-ring-pro,
+  .preview-score-ring-extreme {
+    width: 190px !important;
+    height: 190px !important;
+    margin: 18px auto !important;
+  }
+
+  .preview-score-ring-pro strong,
+  .preview-score-ring-extreme strong {
+    font-size: 64px !important;
+  }
+
+  .landing-product-card.floating {
+    width: 145px !important;
+    padding: 13px !important;
+  }
+
+  .landing-product-card.floating.watch {
+    top: 28px !important;
+    right: 4px !important;
+  }
+
+  .landing-product-card.floating.radar {
+    bottom: 52px !important;
+    left: 2px !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 205px !important;
+    right: 2px !important;
+  }
+
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 18px !important;
+  }
+
+  .landing-feature-card,
+  .landing-feature-card-extreme {
+    min-height: auto !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .landing-feature-card h3 {
+    font-size: 13px !important;
+  }
+
+  .landing-feature-card p {
+    font-size: 11px !important;
+    line-height: 1.38 !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-footnote {
+    padding-bottom: 70px !important;
+  }
+}
+
+/* Kill the older narrow-phone transform hack that caused cutoffs */
+@media (max-width: 390px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    transform: none !important;
+    margin: 0 auto 90px !important;
+  }
+}
+
+/* Footer buttons: text only, no icons/symbols */
+.dashboard-links svg,
+.dashboard-link-row svg,
+.footer-links svg,
+.bottom-links svg,
+.links-row svg {
+  display: none !important;
+}
+
+.dashboard-links button,
+.dashboard-link-row button,
+.footer-links button,
+.bottom-links button,
+.links-row button {
+  gap: 0 !important;
+  text-align: center !important;
+  justify-content: center !important;
+}
