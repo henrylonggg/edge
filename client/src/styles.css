@@ -14201,3 +14201,234 @@ body {
     padding-bottom: 20px;
   }
 }
+
+
+/* =========================================================
+   PRICE/RISK TRANSPARENT GLASS + DESKTOP AI LEFT SEARCHBAR
+========================================================= */
+
+/* Price and Risk cards blend into the report bubble green-blue gradient */
+.hero-card .snapshot-grid > *,
+.hero-card .snapshot-grid-refined > *,
+.eval-stack-report .snapshot-grid > *,
+.eval-stack-report .snapshot-grid-refined > *,
+.eval-clean-hero .snapshot-grid > *,
+.eval-clean-hero .snapshot-grid-refined > * {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+    radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+  border: 1px solid rgba(255,255,255,.105) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.075),
+    0 14px 34px rgba(0,0,0,.14) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Remove colored/black overrides on price/risk children */
+.hero-card .snapshot-grid > *::before,
+.hero-card .snapshot-grid-refined > *::before,
+.eval-stack-report .snapshot-grid > *::before,
+.eval-stack-report .snapshot-grid-refined > *::before,
+.eval-clean-hero .snapshot-grid > *::before,
+.eval-clean-hero .snapshot-grid-refined > *::before,
+.hero-card .snapshot-grid > *::after,
+.hero-card .snapshot-grid-refined > *::after,
+.eval-stack-report .snapshot-grid > *::after,
+.eval-stack-report .snapshot-grid-refined > *::after,
+.eval-clean-hero .snapshot-grid > *::after,
+.eval-clean-hero .snapshot-grid-refined > *::after {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Percent change stays simple text, same treatment on mobile and desktop */
+.daily-change-chip,
+.hero-card .daily-change-chip,
+.eval-stack-report .daily-change-chip,
+.eval-clean-hero .daily-change-chip,
+.snapshot-grid .daily-change-chip,
+.snapshot-grid-refined .daily-change-chip {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: rgba(255,255,255,.82) !important;
+  font-size: inherit !important;
+  font-weight: 900 !important;
+  line-height: inherit !important;
+}
+
+/* Remove SoFi/referral everywhere if stale styles/markup exist */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi" i],
+button[aria-label*="sofi" i],
+button[title*="sofi" i],
+a[aria-label*="sofi" i],
+a[title*="sofi" i] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Desktop only: AI button on left, bubble ends right after Add button.
+   Desktop order: AI | ticker input | search | add */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 72px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    flex: 0 0 auto !important;
+  }
+
+  .eval-responsive-searchbar > *,
+  .eval-safe-searchbar > *,
+  .eval-clean-searchbar > *,
+  .searchbar.compact-searchbar.score-searchbar > * {
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    order: 1 !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    order: 2 !important;
+    width: 285px !important;
+    min-width: 285px !important;
+    max-width: 285px !important;
+    flex: 0 0 285px !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    order: 3 !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    order: 4 !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile stays: AI | input | search | add | watchlist */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
