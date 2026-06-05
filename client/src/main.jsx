@@ -1,3 +1,4 @@
+// Eval update: compare score rings and radar chart.
 // Eval update: clean compare page rebuild.
 // Eval update: reverted homepage/profile, kept mobile-tablet watchlist fixes.
 // Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
@@ -239,6 +240,12 @@ function scoreTone(v) {
   if (n <= 5) return "red";
   if (n <= 7) return "yellow";
   return "green";
+}
+
+function scoreDegrees(v) {
+  const n = score10(v);
+  if (n === null) return 0;
+  return Math.max(0, Math.min(360, n * 36));
 }
 
 function gradeFrom10(v) {
@@ -984,6 +991,92 @@ function App() {
 
 
 
+
+function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats }) {
+  const center = 180;
+  const maxRadius = 124;
+  const levels = [0.25, 0.5, 0.75, 1];
+
+  const pointFor = (index, value = 10) => {
+    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / categories.length;
+    const radius = (Math.max(0, Math.min(10, Number(value) || 0)) / 10) * maxRadius;
+    return {
+      x: center + radius * Math.cos(angle),
+      y: center + radius * Math.sin(angle),
+    };
+  };
+
+  const polygonPoints = (source) =>
+    categories
+      .map((key, index) => {
+        const score = score10(source?.[key]) || 0;
+        const point = pointFor(index, score);
+        return `${point.x},${point.y}`;
+      })
+      .join(" ");
+
+  const gridPoints = (level) =>
+    categories
+      .map((_, index) => {
+        const point = pointFor(index, level * 10);
+        return `${point.x},${point.y}`;
+      })
+      .join(" ");
+
+  return (
+    <div className="compare-radar-card">
+      <div className="compare-radar-legend">
+        <span className="left">{leftSymbol}</span>
+        <span className="right">{rightSymbol}</span>
+      </div>
+
+      <svg className="compare-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar chart comparing stock category scores">
+        {levels.map((level) => (
+          <polygon
+            key={level}
+            points={gridPoints(level)}
+            className="radar-grid"
+          />
+        ))}
+
+        {categories.map((key, index) => {
+          const edge = pointFor(index, 10);
+          const label = pointFor(index, 11.45);
+          return (
+            <g key={key}>
+              <line x1={center} y1={center} x2={edge.x} y2={edge.y} className="radar-axis" />
+              <text
+                x={label.x}
+                y={label.y}
+                textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
+                dominantBaseline="middle"
+                className="radar-label"
+              >
+                {categoryLabel(key)}
+              </text>
+            </g>
+          );
+        })}
+
+        <polygon points={polygonPoints(leftCats)} className="radar-poly radar-left" />
+        <polygon points={polygonPoints(rightCats)} className="radar-poly radar-right" />
+
+        {categories.map((key, index) => {
+          const leftPoint = pointFor(index, score10(leftCats?.[key]) || 0);
+          const rightPoint = pointFor(index, score10(rightCats?.[key]) || 0);
+          return (
+            <g key={`${key}-dots`}>
+              <circle cx={leftPoint.x} cy={leftPoint.y} r="4.2" className="radar-dot radar-left-dot" />
+              <circle cx={rightPoint.x} cy={rightPoint.y} r="4.2" className="radar-dot radar-right-dot" />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+
 function ComparePage({
   left,
   right,
@@ -1069,23 +1162,39 @@ function ComparePage({
             <div className="compare-score-row">
               <div className={`compare-score-card ${scoreTone(leftScore)}`}>
                 <span>{leftSymbol}</span>
-                <strong>{scoreText(leftScore)}</strong>
-                <small>Power Score</small>
+                <div
+                  className={`compare-score-ring ${scoreTone(leftScore)}`}
+                  style={{ "--score-a": `${scoreDegrees(leftScore)}deg` }}
+                >
+                  <strong>{scoreText(leftScore)}</strong>
+                </div>
               </div>
 
               <div className="compare-score-divider">vs</div>
 
               <div className={`compare-score-card ${scoreTone(rightScore)}`}>
                 <span>{rightSymbol}</span>
-                <strong>{scoreText(rightScore)}</strong>
-                <small>Power Score</small>
+                <div
+                  className={`compare-score-ring ${scoreTone(rightScore)}`}
+                  style={{ "--score-a": `${scoreDegrees(rightScore)}deg` }}
+                >
+                  <strong>{scoreText(rightScore)}</strong>
+                </div>
               </div>
             </div>
 
             <div className="compare-chart-intro">
-              <strong>Seven-metric score comparison</strong>
-              <p>Each row compares the category rating from 0.0 to 10.0. Longer bars mean a stronger category score.</p>
+              <strong>Seven-metric radar comparison</strong>
+              <p>The radar chart shows each stock across the same seven Eval categories. A wider shape means stronger scores across more areas.</p>
             </div>
+
+            <CompareRadar
+              categories={categories}
+              leftSymbol={leftSymbol}
+              rightSymbol={rightSymbol}
+              leftCats={leftCats}
+              rightCats={rightCats}
+            />
 
             <div className="compare-chart">
               {categories.map((key) => {
@@ -1093,41 +1202,20 @@ function ComparePage({
                 const b = score10(rightCats[key]);
 
                 return (
-                  <div className="compare-chart-row" key={key}>
+                  <div className="compare-chart-row compact" key={key}>
                     <div className="compare-chart-label">{categoryLabel(key)}</div>
-
-                    <div className="compare-bars">
-                      <div className="compare-bar-line">
-                        <span>{leftSymbol}</span>
-                        <div className="compare-bar-track">
-                          <i
-                            className={scoreTone(a)}
-                            style={{ width: `${Math.max(4, (a || 0) * 10)}%` }}
-                          />
-                        </div>
-                        <strong>{scoreText(a)}</strong>
-                      </div>
-
-                      <div className="compare-bar-line">
-                        <span>{rightSymbol}</span>
-                        <div className="compare-bar-track">
-                          <i
-                            className={scoreTone(b)}
-                            style={{ width: `${Math.max(4, (b || 0) * 10)}%` }}
-                          />
-                        </div>
-                        <strong>{scoreText(b)}</strong>
-                      </div>
+                    <div className="compare-mini-values">
+                      <span>{leftSymbol}: <strong>{scoreText(a)}</strong></span>
+                      <span>{rightSymbol}: <strong>{scoreText(b)}</strong></span>
                     </div>
-
                     <small>
                       {a === null || b === null
                         ? "One score is unavailable for this category."
                         : a > b
-                          ? `${leftSymbol} leads this category by ${(a - b).toFixed(1)}.`
+                          ? `${leftSymbol} leads by ${(a - b).toFixed(1)}.`
                           : b > a
-                            ? `${rightSymbol} leads this category by ${(b - a).toFixed(1)}.`
-                            : "Both stocks are even in this category."}
+                            ? `${rightSymbol} leads by ${(b - a).toFixed(1)}.`
+                            : "Even category score."}
                     </small>
                   </div>
                 );
