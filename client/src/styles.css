@@ -14724,3 +14724,228 @@ a[title*="sofi" i] {
     color: rgba(255,255,255,.82) !important;
   }
 }
+
+
+/* =========================================================
+   FINAL MOBILE SCORE RING POP
+   Enlarges the actual ring/pie, not just its wrapper.
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Make the stock report bubble taller enough to fit the bigger ring cleanly */
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 835px !important;
+    padding-top: 64px !important;
+    padding-bottom: 34px !important;
+    row-gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  /* Company/title stays near top with a real gap before score ring */
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    margin-bottom: 14px !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    margin-bottom: 10px !important;
+  }
+
+  /* Score section gets its own visual room */
+  .eval-stack-report .score-panel,
+  .eval-clean-hero .score-panel,
+  .hero-card .score-panel {
+    width: 100% !important;
+    min-height: 330px !important;
+    display: grid !important;
+    justify-items: center !important;
+    align-items: center !important;
+    margin-top: 2px !important;
+    margin-bottom: 12px !important;
+    transform: none !important;
+  }
+
+  /*
+    Enlarge the actual main score ring/pie elements.
+    These selectors cover the ring wrapper, SVG, canvas, and nested chart containers.
+  */
+  .eval-stack-report .score-panel .score-ring,
+  .eval-clean-hero .score-panel .score-ring,
+  .hero-card .score-panel .score-ring,
+  .eval-stack-report .score-panel .score-orb,
+  .eval-clean-hero .score-panel .score-orb,
+  .hero-card .score-panel .score-orb,
+  .eval-stack-report .score-panel .pulse-ring,
+  .eval-clean-hero .score-panel .pulse-ring,
+  .hero-card .score-panel .pulse-ring,
+  .eval-stack-report .score-panel [class*="ring"],
+  .eval-clean-hero .score-panel [class*="ring"],
+  .hero-card .score-panel [class*="ring"] {
+    width: 265px !important;
+    height: 265px !important;
+    min-width: 265px !important;
+    min-height: 265px !important;
+    max-width: 265px !important;
+    max-height: 265px !important;
+  }
+
+  .eval-stack-report .score-panel svg,
+  .eval-clean-hero .score-panel svg,
+  .hero-card .score-panel svg,
+  .eval-stack-report .score-panel canvas,
+  .eval-clean-hero .score-panel canvas,
+  .hero-card .score-panel canvas {
+    width: 265px !important;
+    height: 265px !important;
+    min-width: 265px !important;
+    min-height: 265px !important;
+    max-width: 265px !important;
+    max-height: 265px !important;
+  }
+
+  /* Make the number inside the bigger chart pop */
+  .eval-stack-report .score-panel .score-value,
+  .eval-clean-hero .score-panel .score-value,
+  .hero-card .score-panel .score-value,
+  .eval-stack-report .score-panel b,
+  .eval-clean-hero .score-panel b,
+  .hero-card .score-panel b,
+  .eval-stack-report .score-panel strong,
+  .eval-clean-hero .score-panel strong,
+  .hero-card .score-panel strong {
+    font-size: clamp(54px, 15vw, 72px) !important;
+    line-height: .9 !important;
+  }
+
+  /* Keep ? and Metrics centered directly below the larger ring */
+  .eval-stack-report .score-button-stack,
+  .eval-stack-report .score-insight-wrap,
+  .eval-clean-hero .score-button-stack,
+  .eval-clean-hero .score-insight-wrap,
+  .hero-card .score-button-stack,
+  .hero-card .score-insight-wrap {
+    width: fit-content !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    row-gap: 9px !important;
+    margin: 14px auto 0 !important;
+    transform: none !important;
+  }
+
+  .eval-stack-report .score-main-help-btn,
+  .eval-clean-hero .score-main-help-btn,
+  .hero-card .score-main-help-btn,
+  .score-metrics-jump-btn {
+    justify-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Price/Risk row sits below the bigger chart with slight gap */
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    margin-top: 18px !important;
+    gap: 12px !important;
+  }
+
+  /* Price and Risk backgrounds: exact same declarations */
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid > :nth-child(2),
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2),
+  .eval-clean-hero .snapshot-grid > :first-child,
+  .eval-clean-hero .snapshot-grid > :nth-child(2),
+  .eval-clean-hero .snapshot-grid-refined > :first-child,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2),
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :first-child,
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+    border: 1px solid rgba(255,255,255,.105) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 14px 34px rgba(0,0,0,.14) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid > :first-child::before,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::before,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::before,
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid > :nth-child(2)::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid > :first-child::after,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::after,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::after,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid > :nth-child(2)::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 855px !important;
+  }
+
+  .eval-stack-report .score-panel .score-ring,
+  .eval-clean-hero .score-panel .score-ring,
+  .hero-card .score-panel .score-ring,
+  .eval-stack-report .score-panel .score-orb,
+  .eval-clean-hero .score-panel .score-orb,
+  .hero-card .score-panel .score-orb,
+  .eval-stack-report .score-panel .pulse-ring,
+  .eval-clean-hero .score-panel .pulse-ring,
+  .hero-card .score-panel .pulse-ring,
+  .eval-stack-report .score-panel [class*="ring"],
+  .eval-clean-hero .score-panel [class*="ring"],
+  .hero-card .score-panel [class*="ring"],
+  .eval-stack-report .score-panel svg,
+  .eval-clean-hero .score-panel svg,
+  .hero-card .score-panel svg,
+  .eval-stack-report .score-panel canvas,
+  .eval-clean-hero .score-panel canvas,
+  .hero-card .score-panel canvas {
+    width: 250px !important;
+    height: 250px !important;
+    min-width: 250px !important;
+    min-height: 250px !important;
+    max-width: 250px !important;
+    max-height: 250px !important;
+  }
+}
