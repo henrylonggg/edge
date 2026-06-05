@@ -18031,3 +18031,415 @@ aside .ai-rules-card {
     min-height: 176px !important;
   }
 }
+
+
+/* =========================================================
+   HOMEPAGE CLEANUP: REMOVE FLOW BUBBLES + ROTATING ORBIT
+========================================================= */
+
+.landing-flow,
+.landing-flow-extreme,
+.landing-holo-ring,
+.landing-orbit {
+  display: none !important;
+}
+
+.landing-product-stage-extreme {
+  min-height: 500px !important;
+}
+
+.landing-product-card.main {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .landing-product-stage-extreme {
+    min-height: 500px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-product-stage-extreme {
+    min-height: 470px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE HOMEPAGE SCROLL FIX + SAME DESKTOP STRUCTURE
+========================================================= */
+
+/* Allow the homepage to scroll fully on mobile/tablet */
+html,
+body,
+#root {
+  min-height: 100% !important;
+}
+
+body {
+  overflow-x: hidden !important;
+}
+
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme {
+  min-height: 100dvh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  padding-bottom: max(96px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Do not let fixed/absolute visual layers block scroll/touch */
+.landing-orb,
+.landing-orb-one,
+.landing-orb-two,
+.landing-orb-three,
+.landing-grid-glow,
+.landing-scanline,
+.landing-noise {
+  pointer-events: none !important;
+}
+
+/* Tablet/mobile keep desktop composition: hero text left, preview right, only scaled down */
+@media (max-width: 1024px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: min(1220px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: clamp(18px, 3vw, 34px) !important;
+  }
+
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    grid-template-columns: minmax(0, 1.02fr) minmax(300px, .82fr) !important;
+    gap: clamp(18px, 3vw, 38px) !important;
+    align-items: center !important;
+  }
+
+  .landing-copy,
+  .landing-copy-pro {
+    min-width: 0 !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(42px, 7.6vw, 78px) !important;
+    line-height: .88 !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: clamp(12px, 1.7vw, 16px) !important;
+    line-height: 1.45 !important;
+    max-width: 610px !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 470px !important;
+    transform: scale(.92) !important;
+    transform-origin: center center !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: min(100%, 390px) !important;
+  }
+
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: .9fr 1.1fr !important;
+    gap: 14px !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Phone: same desktop layout, scaled to fit horizontally */
+@media (max-width: 680px) {
+  .landing-page,
+  .landing-page-pro,
+  .landing-page-extreme {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 10px 0 max(120px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    padding: 14px !important;
+    border-radius: 26px !important;
+    overflow: visible !important;
+  }
+
+  .landing-brand-row,
+  .landing-brand-row-pro {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .landing-brand-home img {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .landing-brand-home h1 {
+    font-size: 46px !important;
+  }
+
+  .landing-status-pill,
+  .landing-status-live {
+    max-width: 132px !important;
+    font-size: 7.5px !important;
+    padding: 7px 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Keep the desktop split: text left, preview right */
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(148px, .95fr) !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  .landing-kicker {
+    font-size: 8px !important;
+    padding: 6px 8px !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(29px, 10vw, 44px) !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+    margin: 10px 0 10px !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    max-width: 100% !important;
+  }
+
+  .landing-actions,
+  .landing-actions-pro {
+    margin-top: 14px !important;
+    gap: 8px !important;
+  }
+
+  .landing-continue-btn,
+  .landing-continue-mega {
+    width: auto !important;
+    min-height: 42px !important;
+    padding: 0 13px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+  }
+
+  .landing-actions span {
+    font-size: 8.5px !important;
+    max-width: 130px !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 360px !important;
+    transform: scale(.72) !important;
+    transform-origin: center center !important;
+    margin: -34px -44px -34px -28px !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: 300px !important;
+    padding: 18px !important;
+  }
+
+  .preview-score-ring-pro,
+  .preview-score-ring-extreme {
+    width: 168px !important;
+    height: 168px !important;
+    margin: 16px auto !important;
+  }
+
+  .preview-score-ring-pro strong,
+  .preview-score-ring-extreme strong {
+    font-size: 56px !important;
+  }
+
+  .preview-mini-grid {
+    gap: 7px !important;
+  }
+
+  .preview-mini-grid div {
+    padding: 9px !important;
+  }
+
+  .preview-mini-grid strong {
+    font-size: 17px !important;
+  }
+
+  .landing-product-card.floating {
+    width: 138px !important;
+    padding: 13px !important;
+  }
+
+  .landing-product-card.floating.watch {
+    top: 36px !important;
+    right: -10px !important;
+  }
+
+  .landing-product-card.floating.radar {
+    bottom: 48px !important;
+    left: -8px !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 190px !important;
+    right: -12px !important;
+  }
+
+  /* Keep same feature/story layout as desktop, but scaled into smaller cards */
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+  }
+
+  .landing-feature-card,
+  .landing-feature-card-extreme {
+    min-height: 150px !important;
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .landing-feature-icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .landing-feature-card h3 {
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .landing-feature-card p {
+    font-size: 8px !important;
+    line-height: 1.28 !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: .9fr 1.1fr !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .landing-story-copy,
+  .landing-story-grid > div {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .landing-story-copy h2 {
+    font-size: 18px !important;
+    line-height: .98 !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .landing-story-grid b {
+    font-size: 8px !important;
+  }
+
+  .landing-story-grid span {
+    font-size: 9px !important;
+    margin: 4px 0 !important;
+  }
+
+  .landing-story-grid p {
+    font-size: 7.8px !important;
+    line-height: 1.25 !important;
+  }
+
+  .landing-bottom-strip,
+  .landing-bottom-strip-pro {
+    gap: 6px !important;
+    margin-top: 10px !important;
+  }
+
+  .landing-bottom-strip span {
+    font-size: 7.5px !important;
+    padding: 6px 8px !important;
+  }
+
+  .landing-footnote {
+    font-size: 7.5px !important;
+    margin-top: 10px !important;
+    padding-bottom: 30px !important;
+  }
+}
+
+/* Very narrow phones can scroll horizontally a tiny amount if needed, but never cut off vertical content */
+@media (max-width: 390px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: 390px !important;
+    max-width: none !important;
+    transform: scale(calc((100vw - 10px) / 390)) !important;
+    transform-origin: top left !important;
+    margin-left: 5px !important;
+    margin-bottom: calc(-1 * (390px - 100vw)) !important;
+  }
+}
+
+
+/* =========================================================
+   COMPARE PAGE BOTTOM NOTE UPDATE
+========================================================= */
+
+.compare-explain {
+  border-color: rgba(133,255,71,.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.075), transparent 34%),
+    rgba(0,0,0,.18) !important;
+  color: rgba(255,255,255,.70) !important;
+}
