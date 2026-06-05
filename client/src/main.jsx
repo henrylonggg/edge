@@ -1,3 +1,5 @@
+// Eval update: Earnings Quality popup includes Cash Ratio and Accrual Ratio.
+// Eval exact calc fix: risk help removed and ticker input empty.
 // Eval sleep fix: no AAPL input preload; risk help centered.
 // Eval main.jsx update: add Efficiency score card and metrics.
 // Eval main.jsx update: ticker bar starts empty, no default AAPL prefill.
@@ -1947,23 +1949,30 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Day Change", metrics.dayChangePercent),
     ]),
     earningsQuality: usableMetricLines([
+      metricLine("Cash Conversion Ratio", metrics.cashConversionRatio),
+      metricLine("Cash Ratio", metrics.cashRatioCalculated),
+      metricLine("Current Liabilities", metrics.currentLiabilities),
+      metricLine("Accrual Ratio", metrics.accrualRatio),
       metricLine("Free Cash Flow / Share", metrics.freeCashFlowPerShare),
       metricLine("Operating Cash Flow / Share", metrics.operatingCashFlowPerShare),
-      metricLine("Cash Conversion Ratio", metrics.cashConversionRatio),
-      metricLine("Accrual Ratio", metrics.accrualRatio),
-      metricLine("Net Income Growth 3Y", metrics.netIncomeGrowth3Y),
-      metricLine("Revenue Growth 3Y", metrics.revenueGrowth3Y),
-      metricLine("EPS Growth 3Y", metrics.epsGrowth3Y),
+      metricLine("Net Income", metrics.netIncome),
       metricLine("Net Margin", metrics.netMargin),
+      metricLine("ROE", metrics.roe),
+      metricLine("Revenue Growth 3Y", metrics.revenueGrowth3Y),
+      metricLine("Net Income Growth 3Y", metrics.netIncomeGrowth3Y),
+      metricLine("EPS Growth 3Y", metrics.epsGrowth3Y),
     ]),
     efficiency: usableMetricLines([
       metricLine("ROIC", metrics.roicCalculated),
       metricLine("NOPAT", metrics.nopat),
       metricLine("Invested Capital", metrics.investedCapital),
       metricLine("Operating Income", metrics.operatingIncome),
+      metricLine("Total Debt", metrics.totalDebt),
+      metricLine("Shareholder Equity", metrics.shareholderEquity),
+      metricLine("Cash & Equivalents", metrics.cashAndEquivalents),
+      metricLine("Operating Margin", metrics.operatingMargin),
       metricLine("ROA", metrics.roa),
       metricLine("ROI / ROIC", metrics.roi),
-      metricLine("Operating Margin", metrics.operatingMargin),
       metricLine("Asset Turnover", metrics.assetTurnover),
     ]),
     newsSentiment: usableMetricLines([
@@ -2148,17 +2157,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
             icon={<ShieldCheck size={17} />}
             label="Risk"
             value={data.grades.riskLabel}
-            helpTitle="Risk metrics used"
-            metricsUsed={[
-              "Beta",
-              "Debt-to-Equity",
-              "Current Ratio",
-              "Market Cap Stability",
-              "Financial Health Score",
-              "Profitability Score",
-            ]}
-            isOpen={openScoreHelp === "risk"}
-            onToggle={() => setOpenScoreHelp(openScoreHelp === "risk" ? null : "risk")}
           />
         </div>
 
