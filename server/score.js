@@ -1,3 +1,4 @@
+// Eval sleep fix: stable earnings quality and efficiency calculations using available Finnhub values.
 // Eval score.js update: add Efficiency Score using NOPAT, invested capital, and ROIC.
 // Eval score.js update: use reported financial statements for Earnings Quality.
 // Eval score.js update: earningsQualityScore declaration fix + Earnings Quality 5% weight.
@@ -474,30 +475,24 @@ function scoreEfficiency(m = {}) {
     [-999, 3.0],
   ]);
 
-  const nopatScore = metricScore(m.nopat, [
-    [100000, 10],
-    [50000, 9.2],
-    [20000, 8.4],
-    [5000, 7.4],
-    [1000, 6.4],
-    [100, 5.2],
-    [1, 4.2],
-    [-999999999, 3.0],
-  ]);
-
-  const investedCapitalQuality = inverseMetricScore(
-    m.investedCapital !== null && m.nopat !== null && m.nopat !== 0 ? m.investedCapital / Math.abs(m.nopat) : null,
-    [[3, 9.5], [5, 8.6], [8, 7.4], [12, 6.2], [20, 5.0], [999999, 3.8]]
+  const returnSupport = availableWeightedAverage(
+    [
+      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0.5, 5], [-999, 3.5]]), weight: 0.34 },
+      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0.5, 5], [-999, 3.5]]), weight: 0.33 },
+      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8.2], [0.5, 7.2], [0.25, 6], [0.05, 5], [-999, 3.5]]), weight: 0.33 },
+    ],
+    null
   );
 
+  const nopatScore = metricScore(m.nopat, [[100000, 10], [50000, 9.2], [20000, 8.4], [5000, 7.4], [1000, 6.4], [100, 5.2], [1, 4.2], [-999999999, 3.0]]);
   const marginSupport = metricScore(m.operatingMargin, [[35, 10], [25, 9.2], [15, 8.2], [8, 7], [3, 6], [0.5, 5], [-999, 3.4]]);
 
   const score = availableWeightedAverage(
     [
-      { score: roicScore, weight: 0.48 },
-      { score: nopatScore, weight: 0.18 },
-      { score: investedCapitalQuality, weight: 0.18 },
-      { score: marginSupport, weight: 0.16 },
+      { score: roicScore, weight: 0.36 },
+      { score: returnSupport, weight: 0.34 },
+      { score: marginSupport, weight: 0.18 },
+      { score: nopatScore, weight: 0.12 },
     ],
     null
   );
@@ -507,8 +502,6 @@ function scoreEfficiency(m = {}) {
 
 
 function scoreEarningsQuality(m = {}) {
-  const fcfScore = metricScore(m.freeCashFlow, [[50000, 10], [20000, 9], [5000, 8], [1000, 7], [250, 6], [1, 5], [-999999999, 3.5]]);
-
   const conversionScore = metricScore(m.cashConversionRatio, [
     [1.25, 10],
     [1.0, 9.2],
@@ -529,21 +522,32 @@ function scoreEarningsQuality(m = {}) {
     [999, 3.0],
   ]);
 
+  const cashFlowSupport = availableWeightedAverage(
+    [
+      { score: metricScore(m.freeCashFlowPerShare, [[25, 10], [12, 9], [6, 8], [2, 7], [0.5, 6], [0.01, 5], [-999, 3.5]]), weight: 0.52 },
+      { score: metricScore(m.operatingCashFlowPerShare, [[30, 10], [15, 9], [7, 8], [3, 7], [1, 6], [0.01, 5], [-999, 3.5]]), weight: 0.48 },
+    ],
+    null
+  );
+
   const consistencyScore = availableWeightedAverage(
     [
-      { score: metricScore(m.revenueGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.34 },
-      { score: metricScore(m.netIncomeGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.33 },
+      { score: metricScore(m.netIncomeGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.34 },
+      { score: metricScore(m.revenueGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.33 },
       { score: metricScore(m.epsGrowth3Y, [[25, 10], [15, 9], [8, 8], [3, 7], [0, 6], [-5, 4.5], [-999, 3.2]]), weight: 0.33 },
     ],
     null
   );
 
+  const marginSupport = metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0.5, 5], [-999, 3.5]]);
+
   const score = availableWeightedAverage(
     [
-      { score: conversionScore, weight: 0.34 },
-      { score: accrualScore, weight: 0.28 },
-      { score: fcfScore, weight: 0.18 },
-      { score: consistencyScore, weight: 0.20 },
+      { score: conversionScore, weight: 0.28 },
+      { score: accrualScore, weight: 0.24 },
+      { score: cashFlowSupport, weight: 0.24 },
+      { score: consistencyScore, weight: 0.16 },
+      { score: marginSupport, weight: 0.08 },
     ],
     null
   );
@@ -873,7 +877,6 @@ export async function buildStockAnalysis(symbol) {
   const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
-
   const earningsQualityScore = scoreEarningsQuality(extracted);
   const efficiencyScore = scoreEfficiency(extracted);
   const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
