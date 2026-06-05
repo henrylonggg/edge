@@ -1,3 +1,4 @@
+// Eval fix: earningsQualityScore defined and ticker input starts empty.
 // Eval update: earnings quality category + risk UI cleanup.
 // Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
 // Eval mobile report layout: centered company, centered score, bottom price/risk.
@@ -312,7 +313,7 @@ function ProfileButton() {
 
 function App() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [symbol, setSymbol] = useState("AAPL");
+  const [symbol, setSymbol] = useState("");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(false);
