@@ -1,3 +1,4 @@
+// Eval update: dropdown menu front layer and button rows fixed.
 // Eval update: compact searchbar dropdown menu.
 // Eval update: compare page bottom industry note.
 // Eval update: mobile homepage scroll fixed and desktop layout preserved.
@@ -955,7 +956,7 @@ function App() {
                       <Home size={16} /> Homepage
                     </button>
                     <button type="button" onClick={() => goMenu("terms")}>
-                      <FileText size={16} /> Terms & Conditions
+                      <FileText size={16} /> Terms
                     </button>
                     <button type="button" onClick={() => goMenu("support")}>
                       <MessageCircle size={16} /> Contact
