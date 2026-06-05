@@ -19198,3 +19198,137 @@ body {
   text-align: center !important;
   justify-content: center !important;
 }
+
+
+/* =========================================================
+   HARD FIX: MOBILE DROPDOWN IN OLD AI BUTTON SLOT
+========================================================= */
+
+/* Top ticker bar is always: menu | input | search */
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar {
+  display: grid !important;
+  align-items: center !important;
+  justify-content: start !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  grid-template-columns: 54px minmax(230px, 320px) 54px !important;
+  grid-template-areas: "menu input search" !important;
+  gap: 10px !important;
+  padding: 10px !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-wrap {
+  grid-area: menu !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 2147483000 !important;
+  order: 0 !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .ticker-field {
+  grid-area: input !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  order: 1 !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+  grid-area: search !important;
+  order: 2 !important;
+  display: grid !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger {
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Hide any stale buttons in the top search bar */
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .desktop-ai-left-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .compare-nav-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .mobile-only-watchlist-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .watchlist-nav-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar button[aria-label="Add to watchlist"] {
+  display: none !important;
+}
+
+/* Mobile/tablet: exact old button slot on left, then input, then search */
+@media (max-width: 1180px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar,
+  .eval-responsive-searchbar.eval-menu-searchbar,
+  .eval-safe-searchbar.eval-menu-searchbar,
+  .eval-clean-searchbar.eval-menu-searchbar {
+    display: grid !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-safe-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-clean-searchbar.eval-menu-searchbar .menu-wrap {
+    grid-area: menu !important;
+    display: block !important;
+    order: 0 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-responsive-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-safe-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-clean-searchbar.eval-menu-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    order: 1 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-safe-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-clean-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: 2 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger,
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-trigger,
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar,
+  .eval-responsive-searchbar.eval-menu-searchbar,
+  .eval-safe-searchbar.eval-menu-searchbar,
+  .eval-clean-searchbar.eval-menu-searchbar {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger,
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-trigger,
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
