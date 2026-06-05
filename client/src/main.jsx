@@ -1,3 +1,4 @@
+// Eval exact fix: compact-control-bar and report-grid-clean.
 // Eval update: removed SoFi button and tightened search/action bar.
 // Eval update: autofit search bar and redesigned non-overlap report bubble.
 // Eval update: ticker symbol is now a company website link.
@@ -664,7 +665,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar compact-control-bar">
               <button
                 type="button"
                 className="ai-nav-btn desktop-ai-left-btn"
@@ -677,6 +678,7 @@ function App() {
 
               <div className="ticker-field">
                 <input
+                  className="compact-ticker-input"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   placeholder="Add ticker"
@@ -2045,7 +2047,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   return (
     <>
-      <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
+      <section className={`hero-card report-grid-clean ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
             className={`score-ring ${tone}`}
