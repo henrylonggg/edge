@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -2044,7 +2045,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
       <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
-            className={`score-ring minimal-score-ring ${tone}`}
+            className={`score-ring ${tone}`}
             style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
           >
             <div className="score-core">
@@ -2076,7 +2077,19 @@ function Report({ data, onAdd, onOpenIndustry }) {
         <div className="company-panel">
 <h2>{data.profile?.name || data.symbol}</h2>
           <p className="subline">
-            <span>{data.symbol}</span>
+            {(data.profile?.weburl || data.profile?.website || data.profile?.site) ? (
+              <a
+                href={data.profile?.weburl || data.profile?.website || data.profile?.site}
+                target="_blank"
+                rel="noreferrer"
+                className="ticker-company-link"
+                title={`Open ${data.symbol} company website`}
+              >
+                {data.symbol}
+              </a>
+            ) : (
+              <span className="ticker-company-link is-disabled">{data.symbol}</span>
+            )}
             <span> · </span>
             <button
               type="button"
