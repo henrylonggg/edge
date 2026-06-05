@@ -1,14 +1,3 @@
-// Eval update: removed earnings quality/efficiency, ticker links to site, add button moved.
-// Eval update: Earnings Quality popup includes Cash Ratio and Accrual Ratio.
-// Eval exact calc fix: risk help removed and ticker input empty.
-// Eval sleep fix: no AAPL input preload; risk help centered.
-// Eval main.jsx update: add Efficiency score card and metrics.
-// Eval main.jsx update: ticker bar starts empty, no default AAPL prefill.
-// Eval fix: earningsQualityScore defined and ticker input starts empty.
-// Eval update: earnings quality category + risk UI cleanup.
-// Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
-// Eval mobile report layout: centered company, centered score, bottom price/risk.
-// Eval UI update: company icon removed, mobile score layout adjusted, price/risk theme synced.
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -2055,7 +2044,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
       <section className={`hero-card ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
-            className={`score-ring ${tone}`}
+            className={`score-ring minimal-score-ring ${tone}`}
             style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
           >
             <div className="score-core">
