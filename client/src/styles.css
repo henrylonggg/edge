@@ -12670,3 +12670,38 @@ button:active,
   transform: translateY(-1px) !important;
   text-align: center !important;
 }
+
+
+/* Final risk/price cleanup */
+.mini-risk-help-btn {
+  display: none !important;
+}
+
+.snapshot-grid-refined .mini-stat b,
+.snapshot-grid .mini-stat b {
+  font-size: clamp(28px, 2.3vw, 42px) !important;
+  line-height: .95 !important;
+}
+
+.snapshot-grid-refined .mini-stat span,
+.snapshot-grid .mini-stat span {
+  font-size: 15px !important;
+}
+
+.snapshot-grid-refined .daily-change-chip,
+.snapshot-grid .daily-change-chip {
+  font-size: 16px !important;
+  font-weight: 1000 !important;
+}
+
+@media (max-width: 680px) {
+  .snapshot-grid-refined .mini-stat b,
+  .snapshot-grid .mini-stat b {
+    font-size: 25px !important;
+  }
+
+  .snapshot-grid-refined .daily-change-chip,
+  .snapshot-grid .daily-change-chip {
+    font-size: 16px !important;
+  }
+}
