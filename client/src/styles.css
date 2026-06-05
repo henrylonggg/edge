@@ -16176,3 +16176,392 @@ aside .ai-rules-card {
     max-height: 44px !important;
   }
 }
+
+
+/* =========================================================
+   WATCHLIST STOCK COMPARISON
+========================================================= */
+
+.compare-nav-btn {
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.compare-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 34%),
+    radial-gradient(circle at 84% 72%, rgba(133,255,71,.12), transparent 38%),
+    rgba(3, 6, 13, .78);
+  backdrop-filter: blur(18px);
+}
+
+.compare-modal {
+  position: relative;
+  width: min(1040px, 96vw);
+  max-height: min(88vh, 920px);
+  overflow: auto;
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(133,255,71,.08), transparent 35%),
+    radial-gradient(circle at 82% 14%, rgba(21,231,255,.08), transparent 38%),
+    linear-gradient(145deg, rgba(16, 21, 34, .94), rgba(8, 11, 21, .96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 34px 120px rgba(0,0,0,.55);
+}
+
+.compare-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.075);
+  color: rgba(255,255,255,.86);
+  display: grid;
+  place-items: center;
+  font-size: 21px;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.compare-close-btn:hover {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+}
+
+.compare-head {
+  padding-right: 40px;
+  margin-bottom: 18px;
+}
+
+.compare-head h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: .96;
+  letter-spacing: -.045em;
+  color: #fff;
+}
+
+.compare-head p,
+.compare-note,
+.compare-explain {
+  margin: 0;
+  color: rgba(255,255,255,.66);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.compare-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  margin-bottom: 10px;
+}
+
+.compare-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.compare-form label span {
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.54);
+  font-weight: 1000;
+}
+
+.compare-form input {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(0,0,0,.18);
+  color: #fff;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 1000;
+  letter-spacing: .08em;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.compare-form input:focus {
+  border-color: rgba(133,255,71,.48);
+  box-shadow: 0 0 0 3px rgba(133,255,71,.08);
+}
+
+.compare-vs {
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.72);
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.compare-form button {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(135deg, rgba(133,255,71,.92), rgba(21,231,255,.74));
+  color: #071006;
+  font-weight: 1000;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.compare-form button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.compare-error {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 95, 115, .22);
+  color: #ffb4be;
+  background: rgba(255, 95, 115, .08);
+  font-size: 13px;
+}
+
+.compare-results {
+  margin-top: 18px;
+}
+
+.compare-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.compare-score-card {
+  min-height: 132px;
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.08), transparent 40%),
+    rgba(255,255,255,.045);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.compare-score-card.green {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(133,255,71,.10);
+}
+
+.compare-score-card.yellow {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(255,214,107,.10);
+}
+
+.compare-score-card.red {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(255,95,115,.10);
+}
+
+.compare-score-card span {
+  color: rgba(255,255,255,.70);
+  font-size: 13px;
+  font-weight: 1000;
+  letter-spacing: .12em;
+}
+
+.compare-score-card strong {
+  color: #fff;
+  font-size: clamp(42px, 6vw, 68px);
+  line-height: .9;
+}
+
+.compare-score-card small {
+  color: rgba(255,255,255,.52);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.compare-score-divider {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.70);
+  font-weight: 1000;
+}
+
+.compare-chart {
+  display: grid;
+  gap: 12px;
+}
+
+.compare-chart-row {
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.085);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(21,231,255,.045), transparent 42%),
+    rgba(255,255,255,.035);
+}
+
+.compare-chart-label {
+  color: #fff;
+  font-weight: 1000;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.compare-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.compare-bar-line {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 46px;
+  gap: 10px;
+  align-items: center;
+}
+
+.compare-bar-line span {
+  color: rgba(255,255,255,.66);
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.compare-bar-line strong {
+  color: #fff;
+  font-size: 13px;
+  text-align: right;
+}
+
+.compare-bar-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.065);
+  border: 1px solid rgba(255,255,255,.06);
+  overflow: hidden;
+}
+
+.compare-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255,255,255,.45);
+  box-shadow: 0 0 18px currentColor;
+}
+
+.compare-bar-track i.green {
+  background: linear-gradient(90deg, rgba(133,255,71,.85), rgba(21,231,255,.72));
+}
+
+.compare-bar-track i.yellow {
+  background: linear-gradient(90deg, rgba(255,214,107,.85), rgba(255,255,255,.40));
+}
+
+.compare-bar-track i.red {
+  background: linear-gradient(90deg, rgba(255,95,115,.85), rgba(255,255,255,.35));
+}
+
+.compare-chart-row small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255,255,255,.50);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.compare-explain {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+@media (max-width: 680px) {
+  .compare-overlay {
+    padding: 12px;
+  }
+
+  .compare-modal {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 26px;
+    padding: 20px;
+  }
+
+  .compare-form {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-vs {
+    height: 24px;
+  }
+
+  .compare-score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-score-divider {
+    margin: 0 auto;
+  }
+
+  .compare-bar-line {
+    grid-template-columns: 64px minmax(0, 1fr) 42px;
+  }
+
+  .compare-nav-btn {
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px 44px !important;
+    grid-template-areas: "ai input search add compare watch" !important;
+  }
+
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    grid-area: compare !important;
+  }
+}
+
+@media (min-width: 681px) {
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    order: 5 !important;
+  }
+}
