@@ -12583,3 +12583,66 @@ button:active,
     margin: 18px auto 14px !important;
   }
 }
+
+
+/* =========================================================
+   UI FIXES + EARNINGS QUALITY
+========================================================= */
+
+/* Center the risk ? button */
+.snapshot-grid .score-help-btn,
+.snapshot-grid-refined .score-help-btn,
+.mini-stat .score-help-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+.snapshot-grid .score-help-btn .info-letter,
+.snapshot-grid-refined .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter {
+  display: block !important;
+  line-height: 1 !important;
+  transform: translateY(-.5px) !important;
+}
+
+/* Remove strongest/weakest from main risk bubble */
+.risk-strength-summary {
+  display: none !important;
+}
+
+/* Mobile: daily change is white text, not green pill; price/risk values bigger */
+@media (max-width: 680px) {
+  .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 15px !important;
+    font-weight: 1000 !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .hero-card .mini-stat {
+    min-height: 126px !important;
+  }
+
+  .hero-card .snapshot-grid .mini-stat strong,
+  .hero-card .snapshot-grid-refined .mini-stat strong,
+  .hero-card .snapshot-grid .mini-stat b,
+  .hero-card .snapshot-grid-refined .mini-stat b {
+    font-size: 23px !important;
+  }
+
+  .hero-card .snapshot-grid .mini-stat label,
+  .hero-card .snapshot-grid-refined .mini-stat label,
+  .hero-card .snapshot-grid .mini-stat span,
+  .hero-card .snapshot-grid-refined .mini-stat span {
+    font-size: 13px !important;
+  }
+}
