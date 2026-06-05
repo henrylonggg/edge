@@ -15607,3 +15607,364 @@ aside .ai-rules-card {
   right: 8px !important;
   left: auto !important;
 }
+
+
+/* =========================================================
+   POPUP SPACING + BRIEF AI CARD + TABLET MOBILE LAYOUT + PORTRAIT LOCK
+========================================================= */
+
+/* Popup: prevent title/list overlap */
+.score-popup,
+.score-insight-popup,
+.grade-popup,
+.help-popup,
+.tooltip-card,
+.info-popup,
+[class*="popup"] {
+  position: absolute;
+  padding-top: 42px !important;
+  overflow: visible !important;
+}
+
+/* X in top-right */
+.popup-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  z-index: 60 !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.84) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Popup title sits at top, list starts below it */
+.score-popup .score-popup-title,
+.score-insight-popup .score-popup-title,
+.grade-popup .score-popup-title,
+.help-popup .score-popup-title,
+.info-popup .score-popup-title,
+[class*="popup"] .score-popup-title,
+[class*="popup"] h1,
+[class*="popup"] h2,
+[class*="popup"] h3,
+[class*="popup"] h4,
+[class*="popup"] h5,
+[class*="popup"] h6 {
+  display: block !important;
+  position: relative !important;
+  z-index: 2 !important;
+  margin: 0 28px 14px 0 !important;
+  padding: 0 !important;
+  line-height: 1.15 !important;
+}
+
+/* Lists inside popups need their own clear row */
+.score-popup ul,
+.score-insight-popup ul,
+.grade-popup ul,
+.help-popup ul,
+.info-popup ul,
+[class*="popup"] ul {
+  display: grid !important;
+  gap: 8px !important;
+  margin: 12px 0 0 !important;
+  padding-left: 16px !important;
+  clear: both !important;
+}
+
+.score-popup li,
+.score-insight-popup li,
+.grade-popup li,
+.help-popup li,
+.info-popup li,
+[class*="popup"] li {
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  padding-top: 1px !important;
+}
+
+/* Keep the metrics popup readable */
+.score-popup .metric-row,
+.score-popup .metric-item,
+.score-popup [class*="metric"],
+[class*="popup"] .metric-row,
+[class*="popup"] .metric-item {
+  margin-top: 6px !important;
+}
+
+/* AI card: shorter, tighter explanation */
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+.ai-rules-card-full,
+.ai-rules-card {
+  width: min(100%, 860px) !important;
+  margin: 0 auto 16px !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.08), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(21,231,255,.07), transparent 42%),
+    rgba(255,255,255,.045) !important;
+}
+
+.ai-rules-eyebrow {
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.58) !important;
+  margin-bottom: 7px !important;
+}
+
+.ai-rules-card h3 {
+  margin: 0 0 12px !important;
+  color: #fff !important;
+  font-size: clamp(18px, 1.7vw, 25px) !important;
+  line-height: 1.08 !important;
+}
+
+.ai-rules-grid,
+.ai-rules-grid-brief {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.ai-rules-grid > div,
+.ai-rules-grid-brief > div {
+  padding: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.15) !important;
+}
+
+.ai-rules-grid strong,
+.ai-rules-grid-brief strong {
+  display: block !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  margin-bottom: 5px !important;
+}
+
+.ai-rules-grid p,
+.ai-rules-grid-brief p,
+.ai-rules-note {
+  margin: 0 !important;
+  color: rgba(255,255,255,.70) !important;
+  font-size: 11px !important;
+  line-height: 1.38 !important;
+}
+
+.ai-rules-note {
+  margin-top: 10px !important;
+}
+
+/* iPad/tablet is a larger mobile layout, not desktop */
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+    padding: 64px 20px 30px !important;
+  }
+
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 680px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+  }
+}
+
+/* Phone button sizing stays the same as mobile */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+
+  .ai-rules-grid,
+  .ai-rules-grid-brief {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Portrait-only lock overlay for mobile/tablet landscape */
+.portrait-lock-overlay {
+  display: none;
+}
+
+@media (max-width: 1180px) and (orientation: landscape) {
+  .portrait-lock-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483647 !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 24px !important;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(21,231,255,.18), transparent 38%),
+      radial-gradient(circle at 82% 80%, rgba(133,255,71,.14), transparent 42%),
+      #05080f !important;
+  }
+
+  .portrait-lock-card {
+    width: min(92vw, 430px) !important;
+    padding: 26px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.07) !important;
+    text-align: center !important;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45) !important;
+  }
+
+  .portrait-lock-icon {
+    font-size: 42px !important;
+    color: #85ff47 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .portrait-lock-card h2 {
+    margin: 0 0 8px !important;
+    color: #fff !important;
+    font-size: 28px !important;
+  }
+
+  .portrait-lock-card p {
+    margin: 0 !important;
+    color: rgba(255,255,255,.72) !important;
+    font-size: 14px !important;
+  }
+
+  body {
+    overflow: hidden !important;
+  }
+}
