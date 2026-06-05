@@ -12707,7 +12707,7 @@ button:active,
 }
 
 
-
+/* Layout update: ticker opens company site, Add button in report corner */
 .ticker-company-link {
   color: rgba(255,255,255,.86) !important;
   text-decoration: none !important;
@@ -12866,7 +12866,7 @@ button:active,
 }
 
 
-
+/* Ticker link: clickable like the industry link, opens company website */
 .ticker-company-link {
   appearance: none !important;
   background: transparent !important;
@@ -12894,287 +12894,12 @@ button:active,
 }
 
 
-
-   Keeps original ring/pie and bar styles.
+/* =========================================================
+   FINAL CLEAN DASHBOARD LAYOUT
+   Simple, stable, no overlap, original rings/bars preserved.
 ========================================================= */
 
-/* Top search/action bubble: shrink to actual content, stay left aligned */
-.top-bar,
-.search-shell,
-.ticker-shell,
-.ticker-toolbar,
-.action-bar,
-.input-shell,
-.search-card,
-.ticker-entry-card,
-.controls-card,
-.dashboard-controls {
-  width: max-content !important;
-  max-width: calc(100vw - 64px) !important;
-  min-width: 0 !important;
-  justify-self: start !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-}
-
-/* Actual input should be compact instead of forcing empty right-side space */
-.top-bar input,
-.search-shell input,
-.ticker-shell input,
-.ticker-toolbar input,
-.action-bar input,
-.input-shell input,
-.search-card input,
-.ticker-entry-card input,
-.controls-card input,
-.dashboard-controls input,
-.ticker-input {
-  width: clamp(210px, 22vw, 310px) !important;
-  min-width: 210px !important;
-  max-width: 310px !important;
-}
-
-/* If the parent is a flex row, keep it packed tightly */
-.top-bar,
-.search-shell,
-.ticker-shell,
-.ticker-toolbar,
-.action-bar,
-.input-shell,
-.search-card,
-.ticker-entry-card,
-.controls-card,
-.dashboard-controls {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-}
-
-/* Company ticker link beside industry */
-.ticker-company-link {
-  appearance: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  color: rgba(255,255,255,.86) !important;
-  font: inherit !important;
-  font-weight: 1000 !important;
-  line-height: inherit !important;
-  text-decoration: underline !important;
-  text-decoration-thickness: 1px !important;
-  text-underline-offset: 3px !important;
-  cursor: pointer !important;
-}
-
-.ticker-company-link:hover {
-  color: #ffffff !important;
-  text-shadow: 0 0 14px rgba(133,255,71,.22) !important;
-}
-
-.ticker-company-link.is-disabled {
-  cursor: default !important;
-  text-decoration-color: rgba(255,255,255,.20) !important;
-}
-
-/* Main report bubble redesigned into 4 clean zones */
-.hero-card {
-  position: relative !important;
-  min-height: 485px !important;
-  padding: 48px 38px 42px !important;
-  display: grid !important;
-  grid-template-columns: minmax(250px, 0.92fr) minmax(280px, 1.05fr) minmax(255px, 0.82fr) !important;
-  grid-template-areas: "score company stats" !important;
-  align-items: center !important;
-  gap: clamp(24px, 3vw, 46px) !important;
-  overflow: hidden !important;
-}
-
-/* Score gets its own clean left zone */
-.hero-card .score-panel {
-  grid-area: score !important;
-  justify-self: center !important;
-  align-self: center !important;
-  margin: 0 !important;
-  z-index: 2 !important;
-}
-
-/* Company centered in the middle, no overlap with price */
-.hero-card .company-panel {
-  grid-area: company !important;
-  align-self: center !important;
-  justify-self: center !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  text-align: left !important;
-  z-index: 2 !important;
-}
-
-.hero-card .company-panel h2 {
-  max-width: 100% !important;
-  margin: 0 0 14px !important;
-  font-size: clamp(52px, 5vw, 82px) !important;
-  line-height: .94 !important;
-  letter-spacing: -0.055em !important;
-  overflow-wrap: anywhere !important;
-}
-
-.hero-card .company-panel .subline {
-  font-size: clamp(18px, 1.3vw, 23px) !important;
-  margin: 0 !important;
-}
-
-/* Price/risk right stack is isolated and cannot overlap company */
-.hero-card .snapshot-grid,
-.hero-card .snapshot-grid-refined {
-  grid-area: stats !important;
-  align-self: center !important;
-  justify-self: stretch !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 315px !important;
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transform: none !important;
-  z-index: 2 !important;
-}
-
-.hero-card .snapshot-grid > *,
-.hero-card .snapshot-grid-refined > * {
-  min-width: 0 !important;
-  width: 100% !important;
-}
-
-/* Corner add button: visually clean and never blocking stat cards */
-.hero-card .hero-add-corner-btn {
-  position: absolute !important;
-  top: 24px !important;
-  right: 24px !important;
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  border-radius: 14px !important;
-  z-index: 8 !important;
-  padding: 0 !important;
-  display: inline-grid !important;
-  place-items: center !important;
-}
-
-.hero-card .company-panel .hero-actions {
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-/* Guardrail: no child should visually spill outside its zone */
-.hero-card .company-panel,
-.hero-card .snapshot-grid,
-.hero-card .snapshot-grid-refined,
-.hero-card .score-panel {
-  overflow: visible !important;
-}
-
-/* Medium desktop/laptop: give layout more breathing room */
-@media (max-width: 1180px) and (min-width: 901px) {
-  .hero-card {
-    grid-template-columns: minmax(230px, .85fr) minmax(250px, 1fr) minmax(245px, .82fr) !important;
-    gap: 24px !important;
-    padding: 48px 34px 42px !important;
-  }
-
-  .hero-card .company-panel h2 {
-    font-size: clamp(46px, 4.6vw, 68px) !important;
-  }
-
-  .hero-card .snapshot-grid,
-  .hero-card .snapshot-grid-refined {
-    max-width: 290px !important;
-  }
-}
-
-/* Tablet/mobile: stack cleanly */
-@media (max-width: 900px) {
-  .hero-card {
-    min-height: auto !important;
-    padding: 62px 22px 28px !important;
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "company"
-      "score"
-      "stats" !important;
-    justify-items: center !important;
-    gap: 24px !important;
-  }
-
-  .hero-card .company-panel {
-    text-align: center !important;
-    justify-items: center !important;
-  }
-
-  .hero-card .company-panel h2 {
-    text-align: center !important;
-    font-size: clamp(42px, 11vw, 64px) !important;
-    margin: 0 0 8px !important;
-  }
-
-  .hero-card .snapshot-grid,
-  .hero-card .snapshot-grid-refined {
-    max-width: 100% !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-    gap: 12px !important;
-  }
-
-  .hero-card .hero-add-corner-btn {
-    top: 18px !important;
-    right: 18px !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-  }
-
-  .top-bar,
-  .search-shell,
-  .ticker-shell,
-  .ticker-toolbar,
-  .action-bar,
-  .input-shell,
-  .search-card,
-  .ticker-entry-card,
-  .controls-card,
-  .dashboard-controls {
-    max-width: calc(100vw - 32px) !important;
-  }
-
-  .top-bar input,
-  .search-shell input,
-  .ticker-shell input,
-  .ticker-toolbar input,
-  .action-bar input,
-  .input-shell input,
-  .search-card input,
-  .ticker-entry-card input,
-  .controls-card input,
-  .dashboard-controls input,
-  .ticker-input {
-    width: clamp(180px, 44vw, 260px) !important;
-    min-width: 0 !important;
-  }
-}
-
-
-
-========================================================= */
-
-/* Hide any leftover SoFi/referral button if stale markup still exists */
+/* Hide SoFi/referral leftovers completely */
 .sofi-btn,
 .sofi-button,
 .sofi-link,
@@ -13188,274 +12913,8 @@ button[title*="sofi" i] {
   display: none !important;
 }
 
-/* The actual top search bubble should wrap tightly around its visible children */
-.search-row,
-.search-bubble,
-.search-shell,
-.ticker-search,
-.ticker-search-shell,
-.ticker-toolbar,
-.ticker-entry-card,
-.controls-card,
-.dashboard-controls,
-.input-shell,
-.action-bar {
-  width: fit-content !important;
-  max-width: calc(100vw - 72px) !important;
-  min-width: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  padding: 12px !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  align-self: flex-start !important;
-  justify-self: start !important;
-}
-
-/* Kill the large empty flexible space inside the top bar */
-.search-row > *,
-.search-bubble > *,
-.search-shell > *,
-.ticker-search > *,
-.ticker-search-shell > *,
-.ticker-toolbar > *,
-.ticker-entry-card > *,
-.controls-card > *,
-.dashboard-controls > *,
-.input-shell > *,
-.action-bar > * {
-  flex: 0 0 auto !important;
-}
-
-/* Input is the only wider element */
-.search-row input,
-.search-bubble input,
-.search-shell input,
-.ticker-search input,
-.ticker-search-shell input,
-.ticker-toolbar input,
-.ticker-entry-card input,
-.controls-card input,
-.dashboard-controls input,
-.input-shell input,
-.action-bar input,
-.ticker-input {
-  flex: 0 0 clamp(260px, 28vw, 430px) !important;
-  width: clamp(260px, 28vw, 430px) !important;
-  min-width: 260px !important;
-  max-width: 430px !important;
-}
-
-/* Buttons stay compact and aligned */
-.search-row button,
-.search-bubble button,
-.search-shell button,
-.ticker-search button,
-.ticker-search-shell button,
-.ticker-toolbar button,
-.ticker-entry-card button,
-.controls-card button,
-.dashboard-controls button,
-.input-shell button,
-.action-bar button {
-  flex: 0 0 auto !important;
-}
-
-/* If your top bar uses a nested wrapper, make nested row tight too */
-.search-row > div,
-.search-bubble > div,
-.search-shell > div,
-.ticker-search > div,
-.ticker-search-shell > div,
-.ticker-toolbar > div,
-.ticker-entry-card > div,
-.controls-card > div,
-.dashboard-controls > div,
-.input-shell > div,
-.action-bar > div {
-  width: fit-content !important;
-  max-width: 100% !important;
-}
-
-/* Keep the report bubble from overlapping after the previous redesign */
-.hero-card {
-  position: relative !important;
-  min-height: 485px !important;
-  padding: 48px 38px 42px !important;
-  display: grid !important;
-  grid-template-columns: minmax(250px, 0.92fr) minmax(280px, 1.05fr) minmax(255px, 0.82fr) !important;
-  grid-template-areas: "score company stats" !important;
-  align-items: center !important;
-  gap: clamp(28px, 3.2vw, 52px) !important;
-  overflow: hidden !important;
-}
-
-.hero-card .score-panel {
-  grid-area: score !important;
-  justify-self: center !important;
-  align-self: center !important;
-  margin: 0 !important;
-}
-
-.hero-card .company-panel {
-  grid-area: company !important;
-  justify-self: center !important;
-  align-self: center !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  padding: 0 !important;
-}
-
-.hero-card .company-panel h2 {
-  max-width: 100% !important;
-  margin: 0 0 14px !important;
-  font-size: clamp(52px, 5vw, 82px) !important;
-  line-height: .94 !important;
-  letter-spacing: -0.055em !important;
-  overflow-wrap: anywhere !important;
-}
-
-.hero-card .snapshot-grid,
-.hero-card .snapshot-grid-refined {
-  grid-area: stats !important;
-  justify-self: stretch !important;
-  align-self: center !important;
-  width: 100% !important;
-  max-width: 315px !important;
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 16px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transform: none !important;
-}
-
-.hero-card .hero-add-corner-btn {
-  position: absolute !important;
-  top: 24px !important;
-  right: 24px !important;
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  border-radius: 14px !important;
-  z-index: 8 !important;
-  padding: 0 !important;
-  display: inline-grid !important;
-  place-items: center !important;
-}
-
-.hero-card .company-panel .hero-actions {
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-/* Ticker website link */
-.ticker-company-link {
-  appearance: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  color: rgba(255,255,255,.86) !important;
-  font: inherit !important;
-  font-weight: 1000 !important;
-  line-height: inherit !important;
-  text-decoration: underline !important;
-  text-decoration-thickness: 1px !important;
-  text-underline-offset: 3px !important;
-  cursor: pointer !important;
-}
-
-.ticker-company-link:hover {
-  color: #ffffff !important;
-  text-shadow: 0 0 14px rgba(133,255,71,.22) !important;
-}
-
-@media (max-width: 900px) {
-  .search-row,
-  .search-bubble,
-  .search-shell,
-  .ticker-search,
-  .ticker-search-shell,
-  .ticker-toolbar,
-  .ticker-entry-card,
-  .controls-card,
-  .dashboard-controls,
-  .input-shell,
-  .action-bar {
-    max-width: calc(100vw - 32px) !important;
-    padding: 10px !important;
-    gap: 8px !important;
-  }
-
-  .search-row input,
-  .search-bubble input,
-  .search-shell input,
-  .ticker-search input,
-  .ticker-search-shell input,
-  .ticker-toolbar input,
-  .ticker-entry-card input,
-  .controls-card input,
-  .dashboard-controls input,
-  .input-shell input,
-  .action-bar input,
-  .ticker-input {
-    flex-basis: clamp(170px, 42vw, 260px) !important;
-    width: clamp(170px, 42vw, 260px) !important;
-    min-width: 0 !important;
-  }
-
-  .hero-card {
-    min-height: auto !important;
-    padding: 62px 22px 28px !important;
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "company"
-      "score"
-      "stats" !important;
-    justify-items: center !important;
-    gap: 24px !important;
-  }
-
-  .hero-card .company-panel {
-    text-align: center !important;
-  }
-
-  .hero-card .company-panel h2 {
-    text-align: center !important;
-    font-size: clamp(42px, 11vw, 64px) !important;
-  }
-
-  .hero-card .snapshot-grid,
-  .hero-card .snapshot-grid-refined {
-    max-width: 100% !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-    gap: 12px !important;
-  }
-
-  .hero-card .hero-add-corner-btn {
-    top: 18px !important;
-    right: 18px !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-  }
-}
-
-
-/* =========================================================
-   EXACT FIX: TOP BAR + REPORT BUBBLE
-========================================================= */
-
-/* Search/action bubble: no SoFi, no dead right gap */
-.compact-control-bar {
+/* Compact top bar: wraps exact visible controls only */
+.eval-clean-searchbar {
   width: fit-content !important;
   max-width: calc(100vw - 72px) !important;
   min-width: 0 !important;
@@ -13464,87 +12923,122 @@ button[title*="sofi" i] {
   justify-content: flex-start !important;
   gap: 10px !important;
   padding: 10px 12px !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
+  margin: 0 auto 0 0 !important;
   flex: 0 0 auto !important;
 }
 
-.compact-control-bar > * {
+.eval-clean-searchbar > * {
   flex: 0 0 auto !important;
 }
 
-.compact-control-bar .ticker-field {
-  flex: 0 0 285px !important;
-  width: 285px !important;
-  min-width: 285px !important;
-  max-width: 285px !important;
+.eval-clean-searchbar .ticker-field {
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
+  flex: 0 0 300px !important;
 }
 
-.compact-control-bar .compact-ticker-input,
-.compact-control-bar input {
+.eval-clean-searchbar .eval-clean-ticker-input,
+.eval-clean-searchbar input {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
 }
 
-.sofi-btn,
-.sofi-button,
-.sofi-link,
-.referral-btn,
-.referral-button,
-.promo-btn,
-.promo-button,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i] {
-  display: none !important;
+.eval-clean-searchbar button {
+  flex: 0 0 auto !important;
 }
 
-/* Report bubble: clean 3-zone layout with no overlap */
-.report-grid-clean {
+/* Clickable ticker next to industry */
+.ticker-company-link {
+  color: rgba(255,255,255,.9) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 1px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.24) !important;
+}
+
+.ticker-company-link.is-disabled {
+  cursor: default !important;
+  opacity: .88 !important;
+}
+
+/* Main report: two-row grid. This avoids company/price overlap entirely. */
+.eval-clean-hero {
   position: relative !important;
-  min-height: 430px !important;
-  padding: 42px 34px 38px !important;
+  min-height: 470px !important;
+  padding: 42px 38px 38px !important;
   display: grid !important;
-  grid-template-columns: 350px minmax(300px, 1fr) 300px !important;
-  grid-template-areas: "score company stats" !important;
+  grid-template-columns: 330px minmax(0, 1fr) 290px !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "score company stats"
+    "score company stats" !important;
   align-items: center !important;
-  gap: 34px !important;
+  column-gap: 42px !important;
   overflow: hidden !important;
 }
 
-.report-grid-clean .score-panel {
+/* Score ring lives left and stays centered */
+.eval-clean-hero .score-panel {
   grid-area: score !important;
   justify-self: center !important;
   align-self: center !important;
   margin: 0 !important;
+  z-index: 2 !important;
 }
 
-.report-grid-clean .company-panel {
+/* Company info gets a dedicated center lane */
+.eval-clean-hero .company-panel {
   grid-area: company !important;
-  justify-self: start !important;
+  justify-self: stretch !important;
   align-self: center !important;
   min-width: 0 !important;
   max-width: 100% !important;
   padding: 0 !important;
+  margin: 0 !important;
+  z-index: 2 !important;
 }
 
-.report-grid-clean .company-panel h2 {
-  margin: 0 0 12px !important;
+.eval-clean-hero .company-panel h2 {
+  margin: 0 0 14px !important;
   max-width: 100% !important;
-  font-size: clamp(54px, 4.5vw, 78px) !important;
+  font-size: clamp(54px, 4.6vw, 78px) !important;
   line-height: .94 !important;
   letter-spacing: -0.055em !important;
   overflow-wrap: anywhere !important;
+  word-break: normal !important;
 }
 
-.report-grid-clean .snapshot-grid,
-.report-grid-clean .snapshot-grid-refined {
+.eval-clean-hero .company-panel .subline {
+  margin: 0 !important;
+  font-size: clamp(18px, 1.28vw, 23px) !important;
+}
+
+/* Remove action-row height; add button moves to corner */
+.eval-clean-hero .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+/* Price/Risk cards get an isolated right lane */
+.eval-clean-hero .snapshot-grid,
+.eval-clean-hero .snapshot-grid-refined {
   grid-area: stats !important;
   justify-self: stretch !important;
   align-self: center !important;
   width: 100% !important;
-  max-width: 300px !important;
+  max-width: 290px !important;
   min-width: 0 !important;
   display: grid !important;
   grid-template-columns: 1fr !important;
@@ -13552,15 +13046,18 @@ button[title*="sofi" i] {
   margin: 0 !important;
   padding: 0 !important;
   transform: none !important;
+  z-index: 2 !important;
 }
 
-.report-grid-clean .snapshot-grid > *,
-.report-grid-clean .snapshot-grid-refined > * {
+.eval-clean-hero .snapshot-grid > *,
+.eval-clean-hero .snapshot-grid-refined > * {
   width: 100% !important;
   min-width: 0 !important;
 }
 
-.report-grid-clean .hero-add-corner-btn {
+/* Corner add button: small and not in content flow */
+.eval-clean-hero .eval-hero-add-btn,
+.eval-clean-hero .hero-add-corner-btn {
   position: absolute !important;
   top: 22px !important;
   right: 22px !important;
@@ -13570,61 +13067,50 @@ button[title*="sofi" i] {
   min-height: 36px !important;
   border-radius: 13px !important;
   padding: 0 !important;
-  z-index: 12 !important;
+  z-index: 10 !important;
   display: inline-grid !important;
   place-items: center !important;
 }
 
-.report-grid-clean .company-panel .hero-actions {
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible !important;
+/* Make empty report visually line up with dashboard width */
+.empty-report {
+  min-height: 210px !important;
 }
 
-/* Ticker website link */
-.ticker-company-link {
-  color: rgba(255,255,255,.88) !important;
-  font: inherit !important;
-  font-weight: 1000 !important;
-  text-decoration: underline !important;
-  text-decoration-thickness: 1px !important;
-  text-underline-offset: 3px !important;
-  cursor: pointer !important;
-}
-
-.ticker-company-link:hover {
-  color: #ffffff !important;
-  text-shadow: 0 0 14px rgba(133,255,71,.24) !important;
-}
-
+/* Laptop fit */
 @media (max-width: 1240px) and (min-width: 901px) {
-  .report-grid-clean {
-    grid-template-columns: 310px minmax(260px, 1fr) 275px !important;
-    gap: 26px !important;
+  .eval-clean-hero {
+    grid-template-columns: 300px minmax(0, 1fr) 270px !important;
+    column-gap: 30px !important;
+    padding: 42px 32px 38px !important;
   }
 
-  .report-grid-clean .company-panel h2 {
-    font-size: clamp(48px, 4.2vw, 66px) !important;
+  .eval-clean-hero .company-panel h2 {
+    font-size: clamp(48px, 4.25vw, 66px) !important;
+  }
+
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined {
+    max-width: 270px !important;
   }
 }
 
+/* Tablet/mobile stacked layout */
 @media (max-width: 900px) {
-  .compact-control-bar {
+  .eval-clean-searchbar {
     max-width: calc(100vw - 32px) !important;
-    gap: 8px !important;
     padding: 10px !important;
+    gap: 8px !important;
   }
 
-  .compact-control-bar .ticker-field {
-    flex: 0 1 210px !important;
-    width: 210px !important;
+  .eval-clean-searchbar .ticker-field {
+    width: clamp(170px, 42vw, 240px) !important;
     min-width: 0 !important;
-    max-width: 210px !important;
+    max-width: 240px !important;
+    flex: 1 1 clamp(170px, 42vw, 240px) !important;
   }
 
-  .report-grid-clean {
+  .eval-clean-hero {
     min-height: auto !important;
     padding: 60px 20px 28px !important;
     grid-template-columns: 1fr !important;
@@ -13632,28 +13118,31 @@ button[title*="sofi" i] {
       "company"
       "score"
       "stats" !important;
-    gap: 24px !important;
+    row-gap: 24px !important;
     justify-items: center !important;
   }
 
-  .report-grid-clean .company-panel {
-    justify-self: center !important;
+  .eval-clean-hero .company-panel {
     text-align: center !important;
+    justify-self: center !important;
   }
 
-  .report-grid-clean .company-panel h2 {
+  .eval-clean-hero .company-panel h2 {
     text-align: center !important;
     font-size: clamp(42px, 11vw, 64px) !important;
+    margin-bottom: 8px !important;
   }
 
-  .report-grid-clean .snapshot-grid,
-  .report-grid-clean .snapshot-grid-refined {
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined {
+    width: 100% !important;
     max-width: 100% !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     gap: 12px !important;
   }
 
-  .report-grid-clean .hero-add-corner-btn {
+  .eval-clean-hero .eval-hero-add-btn,
+  .eval-clean-hero .hero-add-corner-btn {
     top: 18px !important;
     right: 18px !important;
     width: 36px !important;
