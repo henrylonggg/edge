@@ -1,3 +1,4 @@
+// Eval score.js update: earningsQualityScore declaration fix + Earnings Quality 5% weight.
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -477,6 +478,7 @@ function labelCategory(key) {
     valuation: "Valuation",
     momentum: "Momentum",
     reversal: "Pullback",
+    earningsQuality: "Earnings Quality",
     newsSentiment: "News Sentiment",
   };
 
@@ -679,6 +681,7 @@ export async function buildStockAnalysis(symbol) {
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
 
+  const earningsQualityScore = scoreEarningsQuality(extracted);
   const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
 
   const categories = {
@@ -688,6 +691,7 @@ export async function buildStockAnalysis(symbol) {
     valuation: valuationScore,
     momentum: momentumScore,
     reversal: reversalScore,
+    earningsQuality: earningsQualityScore,
     newsSentiment: newsSentimentScore,
   };
 
