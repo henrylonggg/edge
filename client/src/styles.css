@@ -18631,3 +18631,138 @@ body {
     width: min(248px, calc(100vw - 34px)) !important;
   }
 }
+
+
+/* =========================================================
+   DROPDOWN MENU FRONT LAYER + CLEAN BUTTON ROWS
+========================================================= */
+
+/* Nothing around the searchbar should clip or cover the dropdown */
+.layout,
+.content,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+.content,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  position: relative !important;
+  z-index: 50000 !important;
+}
+
+/* Report cards and watchlist stay below menu */
+.empty-report,
+.report-card,
+.hero-card,
+.watch-panel,
+.watchlist-panel {
+  z-index: 1 !important;
+}
+
+/* Dropdown is always on top */
+.dashboard-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  left: 0 !important;
+  z-index: 2147483000 !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  padding: 10px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.12), transparent 36%),
+    radial-gradient(circle at 84% 18%, rgba(133,255,71,.10), transparent 34%),
+    rgba(8, 12, 22, .98) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 26px 80px rgba(0,0,0,.62) !important;
+  display: grid !important;
+  gap: 7px !important;
+}
+
+/* Each menu item is a real full-width button */
+.dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border: 1px solid rgba(255,255,255,.075) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.045) !important;
+  color: rgba(255,255,255,.88) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+.dashboard-dropdown-menu button:hover {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(133,255,71,.14), transparent 38%),
+    rgba(255,255,255,.075) !important;
+  border-color: rgba(133,255,71,.20) !important;
+  color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+
+.dashboard-dropdown-menu button svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  color: rgba(133,255,71,.92) !important;
+  flex: 0 0 auto !important;
+}
+
+.dropdown-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent) !important;
+  margin: 4px 2px !important;
+  border: 0 !important;
+}
+
+/* Remove any inherited underline/link styling from all children */
+.dashboard-dropdown-menu *,
+.dashboard-dropdown-menu button *,
+.dashboard-dropdown-menu button::before,
+.dashboard-dropdown-menu button::after {
+  text-decoration: none !important;
+  border-bottom: 0 !important;
+}
+
+/* Keep desktop menu text readable */
+@media (min-width: 681px) {
+  .dashboard-dropdown-menu {
+    transform-origin: top left !important;
+  }
+}
+
+/* Mobile/tablet dropdown still full clickable rows and one-line labels */
+@media (max-width: 680px) {
+  .dashboard-dropdown-menu {
+    width: min(260px, calc(100vw - 28px)) !important;
+    min-width: min(260px, calc(100vw - 28px)) !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    height: 43px !important;
+    min-height: 43px !important;
+    font-size: 12.5px !important;
+  }
+}
