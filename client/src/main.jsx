@@ -1,3 +1,4 @@
+// Eval update: mobile/tablet watchlist cards and tablet profile alignment.
 // Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
 // Eval update: deep AI assistant rules page and iPad mobile-matching layout.
 // Eval update: all metric popups have top-right close buttons.
