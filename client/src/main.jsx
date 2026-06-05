@@ -1,3 +1,4 @@
+// Eval update: stack score buttons and match mobile searchbar layout.
 // Eval update: desktop report uses mobile-style stack with Metrics scroll button.
 // Eval safe fix: search bubble fit-content without forced grid.
 // Eval rebuild: clean dashboard layout, compact search bar, stable hero report.
@@ -665,7 +666,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-safe-searchbar">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar">
               <button
                 type="button"
                 className="ai-nav-btn desktop-ai-left-btn"
@@ -2077,7 +2078,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
             </div>
           </div>
 
-          <div className={`score-insight-wrap ${openScoreHelp === "score" ? "popup-active" : ""}`}>
+          <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
               type="button"
               className="score-help-btn score-main-help-btn"
