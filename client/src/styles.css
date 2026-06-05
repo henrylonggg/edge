@@ -12705,3 +12705,52 @@ button:active,
     font-size: 16px !important;
   }
 }
+
+
+/* Layout update: ticker opens company site, Add button in report corner */
+.ticker-company-link {
+  color: rgba(255,255,255,.86) !important;
+  text-decoration: none !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(255,255,255,.35) !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  border-bottom-color: rgba(133,255,71,.85) !important;
+}
+
+.hero-card {
+  position: relative !important;
+}
+
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 15px !important;
+  z-index: 8 !important;
+  padding: 0 !important;
+}
+
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 680px) {
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 14px !important;
+  }
+}
