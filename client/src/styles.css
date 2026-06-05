@@ -17707,3 +17707,327 @@ aside .ai-rules-card {
     justify-content: center !important;
   }
 }
+
+
+/* =========================================================
+   EXTREME HOMEPAGE VISUAL UPGRADE
+========================================================= */
+
+.landing-page-extreme {
+  position: relative !important;
+  background:
+    radial-gradient(circle at 14% 5%, rgba(0, 232, 255, .20), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(121, 255, 65, .18), transparent 30%),
+    radial-gradient(circle at 72% 86%, rgba(128, 80, 255, .24), transparent 34%),
+    linear-gradient(135deg, #030a0f, #06070d 42%, #0d0718) !important;
+}
+
+.landing-orb-three {
+  position: fixed !important;
+  width: 360px !important;
+  height: 360px !important;
+  right: 12% !important;
+  bottom: 10% !important;
+  border-radius: 999px !important;
+  background: radial-gradient(circle, rgba(133,255,71,.16), transparent 68%) !important;
+  filter: blur(18px) !important;
+  animation: orbDrift 9s ease-in-out infinite alternate !important;
+}
+
+@keyframes orbDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-28px, 18px, 0) scale(1.08); }
+}
+
+.landing-noise {
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  opacity: .08 !important;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,.28) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,.20) 0 1px, transparent 1px) !important;
+  background-size: 38px 38px, 53px 53px !important;
+  mix-blend-mode: overlay !important;
+}
+
+.landing-shell-extreme {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-shell-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: inherit !important;
+  background:
+    linear-gradient(120deg, transparent, rgba(21,231,255,.25), transparent, rgba(133,255,71,.18), transparent) !important;
+  opacity: .54 !important;
+  filter: blur(18px) !important;
+  z-index: -1 !important;
+  animation: borderSweep 7s linear infinite !important;
+}
+
+@keyframes borderSweep {
+  from { transform: translateX(-25%) rotate(0deg); }
+  to { transform: translateX(25%) rotate(360deg); }
+}
+
+.landing-status-live {
+  box-shadow: 0 0 32px rgba(133,255,71,.11), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.landing-kicker-glow {
+  box-shadow: 0 0 30px rgba(133,255,71,.08) !important;
+}
+
+.landing-copy-pro h2 {
+  background: linear-gradient(90deg, #fff 0%, #eafff4 38%, #9aff73 58%, #15e7ff 82%, #fff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+.landing-continue-mega {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-continue-mega::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(110deg, transparent 0 34%, rgba(255,255,255,.55) 45%, transparent 58% 100%) !important;
+  transform: translateX(-140%) !important;
+  animation: buttonShine 2.8s ease-in-out infinite !important;
+}
+
+@keyframes buttonShine {
+  0%, 35% { transform: translateX(-140%); }
+  60%, 100% { transform: translateX(140%); }
+}
+
+.landing-flow-extreme .landing-flow-step {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-flow-extreme .landing-flow-step::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #72ff41, #15e7ff) !important;
+  transform: scaleX(.35) !important;
+  transform-origin: left !important;
+  opacity: .72 !important;
+}
+
+.landing-product-stage-extreme {
+  perspective: 1000px !important;
+}
+
+.landing-holo-ring {
+  position: absolute !important;
+  width: 410px !important;
+  height: 410px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(133,255,71,.22) !important;
+  box-shadow:
+    0 0 34px rgba(133,255,71,.13),
+    inset 0 0 34px rgba(21,231,255,.08) !important;
+  animation: holoSpin 16s linear infinite !important;
+}
+
+.landing-holo-ring::before,
+.landing-holo-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 42px !important;
+  border-radius: 999px !important;
+  border: 1px dashed rgba(21,231,255,.24) !important;
+}
+
+.landing-holo-ring::after {
+  inset: 92px !important;
+  border-color: rgba(255,255,255,.13) !important;
+  animation: holoSpin 10s linear infinite reverse !important;
+}
+
+@keyframes holoSpin {
+  to { transform: rotate(360deg); }
+}
+
+.landing-orbit {
+  position: absolute !important;
+  width: 420px !important;
+  height: 420px !important;
+  border-radius: 999px !important;
+  animation: holoSpin 24s linear infinite !important;
+}
+
+.landing-orbit span {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 74px !important;
+  margin-left: -37px !important;
+  margin-top: -14px !important;
+  padding: 7px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(0,0,0,.28) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.68) !important;
+  font-size: 9px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  transform:
+    rotate(calc(var(--orbit-i) * 60deg))
+    translateX(218px)
+    rotate(calc(var(--orbit-i) * -60deg)) !important;
+}
+
+.landing-main-terminal {
+  transform-style: preserve-3d !important;
+  animation: productFloat 5.5s ease-in-out infinite, cardTilt 7s ease-in-out infinite !important;
+}
+
+@keyframes cardTilt {
+  0%, 100% { rotate: 0deg; }
+  50% { rotate: .8deg; }
+}
+
+.landing-terminal-lines {
+  margin-top: 14px !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.landing-terminal-lines span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: rgba(255,255,255,.66) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.landing-terminal-lines i {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  background: #72ff41 !important;
+  box-shadow: 0 0 14px #72ff41 !important;
+}
+
+.landing-float-card-three {
+  top: 228px !important;
+  right: -18px !important;
+  animation-delay: -4s !important;
+}
+
+.landing-feature-strip-extreme {
+  scroll-snap-type: x proximity !important;
+}
+
+.landing-feature-card-extreme {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-feature-card-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(120deg, transparent 0 40%, rgba(255,255,255,.07) 48%, transparent 58% 100%) !important;
+  transform: translateX(-120%) !important;
+  transition: transform .55s ease !important;
+}
+
+.landing-feature-card-extreme:hover::before {
+  transform: translateX(120%) !important;
+}
+
+.landing-story-grid-extreme > div {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-story-grid-extreme > div::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: auto 0 0 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, rgba(133,255,71,.85), rgba(21,231,255,.75)) !important;
+  opacity: .64 !important;
+}
+
+/* Keep the same visual structure on mobile/tablet, only scaled */
+@media (max-width: 1024px) {
+  .landing-hero-extreme {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-product-stage-extreme {
+    min-height: 560px !important;
+  }
+
+  .landing-holo-ring,
+  .landing-orbit {
+    width: 390px !important;
+    height: 390px !important;
+  }
+
+  .landing-orbit span {
+    transform:
+      rotate(calc(var(--orbit-i) * 60deg))
+      translateX(202px)
+      rotate(calc(var(--orbit-i) * -60deg)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-shell-extreme {
+    padding: 16px !important;
+  }
+
+  .landing-product-stage-extreme {
+    min-height: 520px !important;
+  }
+
+  .landing-holo-ring,
+  .landing-orbit {
+    width: 320px !important;
+    height: 320px !important;
+  }
+
+  .landing-orbit span {
+    width: 60px !important;
+    margin-left: -30px !important;
+    font-size: 7.5px !important;
+    transform:
+      rotate(calc(var(--orbit-i) * 60deg))
+      translateX(166px)
+      rotate(calc(var(--orbit-i) * -60deg)) !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 214px !important;
+    right: -2px !important;
+  }
+
+  .landing-copy-pro p {
+    font-size: 13px !important;
+  }
+
+  .landing-feature-card-extreme {
+    min-height: 176px !important;
+  }
+}
