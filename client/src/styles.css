@@ -13868,3 +13868,299 @@ button[title*="sofi" i] {
     height: 36px !important;
   }
 }
+
+
+/* Remove SoFi/referral button everywhere, including mobile */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi" i],
+button[aria-label*="sofi" i],
+button[title*="sofi" i],
+a[aria-label*="sofi" i],
+a[title*="sofi" i] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+
+/* =========================================================
+   REMOVE SOFI EVERYWHERE + DESKTOP AI BUTTON IN FORMER SOFI SLOT
+========================================================= */
+
+/* Remove SoFi/referral button everywhere, including mobile and desktop */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi" i],
+button[aria-label*="sofi" i],
+button[title*="sofi" i],
+a[aria-label*="sofi" i],
+a[title*="sofi" i] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Desktop: AI button moves to the far-right spot where SoFi used to be.
+   Desktop order becomes: ticker input → search → add → AI */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 72px) !important;
+    min-width: 0 !important;
+    padding: 10px 12px !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    order: 1 !important;
+    width: 285px !important;
+    min-width: 285px !important;
+    max-width: 285px !important;
+    flex: 0 0 285px !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    order: 2 !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    order: 3 !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-former-sofi-btn,
+  .eval-safe-searchbar .desktop-ai-former-sofi-btn,
+  .eval-clean-searchbar .desktop-ai-former-sofi-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-former-sofi-btn,
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    order: 4 !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile: keep current layout exactly, with AI first and watchlist at the end.
+   Mobile order stays: AI → ticker input → search → add → watchlist */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+/* Eval update: mobile price bubble matches desktop price bubble. */
+
+
+/* =========================================================
+   MOBILE PRICE BUBBLE = DESKTOP PRICE BUBBLE
+   Removes mobile-only green/black background and percent-change chip styling.
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Price card uses the same base mini-stat styling as desktop */
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .price-mini-stat,
+  .price-stat,
+  .price-card,
+  .price-box,
+  .price-bubble {
+    background: inherit !important;
+    border-color: inherit !important;
+    box-shadow: inherit !important;
+    backdrop-filter: inherit !important;
+  }
+
+  /* If inherit is too broad, match desktop mini-stat glass instead of mobile green */
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :first-child {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,.06), transparent 42%),
+      linear-gradient(145deg, rgba(18, 23, 36, .78), rgba(13, 16, 27, .82)) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.07),
+      0 18px 44px rgba(0,0,0,.22) !important;
+  }
+
+  /* Remove the mobile green pill look from daily change */
+  .daily-change-chip,
+  .hero-card .daily-change-chip,
+  .eval-stack-report .daily-change-chip,
+  .snapshot-grid .daily-change-chip,
+  .snapshot-grid-refined .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: rgba(255,255,255,.86) !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+  }
+
+  /* Keep price number and % change visually like desktop */
+  .hero-card .snapshot-grid > :first-child b,
+  .hero-card .snapshot-grid-refined > :first-child b,
+  .eval-stack-report .snapshot-grid > :first-child b,
+  .eval-stack-report .snapshot-grid-refined > :first-child b,
+  .hero-card .snapshot-grid > :first-child strong,
+  .hero-card .snapshot-grid-refined > :first-child strong,
+  .eval-stack-report .snapshot-grid > :first-child strong,
+  .eval-stack-report .snapshot-grid-refined > :first-child strong {
+    color: #ffffff !important;
+  }
+
+  .hero-card .snapshot-grid > :first-child span,
+  .hero-card .snapshot-grid-refined > :first-child span,
+  .eval-stack-report .snapshot-grid > :first-child span,
+  .eval-stack-report .snapshot-grid-refined > :first-child span {
+    color: rgba(255,255,255,.76) !important;
+  }
+
+  /* Remove mobile-only pseudo highlights from price card */
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
