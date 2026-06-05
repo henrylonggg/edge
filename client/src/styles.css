@@ -15968,3 +15968,265 @@ aside .ai-rules-card {
     overflow: hidden !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE/TABLET WATCHLIST CLEANUP + TABLET PROFILE TOP RIGHT
+========================================================= */
+
+/* Tablet/iPad and mobile: remove Strong/Weak explanation lines from watchlist cards */
+@media (max-width: 1180px) {
+  .watchlist-panel [class*="strong"],
+  .watchlist-panel [class*="Strong"],
+  .watchlist-panel [class*="weak"],
+  .watchlist-panel [class*="Weak"],
+  .watchlist-page [class*="strong"],
+  .watchlist-page [class*="Strong"],
+  .watchlist-page [class*="weak"],
+  .watchlist-page [class*="Weak"],
+  .watchlist-card [class*="strong"],
+  .watchlist-card [class*="Strong"],
+  .watchlist-card [class*="weak"],
+  .watchlist-card [class*="Weak"],
+  .mobile-tablet-watchlist [class*="strong"],
+  .mobile-tablet-watchlist [class*="Strong"],
+  .mobile-tablet-watchlist [class*="weak"],
+  .mobile-tablet-watchlist [class*="Weak"],
+  .watchlist-panel .watch-meta,
+  .watchlist-panel .watch-subtext,
+  .watchlist-panel .watch-detail,
+  .watchlist-panel .watch-details,
+  .watchlist-panel .stock-read,
+  .watchlist-panel .rank-detail,
+  .watchlist-panel .rank-details,
+  .watchlist-panel small,
+  .watchlist-page small {
+    display: none !important;
+  }
+
+  /* But keep the max-15 label and top controls visible */
+  .watchlist-panel .watchlist-limit,
+  .watchlist-panel .watchlist-subtitle,
+  .watchlist-panel .watchlist-header small,
+  .watchlist-page .watchlist-limit,
+  .watchlist-page .watchlist-subtitle,
+  .watchlist-page .watchlist-header small {
+    display: block !important;
+  }
+
+  /* Watchlist bubbles/cards taller and cleaner */
+  .watchlist-panel li,
+  .watchlist-panel .watchlist-item,
+  .watchlist-panel .watch-card,
+  .watchlist-panel .watch-row,
+  .watchlist-page li,
+  .watchlist-page .watchlist-item,
+  .watchlist-page .watch-card,
+  .watchlist-page .watch-row,
+  .mobile-tablet-watchlist li,
+  .mobile-tablet-watchlist .watchlist-item,
+  .mobile-tablet-watchlist .watch-card,
+  .mobile-tablet-watchlist .watch-row {
+    min-height: 104px !important;
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+
+  /* Ticker text bigger on mobile/tablet watchlist */
+  .watchlist-panel .ticker,
+  .watchlist-panel .symbol,
+  .watchlist-panel .watch-symbol,
+  .watchlist-panel .stock-symbol,
+  .watchlist-panel h3,
+  .watchlist-page .ticker,
+  .watchlist-page .symbol,
+  .watchlist-page .watch-symbol,
+  .watchlist-page .stock-symbol,
+  .watchlist-page h3,
+  .mobile-tablet-watchlist .ticker,
+  .mobile-tablet-watchlist .symbol,
+  .mobile-tablet-watchlist .watch-symbol,
+  .mobile-tablet-watchlist .stock-symbol,
+  .mobile-tablet-watchlist h3 {
+    font-size: clamp(22px, 3.3vw, 32px) !important;
+    line-height: 1 !important;
+    letter-spacing: .02em !important;
+  }
+
+  /* Score ring/pie in watchlist bigger */
+  .watchlist-panel [class*="ring"],
+  .watchlist-panel [class*="Ring"],
+  .watchlist-panel [class*="score-circle"],
+  .watchlist-panel [class*="scoreCircle"],
+  .watchlist-panel [class*="mini-score"],
+  .watchlist-panel [class*="score-ring"],
+  .watchlist-page [class*="ring"],
+  .watchlist-page [class*="Ring"],
+  .watchlist-page [class*="score-circle"],
+  .watchlist-page [class*="scoreCircle"],
+  .watchlist-page [class*="mini-score"],
+  .watchlist-page [class*="score-ring"],
+  .mobile-tablet-watchlist [class*="ring"],
+  .mobile-tablet-watchlist [class*="Ring"],
+  .mobile-tablet-watchlist [class*="score-circle"],
+  .mobile-tablet-watchlist [class*="scoreCircle"],
+  .mobile-tablet-watchlist [class*="mini-score"],
+  .mobile-tablet-watchlist [class*="score-ring"] {
+    width: 84px !important;
+    height: 84px !important;
+    min-width: 84px !important;
+    min-height: 84px !important;
+    max-width: 84px !important;
+    max-height: 84px !important;
+  }
+
+  .watchlist-panel svg,
+  .watchlist-panel canvas,
+  .watchlist-page svg,
+  .watchlist-page canvas,
+  .mobile-tablet-watchlist svg,
+  .mobile-tablet-watchlist canvas {
+    max-width: 84px !important;
+    max-height: 84px !important;
+  }
+
+  /* Score number inside watchlist ring bigger */
+  .watchlist-panel [class*="score"] b,
+  .watchlist-panel [class*="score"] strong,
+  .watchlist-panel [class*="ring"] b,
+  .watchlist-panel [class*="ring"] strong,
+  .watchlist-page [class*="score"] b,
+  .watchlist-page [class*="score"] strong,
+  .watchlist-page [class*="ring"] b,
+  .watchlist-page [class*="ring"] strong,
+  .mobile-tablet-watchlist [class*="score"] b,
+  .mobile-tablet-watchlist [class*="score"] strong,
+  .mobile-tablet-watchlist [class*="ring"] b,
+  .mobile-tablet-watchlist [class*="ring"] strong {
+    font-size: clamp(18px, 2.8vw, 26px) !important;
+  }
+
+  /* Make room for delete button after larger chart */
+  .watchlist-panel .trash-btn,
+  .watchlist-panel .delete-btn,
+  .watchlist-panel button[aria-label*="delete"],
+  .watchlist-panel button[title*="delete"],
+  .watchlist-page .trash-btn,
+  .watchlist-page .delete-btn,
+  .watchlist-page button[aria-label*="delete"],
+  .watchlist-page button[title*="delete"] {
+    margin-left: 8px !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* Tablet: profile/welcome must stay top-right, not centered */
+  .profile-top-right-lock,
+  .profile-chip,
+  .user-chip,
+  .welcome-chip,
+  .profile-area,
+  .user-profile,
+  .welcome-block,
+  header [class*="profile"],
+  header [class*="welcome"],
+  .app-header [class*="profile"],
+  .app-header [class*="welcome"],
+  .top-header [class*="profile"],
+  .top-header [class*="welcome"] {
+    position: absolute !important;
+    top: 26px !important;
+    right: 44px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    justify-self: end !important;
+    align-self: start !important;
+    text-align: right !important;
+    z-index: 20 !important;
+  }
+
+  /* If header parent is grid/flex, force it not to center the profile */
+  header,
+  .app-header,
+  .top-header,
+  .hero-header,
+  .dashboard-header {
+    position: relative !important;
+  }
+}
+
+/* Phone sizing: still larger, but not too huge */
+@media (max-width: 680px) {
+  .watchlist-panel li,
+  .watchlist-panel .watchlist-item,
+  .watchlist-panel .watch-card,
+  .watchlist-panel .watch-row,
+  .watchlist-page li,
+  .watchlist-page .watchlist-item,
+  .watchlist-page .watch-card,
+  .watchlist-page .watch-row,
+  .mobile-tablet-watchlist li,
+  .mobile-tablet-watchlist .watchlist-item,
+  .mobile-tablet-watchlist .watch-card,
+  .mobile-tablet-watchlist .watch-row {
+    min-height: 96px !important;
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .watchlist-panel [class*="ring"],
+  .watchlist-panel [class*="Ring"],
+  .watchlist-panel [class*="score-circle"],
+  .watchlist-panel [class*="scoreCircle"],
+  .watchlist-panel [class*="mini-score"],
+  .watchlist-panel [class*="score-ring"],
+  .watchlist-page [class*="ring"],
+  .watchlist-page [class*="Ring"],
+  .watchlist-page [class*="score-circle"],
+  .watchlist-page [class*="scoreCircle"],
+  .watchlist-page [class*="mini-score"],
+  .watchlist-page [class*="score-ring"],
+  .mobile-tablet-watchlist [class*="ring"],
+  .mobile-tablet-watchlist [class*="Ring"],
+  .mobile-tablet-watchlist [class*="score-circle"],
+  .mobile-tablet-watchlist [class*="scoreCircle"],
+  .mobile-tablet-watchlist [class*="mini-score"],
+  .mobile-tablet-watchlist [class*="score-ring"] {
+    width: 76px !important;
+    height: 76px !important;
+    min-width: 76px !important;
+    min-height: 76px !important;
+    max-width: 76px !important;
+    max-height: 76px !important;
+  }
+
+  .watchlist-panel svg,
+  .watchlist-panel canvas,
+  .watchlist-page svg,
+  .watchlist-page canvas,
+  .mobile-tablet-watchlist svg,
+  .mobile-tablet-watchlist canvas {
+    max-width: 76px !important;
+    max-height: 76px !important;
+  }
+
+  .profile-top-right-lock,
+  .profile-chip,
+  .user-chip,
+  .welcome-chip,
+  .profile-area,
+  .user-profile,
+  .welcome-block,
+  header [class*="profile"],
+  header [class*="welcome"],
+  .app-header [class*="profile"],
+  .app-header [class*="welcome"],
+  .top-header [class*="profile"],
+  .top-header [class*="welcome"] {
+    top: 18px !important;
+    right: 18px !important;
+  }
+}
