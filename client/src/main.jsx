@@ -1,3 +1,5 @@
+// Eval main.jsx update: add Efficiency score card and metrics.
+// Eval main.jsx update: ticker bar starts empty, no default AAPL prefill.
 // Eval fix: earningsQualityScore defined and ticker input starts empty.
 // Eval update: earnings quality category + risk UI cleanup.
 // Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
@@ -1874,6 +1876,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
     earningsQuality: "Shows how much reported profit is backed by real cash flow. Higher means earnings look cleaner and more reliable.",
+    efficiency: "Shows how well the company turns invested capital into after-tax operating profit. Higher means capital is being used more efficiently.",
     newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
   };
 
@@ -1953,6 +1956,15 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Net Income Growth 3Y", metrics.netIncomeGrowth3Y),
       metricLine("EPS Growth 3Y", metrics.epsGrowth3Y),
       metricLine("Total Assets", metrics.totalAssets),
+    ]),
+    efficiency: usableMetricLines([
+      metricLine("NOPAT", metrics.nopat),
+      metricLine("Invested Capital", metrics.investedCapital),
+      metricLine("ROIC", metrics.roicCalculated),
+      metricLine("Operating Income", metrics.operatingIncome),
+      metricLine("Total Debt", metrics.totalDebt),
+      metricLine("Shareholder Equity", metrics.shareholderEquity),
+      metricLine("Cash & Equivalents", metrics.cashAndEquivalents),
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
@@ -2276,6 +2288,17 @@ function Report({ data, onAdd, onOpenIndustry }) {
           metricsUsed={categoryMetrics.earningsQuality}
           isOpen={openScoreHelp === "earningsQuality"}
           onToggle={() => setOpenScoreHelp(openScoreHelp === "earningsQuality" ? null : "earningsQuality")}
+        />
+
+        <Grade
+          id="efficiency"
+          name="Efficiency"
+          value={cats.efficiency}
+          icon={<Activity size={18} />}
+          description={gradeDescriptions.efficiency}
+          metricsUsed={categoryMetrics.efficiency}
+          isOpen={openScoreHelp === "efficiency"}
+          onToggle={() => setOpenScoreHelp(openScoreHelp === "efficiency" ? null : "efficiency")}
         />
 
         <Grade
