@@ -14949,3 +14949,175 @@ a[title*="sofi" i] {
     max-height: 250px !important;
   }
 }
+
+
+/* =========================================================
+   AI PAGE RULES + POPUP CLOSE + MOBILE POLISH
+========================================================= */
+
+.ai-rules-card {
+  width: min(100%, 880px);
+  margin: 0 auto 18px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.08), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(21,231,255,.07), transparent 42%),
+    rgba(255,255,255,.045);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 20px 55px rgba(0,0,0,.22);
+}
+
+.ai-rules-eyebrow {
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.58);
+  margin-bottom: 8px;
+}
+
+.ai-rules-card h3 {
+  margin: 0 0 14px;
+  color: #fff;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.05;
+}
+
+.ai-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ai-rules-grid > div {
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.16);
+}
+
+.ai-rules-grid strong {
+  display: block;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.ai-rules-grid p,
+.ai-rules-note {
+  margin: 0;
+  color: rgba(255,255,255,.70);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ai-rules-note {
+  margin-top: 12px;
+}
+
+.score-popup,
+.score-insight-popup,
+.grade-popup,
+.help-popup,
+.tooltip-card,
+.info-popup {
+  position: absolute;
+}
+
+.popup-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  z-index: 30 !important;
+  width: 21px !important;
+  height: 21px !important;
+  min-width: 21px !important;
+  min-height: 21px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(0,0,0,.22) !important;
+  color: rgba(255,255,255,.82) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.popup-close-btn:hover {
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+}
+
+.score-popup .score-popup-title,
+.score-insight-popup .score-popup-title,
+.grade-popup .score-popup-title,
+.help-popup .score-popup-title,
+.info-popup .score-popup-title {
+  padding-left: 22px;
+}
+
+@media (max-width: 680px) {
+  .ai-rules-card {
+    padding: 15px;
+    border-radius: 21px;
+    margin-bottom: 14px;
+  }
+
+  .ai-rules-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Remove Strong/Weak details from mobile watchlist only */
+  .watchlist-page [class*="strength"],
+  .watchlist-page [class*="weakness"],
+  .watchlist-page .strong-weak,
+  .watchlist-page .strength-weakness,
+  .watchlist-panel [class*="strength"],
+  .watchlist-panel [class*="weakness"],
+  .watchlist-panel .strong-weak,
+  .watchlist-panel .strength-weakness {
+    display: none !important;
+  }
+
+  /* Show desktop-style descriptions under mobile bar-chart metric cards */
+  .grade-card p,
+  .grade-card .grade-description,
+  .grade-card .score-description,
+  .grade-card .metric-description,
+  .metric-card p,
+  .metric-card .grade-description,
+  .metric-card .score-description,
+  .metric-card .metric-description,
+  .score-card p,
+  .score-card .grade-description,
+  .score-card .score-description,
+  .score-card .metric-description {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-height: none !important;
+    height: auto !important;
+    color: rgba(255,255,255,.68) !important;
+    font-size: 12px !important;
+    line-height: 1.38 !important;
+    margin-top: 8px !important;
+  }
+
+  /* Larger mobile Eval Score text */
+  .eval-stack-report .score-panel .score-value,
+  .eval-clean-hero .score-panel .score-value,
+  .hero-card .score-panel .score-value,
+  .eval-stack-report .score-panel b,
+  .eval-clean-hero .score-panel b,
+  .hero-card .score-panel b,
+  .eval-stack-report .score-panel strong,
+  .eval-clean-hero .score-panel strong,
+  .hero-card .score-panel strong {
+    font-size: clamp(64px, 18vw, 86px) !important;
+    line-height: .88 !important;
+  }
+}
