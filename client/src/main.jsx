@@ -1,3 +1,4 @@
+// Eval update: bigger compare radar chart.
 // Eval update: compare selection page with 2-3 watchlist stocks.
 // Eval update: Clerk profile popup front layer.
 // Eval update: mobile dropdown replaces old AI button position.
@@ -1051,7 +1052,7 @@ function App() {
 
 function CompareRadar({ categories, stocks }) {
   const center = 180;
-  const maxRadius = 104;
+  const maxRadius = 125;
   const levels = [0.25, 0.5, 0.75, 1];
   const toneClasses = ["radar-left", "radar-right", "radar-third"];
   const dotClasses = ["radar-left-dot", "radar-right-dot", "radar-third-dot"];
@@ -1137,7 +1138,7 @@ function CompareRadar({ categories, stocks }) {
         ))}
 
         {categories.map((key, index) => {
-          const label = pointFor(index, 14.75);
+          const label = pointFor(index, 12.85);
           return (
             <text
               key={`${key}-label`}
