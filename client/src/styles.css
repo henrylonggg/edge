@@ -18766,3 +18766,145 @@ body {
     font-size: 12.5px !important;
   }
 }
+
+
+/* =========================================================
+   CLEAN TEXT DROPDOWN + CLICK-AWAY CLOSE
+========================================================= */
+
+/* Invisible full-screen button closes the dropdown when user clicks outside */
+.dropdown-click-away {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482500 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: default !important;
+}
+
+/* Clean regular dropdown list */
+.menu-wrap .dashboard-dropdown-menu {
+  z-index: 2147483000 !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 220px !important;
+  padding: 8px !important;
+  gap: 3px !important;
+  overflow: visible !important;
+}
+
+/* Override every searchbar button sizing rule for dropdown rows */
+.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.searchbar.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-responsive-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-safe-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-clean-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.searchbar.compact-searchbar.score-searchbar .menu-wrap .dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: rgba(255,255,255,.84) !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .01em !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.searchbar.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-responsive-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-safe-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-clean-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.searchbar.compact-searchbar.score-searchbar .menu-wrap .dashboard-dropdown-menu button:hover {
+  background: rgba(255,255,255,.075) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+/* No icons in the dropdown menu */
+.dashboard-dropdown-menu button svg {
+  display: none !important;
+}
+
+/* Divider stays subtle and not like underlined item */
+.dashboard-dropdown-menu .dropdown-divider {
+  width: 100% !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  background: rgba(255,255,255,.10) !important;
+  margin: 5px 0 !important;
+  border: 0 !important;
+}
+
+/* Keep only the hamburger/search as square buttons */
+.eval-menu-searchbar > button[aria-label="Search stock"],
+.eval-menu-searchbar .menu-trigger {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+}
+
+@media (max-width: 1180px) {
+  .menu-wrap .dashboard-dropdown-menu {
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-menu-searchbar .menu-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .menu-wrap .dashboard-dropdown-menu {
+    width: 210px !important;
+    min-width: 210px !important;
+    max-width: 210px !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-menu-searchbar .menu-trigger {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
