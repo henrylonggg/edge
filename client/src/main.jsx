@@ -1,3 +1,4 @@
+// Eval fix: search bubble removes old button empty space.
 // Eval rebuild: clean dashboard layout, compact search bar, stable hero report.
 // Eval update: ticker symbol is now a company website link.
 // Eval update: restored original rings/bars, safer taller report layout.
