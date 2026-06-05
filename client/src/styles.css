@@ -16230,3 +16230,436 @@ aside .ai-rules-card {
     right: 18px !important;
   }
 }
+
+
+/* =========================================================
+   WATCHLIST MOBILE/TABLET CLEANUP + PROFILE ALIGNMENT + HOMEPAGE REVAMP
+========================================================= */
+
+/* Mobile/tablet: absolutely remove Strong/Weak watchlist rows */
+@media (max-width: 1180px) {
+  .watch-panel .row-sw,
+  .watch-panel .watch-row-sw,
+  .watch-panel .mag7-row .row-sw,
+  .eval-watchlist-panel .row-sw,
+  .eval-watchlist-panel .watch-row-sw,
+  .mobile-watch-panel .row-sw,
+  .mobile-watch-panel .watch-row-sw,
+  .watchlist-page-panel .row-sw,
+  .watchlist-page-panel .watch-row-sw,
+  .watch-panel .watch-info .row-sw,
+  .watch-panel .watch-info .watch-row-sw,
+  .watch-panel .watch-info span:has(+ span),
+  .watch-panel .watch-info span {
+    display: none !important;
+  }
+
+  /* Preserve ticker symbol inside watch-info */
+  .watch-panel .watch-info > strong,
+  .eval-watchlist-panel .watch-info > strong,
+  .mobile-watch-panel .watch-info > strong,
+  .watchlist-page-panel .watch-info > strong {
+    display: block !important;
+  }
+
+  /* Taller, cleaner mobile/tablet watchlist cards */
+  .watch-panel .watch-row,
+  .eval-watchlist-panel .watch-row,
+  .mobile-watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    min-height: 112px !important;
+    padding: 18px 16px !important;
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) 92px 42px !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+
+  /* Bigger ticker */
+  .watch-panel .watch-info > strong,
+  .eval-watchlist-panel .watch-info > strong,
+  .mobile-watch-panel .watch-info > strong,
+  .watchlist-page-panel .watch-info > strong {
+    font-size: clamp(24px, 3.4vw, 34px) !important;
+    line-height: 1 !important;
+    letter-spacing: .035em !important;
+  }
+
+  .watch-panel .watch-info,
+  .eval-watchlist-panel .watch-info,
+  .mobile-watch-panel .watch-info,
+  .watchlist-page-panel .watch-info {
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 0 !important;
+  }
+
+  /* Bigger watchlist score ring and score text */
+  .watch-panel .watch-score-ring,
+  .eval-watchlist-panel .watch-score-ring,
+  .mobile-watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    width: 86px !important;
+    height: 86px !important;
+    min-width: 86px !important;
+    min-height: 86px !important;
+    max-width: 86px !important;
+    max-height: 86px !important;
+    justify-self: center !important;
+  }
+
+  .watch-panel .watch-score-ring strong,
+  .eval-watchlist-panel .watch-score-ring strong,
+  .mobile-watch-panel .watch-score-ring strong,
+  .watchlist-page-panel .watch-score-ring strong {
+    font-size: clamp(20px, 2.7vw, 28px) !important;
+    line-height: 1 !important;
+  }
+
+  .watch-panel .delete-btn,
+  .eval-watchlist-panel .delete-btn,
+  .mobile-watch-panel .delete-btn,
+  .watchlist-page-panel .delete-btn {
+    justify-self: end !important;
+    margin-left: 0 !important;
+  }
+
+  /* Tablet profile: same row as logo/Eval, fixed top-right, no overlap */
+  .topbar {
+    position: relative !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    min-height: 122px !important;
+    padding-right: 36px !important;
+  }
+
+  .topbar .brand {
+    position: relative !important;
+    z-index: 4 !important;
+  }
+
+  .topbar-actions-stack,
+  .profile-bubble,
+  .profile-welcome-wrap,
+  .eval-profile-top-right {
+    position: absolute !important;
+    top: 28px !important;
+    right: 36px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 30 !important;
+    justify-self: end !important;
+    align-self: start !important;
+    text-align: right !important;
+  }
+
+  .profile-welcome-wrap,
+  .eval-profile-top-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .eval-watchlist-panel .watch-row,
+  .mobile-watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    min-height: 104px !important;
+    grid-template-columns: 30px minmax(0, 1fr) 80px 40px !important;
+    padding: 16px 14px !important;
+    gap: 12px !important;
+  }
+
+  .watch-panel .watch-score-ring,
+  .eval-watchlist-panel .watch-score-ring,
+  .mobile-watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    width: 78px !important;
+    height: 78px !important;
+    min-width: 78px !important;
+    min-height: 78px !important;
+    max-width: 78px !important;
+    max-height: 78px !important;
+  }
+
+  .topbar {
+    min-height: 112px !important;
+    padding-right: 18px !important;
+  }
+
+  .topbar-actions-stack,
+  .profile-bubble,
+  .profile-welcome-wrap,
+  .eval-profile-top-right {
+    top: 18px !important;
+    right: 18px !important;
+  }
+}
+
+/* Homepage revamp: premium landing page */
+.landing-page {
+  min-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.landing-shell {
+  position: relative !important;
+  width: min(1180px, calc(100vw - 38px)) !important;
+  margin: 0 auto !important;
+  padding: clamp(28px, 4vw, 54px) !important;
+  border-radius: clamp(30px, 4vw, 48px) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.12), transparent 34%),
+    radial-gradient(circle at 80% 22%, rgba(133,255,71,.12), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.035)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 34px 110px rgba(0,0,0,.42) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.landing-brand-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+  margin-bottom: clamp(28px, 4vw, 52px) !important;
+}
+
+.landing-brand-row img {
+  width: clamp(54px, 6vw, 78px) !important;
+  height: clamp(54px, 6vw, 78px) !important;
+  filter: drop-shadow(0 0 24px rgba(21,231,255,.22)) !important;
+}
+
+.landing-brand-row h1 {
+  font-size: clamp(58px, 8vw, 112px) !important;
+  letter-spacing: -0.07em !important;
+  line-height: .85 !important;
+}
+
+.landing-hero {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .78fr) !important;
+  gap: clamp(26px, 4vw, 58px) !important;
+  align-items: center !important;
+}
+
+.landing-kicker {
+  width: fit-content !important;
+  padding: 9px 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(133,255,71,.25) !important;
+  background: rgba(133,255,71,.075) !important;
+  color: rgba(220,255,204,.92) !important;
+  box-shadow: 0 0 30px rgba(133,255,71,.08) !important;
+}
+
+.landing-copy h2 {
+  max-width: 760px !important;
+  margin: 18px 0 18px !important;
+  font-size: clamp(48px, 6vw, 92px) !important;
+  line-height: .9 !important;
+  letter-spacing: -0.065em !important;
+  color: #fff !important;
+  text-shadow: 0 0 34px rgba(255,255,255,.08) !important;
+}
+
+.landing-copy p {
+  max-width: 720px !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: clamp(15px, 1.35vw, 19px) !important;
+  line-height: 1.55 !important;
+}
+
+.landing-actions {
+  margin-top: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+}
+
+.landing-continue-btn {
+  min-height: 58px !important;
+  padding: 0 22px !important;
+  border-radius: 19px !important;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255,255,255,.75), transparent 32%),
+    linear-gradient(135deg, #f5ffef, #85ff47 44%, #39d50a) !important;
+  color: #081006 !important;
+  font-weight: 1000 !important;
+  box-shadow: 0 0 34px rgba(133,255,71,.34), inset 0 1px 0 rgba(255,255,255,.55) !important;
+}
+
+.landing-actions span {
+  color: rgba(255,255,255,.58) !important;
+  font-size: 13px !important;
+}
+
+.landing-score-preview {
+  position: relative !important;
+  padding: 24px !important;
+  border-radius: 32px !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(133,255,71,.13), transparent 40%),
+    linear-gradient(145deg, rgba(7,12,24,.74), rgba(34,27,58,.56)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 28px 80px rgba(0,0,0,.36) !important;
+}
+
+.landing-score-preview::before {
+  content: "AI + fundamentals + news" !important;
+  position: absolute !important;
+  top: -14px !important;
+  right: 22px !important;
+  padding: 7px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(0,0,0,.34) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+
+.preview-score-ring {
+  width: clamp(190px, 20vw, 260px) !important;
+  height: clamp(190px, 20vw, 260px) !important;
+  margin: 24px auto !important;
+}
+
+.preview-score-ring strong {
+  font-size: clamp(54px, 6vw, 84px) !important;
+}
+
+.preview-bars div {
+  height: 38px !important;
+  border-radius: 14px !important;
+  padding: 0 12px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+}
+
+.landing-points {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  margin-top: clamp(28px, 4vw, 46px) !important;
+}
+
+.landing-point-card {
+  min-height: 178px !important;
+  padding: 18px !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.07), transparent 40%),
+    rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+
+.landing-point-card div {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: rgba(133,255,71,.10) !important;
+  color: #b9ff8a !important;
+  margin-bottom: 14px !important;
+}
+
+.landing-point-card h3 {
+  color: #fff !important;
+  font-size: 15px !important;
+  margin: 0 0 8px !important;
+}
+
+.landing-point-card p {
+  color: rgba(255,255,255,.65) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+}
+
+.landing-bottom-strip {
+  margin-top: 20px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+.landing-bottom-strip span {
+  padding: 9px 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  background: rgba(0,0,0,.16) !important;
+  color: rgba(255,255,255,.70) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+
+.landing-footnote {
+  margin-top: 14px !important;
+  color: rgba(255,255,255,.42) !important;
+  font-size: 10px !important;
+}
+
+@media (max-width: 1024px) {
+  .landing-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-score-preview {
+    width: min(100%, 520px) !important;
+    justify-self: center !important;
+  }
+
+  .landing-points {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-shell {
+    width: calc(100vw - 24px) !important;
+    padding: 22px !important;
+    border-radius: 30px !important;
+  }
+
+  .landing-brand-row {
+    margin-bottom: 30px !important;
+  }
+
+  .landing-copy h2 {
+    font-size: clamp(42px, 13vw, 64px) !important;
+  }
+
+  .landing-points {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-actions {
+    align-items: stretch !important;
+  }
+
+  .landing-continue-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
