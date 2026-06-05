@@ -1,4 +1,5 @@
-// Eval fix: search bubble removes old button empty space.
+// Eval update: desktop report uses mobile-style stack with Metrics scroll button.
+// Eval safe fix: search bubble fit-content without forced grid.
 // Eval rebuild: clean dashboard layout, compact search bar, stable hero report.
 // Eval update: ticker symbol is now a company website link.
 // Eval update: restored original rings/bars, safer taller report layout.
@@ -664,7 +665,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-clean-searchbar">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-safe-searchbar">
               <button
                 type="button"
                 className="ai-nav-btn desktop-ai-left-btn"
@@ -675,7 +676,7 @@ function App() {
                 <BrainCircuit size={22} />
               </button>
 
-              <div className="ticker-field">
+              <div className="ticker-field eval-safe-ticker-field">
                 <input
                   className="eval-clean-ticker-input"
                   value={symbol}
@@ -1845,6 +1846,13 @@ function Report({ data, onAdd, onOpenIndustry }) {
   const tone = scoreTone(edge);
   const scoreInsight = getScoreInsight(edge);
   const [openScoreHelp, setOpenScoreHelp] = useState(null);
+
+  const scrollToScoreMetrics = () => {
+    const target = document.getElementById("score-metrics");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
   const [industryOpen, setIndustryOpen] = useState(false);
   const [industryLoading, setIndustryLoading] = useState(false);
   const [industryError, setIndustryError] = useState("");
@@ -2057,7 +2065,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   return (
     <>
-      <section className={`hero-card eval-clean-hero ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
+      <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
             className={`score-ring ${tone}`}
@@ -2086,6 +2094,16 @@ function Report({ data, onAdd, onOpenIndustry }) {
                 <p>{scoreInsight.text}</p>
               </div>
             )}
+
+            <button
+              type="button"
+              className="score-metrics-jump-btn"
+              onClick={scrollToScoreMetrics}
+              title="Jump to score metrics"
+              aria-label="Jump to score metrics"
+            >
+              Metrics
+            </button>
           </div>
         </div>
 
@@ -2183,7 +2201,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
           </div>
         </section>
       )}
-<section className="grade-grid">
+<section id="score-metrics" className="grade-grid">
         <Grade
           id="growth"
           name="Growth"
