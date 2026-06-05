@@ -16856,3 +16856,163 @@ aside .ai-rules-card {
     padding: 8px 11px !important;
   }
 }
+
+
+/* =========================================================
+   FINAL COMPARE RADAR + SCORE RING POLISH
+========================================================= */
+
+/* Match the report score-ring look closer: thicker, darker center, stronger glow */
+.compare-score-card {
+  min-height: 232px !important;
+  gap: 14px !important;
+}
+
+.compare-score-card span {
+  margin-bottom: 10px !important;
+  color: rgba(255,255,255,.84) !important;
+}
+
+.compare-score-ring {
+  --score-color: rgba(255,255,255,.45);
+  width: 150px !important;
+  height: 150px !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  position: relative !important;
+  background:
+    conic-gradient(from -90deg, var(--score-color) 0 var(--score-a), rgba(91,109,118,.48) var(--score-a) 360deg) !important;
+  box-shadow:
+    0 0 38px color-mix(in srgb, var(--score-color) 42%, transparent),
+    0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 18px rgba(255,255,255,.06) !important;
+}
+
+.compare-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 18px !important;
+  border-radius: inherit !important;
+  background:
+    radial-gradient(circle at 48% 38%, rgba(255,255,255,.09), transparent 34%),
+    radial-gradient(circle at 50% 50%, rgba(133,255,71,.08), transparent 54%),
+    linear-gradient(145deg, #0b1415, #070b10) !important;
+  box-shadow:
+    inset 0 0 34px rgba(0,0,0,.66),
+    0 0 0 1px rgba(255,255,255,.06) !important;
+}
+
+.compare-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: inherit !important;
+  border: 1px solid color-mix(in srgb, var(--score-color) 32%, transparent) !important;
+  opacity: .72 !important;
+  filter: blur(.1px) !important;
+}
+
+.compare-score-ring strong {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #ffffff !important;
+  font-size: 48px !important;
+  line-height: .9 !important;
+  text-shadow: 0 0 20px rgba(255,255,255,.32) !important;
+}
+
+.compare-score-ring.green {
+  --score-color: #72ff41 !important;
+}
+
+.compare-score-ring.yellow {
+  --score-color: #ffe35f !important;
+}
+
+.compare-score-ring.red {
+  --score-color: #ff5570 !important;
+}
+
+/* More room around radar labels and smaller inner shape so 10 scores do not hit labels */
+.compare-radar-card {
+  padding: 28px 28px 36px !important;
+  overflow: visible !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 760px) !important;
+  padding: 46px !important;
+  overflow: visible !important;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.90) !important;
+  font-size: 10.5px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .015em !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.96) !important;
+  stroke-width: 5px !important;
+  stroke-linejoin: round !important;
+}
+
+.radar-dot {
+  r: 3.6 !important;
+}
+
+/* Remove/hide the detailed breakdown below the radar if stale markup remains */
+.compare-chart-row.compact,
+.compare-mini-values {
+  display: none !important;
+}
+
+.compare-chart:empty {
+  display: none !important;
+}
+
+.compare-explain {
+  margin-top: 16px !important;
+}
+
+/* Legend color mapping made extra clear */
+.compare-radar-legend span {
+  border-color: currentColor !important;
+  background: rgba(255,255,255,.055) !important;
+}
+
+.compare-radar-legend .left {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .right {
+  color: #15e7ff !important;
+}
+
+@media (max-width: 680px) {
+  .compare-score-ring {
+    width: 132px !important;
+    height: 132px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 16px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 42px !important;
+  }
+
+  .compare-radar-card {
+    padding: 20px 12px 26px !important;
+  }
+
+  .compare-radar-svg {
+    padding: 38px !important;
+  }
+
+  .radar-label {
+    font-size: 8.4px !important;
+    stroke-width: 4px !important;
+  }
+}
