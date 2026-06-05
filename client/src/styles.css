@@ -15121,3 +15121,147 @@ a[title*="sofi" i] {
     line-height: .88 !important;
   }
 }
+
+
+/* =========================================================
+   AI CARD ONLY ON ASSISTANT PAGE + IPAD USES MOBILE LAYOUT
+========================================================= */
+
+/* If stale markup ever appears inside watchlist/sidebar, hide it there only */
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+/* iPad/tablet should behave like the mobile report/search layout */
+@media (max-width: 1024px) {
+  /* Search bar: AI | input | search | add | watchlist */
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+
+  /* Report bubble: company top, score middle, price/risk bottom */
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    min-height: auto !important;
+    padding: 64px 20px 30px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(46px, 10vw, 72px) !important;
+    margin-bottom: 10px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 680px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+  }
+}
+
+/* On true mobile, keep the bigger-pop score ring rules */
+@media (max-width: 680px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 835px !important;
+  }
+}
