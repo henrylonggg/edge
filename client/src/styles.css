@@ -16178,8 +16178,11 @@ aside .ai-rules-card {
 }
 
 
+
+
+
 /* =========================================================
-   WATCHLIST STOCK COMPARISON
+   WATCHLIST STOCK COMPARISON PAGE
 ========================================================= */
 
 .compare-nav-btn {
@@ -16187,74 +16190,80 @@ aside .ai-rules-card {
   place-items: center !important;
 }
 
-.compare-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: grid;
-  place-items: center;
-  padding: 22px;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 34%),
-    radial-gradient(circle at 84% 72%, rgba(133,255,71,.12), transparent 38%),
-    rgba(3, 6, 13, .78);
-  backdrop-filter: blur(18px);
+/* Desktop: order is AI, input, search, add, compare. */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    order: 5 !important;
+  }
 }
 
-.compare-modal {
-  position: relative;
-  width: min(1040px, 96vw);
-  max-height: min(88vh, 920px);
-  overflow: auto;
-  padding: clamp(22px, 3vw, 34px);
+/* Mobile/tablet: add compare between Add and Watchlist. */
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px 52px !important;
+    grid-template-areas: "ai input search add compare watch" !important;
+  }
+
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    grid-area: compare !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px 44px !important;
+    grid-template-areas: "ai input search add compare watch" !important;
+  }
+}
+
+.compare-page {
+  width: 100%;
+  min-height: calc(100vh - 140px);
+  display: grid;
+  place-items: start center;
+  padding: 12px 0 40px;
+}
+
+.compare-page-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 34px);
   border-radius: 34px;
   border: 1px solid rgba(255,255,255,.13);
   background:
-    radial-gradient(circle at 18% 0%, rgba(133,255,71,.08), transparent 35%),
-    radial-gradient(circle at 82% 14%, rgba(21,231,255,.08), transparent 38%),
-    linear-gradient(145deg, rgba(16, 21, 34, .94), rgba(8, 11, 21, .96));
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.10), transparent 34%),
+    radial-gradient(circle at 84% 28%, rgba(133,255,71,.10), transparent 38%),
+    linear-gradient(145deg, rgba(16, 21, 34, .88), rgba(8, 11, 21, .92));
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.10),
-    0 34px 120px rgba(0,0,0,.55);
+    0 30px 100px rgba(0,0,0,.42);
 }
 
-.compare-close-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.075);
-  color: rgba(255,255,255,.86);
-  display: grid;
-  place-items: center;
-  font-size: 21px;
-  font-weight: 900;
-  cursor: pointer;
-  z-index: 4;
+.compare-page-head {
+  margin: 22px 0 18px;
 }
 
-.compare-close-btn:hover {
-  background: rgba(255,255,255,.15);
-  color: #fff;
-}
-
-.compare-head {
-  padding-right: 40px;
-  margin-bottom: 18px;
-}
-
-.compare-head h2 {
+.compare-page-head h2 {
   margin: 8px 0 8px;
-  font-size: clamp(28px, 4vw, 52px);
-  line-height: .96;
-  letter-spacing: -.045em;
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: .92;
+  letter-spacing: -.055em;
   color: #fff;
 }
 
-.compare-head p,
+.compare-page-head p,
 .compare-note,
 .compare-explain {
   margin: 0;
@@ -16370,18 +16379,6 @@ aside .ai-rules-card {
   text-align: center;
 }
 
-.compare-score-card.green {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(133,255,71,.10);
-}
-
-.compare-score-card.yellow {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(255,214,107,.10);
-}
-
-.compare-score-card.red {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 34px rgba(255,95,115,.10);
-}
-
 .compare-score-card span {
   color: rgba(255,255,255,.70);
   font-size: 13px;
@@ -16413,6 +16410,27 @@ aside .ai-rules-card {
   background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.70);
   font-weight: 1000;
+}
+
+.compare-chart-intro {
+  margin: 0 0 12px;
+  padding: 13px 14px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.compare-chart-intro strong {
+  color: #fff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.compare-chart-intro p {
+  margin: 0;
+  color: rgba(255,255,255,.60);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .compare-chart {
@@ -16474,7 +16492,6 @@ aside .ai-rules-card {
   height: 100%;
   border-radius: 999px;
   background: rgba(255,255,255,.45);
-  box-shadow: 0 0 18px currentColor;
 }
 
 .compare-bar-track i.green {
@@ -16497,22 +16514,30 @@ aside .ai-rules-card {
   line-height: 1.35;
 }
 
-.compare-explain {
+.compare-explain,
+.compare-empty {
   margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  padding: 14px;
+  border-radius: 18px;
   background: rgba(0,0,0,.16);
   border: 1px solid rgba(255,255,255,.07);
 }
 
-@media (max-width: 680px) {
-  .compare-overlay {
-    padding: 12px;
-  }
+.compare-empty {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: rgba(255,255,255,.68);
+}
 
-  .compare-modal {
-    width: 100%;
-    max-height: 90vh;
+.compare-empty h3 {
+  color: #fff;
+  margin: 10px 0 4px;
+}
+
+@media (max-width: 680px) {
+  .compare-page-shell {
     border-radius: 26px;
     padding: 20px;
   }
@@ -16535,33 +16560,5 @@ aside .ai-rules-card {
 
   .compare-bar-line {
     grid-template-columns: 64px minmax(0, 1fr) 42px;
-  }
-
-  .compare-nav-btn {
-    display: inline-grid !important;
-  }
-
-  .eval-responsive-searchbar,
-  .eval-safe-searchbar,
-  .eval-clean-searchbar,
-  .searchbar.compact-searchbar.score-searchbar {
-    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px 44px !important;
-    grid-template-areas: "ai input search add compare watch" !important;
-  }
-
-  .eval-responsive-searchbar .compare-nav-btn,
-  .eval-safe-searchbar .compare-nav-btn,
-  .eval-clean-searchbar .compare-nav-btn,
-  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
-    grid-area: compare !important;
-  }
-}
-
-@media (min-width: 681px) {
-  .eval-responsive-searchbar .compare-nav-btn,
-  .eval-safe-searchbar .compare-nav-btn,
-  .eval-clean-searchbar .compare-nav-btn,
-  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
-    order: 5 !important;
   }
 }
