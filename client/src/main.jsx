@@ -1,3 +1,5 @@
+// Eval update: remove SoFi everywhere and move AI button to former desktop SoFi position.
+// Eval update: remove SoFi button from mobile and desktop.
 // Eval update: stack score buttons and match mobile searchbar layout.
 // Eval update: desktop report uses mobile-style stack with Metrics scroll button.
 // Eval safe fix: search bubble fit-content without forced grid.
@@ -669,7 +671,7 @@ function App() {
             <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar">
               <button
                 type="button"
-                className="ai-nav-btn desktop-ai-left-btn"
+                className="ai-nav-btn desktop-ai-left-btn desktop-ai-former-sofi-btn"
                 onClick={() => setView("assistant")}
                 title="Eval AI Assistant"
                 aria-label="Eval AI Assistant"
@@ -700,17 +702,6 @@ function App() {
               >
                 <Plus size={18} />
               </button>
-
-              <a
-                className="sofi-referral-btn"
-                href="https://www.sofi.com/invite/invest?gcp=70a9cce6-5672-4453-bd32-e825c424c28d&isAliasGcp=false"
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                title="SoFi referral link"
-                aria-label="Open SoFi referral link"
-              >
-                <span>SoFi</span>
-              </a>
 
               <button
                 type="button"
