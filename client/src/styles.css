@@ -19332,3 +19332,346 @@ body {
     max-height: 44px !important;
   }
 }
+
+
+/* =========================================================
+   CLERK PROFILE POPUP FRONT LAYER FIX
+========================================================= */
+
+/* Clerk profile/user popover must appear above Eval cards, dropdowns, and overlays */
+.cl-rootBox,
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverRootBox,
+.cl-popoverBox,
+.cl-popoverContent,
+.cl-modalBackdrop,
+.cl-modalContent,
+.cl-cardBox,
+.cl-card,
+[data-clerk-portal],
+[data-radix-popper-content-wrapper] {
+  z-index: 2147483647 !important;
+}
+
+/* Profile area itself should stay clickable and above dashboard cards */
+.profile-welcome-wrap,
+.profile-bubble,
+.topbar-actions-stack,
+.cl-userButtonBox,
+.cl-userButtonTrigger,
+.cl-avatarBox {
+  position: relative !important;
+  z-index: 2147483600 !important;
+}
+
+/* Make sure Eval report/watchlist layers do not cover Clerk */
+.hero-card,
+.empty-report,
+.watch-panel,
+.watchlist-panel,
+.report-card,
+.news-card,
+.metrics-grid,
+.content,
+.layout {
+  z-index: auto;
+}
+
+/* Dropdown click-away should not beat Clerk's popover if both exist */
+.dropdown-click-away {
+  z-index: 2147482000 !important;
+}
+
+.dashboard-dropdown-menu {
+  z-index: 2147482500 !important;
+}
+
+/* Clerk popover text/buttons should not inherit weird Eval button sizing */
+.cl-userButtonPopoverCard button,
+.cl-popoverBox button,
+.cl-cardBox button,
+.cl-card button {
+  width: auto !important;
+  min-width: initial !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: initial !important;
+  max-height: none !important;
+  text-align: initial !important;
+  white-space: normal !important;
+}
+
+
+/* =========================================================
+   COMPARE SELECTION FLOW + 3 STOCK RADAR SUPPORT
+========================================================= */
+
+.compare-select-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  margin-bottom: 14px;
+}
+
+.compare-select-count strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.compare-select-count span {
+  color: rgba(255,255,255,.62);
+  font-size: 12px;
+}
+
+.compare-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compare-select-card {
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 26px 34px minmax(0, 1fr) 64px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.09);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,231,255,.055), transparent 40%),
+    rgba(255,255,255,.035);
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.compare-select-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(133,255,71,.22);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(133,255,71,.07), transparent 40%),
+    rgba(255,255,255,.05);
+}
+
+.compare-select-card.selected {
+  border-color: rgba(133,255,71,.34);
+  box-shadow: 0 0 26px rgba(133,255,71,.09);
+}
+
+.compare-select-card input {
+  width: 18px;
+  height: 18px;
+  accent-color: #85ff47;
+}
+
+.compare-select-rank {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.72);
+  background: rgba(255,255,255,.07);
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.compare-select-copy {
+  min-width: 0;
+}
+
+.compare-select-copy strong {
+  display: block;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: .04em;
+}
+
+.compare-select-copy small {
+  display: block;
+  color: rgba(255,255,255,.54);
+  font-size: 11px;
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-select-score {
+  justify-self: end;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 1000;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.compare-select-score.green {
+  box-shadow: 0 0 24px rgba(133,255,71,.10);
+}
+
+.compare-select-score.yellow {
+  box-shadow: 0 0 24px rgba(255,214,107,.10);
+}
+
+.compare-select-score.red {
+  box-shadow: 0 0 24px rgba(255,95,115,.10);
+}
+
+.compare-select-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.compare-save-btn {
+  height: 46px;
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(135deg, rgba(133,255,71,.92), rgba(21,231,255,.74));
+  color: #071006;
+  font-weight: 1000;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.compare-save-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.compare-select-actions span {
+  color: rgba(255,255,255,.58);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compare-score-row.compare-score-count-2 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+.compare-score-row.compare-score-count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.compare-score-row .compare-score-divider {
+  display: none !important;
+}
+
+.compare-radar-legend .legend-1 {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .legend-1 i {
+  background: #72ff41 !important;
+}
+
+.compare-radar-legend .legend-2 {
+  color: #15e7ff !important;
+}
+
+.compare-radar-legend .legend-2 i {
+  background: #15e7ff !important;
+}
+
+.compare-radar-legend .legend-3 {
+  color: #c98cff !important;
+}
+
+.compare-radar-legend .legend-3 i {
+  background: #c98cff !important;
+}
+
+.radar-third {
+  fill: rgba(201,140,255,.12);
+  stroke: rgba(201,140,255,.86);
+}
+
+.radar-third-dot {
+  fill: #c98cff;
+}
+
+@media (max-width: 780px) {
+  .compare-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-score-row.compare-score-count-2,
+  .compare-score-row.compare-score-count-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .compare-score-row.compare-score-count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .compare-score-card {
+    min-height: 150px !important;
+    padding: 10px 6px !important;
+  }
+
+  .compare-score-ring {
+    width: 98px !important;
+    height: 98px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 12px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 30px !important;
+  }
+
+  .compare-score-card span {
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .compare-select-card {
+    grid-template-columns: 24px 28px minmax(0, 1fr) 52px;
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .compare-select-copy strong {
+    font-size: 19px;
+  }
+
+  .compare-select-score {
+    width: 50px;
+    height: 50px;
+    font-size: 14px;
+  }
+
+  .compare-select-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .compare-save-btn {
+    justify-content: center;
+  }
+}
