@@ -12754,3 +12754,299 @@ button:active,
     border-radius: 14px !important;
   }
 }
+
+
+/* =========================================================
+   REPORT BUBBLE HEIGHT + MINIMAL RING/BAR THEME UPDATE
+========================================================= */
+
+/* Main report bubble: taller, more right padding so the corner + never overlaps */
+.hero-card {
+  position: relative !important;
+  min-height: 430px !important;
+  padding-top: 54px !important;
+  padding-right: 44px !important;
+  overflow: visible !important;
+}
+
+/* Add button sits in the report corner without covering price */
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  z-index: 20 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.hero-card .snapshot-grid,
+.hero-card .snapshot-grid-refined {
+  margin-top: 18px !important;
+}
+
+.hero-card .company-panel {
+  padding-top: 18px !important;
+}
+
+/* Remove old inline action row spacing since + is now corner-only */
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ticker link opens company website */
+.ticker-company-link {
+  color: rgba(255,255,255,.88) !important;
+  text-decoration: none !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(255,255,255,.34) !important;
+  transition: border-color .18s ease, color .18s ease, text-shadow .18s ease !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  border-bottom-color: rgba(133,255,71,.9) !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.28) !important;
+}
+
+/* Minimal thick ring charts everywhere */
+.score-ring,
+.mini-ring,
+.watch-ring,
+.watchlist-ring,
+.pulse-ring,
+.ring-score,
+[class*="score-ring"],
+[class*="mini-ring"],
+[class*="watch-ring"],
+[class*="pulse-ring"] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* SVG rings: rotate to start at top, make thick, remove busy glass fills */
+.score-ring svg,
+.mini-ring svg,
+.watch-ring svg,
+.watchlist-ring svg,
+.pulse-ring svg,
+.ring-score svg,
+[class*="score-ring"] svg,
+[class*="mini-ring"] svg,
+[class*="watch-ring"] svg,
+[class*="pulse-ring"] svg {
+  transform: rotate(-90deg) !important;
+  transform-origin: 50% 50% !important;
+  overflow: visible !important;
+}
+
+/* Keep numbers upright if they are SVG text */
+.score-ring svg text,
+.mini-ring svg text,
+.watch-ring svg text,
+.watchlist-ring svg text,
+.pulse-ring svg text,
+.ring-score svg text,
+[class*="score-ring"] svg text,
+[class*="mini-ring"] svg text,
+[class*="watch-ring"] svg text,
+[class*="pulse-ring"] svg text {
+  transform: rotate(90deg) !important;
+  transform-origin: 50% 50% !important;
+}
+
+/* Thicker ring strokes */
+.score-ring svg circle,
+.score-ring svg path,
+.mini-ring svg circle,
+.mini-ring svg path,
+.watch-ring svg circle,
+.watch-ring svg path,
+.watchlist-ring svg circle,
+.watchlist-ring svg path,
+.pulse-ring svg circle,
+.pulse-ring svg path,
+.ring-score svg circle,
+.ring-score svg path,
+[class*="score-ring"] svg circle,
+[class*="score-ring"] svg path,
+[class*="mini-ring"] svg circle,
+[class*="mini-ring"] svg path,
+[class*="watch-ring"] svg circle,
+[class*="watch-ring"] svg path,
+[class*="pulse-ring"] svg circle,
+[class*="pulse-ring"] svg path {
+  stroke-linecap: round !important;
+  stroke-width: 13px !important;
+}
+
+/* Large report score ring even thicker */
+.hero-card .score-ring svg circle,
+.hero-card .score-ring svg path,
+.hero-card [class*="score-ring"] svg circle,
+.hero-card [class*="score-ring"] svg path {
+  stroke-width: 18px !important;
+}
+
+/* Minimal dark center, no diagonal glass/pie shine */
+.score-ring::before,
+.score-ring::after,
+.mini-ring::before,
+.mini-ring::after,
+.watch-ring::before,
+.watch-ring::after,
+.watchlist-ring::before,
+.watchlist-ring::after,
+.pulse-ring::before,
+.pulse-ring::after,
+.ring-score::before,
+.ring-score::after,
+[class*="score-ring"]::before,
+[class*="score-ring"]::after,
+[class*="mini-ring"]::before,
+[class*="mini-ring"]::after,
+[class*="watch-ring"]::before,
+[class*="watch-ring"]::after,
+[class*="pulse-ring"]::before,
+[class*="pulse-ring"]::after {
+  background: transparent !important;
+  opacity: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Ring text stays clean and bright */
+.score-ring .score-value,
+.score-ring b,
+.score-ring strong,
+.mini-ring b,
+.mini-ring strong,
+.watch-ring b,
+.watch-ring strong,
+.watchlist-ring b,
+.watchlist-ring strong,
+.pulse-ring b,
+.pulse-ring strong,
+.ring-score b,
+.ring-score strong,
+[class*="score-ring"] b,
+[class*="score-ring"] strong,
+[class*="mini-ring"] b,
+[class*="mini-ring"] strong,
+[class*="watch-ring"] b,
+[class*="watch-ring"] strong,
+[class*="pulse-ring"] b,
+[class*="pulse-ring"] strong {
+  color: #ffffff !important;
+  text-shadow: 0 0 16px rgba(255,255,255,.20) !important;
+}
+
+/* Bar charts: glass track with matching neon fill, no harsh white base */
+.grade-bar,
+.metric-bar,
+.bar-track,
+.score-bar,
+.category-bar,
+.grade-card .bar,
+.grade-card .track,
+[class*="bar-track"],
+[class*="score-bar"],
+[class*="grade-bar"],
+[class*="metric-bar"] {
+  height: 9px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.075), rgba(255,255,255,.035)) !important;
+  border: 1px solid rgba(255,255,255,.075) !important;
+  box-shadow:
+    inset 0 1px 4px rgba(0,0,0,.28),
+    0 0 0 1px rgba(0,0,0,.04) !important;
+  overflow: hidden !important;
+}
+
+/* Fill bars: smoother and theme-matching */
+.grade-bar > *,
+.metric-bar > *,
+.bar-track > *,
+.score-bar > *,
+.category-bar > *,
+.grade-card .bar > *,
+.grade-card .track > *,
+[class*="bar-track"] > *,
+[class*="score-bar"] > *,
+[class*="grade-bar"] > *,
+[class*="metric-bar"] > * {
+  height: 100% !important;
+  border-radius: 999px !important;
+  box-shadow:
+    0 0 16px currentColor,
+    0 0 26px rgba(255,255,255,.08) !important;
+}
+
+/* If bar fills use inline width/color, preserve color but clean look */
+.grade-card [style*="width"],
+.metric-card [style*="width"] {
+  border-radius: 999px !important;
+}
+
+/* Mobile: taller report card with corner + safely above content */
+@media (max-width: 680px) {
+  .hero-card {
+    min-height: 680px !important;
+    padding-top: 62px !important;
+    padding-right: 18px !important;
+    overflow: visible !important;
+  }
+
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 13px !important;
+  }
+
+  .hero-card .company-panel {
+    padding-top: 6px !important;
+  }
+
+  .hero-card .score-ring svg circle,
+  .hero-card .score-ring svg path,
+  .hero-card [class*="score-ring"] svg circle,
+  .hero-card [class*="score-ring"] svg path {
+    stroke-width: 17px !important;
+  }
+
+  .score-ring svg circle,
+  .score-ring svg path,
+  .mini-ring svg circle,
+  .mini-ring svg path,
+  .watch-ring svg circle,
+  .watch-ring svg path,
+  .watchlist-ring svg circle,
+  .watchlist-ring svg path,
+  .pulse-ring svg circle,
+  .pulse-ring svg path,
+  .ring-score svg circle,
+  .ring-score svg path,
+  [class*="score-ring"] svg circle,
+  [class*="score-ring"] svg path,
+  [class*="mini-ring"] svg circle,
+  [class*="mini-ring"] svg path,
+  [class*="watch-ring"] svg circle,
+  [class*="watch-ring"] svg path,
+  [class*="pulse-ring"] svg circle,
+  [class*="pulse-ring"] svg path {
+    stroke-width: 11px !important;
+  }
+}
