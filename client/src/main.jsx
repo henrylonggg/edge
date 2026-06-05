@@ -1926,10 +1926,7 @@ function AssistantPage({ current, watchlist, onBack }) {
               Compare stocks, understand metrics, ask about risk, or get a
               beginner-friendly breakdown before making a decision.
             </p>
-          </div>
-        </div>
 
-        <div 
         <section className="ai-rules-card ai-rules-card-full">
           <div className="ai-rules-eyebrow">What Eval AI can answer</div>
           <h3>Use Eval AI for this website, your watchlist, and stock-evaluation questions.</h3>
@@ -1975,7 +1972,11 @@ function AssistantPage({ current, watchlist, onBack }) {
           <p className="ai-rules-note">Eval AI should not answer unrelated questions. For stock-specific questions, add the ticker to your watchlist first so Eval can retrieve and explain the right data.</p>
         </section>
 
-        className="chat-panel">
+          </div>
+        </div>
+
+        <div
+className="chat-panel">
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
@@ -2314,7 +2315,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
           </p>
 
           <div className="hero-actions">
-            <button className="eval-hero-add-btn" className="hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
+            <button className="eval-hero-add-btn hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
               <Plus size={17} />
             </button>
           </div>
