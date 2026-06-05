@@ -12707,7 +12707,7 @@ button:active,
 }
 
 
-/* Layout update: ticker opens company site, Add button in report corner */
+
 .ticker-company-link {
   color: rgba(255,255,255,.86) !important;
   text-decoration: none !important;
@@ -12756,8 +12756,7 @@ button:active,
 }
 
 
-/* =========================================================
-   SAFE REPORT LAYOUT ONLY
+
    Keeps original pie/ring charts and bar charts.
    Only prevents overlap inside the main Eval Score bubble.
 ========================================================= */
@@ -12867,7 +12866,7 @@ button:active,
 }
 
 
-/* Ticker link: clickable like the industry link, opens company website */
+
 .ticker-company-link {
   appearance: none !important;
   background: transparent !important;
@@ -12892,4 +12891,282 @@ button:active,
 .ticker-company-link.is-disabled {
   cursor: default !important;
   text-decoration-color: rgba(255,255,255,.20) !important;
+}
+
+
+/* =========================================================
+   AUTOFIT SEARCH BAR + CLEAN REPORT BUBBLE LAYOUT
+   Keeps original ring/pie and bar styles.
+========================================================= */
+
+/* Top search/action bubble: shrink to actual content, stay left aligned */
+.top-bar,
+.search-shell,
+.ticker-shell,
+.ticker-toolbar,
+.action-bar,
+.input-shell,
+.search-card,
+.ticker-entry-card,
+.controls-card,
+.dashboard-controls {
+  width: max-content !important;
+  max-width: calc(100vw - 64px) !important;
+  min-width: 0 !important;
+  justify-self: start !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+/* Actual input should be compact instead of forcing empty right-side space */
+.top-bar input,
+.search-shell input,
+.ticker-shell input,
+.ticker-toolbar input,
+.action-bar input,
+.input-shell input,
+.search-card input,
+.ticker-entry-card input,
+.controls-card input,
+.dashboard-controls input,
+.ticker-input {
+  width: clamp(210px, 22vw, 310px) !important;
+  min-width: 210px !important;
+  max-width: 310px !important;
+}
+
+/* If the parent is a flex row, keep it packed tightly */
+.top-bar,
+.search-shell,
+.ticker-shell,
+.ticker-toolbar,
+.action-bar,
+.input-shell,
+.search-card,
+.ticker-entry-card,
+.controls-card,
+.dashboard-controls {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Company ticker link beside industry */
+.ticker-company-link {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: rgba(255,255,255,.86) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  line-height: inherit !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.22) !important;
+}
+
+.ticker-company-link.is-disabled {
+  cursor: default !important;
+  text-decoration-color: rgba(255,255,255,.20) !important;
+}
+
+/* Main report bubble redesigned into 4 clean zones */
+.hero-card {
+  position: relative !important;
+  min-height: 485px !important;
+  padding: 48px 38px 42px !important;
+  display: grid !important;
+  grid-template-columns: minmax(250px, 0.92fr) minmax(280px, 1.05fr) minmax(255px, 0.82fr) !important;
+  grid-template-areas: "score company stats" !important;
+  align-items: center !important;
+  gap: clamp(24px, 3vw, 46px) !important;
+  overflow: hidden !important;
+}
+
+/* Score gets its own clean left zone */
+.hero-card .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Company centered in the middle, no overlap with price */
+.hero-card .company-panel {
+  grid-area: company !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  z-index: 2 !important;
+}
+
+.hero-card .company-panel h2 {
+  max-width: 100% !important;
+  margin: 0 0 14px !important;
+  font-size: clamp(52px, 5vw, 82px) !important;
+  line-height: .94 !important;
+  letter-spacing: -0.055em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.hero-card .company-panel .subline {
+  font-size: clamp(18px, 1.3vw, 23px) !important;
+  margin: 0 !important;
+}
+
+/* Price/risk right stack is isolated and cannot overlap company */
+.hero-card .snapshot-grid,
+.hero-card .snapshot-grid-refined {
+  grid-area: stats !important;
+  align-self: center !important;
+  justify-self: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 315px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  z-index: 2 !important;
+}
+
+.hero-card .snapshot-grid > *,
+.hero-card .snapshot-grid-refined > * {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Corner add button: visually clean and never blocking stat cards */
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  z-index: 8 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Guardrail: no child should visually spill outside its zone */
+.hero-card .company-panel,
+.hero-card .snapshot-grid,
+.hero-card .snapshot-grid-refined,
+.hero-card .score-panel {
+  overflow: visible !important;
+}
+
+/* Medium desktop/laptop: give layout more breathing room */
+@media (max-width: 1180px) and (min-width: 901px) {
+  .hero-card {
+    grid-template-columns: minmax(230px, .85fr) minmax(250px, 1fr) minmax(245px, .82fr) !important;
+    gap: 24px !important;
+    padding: 48px 34px 42px !important;
+  }
+
+  .hero-card .company-panel h2 {
+    font-size: clamp(46px, 4.6vw, 68px) !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    max-width: 290px !important;
+  }
+}
+
+/* Tablet/mobile: stack cleanly */
+@media (max-width: 900px) {
+  .hero-card {
+    min-height: auto !important;
+    padding: 62px 22px 28px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    justify-items: center !important;
+    gap: 24px !important;
+  }
+
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-items: center !important;
+  }
+
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(42px, 11vw, 64px) !important;
+    margin: 0 0 8px !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .top-bar,
+  .search-shell,
+  .ticker-shell,
+  .ticker-toolbar,
+  .action-bar,
+  .input-shell,
+  .search-card,
+  .ticker-entry-card,
+  .controls-card,
+  .dashboard-controls {
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .top-bar input,
+  .search-shell input,
+  .ticker-shell input,
+  .ticker-toolbar input,
+  .action-bar input,
+  .input-shell input,
+  .search-card input,
+  .ticker-entry-card input,
+  .controls-card input,
+  .dashboard-controls input,
+  .ticker-input {
+    width: clamp(180px, 44vw, 260px) !important;
+    min-width: 0 !important;
+  }
 }
