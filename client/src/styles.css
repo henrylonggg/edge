@@ -12906,9 +12906,9 @@ button:active,
 .referral-button,
 .promo-btn,
 .promo-button,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i] {
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
   display: none !important;
 }
 
@@ -13163,9 +13163,9 @@ button[title*="sofi" i] {
 .promo-button,
 .plan-btn,
 .plans-btn,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i] {
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
   display: none !important;
 }
 
@@ -13884,11 +13884,11 @@ button[title*="sofi" i] {
 .mobile-referral-button,
 .promo-btn,
 .promo-button,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i],
-a[aria-label*="sofi" i],
-a[title*="sofi" i] {
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;
@@ -13921,11 +13921,11 @@ a[title*="sofi" i] {
 .mobile-referral-button,
 .promo-btn,
 .promo-button,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i],
-a[aria-label*="sofi" i],
-a[title*="sofi" i] {
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;
@@ -14275,11 +14275,11 @@ body {
 .mobile-referral-button,
 .promo-btn,
 .promo-button,
-a[href*="sofi" i],
-button[aria-label*="sofi" i],
-button[title*="sofi" i],
-a[aria-label*="sofi" i],
-a[title*="sofi" i] {
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;
@@ -15588,4 +15588,22 @@ aside .ai-rules-card {
     padding: 15px !important;
     border-radius: 21px !important;
   }
+}
+
+
+/* =========================================================
+   FRONTEND DEPLOY ERROR FIX
+========================================================= */
+
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+.popup-close-btn {
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
 }
