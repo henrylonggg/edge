@@ -14623,3 +14623,104 @@ a[title*="sofi" i] {
     margin-top: 24px !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE SCORE RING BIGGER + PRICE/RISK EXACT SAME BACKGROUND
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Make the main mobile Eval Score pie/ring a little bigger */
+  .eval-stack-report .score-panel,
+  .eval-clean-hero .score-panel,
+  .hero-card .score-panel {
+    transform: scale(1.08) !important;
+    transform-origin: center center !important;
+    margin-top: 14px !important;
+    margin-bottom: 24px !important;
+  }
+
+  /* Keep the buttons under the larger ring centered and spaced */
+  .eval-stack-report .score-button-stack,
+  .eval-stack-report .score-insight-wrap,
+  .eval-clean-hero .score-button-stack,
+  .eval-clean-hero .score-insight-wrap,
+  .hero-card .score-button-stack,
+  .hero-card .score-insight-wrap {
+    transform: none !important;
+    margin-top: 16px !important;
+    row-gap: 9px !important;
+  }
+
+  /*
+    Price and Risk backgrounds must be EXACTLY the same.
+    Target both first and second stat cards with identical declarations.
+  */
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid > :nth-child(2),
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2),
+  .eval-clean-hero .snapshot-grid > :first-child,
+  .eval-clean-hero .snapshot-grid > :nth-child(2),
+  .eval-clean-hero .snapshot-grid-refined > :first-child,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2),
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :first-child,
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+    border: 1px solid rgba(255,255,255,.105) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 14px 34px rgba(0,0,0,.14) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  /* Remove any price-only or risk-only mobile overlay effects */
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid > :first-child::before,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::before,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::before,
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid > :nth-child(2)::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid > :first-child::after,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::after,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::after,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid > :nth-child(2)::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Percent change remains plain text, no colored pill */
+  .daily-change-chip,
+  .hero-card .daily-change-chip,
+  .eval-stack-report .daily-change-chip,
+  .eval-clean-hero .daily-change-chip,
+  .snapshot-grid .daily-change-chip,
+  .snapshot-grid-refined .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: rgba(255,255,255,.82) !important;
+  }
+}
