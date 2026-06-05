@@ -1,3 +1,5 @@
+// Eval update: compare selection page with 2-3 watchlist stocks.
+// Eval update: Clerk profile popup front layer.
 // Eval update: mobile dropdown replaces old AI button position.
 // Eval update: support email corrected.
 // Eval update: dropdown click-away, mobile homepage, mobile searchbar, footer icon cleanup.
@@ -509,6 +511,7 @@ function App() {
   const [compareData, setCompareData] = useState(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
+  const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
 
   function goMenu(nextView) {
@@ -610,36 +613,48 @@ function App() {
   }
 
 
-  function openComparePage(prefill = symbol) {
-    const clean = String(prefill || "").trim().toUpperCase();
+  function openComparePage() {
     setCompareError("");
     setCompareData(null);
-
-    if (clean && watchlist.some((item) => item.symbol === clean)) {
-      setCompareLeft(clean);
-    }
-
-    setView("compare");
+    setCompareSelected((prev) => {
+      const saved = watchlist.map((item) => item.symbol);
+      const valid = prev.filter((ticker) => saved.includes(ticker));
+      return valid.length ? valid.slice(0, 3) : saved.slice(0, Math.min(2, saved.length));
+    });
+    setView("compareSelect");
   }
 
-  async function runComparison(e) {
-    e?.preventDefault();
+  function toggleCompareSelection(ticker) {
+    setCompareError("");
+    setCompareSelected((prev) => {
+      if (prev.includes(ticker)) {
+        return prev.filter((item) => item !== ticker);
+      }
 
-    const left = compareLeft.trim().toUpperCase();
-    const right = compareRight.trim().toUpperCase();
+      if (prev.length >= 3) {
+        setCompareError("You can compare up to 3 stocks at once.");
+        return prev;
+      }
 
-    if (!left || !right) {
-      setCompareError("Enter two tickers to compare.");
+      return [...prev, ticker];
+    });
+  }
+
+  async function loadSelectedComparison(selected = compareSelected) {
+    const tickers = selected.map((ticker) => String(ticker || "").trim().toUpperCase()).filter(Boolean);
+
+    if (tickers.length < 2) {
+      setCompareError("Select at least 2 stocks to compare.");
       return;
     }
 
-    if (left === right) {
-      setCompareError("Choose two different tickers.");
+    if (tickers.length > 3) {
+      setCompareError("You can compare up to 3 stocks at once.");
       return;
     }
 
     const savedSymbols = watchlist.map((item) => item.symbol);
-    const missing = [left, right].filter((ticker) => !savedSymbols.includes(ticker));
+    const missing = tickers.filter((ticker) => !savedSymbols.includes(ticker));
 
     if (missing.length) {
       setCompareError(`${missing.join(" and ")} must be saved in your watchlist before comparing.`);
@@ -650,16 +665,18 @@ function App() {
     setCompareError("");
 
     try {
-      const [leftReport, rightReport] = await Promise.all([
-        data?.symbol === left ? Promise.resolve(data) : analyze(null, left),
-        data?.symbol === right ? Promise.resolve(data) : analyze(null, right),
-      ]);
+      const reports = await Promise.all(
+        tickers.map((ticker) => (data?.symbol === ticker ? Promise.resolve(data) : analyze(null, ticker)))
+      );
 
-      if (!leftReport || !rightReport) {
-        throw new Error("Could not load both reports.");
+      if (reports.some((report) => !report)) {
+        throw new Error("Could not load every selected stock report.");
       }
 
-      setCompareData({ left: leftReport, right: rightReport });
+      setCompareData({ reports });
+      setCompareLeft(tickers[0] || "");
+      setCompareRight(tickers[1] || "");
+      setView("compare");
     } catch (err) {
       setCompareError(err?.message || "Comparison failed. Try again.");
     } finally {
@@ -895,17 +912,21 @@ function App() {
           onBack={() => setView("dashboard")}
           onAnalyze={analyzeFromIndustry}
         />
+      ) : view === "compareSelect" ? (
+        <CompareSelectPage
+          watchlist={watchlist}
+          selected={compareSelected}
+          error={compareError}
+          loading={compareLoading}
+          onToggle={toggleCompareSelection}
+          onSave={() => loadSelectedComparison(compareSelected)}
+          onBack={() => setView("dashboard")}
+        />
       ) : view === "compare" ? (
         <ComparePage
-          left={compareLeft}
-          right={compareRight}
-          setLeft={setCompareLeft}
-          setRight={setCompareRight}
           data={compareData}
-          loading={compareLoading}
           error={compareError}
-          onSubmit={runComparison}
-          onBack={() => setView("dashboard")}
+          onBack={() => setView("compareSelect")}
         />
       ) : view === "watchlist" ? (
         <main className="watchlist-page mobile-watchlist-clean">
@@ -957,7 +978,7 @@ function App() {
                       <button type="button" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
-                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(symbol); }}>
+                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
                       <button type="button" className="dropdown-mobile-only" onClick={() => goMenu("watchlist")}>
@@ -1028,10 +1049,12 @@ function App() {
 
 
 
-function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats }) {
+function CompareRadar({ categories, stocks }) {
   const center = 180;
   const maxRadius = 104;
   const levels = [0.25, 0.5, 0.75, 1];
+  const toneClasses = ["radar-left", "radar-right", "radar-third"];
+  const dotClasses = ["radar-left-dot", "radar-right-dot", "radar-third-dot"];
 
   const pointFor = (index, value = 10) => {
     const angle = -Math.PI / 2 + (index * 2 * Math.PI) / categories.length;
@@ -1062,21 +1085,16 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
   return (
     <div className="compare-radar-card">
       <div className="compare-radar-legend">
-        <span className="left">
-          <i aria-hidden="true" /> {leftSymbol}
-        </span>
-        <span className="right">
-          <i aria-hidden="true" /> {rightSymbol}
-        </span>
+        {stocks.map((stock, index) => (
+          <span className={`legend-${index + 1}`} key={stock.symbol}>
+            <i aria-hidden="true" /> {stock.symbol}
+          </span>
+        ))}
       </div>
 
       <svg className="compare-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar chart comparing stock category scores">
         {levels.map((level) => (
-          <polygon
-            key={level}
-            points={gridPoints(level)}
-            className="radar-grid"
-          />
+          <polygon key={level} points={gridPoints(level)} className="radar-grid" />
         ))}
 
         {categories.map((key, index) => {
@@ -1093,19 +1111,30 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
           );
         })}
 
-        <polygon points={polygonPoints(leftCats)} className="radar-poly radar-left" />
-        <polygon points={polygonPoints(rightCats)} className="radar-poly radar-right" />
+        {stocks.map((stock, index) => (
+          <polygon
+            key={`${stock.symbol}-poly`}
+            points={polygonPoints(stock.categories)}
+            className={`radar-poly ${toneClasses[index] || "radar-third"}`}
+          />
+        ))}
 
-        {categories.map((key, index) => {
-          const leftPoint = pointFor(index, score10(leftCats?.[key]) || 0);
-          const rightPoint = pointFor(index, score10(rightCats?.[key]) || 0);
-          return (
-            <g key={`${key}-dots`}>
-              <circle cx={leftPoint.x} cy={leftPoint.y} r="4.2" className="radar-dot radar-left-dot" />
-              <circle cx={rightPoint.x} cy={rightPoint.y} r="4.2" className="radar-dot radar-right-dot" />
-            </g>
-          );
-        })}
+        {categories.map((key, index) => (
+          <g key={`${key}-dots`}>
+            {stocks.map((stock, stockIndex) => {
+              const point = pointFor(index, score10(stock.categories?.[key]) || 0);
+              return (
+                <circle
+                  key={`${stock.symbol}-${key}-dot`}
+                  cx={point.x}
+                  cy={point.y}
+                  r="4.2"
+                  className={`radar-dot ${dotClasses[stockIndex] || "radar-third-dot"}`}
+                />
+              );
+            })}
+          </g>
+        ))}
 
         {categories.map((key, index) => {
           const label = pointFor(index, 14.75);
@@ -1128,15 +1157,93 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
 }
 
 
-function ComparePage({
-  left,
-  right,
-  setLeft,
-  setRight,
-  data,
-  loading,
+
+function CompareSelectPage({
+  watchlist,
+  selected,
   error,
-  onSubmit,
+  loading,
+  onToggle,
+  onSave,
+  onBack,
+}) {
+  const activeStocks = [...watchlist].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  return (
+    <section className="compare-page compare-select-page">
+      <div className="compare-page-shell">
+        <button type="button" className="back-btn" onClick={onBack}>
+          <ArrowLeft size={18} /> Back to dashboard
+        </button>
+
+        <div className="compare-page-head">
+          <div className="section-title">
+            <Scale size={17} /> Compare
+          </div>
+          <h2>Select stocks to compare</h2>
+          <p>
+            Choose 2–3 active watchlist stocks. After saving, Eval loads the comparison radar with your selected tickers preloaded.
+          </p>
+        </div>
+
+        <div className="compare-select-count">
+          <strong>{selected.length}/3 selected</strong>
+          <span>Minimum 2 stocks, maximum 3 stocks.</span>
+        </div>
+
+        {error && <div className="compare-error">{error}</div>}
+
+        {activeStocks.length ? (
+          <div className="compare-select-grid">
+            {activeStocks.map((item, index) => {
+              const checked = selected.includes(item.symbol);
+              return (
+                <label className={`compare-select-card ${checked ? "selected" : ""}`} key={item.symbol}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(item.symbol)}
+                  />
+                  <span className="compare-select-rank">{index + 1}</span>
+                  <div className="compare-select-copy">
+                    <strong>{item.symbol}</strong>
+                    <small>{item.name || item.symbol}</small>
+                  </div>
+                  <div className={`compare-select-score ${scoreTone(item.score)}`}>
+                    {scoreText(item.score)}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="compare-empty">
+            <Scale size={28} />
+            <h3>No watchlist stocks yet</h3>
+            <p>Add at least two stocks to your watchlist before comparing.</p>
+          </div>
+        )}
+
+        <div className="compare-select-actions">
+          <button
+            type="button"
+            className="compare-save-btn"
+            onClick={onSave}
+            disabled={loading || selected.length < 2 || selected.length > 3}
+          >
+            {loading ? <RefreshCw className="spin" size={17} /> : <CheckCircle2 size={17} />}
+            Save selected
+          </button>
+          <span>Compare stocks within an industry or use industry rankings to find strong peers.</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ComparePage({
+  data,
+  error,
   onBack,
 }) {
   const categories = [
@@ -1149,18 +1256,18 @@ function ComparePage({
     "newsSentiment",
   ];
 
-  const leftSymbol = data?.left?.symbol || left || "Stock 1";
-  const rightSymbol = data?.right?.symbol || right || "Stock 2";
-  const leftScore = score10(data?.left?.grades?.edgeScore);
-  const rightScore = score10(data?.right?.grades?.edgeScore);
-  const leftCats = data?.left?.grades?.categories || {};
-  const rightCats = data?.right?.grades?.categories || {};
+  const reports = data?.reports || [];
+  const stocks = reports.map((report) => ({
+    symbol: report?.symbol || "Stock",
+    score: score10(report?.grades?.edgeScore),
+    categories: report?.grades?.categories || {},
+  }));
 
   return (
     <section className="compare-page">
       <div className="compare-page-shell">
         <button type="button" className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Back to dashboard
+          <ArrowLeft size={18} /> Change selected stocks
         </button>
 
         <div className="compare-page-head">
@@ -1169,101 +1276,54 @@ function ComparePage({
           </div>
           <h2>Compare watchlist stocks</h2>
           <p>
-            Enter two tickers saved in your watchlist. Eval compares their Power Scores and all seven category ratings side by side.
+            Your selected watchlist stocks are preloaded below. Eval compares their Power Scores and all seven category ratings side by side.
           </p>
-        </div>
-
-        <form className="compare-form" onSubmit={onSubmit}>
-          <label>
-            <span>First ticker</span>
-            <input
-              value={left}
-              onChange={(e) => setLeft(e.target.value.toUpperCase())}
-              placeholder="NVDA"
-              maxLength={8}
-            />
-          </label>
-
-          <div className="compare-vs">v.</div>
-
-          <label>
-            <span>Second ticker</span>
-            <input
-              value={right}
-              onChange={(e) => setRight(e.target.value.toUpperCase())}
-              placeholder="AAPL"
-              maxLength={8}
-            />
-          </label>
-
-          <button type="submit" disabled={loading}>
-            {loading ? <RefreshCw className="spin" size={17} /> : <BarChart3 size={17} />}
-            Compare
-          </button>
-        </form>
-
-        <div className="compare-note">
-          Both stocks must already be saved in your watchlist. Add them first, then compare.
         </div>
 
         {error && <div className="compare-error">{error}</div>}
 
-        {data ? (
+        {stocks.length >= 2 ? (
           <div className="compare-results">
-            <div className="compare-score-row">
-              <div className={`compare-score-card ${scoreTone(leftScore)}`}>
-                <span>{leftSymbol}</span>
-                <div
-                  className={`compare-score-ring ${scoreTone(leftScore)}`}
-                  style={{ "--score-a": `${scoreDegrees(leftScore)}deg` }}
-                >
-                  <strong>{scoreText(leftScore)}</strong>
+            <div className={`compare-score-row compare-score-count-${stocks.length}`}>
+              {stocks.map((stock, index) => (
+                <div className={`compare-score-card ${scoreTone(stock.score)}`} key={stock.symbol}>
+                  <span>{stock.symbol}</span>
+                  <div
+                    className={`compare-score-ring ${scoreTone(stock.score)}`}
+                    style={{ "--score-a": `${scoreDegrees(stock.score)}deg` }}
+                  >
+                    <strong>{scoreText(stock.score)}</strong>
+                  </div>
                 </div>
-              </div>
-
-              <div className="compare-score-divider">vs</div>
-
-              <div className={`compare-score-card ${scoreTone(rightScore)}`}>
-                <span>{rightSymbol}</span>
-                <div
-                  className={`compare-score-ring ${scoreTone(rightScore)}`}
-                  style={{ "--score-a": `${scoreDegrees(rightScore)}deg` }}
-                >
-                  <strong>{scoreText(rightScore)}</strong>
-                </div>
-              </div>
+              ))}
             </div>
 
             <div className="compare-chart-intro">
               <strong>Seven-metric radar comparison</strong>
-              <p>The radar chart shows each stock across the same seven Eval categories. A wider shape means stronger scores across more areas.</p>
+              <p>The radar chart shows each selected stock across the same seven Eval categories. A wider shape means stronger scores across more areas.</p>
             </div>
 
             <CompareRadar
               categories={categories}
-              leftSymbol={leftSymbol}
-              rightSymbol={rightSymbol}
-              leftCats={leftCats}
-              rightCats={rightCats}
+              stocks={stocks}
             />
 
-
-
             <p className="compare-explain">
-              This comparison is based on Eval's current scoring data. You can also compare stocks within the same industry, compare up to 3 stocks at once, and use industry rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
+              This comparison is based on Eval's current scoring data. You can compare stocks within the same industry, compare up to 3 stocks at once, and use industry rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
             </p>
           </div>
         ) : (
           <div className="compare-empty">
             <Scale size={28} />
             <h3>No comparison loaded yet</h3>
-            <p>Type two watchlist tickers above and press Compare.</p>
+            <p>Go back and select 2–3 watchlist stocks to compare.</p>
           </div>
         )}
       </div>
     </section>
   );
 }
+
 
 
 function industryDescription(industry = "") {
