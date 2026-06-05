@@ -1,6 +1,4 @@
-// Eval exact fix: compact-control-bar and report-grid-clean.
-// Eval update: removed SoFi button and tightened search/action bar.
-// Eval update: autofit search bar and redesigned non-overlap report bubble.
+// Eval rebuild: clean dashboard layout, compact search bar, stable hero report.
 // Eval update: ticker symbol is now a company website link.
 // Eval update: restored original rings/bars, safer taller report layout.
 // Eval update: removed earnings quality/efficiency, ticker links to site, add button moved.
@@ -665,7 +663,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar compact-control-bar">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-clean-searchbar">
               <button
                 type="button"
                 className="ai-nav-btn desktop-ai-left-btn"
@@ -678,7 +676,7 @@ function App() {
 
               <div className="ticker-field">
                 <input
-                  className="compact-ticker-input"
+                  className="eval-clean-ticker-input"
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   placeholder="Add ticker"
@@ -699,6 +697,17 @@ function App() {
               >
                 <Plus size={18} />
               </button>
+
+              <a
+                className="sofi-referral-btn"
+                href="https://www.sofi.com/invite/invest?gcp=70a9cce6-5672-4453-bd32-e825c424c28d&isAliasGcp=false"
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                title="SoFi referral link"
+                aria-label="Open SoFi referral link"
+              >
+                <span>SoFi</span>
+              </a>
 
               <button
                 type="button"
@@ -2047,7 +2056,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   return (
     <>
-      <section className={`hero-card report-grid-clean ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
+      <section className={`hero-card eval-clean-hero ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <div
             className={`score-ring ${tone}`}
@@ -2108,7 +2117,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
           </p>
 
           <div className="hero-actions">
-            <button className="hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
+            <button className="eval-hero-add-btn" className="hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
               <Plus size={17} />
             </button>
           </div>
