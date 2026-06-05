@@ -1,9 +1,4 @@
-// Eval update: Earnings Quality includes cash ratio and accrual ratio.
-// Eval exact calc fix: exact NOPAT, invested capital, ROIC, and earnings quality from Finnhub statements.
-// Eval sleep fix: stable earnings quality and efficiency calculations using available Finnhub values.
-// Eval score.js update: add Efficiency Score using NOPAT, invested capital, and ROIC.
-// Eval score.js update: use reported financial statements for Earnings Quality.
-// Eval score.js update: earningsQualityScore declaration fix + Earnings Quality 5% weight.
+// Eval update: removed Earnings Quality and Efficiency categories.
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -673,119 +668,6 @@ function scoreFinancialHealth(m = {}) {
 }
 
 
-function scoreEfficiency(m = {}) {
-  const roicScore = metricScore(m.roicCalculated, [
-    [50, 10],
-    [35, 9.4],
-    [25, 8.8],
-    [18, 8.0],
-    [12, 7.2],
-    [8, 6.4],
-    [4, 5.4],
-    [0.5, 4.2],
-    [-999, 3.0],
-  ]);
-
-  const operatingEfficiency = availableWeightedAverage(
-    [
-      { score: metricScore(m.operatingMargin, [[40, 10], [30, 9.2], [22, 8.4], [15, 7.5], [8, 6.5], [3, 5.4], [-999, 3.5]]), weight: 0.45 },
-      { score: metricScore(m.assetTurnover, [[1.2, 9], [0.8, 8.2], [0.5, 7.2], [0.25, 6], [0.05, 5], [-999, 3.5]]), weight: 0.25 },
-      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0.5, 5], [-999, 3.5]]), weight: 0.30 },
-    ],
-    null
-  );
-
-  const capitalSupport = availableWeightedAverage(
-    [
-      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0.5, 5], [-999, 3.5]]), weight: 0.55 },
-      { score: metricScore(m.nopat, [[100000, 10], [50000, 9.2], [20000, 8.4], [5000, 7.4], [1000, 6.4], [100, 5.2], [1, 4.2], [-999999999, 3.0]]), weight: 0.45 },
-    ],
-    null
-  );
-
-  const score = availableWeightedAverage(
-    [
-      { score: roicScore, weight: 0.45 },
-      { score: operatingEfficiency, weight: 0.35 },
-      { score: capitalSupport, weight: 0.20 },
-    ],
-    null
-  );
-
-  return score === null ? null : Number(clamp(score, 0, 10).toFixed(1));
-}
-
-
-function scoreEarningsQuality(m = {}) {
-  const cashConversionScore = metricScore(m.cashConversionRatio, [
-    [1.25, 10],
-    [1.0, 9.2],
-    [0.8, 8.2],
-    [0.6, 7.0],
-    [0.4, 5.8],
-    [0.2, 4.5],
-    [-999, 3.2],
-  ]);
-
-  const accrualScore = inverseMetricScore(m.accrualRatio, [
-    [-0.05, 9.8],
-    [0.00, 9.2],
-    [0.04, 8.2],
-    [0.08, 7.0],
-    [0.12, 5.8],
-    [0.20, 4.5],
-    [999, 3.0],
-  ]);
-
-  const cashRatioScore = metricScore(m.cashRatioCalculated, [
-    [1.0, 9.5],
-    [0.75, 8.8],
-    [0.50, 8.0],
-    [0.30, 7.0],
-    [0.15, 5.8],
-    [0.05, 4.5],
-    [-999, 3.2],
-  ]);
-
-  const cashFlowPerShareScore = availableWeightedAverage(
-    [
-      { score: metricScore(m.freeCashFlowPerShare, [[25, 10], [12, 9], [6, 8], [2, 7], [0.5, 6], [0.01, 5], [-999, 3.5]]), weight: 0.55 },
-      { score: metricScore(m.operatingCashFlowPerShare, [[30, 10], [15, 9], [7, 8], [3, 7], [1, 6], [0.01, 5], [-999, 3.5]]), weight: 0.45 },
-    ],
-    null
-  );
-
-  const consistencyScore = availableWeightedAverage(
-    [
-      { score: metricScore(m.netIncomeGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.34 },
-      { score: metricScore(m.revenueGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.33 },
-      { score: metricScore(m.epsGrowth3Y, [[35, 10], [20, 9], [12, 8], [5, 7], [0, 6], [-5, 4.8], [-999, 3.5]]), weight: 0.33 },
-    ],
-    null
-  );
-
-  const profitabilitySupport = availableWeightedAverage(
-    [
-      { score: metricScore(m.netMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0.5, 5], [-999, 3.5]]), weight: 0.5 },
-      { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3.5]]), weight: 0.5 },
-    ],
-    null
-  );
-
-  const score = availableWeightedAverage(
-    [
-      { score: cashConversionScore, weight: 0.22 },
-      { score: accrualScore, weight: 0.22 },
-      { score: cashRatioScore, weight: 0.14 },
-      { score: cashFlowPerShareScore, weight: 0.16 },
-      { score: consistencyScore, weight: 0.16 },
-      { score: profitabilitySupport, weight: 0.10 },
-    ],
-    null
-  );
-
-  return score === null ? null : Number(clamp(score, 0, 10).toFixed(1));
-}
 
 
 function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
@@ -801,7 +683,7 @@ function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
     6
   );
 
-  const quality = availableWeightedAverage([{ score: growthScore, weight: 0.202 }, { score: profitabilityScore, weight: 0.192 }], 6);
+  const quality = availableWeightedAverage([{ score: growthScore, weight: 0.215 }, { score: profitabilityScore, weight: 0.205 }], 6);
   return Number(clamp(raw + Math.max(-0.5, Math.min(0.8, (quality - 6) * 0.12))).toFixed(1));
 }
 
@@ -852,8 +734,6 @@ function labelCategory(key) {
     valuation: "Valuation",
     momentum: "Momentum",
     reversal: "Pullback",
-    earningsQuality: "Earnings Quality",
-    efficiency: "Efficiency",
     newsSentiment: "News Sentiment",
   };
 
@@ -1139,8 +1019,6 @@ export async function buildStockAnalysis(symbol) {
   const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
-  const earningsQualityScore = scoreEarningsQuality(extracted);
-  const efficiencyScore = scoreEfficiency(extracted);
   const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
 
   const categories = {
@@ -1150,8 +1028,6 @@ export async function buildStockAnalysis(symbol) {
     valuation: valuationScore,
     momentum: momentumScore,
     reversal: reversalScore,
-    earningsQuality: earningsQualityScore,
-    efficiency: efficiencyScore,
     newsSentiment: newsSentimentScore,
   };
 
@@ -1159,13 +1035,11 @@ export async function buildStockAnalysis(symbol) {
     [
       { score: growthScore, weight: 0.215 },
       { score: profitabilityScore, weight: 0.205 },
-      { score: healthScore, weight: 0.162 },
-      { score: valuationScore, weight: 0.137 },
-      { score: momentumScore, weight: 0.092 },
-      { score: reversalScore, weight: 0.062 },
-      { score: earningsQualityScore, weight: 0.044 },
-      { score: efficiencyScore, weight: 0.050 },
-      { score: newsSentimentScore, weight: 0.062 },
+      { score: healthScore, weight: 0.175 },
+      { score: valuationScore, weight: 0.150 },
+      { score: momentumScore, weight: 0.105 },
+      { score: reversalScore, weight: 0.075 },
+      { score: newsSentimentScore, weight: 0.075 },
     ],
     6
   );
@@ -1230,32 +1104,6 @@ export async function buildStockAnalysis(symbol) {
       quickRatio: metric(extracted.quickRatio, "", "Finnhub", "Quick assets / current liabilities"),
       cashRatio: metric(extracted.cashRatio, "", "Finnhub", "Cash / current liabilities"),
       assetTurnover: metric(extracted.assetTurnover, "", "Finnhub", "Revenue / assets"),
-      operatingIncome: metric(extracted.operatingIncome, "", "Finnhub / Reported financials", "Operating income"),
-      netIncome: metric(extracted.netIncome, "", "Finnhub / Reported financials", "Net income"),
-      totalDebt: metric(extracted.totalDebt, "", "Finnhub / Reported financials", "Total debt"),
-      shareholderEquity: metric(extracted.shareholderEquity, "", "Finnhub / Reported financials", "Shareholder equity"),
-      cashAndEquivalents: metric(extracted.cashAndEquivalents, "", "Finnhub / Reported financials", "Cash and cash equivalents"),
-      nopat: metric(extracted.nopat, "", "Calculated", "Operating income × 79%"),
-      investedCapital: metric(extracted.investedCapital, "", "Calculated", "Total debt + shareholder equity - cash & equivalents"),
-      roicCalculated: metric(extracted.roicCalculated, "%", "Calculated", "NOPAT / invested capital"),
-      cashConversionRatio: metric(extracted.cashConversionRatio, "", "Calculated", "Free cash flow / net income"),
-      cashRatioCalculated: metric(extracted.cashRatioCalculated, "", "Calculated", "Cash & cash equivalents / current liabilities"),
-      currentLiabilities: metric(extracted.currentLiabilities, "", "Finnhub / Reported financials", "Current liabilities"),
-      accrualRatio: metric(extracted.accrualRatio, "", "Calculated", "(Net income - free cash flow) / total assets"),
-      operatingCashFlow: metric(extracted.operatingCashFlow, "", "Finnhub", "Operating cash flow"),
-      capex: metric(extracted.capex, "", "Finnhub", "Capital expenditures"),
-      freeCashFlow: metric(extracted.freeCashFlow, "", "Calculated", "Operating cash flow - capital expenditures"),
-      netIncome: metric(extracted.netIncome, "", "Finnhub", "Net income"),
-      totalAssets: metric(extracted.totalAssets, "", "Finnhub", "Total assets"),
-      cashConversionRatio: metric(extracted.cashConversionRatio, "", "Calculated", "Free cash flow / net income"),
-      accrualRatio: metric(extracted.accrualRatio, "", "Calculated", "(Net income - free cash flow) / total assets"),
-      operatingIncome: metric(extracted.operatingIncome, "", "Finnhub / Reported financials", "Operating income"),
-      totalDebt: metric(extracted.totalDebt, "", "Finnhub / Reported financials", "Total debt"),
-      shareholderEquity: metric(extracted.shareholderEquity, "", "Finnhub / Reported financials", "Shareholder equity"),
-      cashAndEquivalents: metric(extracted.cashAndEquivalents, "", "Finnhub / Reported financials", "Cash and cash equivalents"),
-      nopat: metric(extracted.nopat, "", "Calculated", "Operating income × (1 - 21% tax rate)"),
-      investedCapital: metric(extracted.investedCapital, "", "Calculated", "Total debt + shareholder equity - cash & equivalents"),
-      roicCalculated: metric(extracted.roicCalculated, "%", "Calculated", "NOPAT / invested capital"),
       interestCoverage: metric(extracted.interestCoverage, "", "Finnhub", "EBIT / interest expense"),
       cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "Finnhub", "Operating cash flow / total debt"),
       operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "Finnhub", "Operating cash flow / share"),
