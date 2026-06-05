@@ -15971,298 +15971,24 @@ aside .ai-rules-card {
 
 
 /* =========================================================
-   MOBILE/TABLET WATCHLIST CLEANUP + TABLET PROFILE TOP RIGHT
+   KEEP MOBILE/TABLET WATCHLIST FIXES ONLY
+   Homepage and profile/welcome layout are intentionally unchanged.
 ========================================================= */
 
-/* Tablet/iPad and mobile: remove Strong/Weak explanation lines from watchlist cards */
 @media (max-width: 1180px) {
-  .watchlist-panel [class*="strong"],
-  .watchlist-panel [class*="Strong"],
-  .watchlist-panel [class*="weak"],
-  .watchlist-panel [class*="Weak"],
-  .watchlist-page [class*="strong"],
-  .watchlist-page [class*="Strong"],
-  .watchlist-page [class*="weak"],
-  .watchlist-page [class*="Weak"],
-  .watchlist-card [class*="strong"],
-  .watchlist-card [class*="Strong"],
-  .watchlist-card [class*="weak"],
-  .watchlist-card [class*="Weak"],
-  .mobile-tablet-watchlist [class*="strong"],
-  .mobile-tablet-watchlist [class*="Strong"],
-  .mobile-tablet-watchlist [class*="weak"],
-  .mobile-tablet-watchlist [class*="Weak"],
-  .watchlist-panel .watch-meta,
-  .watchlist-panel .watch-subtext,
-  .watchlist-panel .watch-detail,
-  .watchlist-panel .watch-details,
-  .watchlist-panel .stock-read,
-  .watchlist-panel .rank-detail,
-  .watchlist-panel .rank-details,
-  .watchlist-panel small,
-  .watchlist-page small {
-    display: none !important;
-  }
-
-  /* But keep the max-15 label and top controls visible */
-  .watchlist-panel .watchlist-limit,
-  .watchlist-panel .watchlist-subtitle,
-  .watchlist-panel .watchlist-header small,
-  .watchlist-page .watchlist-limit,
-  .watchlist-page .watchlist-subtitle,
-  .watchlist-page .watchlist-header small {
-    display: block !important;
-  }
-
-  /* Watchlist bubbles/cards taller and cleaner */
-  .watchlist-panel li,
-  .watchlist-panel .watchlist-item,
-  .watchlist-panel .watch-card,
-  .watchlist-panel .watch-row,
-  .watchlist-page li,
-  .watchlist-page .watchlist-item,
-  .watchlist-page .watch-card,
-  .watchlist-page .watch-row,
-  .mobile-tablet-watchlist li,
-  .mobile-tablet-watchlist .watchlist-item,
-  .mobile-tablet-watchlist .watch-card,
-  .mobile-tablet-watchlist .watch-row {
-    min-height: 104px !important;
-    padding-top: 18px !important;
-    padding-bottom: 18px !important;
-    align-items: center !important;
-    gap: 14px !important;
-  }
-
-  /* Ticker text bigger on mobile/tablet watchlist */
-  .watchlist-panel .ticker,
-  .watchlist-panel .symbol,
-  .watchlist-panel .watch-symbol,
-  .watchlist-panel .stock-symbol,
-  .watchlist-panel h3,
-  .watchlist-page .ticker,
-  .watchlist-page .symbol,
-  .watchlist-page .watch-symbol,
-  .watchlist-page .stock-symbol,
-  .watchlist-page h3,
-  .mobile-tablet-watchlist .ticker,
-  .mobile-tablet-watchlist .symbol,
-  .mobile-tablet-watchlist .watch-symbol,
-  .mobile-tablet-watchlist .stock-symbol,
-  .mobile-tablet-watchlist h3 {
-    font-size: clamp(22px, 3.3vw, 32px) !important;
-    line-height: 1 !important;
-    letter-spacing: .02em !important;
-  }
-
-  /* Score ring/pie in watchlist bigger */
-  .watchlist-panel [class*="ring"],
-  .watchlist-panel [class*="Ring"],
-  .watchlist-panel [class*="score-circle"],
-  .watchlist-panel [class*="scoreCircle"],
-  .watchlist-panel [class*="mini-score"],
-  .watchlist-panel [class*="score-ring"],
-  .watchlist-page [class*="ring"],
-  .watchlist-page [class*="Ring"],
-  .watchlist-page [class*="score-circle"],
-  .watchlist-page [class*="scoreCircle"],
-  .watchlist-page [class*="mini-score"],
-  .watchlist-page [class*="score-ring"],
-  .mobile-tablet-watchlist [class*="ring"],
-  .mobile-tablet-watchlist [class*="Ring"],
-  .mobile-tablet-watchlist [class*="score-circle"],
-  .mobile-tablet-watchlist [class*="scoreCircle"],
-  .mobile-tablet-watchlist [class*="mini-score"],
-  .mobile-tablet-watchlist [class*="score-ring"] {
-    width: 84px !important;
-    height: 84px !important;
-    min-width: 84px !important;
-    min-height: 84px !important;
-    max-width: 84px !important;
-    max-height: 84px !important;
-  }
-
-  .watchlist-panel svg,
-  .watchlist-panel canvas,
-  .watchlist-page svg,
-  .watchlist-page canvas,
-  .mobile-tablet-watchlist svg,
-  .mobile-tablet-watchlist canvas {
-    max-width: 84px !important;
-    max-height: 84px !important;
-  }
-
-  /* Score number inside watchlist ring bigger */
-  .watchlist-panel [class*="score"] b,
-  .watchlist-panel [class*="score"] strong,
-  .watchlist-panel [class*="ring"] b,
-  .watchlist-panel [class*="ring"] strong,
-  .watchlist-page [class*="score"] b,
-  .watchlist-page [class*="score"] strong,
-  .watchlist-page [class*="ring"] b,
-  .watchlist-page [class*="ring"] strong,
-  .mobile-tablet-watchlist [class*="score"] b,
-  .mobile-tablet-watchlist [class*="score"] strong,
-  .mobile-tablet-watchlist [class*="ring"] b,
-  .mobile-tablet-watchlist [class*="ring"] strong {
-    font-size: clamp(18px, 2.8vw, 26px) !important;
-  }
-
-  /* Make room for delete button after larger chart */
-  .watchlist-panel .trash-btn,
-  .watchlist-panel .delete-btn,
-  .watchlist-panel button[aria-label*="delete"],
-  .watchlist-panel button[title*="delete"],
-  .watchlist-page .trash-btn,
-  .watchlist-page .delete-btn,
-  .watchlist-page button[aria-label*="delete"],
-  .watchlist-page button[title*="delete"] {
-    margin-left: 8px !important;
-    flex: 0 0 auto !important;
-  }
-
-  /* Tablet: profile/welcome must stay top-right, not centered */
-  .profile-top-right-lock,
-  .profile-chip,
-  .user-chip,
-  .welcome-chip,
-  .profile-area,
-  .user-profile,
-  .welcome-block,
-  header [class*="profile"],
-  header [class*="welcome"],
-  .app-header [class*="profile"],
-  .app-header [class*="welcome"],
-  .top-header [class*="profile"],
-  .top-header [class*="welcome"] {
-    position: absolute !important;
-    top: 26px !important;
-    right: 44px !important;
-    left: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-    margin: 0 !important;
-    justify-self: end !important;
-    align-self: start !important;
-    text-align: right !important;
-    z-index: 20 !important;
-  }
-
-  /* If header parent is grid/flex, force it not to center the profile */
-  header,
-  .app-header,
-  .top-header,
-  .hero-header,
-  .dashboard-header {
-    position: relative !important;
-  }
-}
-
-/* Phone sizing: still larger, but not too huge */
-@media (max-width: 680px) {
-  .watchlist-panel li,
-  .watchlist-panel .watchlist-item,
-  .watchlist-panel .watch-card,
-  .watchlist-panel .watch-row,
-  .watchlist-page li,
-  .watchlist-page .watchlist-item,
-  .watchlist-page .watch-card,
-  .watchlist-page .watch-row,
-  .mobile-tablet-watchlist li,
-  .mobile-tablet-watchlist .watchlist-item,
-  .mobile-tablet-watchlist .watch-card,
-  .mobile-tablet-watchlist .watch-row {
-    min-height: 96px !important;
-    padding-top: 16px !important;
-    padding-bottom: 16px !important;
-  }
-
-  .watchlist-panel [class*="ring"],
-  .watchlist-panel [class*="Ring"],
-  .watchlist-panel [class*="score-circle"],
-  .watchlist-panel [class*="scoreCircle"],
-  .watchlist-panel [class*="mini-score"],
-  .watchlist-panel [class*="score-ring"],
-  .watchlist-page [class*="ring"],
-  .watchlist-page [class*="Ring"],
-  .watchlist-page [class*="score-circle"],
-  .watchlist-page [class*="scoreCircle"],
-  .watchlist-page [class*="mini-score"],
-  .watchlist-page [class*="score-ring"],
-  .mobile-tablet-watchlist [class*="ring"],
-  .mobile-tablet-watchlist [class*="Ring"],
-  .mobile-tablet-watchlist [class*="score-circle"],
-  .mobile-tablet-watchlist [class*="scoreCircle"],
-  .mobile-tablet-watchlist [class*="mini-score"],
-  .mobile-tablet-watchlist [class*="score-ring"] {
-    width: 76px !important;
-    height: 76px !important;
-    min-width: 76px !important;
-    min-height: 76px !important;
-    max-width: 76px !important;
-    max-height: 76px !important;
-  }
-
-  .watchlist-panel svg,
-  .watchlist-panel canvas,
-  .watchlist-page svg,
-  .watchlist-page canvas,
-  .mobile-tablet-watchlist svg,
-  .mobile-tablet-watchlist canvas {
-    max-width: 76px !important;
-    max-height: 76px !important;
-  }
-
-  .profile-top-right-lock,
-  .profile-chip,
-  .user-chip,
-  .welcome-chip,
-  .profile-area,
-  .user-profile,
-  .welcome-block,
-  header [class*="profile"],
-  header [class*="welcome"],
-  .app-header [class*="profile"],
-  .app-header [class*="welcome"],
-  .top-header [class*="profile"],
-  .top-header [class*="welcome"] {
-    top: 18px !important;
-    right: 18px !important;
-  }
-}
-
-
-/* =========================================================
-   WATCHLIST MOBILE/TABLET CLEANUP + PROFILE ALIGNMENT + HOMEPAGE REVAMP
-========================================================= */
-
-/* Mobile/tablet: absolutely remove Strong/Weak watchlist rows */
-@media (max-width: 1180px) {
+  /* Remove Strong/Weak rows from mobile/tablet watchlist only */
   .watch-panel .row-sw,
   .watch-panel .watch-row-sw,
-  .watch-panel .mag7-row .row-sw,
   .eval-watchlist-panel .row-sw,
   .eval-watchlist-panel .watch-row-sw,
   .mobile-watch-panel .row-sw,
   .mobile-watch-panel .watch-row-sw,
   .watchlist-page-panel .row-sw,
-  .watchlist-page-panel .watch-row-sw,
-  .watch-panel .watch-info .row-sw,
-  .watch-panel .watch-info .watch-row-sw,
-  .watch-panel .watch-info span:has(+ span),
-  .watch-panel .watch-info span {
+  .watchlist-page-panel .watch-row-sw {
     display: none !important;
   }
 
-  /* Preserve ticker symbol inside watch-info */
-  .watch-panel .watch-info > strong,
-  .eval-watchlist-panel .watch-info > strong,
-  .mobile-watch-panel .watch-info > strong,
-  .watchlist-page-panel .watch-info > strong {
-    display: block !important;
-  }
-
-  /* Taller, cleaner mobile/tablet watchlist cards */
+  /* Taller watchlist bubbles */
   .watch-panel .watch-row,
   .eval-watchlist-panel .watch-row,
   .mobile-watch-panel .watch-row,
@@ -16275,16 +16001,7 @@ aside .ai-rules-card {
     gap: 14px !important;
   }
 
-  /* Bigger ticker */
-  .watch-panel .watch-info > strong,
-  .eval-watchlist-panel .watch-info > strong,
-  .mobile-watch-panel .watch-info > strong,
-  .watchlist-page-panel .watch-info > strong {
-    font-size: clamp(24px, 3.4vw, 34px) !important;
-    line-height: 1 !important;
-    letter-spacing: .035em !important;
-  }
-
+  /* Bigger ticker text */
   .watch-panel .watch-info,
   .eval-watchlist-panel .watch-info,
   .mobile-watch-panel .watch-info,
@@ -16297,7 +16014,17 @@ aside .ai-rules-card {
     padding: 0 !important;
   }
 
-  /* Bigger watchlist score ring and score text */
+  .watch-panel .watch-info > strong,
+  .eval-watchlist-panel .watch-info > strong,
+  .mobile-watch-panel .watch-info > strong,
+  .watchlist-page-panel .watch-info > strong {
+    display: block !important;
+    font-size: clamp(24px, 3.4vw, 34px) !important;
+    line-height: 1 !important;
+    letter-spacing: .035em !important;
+  }
+
+  /* Bigger score/pie chart */
   .watch-panel .watch-score-ring,
   .eval-watchlist-panel .watch-score-ring,
   .mobile-watch-panel .watch-score-ring,
@@ -16326,46 +16053,6 @@ aside .ai-rules-card {
     justify-self: end !important;
     margin-left: 0 !important;
   }
-
-  /* Tablet profile: same row as logo/Eval, fixed top-right, no overlap */
-  .topbar {
-    position: relative !important;
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: space-between !important;
-    min-height: 122px !important;
-    padding-right: 36px !important;
-  }
-
-  .topbar .brand {
-    position: relative !important;
-    z-index: 4 !important;
-  }
-
-  .topbar-actions-stack,
-  .profile-bubble,
-  .profile-welcome-wrap,
-  .eval-profile-top-right {
-    position: absolute !important;
-    top: 28px !important;
-    right: 36px !important;
-    left: auto !important;
-    bottom: auto !important;
-    transform: none !important;
-    margin: 0 !important;
-    z-index: 30 !important;
-    justify-self: end !important;
-    align-self: start !important;
-    text-align: right !important;
-  }
-
-  .profile-welcome-wrap,
-  .eval-profile-top-right {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    gap: 14px !important;
-  }
 }
 
 @media (max-width: 680px) {
@@ -16390,276 +16077,102 @@ aside .ai-rules-card {
     max-width: 78px !important;
     max-height: 78px !important;
   }
+}
 
-  .topbar {
-    min-height: 112px !important;
-    padding-right: 18px !important;
+/* Tablet should follow the same interface display as mobile, without custom profile forcing */
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
   }
 
-  .topbar-actions-stack,
-  .profile-bubble,
-  .profile-welcome-wrap,
-  .eval-profile-top-right {
-    top: 18px !important;
-    right: 18px !important;
-  }
-}
-
-/* Homepage revamp: premium landing page */
-.landing-page {
-  min-height: 100vh !important;
-  overflow: hidden !important;
-}
-
-.landing-shell {
-  position: relative !important;
-  width: min(1180px, calc(100vw - 38px)) !important;
-  margin: 0 auto !important;
-  padding: clamp(28px, 4vw, 54px) !important;
-  border-radius: clamp(30px, 4vw, 48px) !important;
-  border: 1px solid rgba(255,255,255,.13) !important;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(21,231,255,.12), transparent 34%),
-    radial-gradient(circle at 80% 22%, rgba(133,255,71,.12), transparent 32%),
-    linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.035)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.12),
-    0 34px 110px rgba(0,0,0,.42) !important;
-  backdrop-filter: blur(14px) !important;
-}
-
-.landing-brand-row {
-  display: flex !important;
-  align-items: center !important;
-  gap: 18px !important;
-  margin-bottom: clamp(28px, 4vw, 52px) !important;
-}
-
-.landing-brand-row img {
-  width: clamp(54px, 6vw, 78px) !important;
-  height: clamp(54px, 6vw, 78px) !important;
-  filter: drop-shadow(0 0 24px rgba(21,231,255,.22)) !important;
-}
-
-.landing-brand-row h1 {
-  font-size: clamp(58px, 8vw, 112px) !important;
-  letter-spacing: -0.07em !important;
-  line-height: .85 !important;
-}
-
-.landing-hero {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .78fr) !important;
-  gap: clamp(26px, 4vw, 58px) !important;
-  align-items: center !important;
-}
-
-.landing-kicker {
-  width: fit-content !important;
-  padding: 9px 13px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(133,255,71,.25) !important;
-  background: rgba(133,255,71,.075) !important;
-  color: rgba(220,255,204,.92) !important;
-  box-shadow: 0 0 30px rgba(133,255,71,.08) !important;
-}
-
-.landing-copy h2 {
-  max-width: 760px !important;
-  margin: 18px 0 18px !important;
-  font-size: clamp(48px, 6vw, 92px) !important;
-  line-height: .9 !important;
-  letter-spacing: -0.065em !important;
-  color: #fff !important;
-  text-shadow: 0 0 34px rgba(255,255,255,.08) !important;
-}
-
-.landing-copy p {
-  max-width: 720px !important;
-  color: rgba(255,255,255,.72) !important;
-  font-size: clamp(15px, 1.35vw, 19px) !important;
-  line-height: 1.55 !important;
-}
-
-.landing-actions {
-  margin-top: 28px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 16px !important;
-  flex-wrap: wrap !important;
-}
-
-.landing-continue-btn {
-  min-height: 58px !important;
-  padding: 0 22px !important;
-  border-radius: 19px !important;
-  background:
-    radial-gradient(circle at 15% 0%, rgba(255,255,255,.75), transparent 32%),
-    linear-gradient(135deg, #f5ffef, #85ff47 44%, #39d50a) !important;
-  color: #081006 !important;
-  font-weight: 1000 !important;
-  box-shadow: 0 0 34px rgba(133,255,71,.34), inset 0 1px 0 rgba(255,255,255,.55) !important;
-}
-
-.landing-actions span {
-  color: rgba(255,255,255,.58) !important;
-  font-size: 13px !important;
-}
-
-.landing-score-preview {
-  position: relative !important;
-  padding: 24px !important;
-  border-radius: 32px !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  background:
-    radial-gradient(circle at 50% 15%, rgba(133,255,71,.13), transparent 40%),
-    linear-gradient(145deg, rgba(7,12,24,.74), rgba(34,27,58,.56)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.10),
-    0 28px 80px rgba(0,0,0,.36) !important;
-}
-
-.landing-score-preview::before {
-  content: "AI + fundamentals + news" !important;
-  position: absolute !important;
-  top: -14px !important;
-  right: 22px !important;
-  padding: 7px 10px !important;
-  border-radius: 999px !important;
-  background: rgba(0,0,0,.34) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  color: rgba(255,255,255,.72) !important;
-  font-size: 10px !important;
-  font-weight: 1000 !important;
-  letter-spacing: .08em !important;
-  text-transform: uppercase !important;
-}
-
-.preview-score-ring {
-  width: clamp(190px, 20vw, 260px) !important;
-  height: clamp(190px, 20vw, 260px) !important;
-  margin: 24px auto !important;
-}
-
-.preview-score-ring strong {
-  font-size: clamp(54px, 6vw, 84px) !important;
-}
-
-.preview-bars div {
-  height: 38px !important;
-  border-radius: 14px !important;
-  padding: 0 12px !important;
-  background: rgba(255,255,255,.045) !important;
-  border: 1px solid rgba(255,255,255,.07) !important;
-}
-
-.landing-points {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 14px !important;
-  margin-top: clamp(28px, 4vw, 46px) !important;
-}
-
-.landing-point-card {
-  min-height: 178px !important;
-  padding: 18px !important;
-  border-radius: 24px !important;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(21,231,255,.07), transparent 40%),
-    rgba(255,255,255,.045) !important;
-  border: 1px solid rgba(255,255,255,.09) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
-}
-
-.landing-point-card div {
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 14px !important;
-  display: grid !important;
-  place-items: center !important;
-  background: rgba(133,255,71,.10) !important;
-  color: #b9ff8a !important;
-  margin-bottom: 14px !important;
-}
-
-.landing-point-card h3 {
-  color: #fff !important;
-  font-size: 15px !important;
-  margin: 0 0 8px !important;
-}
-
-.landing-point-card p {
-  color: rgba(255,255,255,.65) !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
-  margin: 0 !important;
-}
-
-.landing-bottom-strip {
-  margin-top: 20px !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-}
-
-.landing-bottom-strip span {
-  padding: 9px 12px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,.09) !important;
-  background: rgba(0,0,0,.16) !important;
-  color: rgba(255,255,255,.70) !important;
-  font-size: 11px !important;
-  font-weight: 1000 !important;
-  letter-spacing: .08em !important;
-  text-transform: uppercase !important;
-}
-
-.landing-footnote {
-  margin-top: 14px !important;
-  color: rgba(255,255,255,.42) !important;
-  font-size: 10px !important;
-}
-
-@media (max-width: 1024px) {
-  .landing-hero {
-    grid-template-columns: 1fr !important;
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
   }
 
-  .landing-score-preview {
-    width: min(100%, 520px) !important;
-    justify-self: center !important;
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
   }
 
-  .landing-points {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
   }
 }
 
 @media (max-width: 680px) {
-  .landing-shell {
-    width: calc(100vw - 24px) !important;
-    padding: 22px !important;
-    border-radius: 30px !important;
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
   }
 
-  .landing-brand-row {
-    margin-bottom: 30px !important;
-  }
-
-  .landing-copy h2 {
-    font-size: clamp(42px, 13vw, 64px) !important;
-  }
-
-  .landing-points {
-    grid-template-columns: 1fr !important;
-  }
-
-  .landing-actions {
-    align-items: stretch !important;
-  }
-
-  .landing-continue-btn {
-    width: 100% !important;
-    justify-content: center !important;
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
   }
 }
