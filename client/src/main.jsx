@@ -1,3 +1,4 @@
+// Eval sleep fix: no AAPL input preload; risk help centered.
 // Eval main.jsx update: add Efficiency score card and metrics.
 // Eval main.jsx update: ticker bar starts empty, no default AAPL prefill.
 // Eval fix: earningsQualityScore defined and ticker input starts empty.
@@ -517,7 +518,7 @@ function App() {
     );
 
     setWatchlist(saved);
-    analyze(null, "AAPL");
+    // Default stock preload removed; ticker input starts empty.
     refreshWatchlistItems(saved);
   }, []);
 
@@ -1946,25 +1947,24 @@ function Report({ data, onAdd, onOpenIndustry }) {
       metricLine("Day Change", metrics.dayChangePercent),
     ]),
     earningsQuality: usableMetricLines([
-      metricLine("Free Cash Flow", metrics.freeCashFlow),
-      metricLine("Operating Cash Flow", metrics.operatingCashFlow),
-      metricLine("Capital Expenditures", metrics.capex),
-      metricLine("Net Income", metrics.netIncome),
+      metricLine("Free Cash Flow / Share", metrics.freeCashFlowPerShare),
+      metricLine("Operating Cash Flow / Share", metrics.operatingCashFlowPerShare),
       metricLine("Cash Conversion Ratio", metrics.cashConversionRatio),
       metricLine("Accrual Ratio", metrics.accrualRatio),
-      metricLine("Revenue Growth 3Y", metrics.revenueGrowth3Y),
       metricLine("Net Income Growth 3Y", metrics.netIncomeGrowth3Y),
+      metricLine("Revenue Growth 3Y", metrics.revenueGrowth3Y),
       metricLine("EPS Growth 3Y", metrics.epsGrowth3Y),
-      metricLine("Total Assets", metrics.totalAssets),
+      metricLine("Net Margin", metrics.netMargin),
     ]),
     efficiency: usableMetricLines([
+      metricLine("ROIC", metrics.roicCalculated),
       metricLine("NOPAT", metrics.nopat),
       metricLine("Invested Capital", metrics.investedCapital),
-      metricLine("ROIC", metrics.roicCalculated),
       metricLine("Operating Income", metrics.operatingIncome),
-      metricLine("Total Debt", metrics.totalDebt),
-      metricLine("Shareholder Equity", metrics.shareholderEquity),
-      metricLine("Cash & Equivalents", metrics.cashAndEquivalents),
+      metricLine("ROA", metrics.roa),
+      metricLine("ROI / ROIC", metrics.roi),
+      metricLine("Operating Margin", metrics.operatingMargin),
+      metricLine("Asset Turnover", metrics.assetTurnover),
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
