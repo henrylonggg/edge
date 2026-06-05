@@ -1,3 +1,4 @@
+// Eval update: mobile score ring actually enlarged with clean spacing.
 // Eval update: mobile score ring bigger and price/risk backgrounds identical.
 // Eval update: mobile report bubble taller with more vertical spacing.
 // Eval update: mobile price/risk bubbles match desktop exactly.
