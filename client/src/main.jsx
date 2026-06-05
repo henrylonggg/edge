@@ -1,3 +1,5 @@
+// Eval update: mobile report bubble taller with more vertical spacing.
+// Eval update: mobile price/risk bubbles match desktop exactly.
 // Eval update: transparent price risk bubbles and desktop AI left search layout.
 // Eval update: global copyright footer.
 // Eval update: remove SoFi everywhere and move AI button to former desktop SoFi position.
