@@ -1,3 +1,4 @@
+// Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
 // Eval update: deep AI assistant rules page and iPad mobile-matching layout.
 // Eval update: all metric popups have top-right close buttons.
 // Eval update: force Clerk resend countdown to 60 seconds.
@@ -746,6 +747,15 @@ function App() {
 
   return (
     <main className="app-shell">
+
+      <div className="portrait-lock-overlay" aria-hidden="true">
+        <div className="portrait-lock-card">
+          <div className="portrait-lock-icon">↻</div>
+          <h2>Rotate your device</h2>
+          <p>Eval is designed for portrait mode on mobile and tablet.</p>
+        </div>
+      </div>
+
       <header className="topbar">
         <div className="brand">
           <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
@@ -1929,50 +1939,29 @@ function AssistantPage({ current, watchlist, onBack }) {
 
         <section className="ai-rules-card ai-rules-card-full">
           <div className="ai-rules-eyebrow">What Eval AI can answer</div>
-          <h3>Use Eval AI for this website, your watchlist, and stock-evaluation questions.</h3>
+          <h3>Ask about the app, your watchlist stocks, and the report metrics.</h3>
 
-          <div className="ai-rules-grid ai-rules-grid-deep">
+          <div className="ai-rules-grid ai-rules-grid-brief">
             <div>
-              <strong>Watchlist stock questions</strong>
-              <p>Ask about a specific ticker only if that stock is saved in your watchlist. Eval AI uses watchlist data so it can reference the right score, risk, category ratings, news sentiment, and report values.</p>
-              <span>Examples: “Why is NVDA rated higher than AAPL?” “What is weak about MSFT?” “Explain Tesla’s risk.”</span>
+              <strong>Watchlist stocks only</strong>
+              <p>Specific stock questions must be about a ticker saved in your watchlist so Eval can pull the right report data.</p>
             </div>
 
             <div>
-              <strong>Score explanations</strong>
-              <p>Ask what the Eval Score means, why a stock is green/yellow/red, what moved the score, or why one category is stronger or weaker than another.</p>
-              <span>Examples: “Why is profitability strongest?” “What does a 7.2 mean?” “Why is valuation low?”</span>
+              <strong>Score and metric help</strong>
+              <p>Ask why a score is high or low, what a category means, or how to read the metric popups and news sentiment.</p>
             </div>
 
             <div>
-              <strong>Dashboard navigation</strong>
-              <p>Ask how to use the interface, including the search bar, add button, watchlist, Metrics button, score popups, news cards, industry links, and company website links.</p>
-              <span>Examples: “How do I add a stock?” “Where are the metrics?” “How do I open the company website?”</span>
-            </div>
-
-            <div>
-              <strong>Metric definitions</strong>
-              <p>Ask for plain-English explanations of Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, News Sentiment, and the numbers shown inside metric popups.</p>
-              <span>Examples: “What is pullback?” “Why does momentum matter?” “Explain revenue growth.”</span>
-            </div>
-
-            <div>
-              <strong>News sentiment help</strong>
-              <p>Ask what the recent news section means, why the AI scored articles positively or negatively, and how the top articles affect the overall stock evaluation.</p>
-              <span>Examples: “Was the news good or bad?” “Why is news sentiment bearish?”</span>
-            </div>
-
-            <div>
-              <strong>Comparisons inside Eval</strong>
-              <p>Ask Eval AI to compare stocks already in your watchlist using the website’s available ratings and categories. It should stay focused on the report data and not unrelated topics.</p>
-              <span>Examples: “Compare NVDA and META.” “Which watchlist stock has better financial health?”</span>
+              <strong>Using the website</strong>
+              <p>Ask how to navigate, add stocks, open the watchlist, use the Metrics button, or understand each dashboard section.</p>
             </div>
           </div>
 
-          <p className="ai-rules-note">Eval AI should not answer unrelated questions. For stock-specific questions, add the ticker to your watchlist first so Eval can retrieve and explain the right data.</p>
+          <p className="ai-rules-note">Eval AI stays focused on the Eval website and stock-evaluation workflow. It will not answer unrelated questions.</p>
         </section>
 
-          </div>
+</div>
         </div>
 
         <div
