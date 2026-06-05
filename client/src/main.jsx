@@ -1,3 +1,4 @@
+// Eval update: AI page rules, popup close buttons, mobile watchlist/metrics polish.
 // Eval update: mobile score ring actually enlarged with clean spacing.
 // Eval update: mobile score ring bigger and price/risk backgrounds identical.
 // Eval update: mobile report bubble taller with more vertical spacing.
@@ -652,7 +653,7 @@ function App() {
           onAnalyze={analyzeFromIndustry}
         />
       ) : view === "watchlist" ? (
-        <main className="watchlist-page">
+        <main className="watchlist-page mobile-watchlist-clean">
           <button type="button" className="back-btn watchlist-page-back" onClick={() => setView("dashboard")}>
             <ArrowLeft size={18} /> Back to dashboard
           </button>
@@ -1560,7 +1561,28 @@ function Watchlist({
         </button>
       </div>
 
-      <form
+      
+        <section className="ai-rules-card">
+          <div className="ai-rules-eyebrow">What Eval AI can help with</div>
+          <h3>Ask about your dashboard, watchlist stocks, and upcoming earnings.</h3>
+          <div className="ai-rules-grid">
+            <div>
+              <strong>Stock questions</strong>
+              <p>For any specific stock-related question, the ticker must be saved in your watchlist so Eval AI can retrieve the right dashboard data.</p>
+            </div>
+            <div>
+              <strong>Interface help</strong>
+              <p>Ask how to use the dashboard, watchlist, score bubbles, bar-chart metrics, news sentiment, industry pages, and navigation.</p>
+            </div>
+            <div>
+              <strong>Earnings dates</strong>
+              <p>Ask for a watchlist company’s upcoming earnings date and Eval AI will explain it simply.</p>
+            </div>
+          </div>
+          <p className="ai-rules-note">Eval AI will not answer unrelated questions outside the website or stock-evaluation workflow.</p>
+        </section>
+
+<form
         className="watch-add"
         onSubmit={(e) => {
           e.preventDefault();
@@ -1818,7 +1840,7 @@ function AssistantPage({ current, watchlist, onBack }) {
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about this Eval report or watchlist. Max 150 characters."
+              placeholder="Ask about the interface, a watchlist stock, or upcoming earnings..."
               rows="3"
             />
             <button disabled={loading}>
@@ -2088,6 +2110,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
             {openScoreHelp === "score" && (
               <div className={`score-popup score-insight-popup ${tone}`}>
+                <button type="button" className="popup-close-btn" onClick={() => setOpenScoreHelp(null)} aria-label="Close popup" title="Close">×</button>
                 <div className="score-popup-title">{scoreInsight.label}</div>
                 <p>{scoreInsight.text}</p>
               </div>
