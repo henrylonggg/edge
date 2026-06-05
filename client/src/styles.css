@@ -16770,3 +16770,89 @@ aside .ai-rules-card {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   COMPARE RADAR LEGEND + OUTSIDE METRIC LABELS
+========================================================= */
+
+.compare-radar-legend {
+  gap: 14px !important;
+  margin-bottom: 14px !important;
+}
+
+.compare-radar-legend span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 9px 13px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .13em !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.06) !important;
+}
+
+.compare-radar-legend span i {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+  box-shadow: 0 0 16px currentColor !important;
+}
+
+.compare-radar-legend .left {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .left i {
+  background: #72ff41 !important;
+}
+
+.compare-radar-legend .right {
+  color: #15e7ff !important;
+}
+
+.compare-radar-legend .right i {
+  background: #15e7ff !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 700px) !important;
+  overflow: visible !important;
+  padding: 18px !important;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.82) !important;
+  font-size: 10.5px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .02em !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.92) !important;
+  stroke-width: 4px !important;
+  stroke-linejoin: round !important;
+}
+
+@media (max-width: 680px) {
+  .compare-radar-svg {
+    padding: 22px !important;
+  }
+
+  .radar-label {
+    font-size: 8.2px !important;
+    stroke-width: 3px !important;
+  }
+
+  .compare-radar-legend {
+    justify-content: center !important;
+  }
+
+  .compare-radar-legend span {
+    font-size: 10.5px !important;
+    padding: 8px 11px !important;
+  }
+}
