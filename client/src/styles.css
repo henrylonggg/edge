@@ -17016,3 +17016,127 @@ aside .ai-rules-card {
     stroke-width: 4px !important;
   }
 }
+
+
+/* =========================================================
+   COMPARE RADAR FRONT LABELS + TIGHTER SPACE + SAME MOBILE LAYOUT
+========================================================= */
+
+/* Labels stay visually above polygons/dots */
+.radar-label-front,
+.radar-label {
+  position: relative !important;
+  z-index: 20 !important;
+  fill: rgba(255,255,255,.94) !important;
+  font-size: 10.8px !important;
+  font-weight: 1000 !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.98) !important;
+  stroke-width: 5.5px !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+.radar-poly {
+  position: relative !important;
+  z-index: 4 !important;
+}
+
+.radar-dot {
+  position: relative !important;
+  z-index: 8 !important;
+}
+
+/* Use space better: shorter vertical gap while still leaving room for labels */
+.compare-radar-card {
+  margin: 8px 0 12px !important;
+  padding: 18px 18px 24px !important;
+  min-height: auto !important;
+}
+
+.compare-radar-legend {
+  margin-bottom: 4px !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 700px) !important;
+  padding: 38px !important;
+  margin-top: -8px !important;
+  margin-bottom: -10px !important;
+}
+
+.compare-chart-intro {
+  margin-top: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Keep the two score cards side by side on tablet and mobile, just scaled down */
+@media (max-width: 680px) {
+  .compare-score-row {
+    grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .compare-score-divider {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+  }
+
+  .compare-score-card {
+    min-height: 164px !important;
+    padding: 12px 8px !important;
+    border-radius: 22px !important;
+  }
+
+  .compare-score-card span {
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .compare-score-ring {
+    width: 112px !important;
+    height: 112px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 14px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 34px !important;
+  }
+
+  .compare-radar-card {
+    padding: 14px 8px 20px !important;
+    margin-top: 8px !important;
+  }
+
+  .compare-radar-svg {
+    width: 100% !important;
+    padding: 34px !important;
+    margin-top: -6px !important;
+  }
+
+  .radar-label-front,
+  .radar-label {
+    font-size: 7.7px !important;
+    stroke-width: 3.6px !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .compare-score-row {
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) !important;
+  }
+
+  .compare-score-card {
+    min-height: 205px !important;
+  }
+
+  .compare-radar-svg {
+    width: min(100%, 720px) !important;
+    padding: 40px !important;
+  }
+}
