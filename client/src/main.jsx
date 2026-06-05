@@ -1,3 +1,5 @@
+// Eval update: mobile dropdown replaces old AI button position.
+// Eval update: support email corrected.
 // Eval update: dropdown click-away, mobile homepage, mobile searchbar, footer icon cleanup.
 // Eval update: clean text dropdown with click-away close.
 // Eval update: dropdown menu front layer and button rows fixed.
@@ -1740,8 +1742,8 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
           <div className="support-contact-card">
             <span>Primary contact</span>
             <h2>Eval Support Team</h2>
-            <a href="mailto:getstockeval.gmail.com">
-              <Mail size={18} /> getstockeval.gmail.com
+            <a href="mailto:getstockeval@gmail.com">
+              <Mail size={18} /> getstockeval@gmail.com
             </a>
           </div>
         </div>
