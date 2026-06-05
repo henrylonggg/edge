@@ -1,3 +1,4 @@
+// Eval update: clearer compare radar legend and outside metric labels.
 // Eval update: compare score rings and radar chart.
 // Eval update: clean compare page rebuild.
 // Eval update: reverted homepage/profile, kept mobile-tablet watchlist fixes.
@@ -1026,8 +1027,12 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
   return (
     <div className="compare-radar-card">
       <div className="compare-radar-legend">
-        <span className="left">{leftSymbol}</span>
-        <span className="right">{rightSymbol}</span>
+        <span className="left">
+          <i aria-hidden="true" /> {leftSymbol}
+        </span>
+        <span className="right">
+          <i aria-hidden="true" /> {rightSymbol}
+        </span>
       </div>
 
       <svg className="compare-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar chart comparing stock category scores">
@@ -1041,7 +1046,7 @@ function CompareRadar({ categories, leftSymbol, rightSymbol, leftCats, rightCats
 
         {categories.map((key, index) => {
           const edge = pointFor(index, 10);
-          const label = pointFor(index, 11.45);
+          const label = pointFor(index, 12.65);
           return (
             <g key={key}>
               <line x1={center} y1={center} x2={edge.x} y2={edge.y} className="radar-axis" />
