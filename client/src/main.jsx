@@ -1,3 +1,4 @@
+// Eval update: global copyright footer.
 // Eval update: remove SoFi everywhere and move AI button to former desktop SoFi position.
 // Eval update: remove SoFi button from mobile and desktop.
 // Eval update: stack score buttons and match mobile searchbar layout.
