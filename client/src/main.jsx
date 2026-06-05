@@ -1,3 +1,4 @@
+// Eval update: AI explanation moved to assistant page and tablet uses mobile layout.
 // Eval update: AI page rules, popup close buttons, mobile watchlist/metrics polish.
 // Eval update: mobile score ring actually enlarged with clean spacing.
 // Eval update: mobile score ring bigger and price/risk backgrounds identical.
@@ -1561,7 +1562,6 @@ function Watchlist({
         </button>
       </div>
 
-      
         <section className="ai-rules-card">
           <div className="ai-rules-eyebrow">What Eval AI can help with</div>
           <h3>Ask about your dashboard, watchlist stocks, and upcoming earnings.</h3>
