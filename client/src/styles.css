@@ -12894,8 +12894,7 @@ button:active,
 }
 
 
-/* =========================================================
-   AUTOFIT SEARCH BAR + CLEAN REPORT BUBBLE LAYOUT
+
    Keeps original ring/pie and bar styles.
 ========================================================= */
 
@@ -13168,5 +13167,285 @@ button:active,
   .ticker-input {
     width: clamp(180px, 44vw, 260px) !important;
     min-width: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   TIGHT SEARCH BAR — NO SOFI, NO EMPTY RIGHT GAP
+========================================================= */
+
+/* Hide any leftover SoFi/referral button if stale markup still exists */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.referral-btn,
+.referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi" i],
+button[aria-label*="sofi" i],
+button[title*="sofi" i] {
+  display: none !important;
+}
+
+/* The actual top search bubble should wrap tightly around its visible children */
+.search-row,
+.search-bubble,
+.search-shell,
+.ticker-search,
+.ticker-search-shell,
+.ticker-toolbar,
+.ticker-entry-card,
+.controls-card,
+.dashboard-controls,
+.input-shell,
+.action-bar {
+  width: fit-content !important;
+  max-width: calc(100vw - 72px) !important;
+  min-width: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  align-self: flex-start !important;
+  justify-self: start !important;
+}
+
+/* Kill the large empty flexible space inside the top bar */
+.search-row > *,
+.search-bubble > *,
+.search-shell > *,
+.ticker-search > *,
+.ticker-search-shell > *,
+.ticker-toolbar > *,
+.ticker-entry-card > *,
+.controls-card > *,
+.dashboard-controls > *,
+.input-shell > *,
+.action-bar > * {
+  flex: 0 0 auto !important;
+}
+
+/* Input is the only wider element */
+.search-row input,
+.search-bubble input,
+.search-shell input,
+.ticker-search input,
+.ticker-search-shell input,
+.ticker-toolbar input,
+.ticker-entry-card input,
+.controls-card input,
+.dashboard-controls input,
+.input-shell input,
+.action-bar input,
+.ticker-input {
+  flex: 0 0 clamp(260px, 28vw, 430px) !important;
+  width: clamp(260px, 28vw, 430px) !important;
+  min-width: 260px !important;
+  max-width: 430px !important;
+}
+
+/* Buttons stay compact and aligned */
+.search-row button,
+.search-bubble button,
+.search-shell button,
+.ticker-search button,
+.ticker-search-shell button,
+.ticker-toolbar button,
+.ticker-entry-card button,
+.controls-card button,
+.dashboard-controls button,
+.input-shell button,
+.action-bar button {
+  flex: 0 0 auto !important;
+}
+
+/* If your top bar uses a nested wrapper, make nested row tight too */
+.search-row > div,
+.search-bubble > div,
+.search-shell > div,
+.ticker-search > div,
+.ticker-search-shell > div,
+.ticker-toolbar > div,
+.ticker-entry-card > div,
+.controls-card > div,
+.dashboard-controls > div,
+.input-shell > div,
+.action-bar > div {
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
+/* Keep the report bubble from overlapping after the previous redesign */
+.hero-card {
+  position: relative !important;
+  min-height: 485px !important;
+  padding: 48px 38px 42px !important;
+  display: grid !important;
+  grid-template-columns: minmax(250px, 0.92fr) minmax(280px, 1.05fr) minmax(255px, 0.82fr) !important;
+  grid-template-areas: "score company stats" !important;
+  align-items: center !important;
+  gap: clamp(28px, 3.2vw, 52px) !important;
+  overflow: hidden !important;
+}
+
+.hero-card .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+.hero-card .company-panel {
+  grid-area: company !important;
+  justify-self: center !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+.hero-card .company-panel h2 {
+  max-width: 100% !important;
+  margin: 0 0 14px !important;
+  font-size: clamp(52px, 5vw, 82px) !important;
+  line-height: .94 !important;
+  letter-spacing: -0.055em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.hero-card .snapshot-grid,
+.hero-card .snapshot-grid-refined {
+  grid-area: stats !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 315px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  z-index: 8 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Ticker website link */
+.ticker-company-link {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: rgba(255,255,255,.86) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  line-height: inherit !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.22) !important;
+}
+
+@media (max-width: 900px) {
+  .search-row,
+  .search-bubble,
+  .search-shell,
+  .ticker-search,
+  .ticker-search-shell,
+  .ticker-toolbar,
+  .ticker-entry-card,
+  .controls-card,
+  .dashboard-controls,
+  .input-shell,
+  .action-bar {
+    max-width: calc(100vw - 32px) !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .search-row input,
+  .search-bubble input,
+  .search-shell input,
+  .ticker-search input,
+  .ticker-search-shell input,
+  .ticker-toolbar input,
+  .ticker-entry-card input,
+  .controls-card input,
+  .dashboard-controls input,
+  .input-shell input,
+  .action-bar input,
+  .ticker-input {
+    flex-basis: clamp(170px, 42vw, 260px) !important;
+    width: clamp(170px, 42vw, 260px) !important;
+    min-width: 0 !important;
+  }
+
+  .hero-card {
+    min-height: auto !important;
+    padding: 62px 22px 28px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    justify-items: center !important;
+    gap: 24px !important;
+  }
+
+  .hero-card .company-panel {
+    text-align: center !important;
+  }
+
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(42px, 11vw, 64px) !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
   }
 }
