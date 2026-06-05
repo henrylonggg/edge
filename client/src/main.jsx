@@ -1,3 +1,6 @@
+// Eval update: compare page bottom industry note.
+// Eval update: mobile homepage scroll fixed and desktop layout preserved.
+// Eval update: homepage flow bubbles and orbit removed.
 // Eval update: insane animated homepage visual revamp.
 // Eval update: logo home link, remove top add, animated homepage revamp.
 // Eval update: radar labels in front, tighter chart space, mobile same layout.
@@ -1214,7 +1217,7 @@ function ComparePage({
 
 
             <p className="compare-explain">
-              This comparison is based on Eval's current scoring data. It is educational and is not a buy or sell recommendation.
+              This comparison is based on Eval's current scoring data. You can also compare stocks within the same industry, compare up to 3 stocks at once, and use industry rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
             </p>
           </div>
         ) : (
@@ -1363,17 +1366,7 @@ function LandingPage({ onContinue }) {
       text: "Eval converts volatility, debt, financial stability, and valuation pressure into a fast Low, Medium, or High risk label.",
     },
   ];
-
-  const orbitItems = ["Growth", "Profit", "Health", "Value", "Trend", "News"];
-  const flowSteps = [
-    { label: "Search", value: "NVDA", icon: <Search size={18} /> },
-    { label: "Score", value: "8.0", icon: <Gauge size={18} /> },
-    { label: "Rank", value: "#1", icon: <Star size={18} /> },
-    { label: "Compare", value: "v. AAPL", icon: <Scale size={18} /> },
-    { label: "Ask AI", value: "Plain English", icon: <BrainCircuit size={18} /> },
-  ];
-
-  return (
+return (
     <main className="landing-page landing-page-pro landing-page-extreme">
       <div className="landing-orb landing-orb-one" />
       <div className="landing-orb landing-orb-two" />
@@ -1417,24 +1410,9 @@ function LandingPage({ onContinue }) {
               <span>Search. Score. Rank. Compare. Ask AI.</span>
             </div>
 
-            <div className="landing-flow landing-flow-extreme">
-              {flowSteps.map((step) => (
-                <div className="landing-flow-step" key={step.label}>
-                  <div>{step.icon}</div>
-                  <span>{step.label}</span>
-                  <strong>{step.value}</strong>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="landing-product-stage landing-product-stage-extreme" aria-label="Eval product preview">
-            <div className="landing-holo-ring" />
-            <div className="landing-orbit">
-              {orbitItems.map((item, index) => (
-                <span key={item} style={{ "--orbit-i": index }}>{item}</span>
-              ))}
-            </div>
 
             <div className="landing-product-card main landing-main-terminal">
               <div className="preview-topline">
