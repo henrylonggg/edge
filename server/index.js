@@ -207,6 +207,8 @@ app.get("/api/industry-top/:industry", async (req, res) => {
             industry: analysis?.profile?.finnhubIndustry || industryKey,
             score,
             price: analysis?.quote?.c ?? null,
+            categories: analysis?.grades?.categories || {},
+            riskLabel: analysis?.grades?.riskLabel || "",
           });
         }
       } catch (error) {
