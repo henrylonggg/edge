@@ -1,3 +1,5 @@
+// Eval update: dropdown forced front and Terms & Conditions label.
+// Eval update: clean global rings and dropdown front fix.
 // Eval update: bigger compare radar chart.
 // Eval update: compare selection page with 2-3 watchlist stocks.
 // Eval update: Clerk profile popup front layer.
