@@ -1,3 +1,4 @@
+// Eval update: AI assistant gradient response and limited prompt text.
 // Eval update: metric bars pure green and white score numbers.
 // Eval update: industry radar real category scores and matching bars.
 // Eval update: SVG score rings replace CSS pie charts.
@@ -2607,7 +2608,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask about the Eval interface, score metrics, news sentiment, or a stock saved in your watchlist.",
+        "Ask about the Eval interface, dashboard, metrics, news sentiment, compare, or watchlist. Specific stock questions must use tickers already saved in your watchlist.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -2739,7 +2740,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about the interface, a watchlist stock, or upcoming earnings..."
+              placeholder="Ask about the Eval interface, dashboard, metrics, news sentiment, compare, or watchlist. Stock-specific questions must use watchlist tickers."
               rows="3"
             />
             <button disabled={loading}>
