@@ -1,3 +1,5 @@
+// Eval update: SVG score rings replace CSS pie charts.
+// Eval update: industry radar uses category data and sits below Top 5.
 // Eval update: final clean universal score rings.
 // Eval update: industry top 5 radar and rank numbers.
 // Eval update: desktop dropdown removes watchlist via separate menus.
@@ -1077,6 +1079,45 @@ function App() {
 
 
 
+
+function ScoreRingSvg({ value, className = "", label = null }) {
+  const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
+  const tone = scoreTone(score);
+  const radius = 46;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (score / 10) * circumference;
+
+  return (
+    <div className={`svg-score-ring ${tone} ${className}`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id="svgRingGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="2.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <circle className="svg-ring-track" cx="60" cy="60" r={radius} />
+        <circle
+          className="svg-ring-progress"
+          cx="60"
+          cy="60"
+          r={radius}
+          pathLength={circumference}
+          strokeDasharray={`${dash} ${circumference - dash}`}
+        />
+        <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
+      </svg>
+
+      <strong>{label || scoreText(score)}</strong>
+    </div>
+  );
+}
+
+
 function CompareRadar({ categories, stocks }) {
   const center = 180;
   const maxRadius = 125;
@@ -1316,12 +1357,10 @@ function ComparePage({
               {stocks.map((stock, index) => (
                 <div className={`compare-score-card ${scoreTone(stock.score)}`} key={stock.symbol}>
                   <span>{stock.symbol}</span>
-                  <div
-                    className={`compare-score-ring ${scoreTone(stock.score)}`}
-                    style={{ "--score-a": `${scoreDegrees(stock.score)}deg` }}
-                  >
-                    <strong>{scoreText(stock.score)}</strong>
-                  </div>
+                  <ScoreRingSvg
+                    value={stock.score}
+                    className="compare-score-ring"
+                  />
                 </div>
               ))}
             </div>
@@ -1396,13 +1435,24 @@ function IndustryRadar({ leaders }) {
     "newsSentiment",
   ];
 
+  const safeCategories = (item) => {
+    const raw = item.categories || item.grades?.categories || item.categoryScores || {};
+    const base = score10(item.score) || 5;
+
+    return categories.reduce((acc, key) => {
+      const n = score10(raw?.[key]);
+      acc[key] = n ?? base;
+      return acc;
+    }, {});
+  };
+
   const stocks = leaders.slice(0, 5).map((item) => ({
     symbol: item.symbol,
-    categories: item.categories || item.grades?.categories || item.categoryScores || {},
+    categories: safeCategories(item),
   }));
 
   const center = 180;
-  const maxRadius = 120;
+  const maxRadius = 122;
   const levels = [0.25, 0.5, 0.75, 1];
 
   const pointFor = (index, value = 10) => {
@@ -1437,7 +1487,7 @@ function IndustryRadar({ leaders }) {
       <div className="industry-radar-head">
         <div>
           <strong>Top 5 radar comparison</strong>
-          <p>Compares the five leading industry stocks across the same seven Eval categories.</p>
+          <p>Plots all seven Eval category scores for the five highest-ranked stocks in this industry.</p>
         </div>
 
         <div className="industry-radar-legend">
@@ -1485,7 +1535,7 @@ function IndustryRadar({ leaders }) {
                   key={`${stock.symbol}-${key}-dot`}
                   cx={point.x}
                   cy={point.y}
-                  r="3.8"
+                  r="4.2"
                   className={`industry-radar-dot industry-radar-dot-${stockIndex + 1}`}
                 />
               );
@@ -1494,7 +1544,7 @@ function IndustryRadar({ leaders }) {
         ))}
 
         {categories.map((key, index) => {
-          const label = pointFor(index, 12.8);
+          const label = pointFor(index, 12.75);
           return (
             <text
               key={`${key}-label`}
@@ -1512,7 +1562,6 @@ function IndustryRadar({ leaders }) {
     </section>
   );
 }
-
 
 function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
   const industry = industryPage?.industry || "Industry";
@@ -1550,8 +1599,6 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
           <div className="industry-error-page">{error}</div>
         ) : leaders.length ? (
           <>
-            <IndustryRadar leaders={leaders} />
-
             <div className="industry-leader-grid">
               {leaders.slice(0, 5).map((item, index) => {
               const score = score10(item.score);
@@ -1567,9 +1614,10 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
                   title={`Open full Eval report for ${item.symbol}`}
                 >
                   <div className="industry-medal">{index + 1}</div>
-                  <div className={`industry-score-pie ${tone}`} style={{ "--industry-score-angle": `${(score || 0) * 36}deg` }}>
-                    <strong>{scoreText(score)}</strong>
-                  </div>
+                  <ScoreRingSvg
+                    value={score}
+                    className="industry-score-pie"
+                  />
                   <div className="industry-leader-copy">
                     <h3>{item.symbol}</h3>
                     <p>{item.name || item.symbol}</p>
@@ -1579,6 +1627,8 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
               );
             })}
             </div>
+
+            <IndustryRadar leaders={leaders} />
           </>
         ) : (
           <div className="industry-error-page">No same-industry rankings are available yet.</div>
@@ -1675,9 +1725,11 @@ return (
                 <b>NVDA</b>
               </div>
 
-              <div className="preview-score-ring preview-score-ring-pro preview-score-ring-extreme">
-                <strong>8.0</strong>
-              </div>
+              <ScoreRingSvg
+                value={8}
+                label="8.0"
+                className="preview-score-ring preview-score-ring-pro preview-score-ring-extreme"
+              />
 
               <div className="preview-mini-grid">
                 <div>
@@ -2304,14 +2356,10 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
               </div>
             </div>
 
-            <div
-              className={`watch-score-ring ${scoreTone(item.score)}`}
-              style={{
-                "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
-              }}
-            >
-              <strong>{scoreText(item.score)}</strong>
-            </div>
+            <ScoreRingSvg
+              value={item.score}
+              className="watch-score-ring"
+            />
           </button>
         ))}
       </div>
@@ -2402,14 +2450,10 @@ function Watchlist({
                 </div>
               </button>
 
-              <div
-                className={`watch-score-ring ${scoreTone(item.score)}`}
-                style={{
-                  "--watch-score-angle": `${Number(score10(item.score) || 0) * 36}deg`,
-                }}
-              >
-                <strong>{scoreText(item.score)}</strong>
-              </div>
+              <ScoreRingSvg
+              value={item.score}
+              className="watch-score-ring"
+            />
 
               <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
                 <Trash2 size={15} />
@@ -2895,15 +2939,10 @@ function Report({ data, onAdd, onOpenIndustry }) {
     <>
       <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
-          <div
-            className={`score-ring ${tone}`}
-            style={{ "--score-angle": `${(edge || 0) * 36}deg` }}
-          >
-            <div className="score-core">
-              <span>EVAL SCORE</span>
-              <strong>{scoreText(edge)}</strong>
-            </div>
-          </div>
+          <ScoreRingSvg
+            value={edge}
+            className="score-ring"
+          />
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
