@@ -1,3429 +1,21514 @@
-// Eval update: AI assistant gradient response and limited prompt text.
-// Eval update: metric bars pure green and white score numbers.
-// Eval update: industry radar real category scores and matching bars.
-// Eval update: SVG score rings replace CSS pie charts.
-// Eval update: industry radar uses category data and sits below Top 5.
-// Eval update: final clean universal score rings.
-// Eval update: industry top 5 radar and rank numbers.
-// Eval update: desktop dropdown removes watchlist via separate menus.
-// Eval update: mobile dropdown contact visible, terms full label, desktop watchlist hidden.
-// Eval update: dropdown forced front and Terms & Conditions label.
-// Eval update: clean global rings and dropdown front fix.
-// Eval update: bigger compare radar chart.
-// Eval update: compare selection page with 2-3 watchlist stocks.
-// Eval update: Clerk profile popup front layer.
-// Eval update: mobile dropdown replaces old AI button position.
-// Eval update: support email corrected.
-// Eval update: dropdown click-away, mobile homepage, mobile searchbar, footer icon cleanup.
-// Eval update: clean text dropdown with click-away close.
-// Eval update: dropdown menu front layer and button rows fixed.
-// Eval update: compact searchbar dropdown menu.
-// Eval update: compare page bottom industry note.
-// Eval update: mobile homepage scroll fixed and desktop layout preserved.
-// Eval update: homepage flow bubbles and orbit removed.
-// Eval update: insane animated homepage visual revamp.
-// Eval update: logo home link, remove top add, animated homepage revamp.
-// Eval update: radar labels in front, tighter chart space, mobile same layout.
-// Eval update: radar labels clear, remove breakdown rows, match score rings.
-// Eval update: clearer compare radar legend and outside metric labels.
-// Eval update: compare score rings and radar chart.
-// Eval update: clean compare page rebuild.
-// Eval update: reverted homepage/profile, kept mobile-tablet watchlist fixes.
-// Eval update: popup spacing, shorter AI copy, tablet mobile layout, portrait lock overlay.
-// Eval update: deep AI assistant rules page and iPad mobile-matching layout.
-// Eval update: all metric popups have top-right close buttons.
-// Eval update: force Clerk resend countdown to 60 seconds.
-// Eval update: AI explanation moved to assistant page and tablet uses mobile layout.
-// Eval update: AI page rules, popup close buttons, mobile watchlist/metrics polish.
-// Eval update: mobile score ring actually enlarged with clean spacing.
-// Eval update: mobile score ring bigger and price/risk backgrounds identical.
-// Eval update: mobile report bubble taller with more vertical spacing.
-// Eval update: mobile price/risk bubbles match desktop exactly.
-// Eval update: transparent price risk bubbles and desktop AI left search layout.
-// Eval update: global copyright footer.
-// Eval update: remove SoFi everywhere and move AI button to former desktop SoFi position.
-// Eval update: remove SoFi button from mobile and desktop.
-// Eval update: stack score buttons and match mobile searchbar layout.
-// Eval update: desktop report uses mobile-style stack with Metrics scroll button.
-// Eval safe fix: search bubble fit-content without forced grid.
-// Eval rebuild: clean dashboard layout, compact search bar, stable hero report.
-// Eval update: ticker symbol is now a company website link.
-// Eval update: restored original rings/bars, safer taller report layout.
-// Eval update: removed earnings quality/efficiency, ticker links to site, add button moved.
-// Eval update: Earnings Quality popup includes Cash Ratio and Accrual Ratio.
-// Eval exact calc fix: risk help removed and ticker input empty.
-// Eval sleep fix: no AAPL input preload; risk help centered.
-// Eval main.jsx update: add Efficiency score card and metrics.
-// Eval main.jsx update: ticker bar starts empty, no default AAPL prefill.
-// Eval fix: earningsQualityScore defined and ticker input starts empty.
-// Eval update: earnings quality category + risk UI cleanup.
-// Eval mobile actual classes fix: company-panel, score-panel, snapshot-grid mobile order.
-// Eval mobile report layout: centered company, centered score, bottom price/risk.
-// Eval UI update: company icon removed, mobile score layout adjusted, price/risk theme synced.
-import React, { useEffect, useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import {
-  ClerkProvider,
-  SignIn,
-  SignUp,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useUser,
-} from "@clerk/clerk-react";
-import {
-  Search,
-  RefreshCw,
-  Plus,
-  Trash2,
-  Send,
-  Sparkles,
-  Activity,
-  Building2,
-  ShieldCheck,
-  Target,
-  TrendingUp,
-  BarChart3,
-  LineChart,
-  Zap,
-  BrainCircuit,
-  Crown,
-  CheckCircle2,
-  Star,
-  AlertTriangle,
-  Gauge,
-  ArrowLeft,
-  ArrowRight,
-  FileText,
-  Scale,
-  LockKeyhole,
-  Home,
-  Mail,
-  Phone,
-  MessageCircle,
-  Newspaper,
-  HelpCircle,
-  Menu,
-} from "lucide-react";
-import "./styles.css";
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&display=swap');
 
-
-
-/* Force Clerk resend verification cooldown to 60 seconds.
-   Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
-   keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
-function installClerkResend60Guard() {
-  if (typeof window === "undefined" || typeof document === "undefined") return;
-  if (window.__evalClerkResend60GuardInstalled) return;
-  window.__evalClerkResend60GuardInstalled = true;
-
-  const COOLDOWN_SECONDS = 60;
-  let cooldownStartedAt = Date.now();
-  let lastFactorTwoPath = "";
-
-  const isAuthVerificationPage = () => {
-    const text = document.body?.innerText || "";
-    const url = window.location.href || "";
-    return (
-      url.includes("factor-two") ||
-      text.includes("Check your phone") ||
-      text.includes("Check your email") ||
-      text.includes("verification code") ||
-      text.includes("Didn't receive a code")
-    );
-  };
-
-  const findResendNodes = () => {
-    const nodes = Array.from(document.querySelectorAll("button, a, span, p, div"));
-    return nodes.filter((node) => {
-      const text = (node.textContent || "").trim();
-      return /didn.?t receive a code\??\s*resend/i.test(text) || /^resend(?:\s*\(\d+\))?$/i.test(text);
-    });
-  };
-
-  const lockNode = (node, secondsLeft) => {
-    const text = (node.textContent || "").trim();
-
-    if (/didn.?t receive a code/i.test(text)) {
-      node.textContent = `Didn't receive a code? Resend (${secondsLeft})`;
-    } else if (/^resend/i.test(text)) {
-      node.textContent = `Resend (${secondsLeft})`;
-    }
-
-    node.setAttribute("aria-disabled", "true");
-    node.setAttribute("data-eval-resend-locked", "true");
-    node.style.pointerEvents = "none";
-    node.style.opacity = "0.72";
-    node.style.cursor = "not-allowed";
-  };
-
-  const unlockNode = (node) => {
-    const text = (node.textContent || "").trim();
-
-    if (/didn.?t receive a code/i.test(text)) {
-      node.textContent = "Didn't receive a code? Resend";
-    } else if (/^resend/i.test(text)) {
-      node.textContent = "Resend";
-    }
-
-    node.removeAttribute("aria-disabled");
-    node.removeAttribute("data-eval-resend-locked");
-    node.style.pointerEvents = "";
-    node.style.opacity = "";
-    node.style.cursor = "";
-  };
-
-  const update = () => {
-    if (!isAuthVerificationPage()) {
-      cooldownStartedAt = Date.now();
-      lastFactorTwoPath = window.location.href;
-      return;
-    }
-
-    if (lastFactorTwoPath !== window.location.href) {
-      lastFactorTwoPath = window.location.href;
-      cooldownStartedAt = Date.now();
-    }
-
-    const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
-    const secondsLeft = Math.max(0, COOLDOWN_SECONDS - elapsed);
-    const nodes = findResendNodes();
-
-    nodes.forEach((node) => {
-      if (secondsLeft > 0) lockNode(node, secondsLeft);
-      else unlockNode(node);
-    });
-  };
-
-  document.addEventListener(
-    "click",
-    (event) => {
-      const target = event.target?.closest?.("button, a, span, p, div");
-      if (!target) return;
-      const text = (target.textContent || "").trim();
-      if (!/resend/i.test(text)) return;
-
-      const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
-      if (isAuthVerificationPage() && elapsed < COOLDOWN_SECONDS) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation?.();
-        update();
-      }
-    },
-    true
-  );
-
-  const observer = new MutationObserver(update);
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
-
-  window.addEventListener("hashchange", () => {
-    cooldownStartedAt = Date.now();
-    setTimeout(update, 50);
-  });
-
-  window.addEventListener("popstate", () => {
-    cooldownStartedAt = Date.now();
-    setTimeout(update, 50);
-  });
-
-  setInterval(update, 250);
-  setTimeout(update, 50);
-  setTimeout(update, 500);
-  setTimeout(update, 1200);
+:root {
+  --bg: #020711;
+  --panel: rgba(255,255,255,.072);
+  --panel-strong: rgba(255,255,255,.105);
+  --line: rgba(255,255,255,.115);
+  --text: #f8fbff;
+  --muted: rgba(248,251,255,.66);
+  --soft: rgba(248,251,255,.43);
+  --green: #85d713;
+  --yellow: #ffd66b;
+  --red: #ff5f73;
+  --blue: #6f8cff;
+  --cyan: #15e7ff;
+  --purple: #9f5cff;
+  --gold: #ffd66b;
+  --gold-strong: #ffb703;
+  --shadow: 0 22px 70px rgba(0,0,0,.34);
 }
 
-installClerkResend60Guard();
+* {
+  box-sizing: border-box;
+  font-family: 'Oxanium', sans-serif !important;
+}
 
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: 'Oxanium', sans-serif !important;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.18), transparent 32%),
+    radial-gradient(circle at 72% 18%, rgba(133,215,19,.14), transparent 34%),
+    radial-gradient(circle at 88% 46%, rgba(159,92,255,.18), transparent 35%),
+    radial-gradient(circle at 42% 92%, rgba(21,231,255,.08), transparent 38%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.045), transparent 28%),
+    radial-gradient(circle at 18% 78%, rgba(133,215,19,.055), transparent 34%),
+    radial-gradient(circle at 83% 74%, rgba(159,92,255,.07), transparent 35%);
+  z-index: -1;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: 'Oxanium', sans-serif !important;
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  max-width: 1580px;
+  margin: 0 auto;
+  padding: 28px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(520px, 760px);
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.brand {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.brand img {
+  width: 132px;
+  height: 132px;
+  filter:
+    drop-shadow(0 18px 36px rgba(133,215,19,.28))
+    drop-shadow(0 0 28px rgba(21,231,255,.16))
+    drop-shadow(0 0 34px rgba(159,92,255,.12));
+}
+
+.brand h1 {
+  margin: 0 0 5px;
+  font-size: clamp(70px, 7vw, 110px);
+  line-height: .80;
+  letter-spacing: -4.8px;
+  font-weight: 800;
+}
+
+.brand span {
+  display: block;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.searchbar {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr auto auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.07);
+  border-radius: 26px;
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.searchbar label,
+.watch-add label {
+  display: block;
+  color: var(--soft);
+  font-size: 12px;
+  margin: 0 0 7px 2px;
+}
+
+.searchbar input,
+.watch-add input,
+.chat-input textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 16px;
+  background: rgba(0,0,0,.25);
+  color: var(--text);
+  outline: none;
+}
+
+.searchbar input {
+  padding: 15px 16px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+
+.searchbar button,
+.hero-actions button,
+.watch-add button,
+.chat-input button {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 15px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 800;
+  background: rgba(255,255,255,.1);
+  box-shadow: none;
+}
+
+.searchbar .ghost-btn,
+.back-btn {
+  background: rgba(255,255,255,.1);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: none;
+}
+
+.back-btn {
+  border-radius: 16px;
+  padding: 15px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.ai-nav-btn,
+.plans-nav-btn {
+  height: 56px;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  align-self: end;
+}
+
+.ai-nav-btn {
+  width: 56px;
+  background: rgba(255,255,255,.1) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: none !important;
+}
+
+.plans-nav-btn {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  padding: 0 !important;
+  gap: 0 !important;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.72), transparent 20%),
+    linear-gradient(135deg, #fff4ad 0%, var(--gold) 36%, var(--gold-strong) 100%) !important;
+  color: #201200 !important;
+  border: 1px solid rgba(255,214,107,.75) !important;
+  box-shadow:
+    0 0 24px rgba(255,214,107,.46),
+    0 0 58px rgba(255,183,3,.25),
+    inset 0 1px 0 rgba(255,255,255,.58) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255,95,115,.35);
+  border-radius: 18px;
+  background: rgba(255,95,115,.1);
+  color: #ffd9df;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 24px;
+  align-items: start;
+}
+
+.content {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.hero-card,
+.watch-panel,
+.summary-card,
+.story-card,
+.grade-card,
+.metrics-card,
+.empty-report,
+.assistant-shell,
+.plans-shell,
+.chat-panel {
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.074);
+  backdrop-filter: blur(20px);
+  border-radius: 30px;
+  box-shadow: var(--shadow);
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: 300px 1fr 245px;
+  gap: 22px;
+  padding: 24px;
+  min-height: 286px;
+}
+
+.score-panel {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+}
+
+.score-ring {
+  width: 224px;
+  height: 224px;
+  border-radius: 50%;
+  padding: 18px;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.055), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), rgba(255,255,255,.08) 0deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.09),
+    inset 0 0 32px rgba(0,0,0,.28),
+    0 24px 70px rgba(0,0,0,.34),
+    0 0 42px var(--ring-glow);
+}
+
+.score-ring::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), transparent 0deg);
+  filter: blur(15px);
+  opacity: .44;
+  z-index: -1;
+}
+
+.score-ring::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.11);
+  box-shadow: inset 0 0 28px rgba(0,0,0,.36);
+  pointer-events: none;
+}
+
+.score-ring.green {
+  --ring-bright: #85ff47;
+  --ring-glow: rgba(133,255,71,.42);
+}
+
+.score-ring.yellow {
+  --ring-bright: #ffe45f;
+  --ring-glow: rgba(255,228,95,.44);
+}
+
+.score-ring.red {
+  --ring-bright: #ff4f67;
+  --ring-glow: rgba(255,79,103,.44);
+}
+
+.score-ring.neutral {
+  --ring-bright: var(--cyan);
+  --ring-glow: rgba(21,231,255,.34);
+}
+
+.score-core {
+  height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,.08), transparent 30%),
+    linear-gradient(145deg, rgba(1,8,16,.92), rgba(4,13,26,.76));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow:
+    inset 0 0 35px rgba(0,0,0,.45),
+    inset 0 0 22px rgba(255,255,255,.035);
+}
+
+.score-core span {
+  display: none;
+}
+
+.score-core strong {
+  font-size: 82px;
+  line-height: 1;
+  letter-spacing: -4px;
+  color: #ffffff;
+  text-align: center;
+  font-weight: 800;
+  text-shadow:
+    0 0 14px rgba(255,255,255,.24),
+    0 0 36px rgba(255,255,255,.10);
+}
+
+.company-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.assistant-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+
+.eyebrow,
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+
+.company-panel h2 {
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: .96;
+  letter-spacing: -2.8px;
+  margin: 12px 0;
+  max-width: 760px;
+  font-weight: 800;
+}
+
+.subline {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-actions a {
+  color: var(--text);
+  text-decoration: none;
+  padding: 13px 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 15px;
+  background: rgba(255,255,255,.07);
+}
+
+.snapshot-grid {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+
+.mini-stat {
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 22px;
+  background: rgba(0,0,0,.17);
+}
+
+.mini-stat span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mini-stat b {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1.45fr .75fr;
+  gap: 18px;
+}
+
+.story-card,
+.summary-card,
+.metrics-card,
+.empty-report {
+  padding: 24px;
+}
+
+.story-card p,
+.summary-card p {
+  color: rgba(248,251,255,.80);
+  line-height: 1.72;
+  font-size: 16px;
+}
+
+.story-card.big p {
+  font-size: 17px;
+}
+
+.grade-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 14px;
+}
+
+.grade-card {
+  padding: 18px;
+  overflow: hidden;
+}
+
+.grade-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.grade-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.grade-line {
+  height: 8px;
+  background: rgba(255,255,255,.09);
+  border-radius: 999px;
+  margin: 18px 0 12px;
+  overflow: hidden;
+}
+
+.grade-line span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.grade-line span.green {
+  background: var(--green);
+}
+
+.grade-line span.yellow {
+  background: var(--yellow);
+}
+
+.grade-line span.red {
+  background: var(--red);
+}
+
+.grade-line span.neutral {
+  background: var(--blue);
+}
+
+.grade-card strong {
+  font-size: 32px;
+  letter-spacing: -1.2px;
+  background: transparent !important;
+  font-weight: 800;
+}
+
+.grade-card strong.green {
+  color: var(--green);
+}
+
+.grade-card strong.yellow {
+  color: var(--yellow);
+}
+
+.grade-card strong.red {
+  color: var(--red);
+}
+
+.grade-card strong.neutral {
+  color: var(--blue);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.metric-tile {
+  padding: 17px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.09);
+  overflow: hidden;
+}
+
+.metric-tile div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.metric-tile h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.metric-tile div span {
+  font-size: 11px;
+  color: var(--soft);
+  text-align: right;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+}
+
+.metric-tile strong {
+  display: block;
+  font-size: 25px;
+  margin: 12px 0 7px;
+  color: var(--text);
+  background: transparent !important;
+  font-weight: 800;
+}
+
+.metric-tile p,
+.metric-tile small {
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.metric-tile small {
+  color: var(--soft);
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.watch-panel {
+  position: sticky;
+  top: 22px;
+  padding: 18px;
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.panel-head p {
+  margin: 0;
+  color: var(--soft);
+  font-size: 12px;
+}
+
+.icon-btn,
+.delete-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.08);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watch-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.watch-add input {
+  padding: 13px 14px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.watch-add button {
+  padding: 0;
+  width: 47px;
+}
+
+.watch-list {
+  display: grid;
+  gap: 12px;
+}
+
+.watch-row {
+  display: grid;
+  grid-template-columns: 1fr 76px 38px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px;
+  background: rgba(0,0,0,.18);
+}
+
+.watch-info {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  min-width: 0;
+  padding: 0;
+}
+
+.watch-info strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: .04em;
+  font-weight: 800;
+}
+
+.watch-info span {
+  display: none;
+}
+
+.watch-score {
+  display: none;
+}
+
+.watch-score-ring {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  padding: 7px;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.045), transparent 48%),
+    conic-gradient(from -90deg, var(--watch-ring-bright) var(--watch-score-angle), rgba(255,255,255,.085) 0deg);
+  display: grid;
+  place-items: center;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 16px rgba(0,0,0,.32),
+    0 12px 28px rgba(0,0,0,.30),
+    0 0 24px var(--watch-glow);
+}
+
+.watch-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, var(--watch-ring-bright) var(--watch-score-angle), transparent 0deg);
+  filter: blur(9px);
+  opacity: .42;
+  z-index: -1;
+}
+
+.watch-score-ring::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: inset 0 0 15px rgba(0,0,0,.36);
+  pointer-events: none;
+}
+
+.watch-score-ring.green {
+  --watch-ring-bright: #85ff47;
+  --watch-glow: rgba(133,255,71,.34);
+}
+
+.watch-score-ring.yellow {
+  --watch-ring-bright: #ffe45f;
+  --watch-glow: rgba(255,228,95,.35);
+}
+
+.watch-score-ring.red {
+  --watch-ring-bright: #ff4f67;
+  --watch-glow: rgba(255,79,103,.35);
+}
+
+.watch-score-ring.neutral {
+  --watch-ring-bright: var(--cyan);
+  --watch-glow: rgba(21,231,255,.28);
+}
+
+.watch-score-ring strong {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.075), transparent 34%),
+    linear-gradient(145deg, rgba(1,8,16,.92), rgba(4,13,26,.76));
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -.6px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255,255,255,.22);
+}
+
+.assistant-page {
+  min-height: 70vh;
+  display: grid;
+  place-items: stretch;
+}
+
+.assistant-shell {
+  padding: 26px;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.assistant-page-head,
+  .plans-page-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.assistant-page-head h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: .96;
+  letter-spacing: -2.6px;
+  font-weight: 800;
+}
+
+.assistant-page-head p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 760px;
+  line-height: 1.55;
+}
+
+.back-btn {
+  padding: 13px 15px;
+}
+
+.chat-panel {
+  padding: 18px;
+  background: rgba(0,0,0,.18);
+}
+
+.chat-messages {
+  display: grid;
+  gap: 14px;
+  min-height: 340px;
+  max-height: 58vh;
+  overflow: auto;
+  padding: 4px;
+}
+
+.chat-bubble {
+  max-width: 78%;
+  padding: 16px 17px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+.chat-bubble span {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--soft);
+  margin-bottom: 7px;
+}
+
+.chat-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  color: rgba(248,251,255,.88);
+}
+
+.chat-bubble.user {
+  justify-self: end;
+  background: rgba(111,140,255,.16);
+}
+
+.chat-bubble.assistant {
+  justify-self: start;
+  background: rgba(133,215,19,.08);
+  border-color: rgba(133,215,19,.18);
+}
+
+.chat-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.chat-input textarea {
+  resize: vertical;
+  min-height: 72px;
+  padding: 15px;
+  line-height: 1.5;
+}
+
+.chat-input button {
+  min-height: 54px;
+}
+
+.fineprint {
+  color: var(--soft);
+  font-size: 12px;
+  margin: 14px 0 0;
+}
+
+.center {
+  text-align: center;
+}
+
+.empty-report {
+  color: var(--muted);
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1180px) {
+  .topbar,
+  .layout,
+  .hero-card,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchbar {
+    grid-template-columns: auto auto 1fr;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchbar button:not(.ai-nav-btn) {
+    min-height: 52px;
+  }
+
+  .watch-panel {
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+
+  .hero-card {
+    min-height: auto;
+  }
+
+  .snapshot-grid,
+  .grade-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .brand img {
+    width: 104px;
+    height: 104px;
+  }
+
+  .brand h1 {
+    font-size: 64px;
+    letter-spacing: -3px;
+  }
+
+  .searchbar,
+  .snapshot-grid,
+  .grade-grid,
+  .metric-grid,
+  .chat-input,
+  .assistant-page-head,
+  .plans-page-head {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-nav-btn,
+.plans-nav-btn {
+    width: 100%;
+  }
+
+  .company-panel h2 {
+    font-size: 36px;
+  }
+
+  .score-ring {
+    width: 190px;
+    height: 190px;
+  }
+
+  .score-core strong {
+    font-size: 68px;
+  }
+
+  .watch-row {
+    grid-template-columns: 1fr 70px 38px;
+  }
+
+  .watch-score-ring {
+    width: 64px;
+    height: 64px;
+  }
+
+  .watch-score-ring strong {
+    font-size: 17px;
+  }
+
+  .chat-bubble {
+    max-width: 100%;
+  }
+}
+
+/* =========================
+   PLAN / PRICING PAGE RESTORE
+   Added back without deleting existing chart styles
+========================= */
+
+.plans-page {
+  min-height: 70vh;
+  display: grid;
+  place-items: stretch;
+}
+
+.plans-shell {
+  padding: 26px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.plans-page-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+
+.plans-page-head h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: .96;
+  letter-spacing: -2.6px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.plans-page-head p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 760px;
+  line-height: 1.55;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 22px;
+  align-items: stretch;
+}
+
+.plan-card {
+  position: relative;
+  padding: 26px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.115);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.11), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgba(133,215,19,.10), transparent 34%),
+    radial-gradient(circle at 78% 92%, rgba(159,92,255,.15), transparent 38%),
+    rgba(0,0,0,.18);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.plan-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 42%, rgba(255,255,255,.025));
+}
+
+.plan-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.plan-card h3 {
+  margin: 0 0 14px;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.plan-price strong {
+  color: #ffffff;
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -1.4px;
+}
+
+.plan-price span {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.plan-yearly {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 22px;
+}
+
+.plan-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.plan-card p {
+  color: rgba(248,251,255,.82);
+  line-height: 1.65;
+  font-size: 16px;
+  margin: 0 0 22px;
+}
+
+.plan-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: grid;
+  gap: 11px;
+}
+
+.plan-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: rgba(248,251,255,.88);
+  line-height: 1.42;
+  font-size: 15px;
+}
+
+.plan-card li::before {
+  content: "✓";
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 1px;
+  border: 1px solid rgba(255,255,255,.55);
+  background: rgba(255,255,255,.05);
+}
+
+.plan-card button,
+.plan-button {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 15px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 800;
+  background: rgba(255,255,255,.1);
+  box-shadow: none;
+}
+
+.plan-card button:hover,
+.plan-button:hover {
+  background: rgba(255,255,255,.16);
+}
+
+.plans-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--soft);
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+/* =========================================================
+   EVAL PLANS PAGE — PREMIUM PROFESSIONAL UPGRADE
+   Added at bottom so nothing above is deleted.
+========================================================= */
+
+.plans-page {
+  position: relative;
+  min-height: calc(100vh - 56px);
+  display: grid;
+  place-items: center;
+  padding: 10px 0 34px;
+  overflow: hidden;
+}
+
+.plans-page::before {
+  content: "";
+  position: absolute;
+  width: 820px;
+  height: 820px;
+  left: -280px;
+  top: -300px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(21,231,255,.18), transparent 58%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.plans-page::after {
+  content: "";
+  position: absolute;
+  width: 780px;
+  height: 780px;
+  right: -260px;
+  bottom: -330px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(159,92,255,.22), transparent 58%);
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.plans-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1240px;
+  padding: 34px;
+  border-radius: 36px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.055)),
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgba(133,215,19,.11), transparent 30%),
+    radial-gradient(circle at 78% 104%, rgba(159,92,255,.16), transparent 36%);
+  box-shadow:
+    0 34px 95px rgba(0,0,0,.43),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  overflow: hidden;
+}
+
+.plans-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 28%);
+  pointer-events: none;
+}
+
+.plans-page-head {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 22px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.plans-page-head h2 {
+  margin: 6px 0 8px;
+  font-size: clamp(42px, 5.6vw, 72px);
+  line-height: .86;
+  letter-spacing: -3.4px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow:
+    0 0 28px rgba(21,231,255,.15),
+    0 0 42px rgba(159,92,255,.12);
+}
+
+.plans-page-head p {
+  margin: 0;
+  max-width: 830px;
+  color: rgba(248,251,255,.70);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.plans-page-head .back-btn {
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 14px 32px rgba(0,0,0,.22);
+}
+
+.plans-page-head .back-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,.14);
+}
+
+.plans-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(300px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.plan-card {
+  position: relative;
+  min-height: 560px;
+  padding: 31px;
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.145);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.048)),
+    radial-gradient(circle at 16% 10%, rgba(21,231,255,.18), transparent 32%),
+    radial-gradient(circle at 94% 12%, rgba(133,215,19,.15), transparent 29%),
+    radial-gradient(circle at 76% 92%, rgba(159,92,255,.20), transparent 38%),
+    rgba(1,7,16,.54);
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.36),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  overflow: hidden;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+
+.plan-card:nth-child(2) {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.055)),
+    radial-gradient(circle at 16% 10%, rgba(255,214,107,.19), transparent 31%),
+    radial-gradient(circle at 94% 12%, rgba(21,231,255,.17), transparent 30%),
+    radial-gradient(circle at 78% 92%, rgba(159,92,255,.24), transparent 39%),
+    rgba(1,7,16,.58);
+  border-color: rgba(255,214,107,.27);
+}
+
+.plan-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255,255,255,.24);
+  box-shadow:
+    0 38px 92px rgba(0,0,0,.48),
+    0 0 54px rgba(21,231,255,.09),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.plan-card:nth-child(2):hover {
+  box-shadow:
+    0 38px 92px rgba(0,0,0,.48),
+    0 0 64px rgba(255,214,107,.12),
+    inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.plan-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.13), transparent 24%, transparent 70%, rgba(255,255,255,.045)),
+    linear-gradient(to bottom, rgba(255,255,255,.05), transparent 34%);
+}
+
+.plan-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 24px 0 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(21,231,255,.62), rgba(133,215,19,.38), transparent);
+  opacity: .78;
+}
+
+.plan-card:nth-child(2)::after {
+  background: linear-gradient(90deg, transparent, rgba(255,214,107,.70), rgba(159,92,255,.46), transparent);
+}
+
+.plan-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.plan-card h3 {
+  margin: 0 0 14px;
+  color: #ffffff;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -1.1px;
+}
+
+.plan-card h3::after {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 3px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  box-shadow: 0 0 18px rgba(21,231,255,.38);
+}
+
+.plan-card:nth-child(2) h3::after {
+  background: linear-gradient(90deg, var(--gold), var(--purple));
+  box-shadow: 0 0 18px rgba(255,214,107,.34);
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 24px 0 7px;
+}
+
+.plan-price strong {
+  color: #ffffff;
+  font-size: clamp(46px, 5.4vw, 64px);
+  line-height: .92;
+  font-weight: 800;
+  letter-spacing: -2.7px;
+  text-shadow: 0 0 24px rgba(255,255,255,.13);
+}
+
+.plan-price span {
+  color: rgba(248,251,255,.64);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.plan-yearly {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(248,251,255,.72);
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 0 24px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
+}
+
+.plan-icon {
+  width: 58px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+  border-radius: 20px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.22), transparent 26%),
+    linear-gradient(135deg, rgba(21,231,255,.20), rgba(133,215,19,.12));
+  border: 1px solid rgba(255,255,255,.17);
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.28),
+    0 0 28px rgba(21,231,255,.12),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.plan-card:nth-child(2) .plan-icon {
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.24), transparent 26%),
+    linear-gradient(135deg, rgba(255,214,107,.28), rgba(159,92,255,.17));
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.28),
+    0 0 28px rgba(255,214,107,.13),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.plan-card p {
+  color: rgba(248,251,255,.78);
+  line-height: 1.68;
+  font-size: 16px;
+  margin: 0 0 24px;
+}
+
+.plan-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.plan-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: rgba(248,251,255,.90);
+  line-height: 1.43;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.plan-card li::before {
+  content: "✓";
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #06101a;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 0;
+  border: 1px solid rgba(133,255,71,.55);
+  background: linear-gradient(135deg, #ecfff0, #85ff47);
+  box-shadow: 0 0 16px rgba(133,255,71,.22);
+}
+
+.plan-card:nth-child(2) li::before {
+  border-color: rgba(255,214,107,.62);
+  background: linear-gradient(135deg, #fff7cd, #ffb703);
+  box-shadow: 0 0 16px rgba(255,214,107,.22);
+}
+
+.plan-card button,
+.plan-button {
+  width: 100%;
+  min-height: 56px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 18px;
+  padding: 15px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: .02em;
+  background:
+    linear-gradient(135deg, rgba(21,231,255,.18), rgba(133,215,19,.14)),
+    rgba(255,255,255,.08);
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.27),
+    inset 0 1px 0 rgba(255,255,255,.13);
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.plan-card:nth-child(2) button,
+.plan-card:nth-child(2) .plan-button {
+  color: #221300;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.55), transparent 22%),
+    linear-gradient(135deg, #fff0a3, #ffd66b 42%, #ffb703);
+  border-color: rgba(255,214,107,.70);
+  box-shadow:
+    0 18px 42px rgba(255,183,3,.18),
+    0 0 34px rgba(255,214,107,.13),
+    inset 0 1px 0 rgba(255,255,255,.44);
+  text-shadow: 0 1px 0 rgba(255,255,255,.30);
+}
+
+.plan-card button:hover,
+.plan-button:hover {
+  transform: translateY(-2px);
+  background:
+    linear-gradient(135deg, rgba(21,231,255,.25), rgba(133,215,19,.19)),
+    rgba(255,255,255,.10);
+  box-shadow:
+    0 24px 50px rgba(0,0,0,.34),
+    0 0 34px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.plan-card:nth-child(2) button:hover,
+.plan-card:nth-child(2) .plan-button:hover {
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.64), transparent 22%),
+    linear-gradient(135deg, #fff6c9, #ffd66b 40%, #ffb703);
+  box-shadow:
+    0 24px 52px rgba(255,183,3,.21),
+    0 0 42px rgba(255,214,107,.16),
+    inset 0 1px 0 rgba(255,255,255,.48);
+}
+
+.plans-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: rgba(248,251,255,.46);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 10px 14px 0;
+}
+
+@media (max-width: 1180px) {
+  .plans-shell {
+    padding: 26px;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .plans-page {
+    padding: 0 0 20px;
+  }
+
+  .plans-shell {
+    padding: 20px;
+    border-radius: 28px;
+  }
+
+  .plans-page-head {
+    grid-template-columns: 1fr;
+  }
+
+  .plans-page-head h2 {
+    font-size: 44px;
+    letter-spacing: -2.2px;
+  }
+
+  .plan-card {
+    padding: 23px;
+    border-radius: 28px;
+  }
+
+  .plan-price strong {
+    font-size: 46px;
+  }
+}
+/* =========================================================
+   REQUESTED UI UPDATE — NEON SCORE BARS + BUTTON MOTION
+   Paste-safe override section. Keep this at the bottom.
+========================================================= */
+
+button,
+.hero-actions a,
+.plan-select-btn,
+.plan-card button,
+.plan-button {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    filter .18s ease;
+}
+
+button::before,
+.hero-actions a::before,
+.plan-select-btn::before,
+.plan-card button::before,
+.plan-button::before {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -55%;
+  width: 44%;
+  height: 340%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent);
+  transform: rotate(24deg) translateX(-160%);
+  opacity: 0;
+  transition: transform .52s ease, opacity .52s ease;
+}
+
+button:hover,
+.hero-actions a:hover,
+.plan-select-btn:hover,
+.plan-card button:hover,
+.plan-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 0 22px rgba(21,231,255,.14),
+    0 0 34px rgba(133,255,71,.08),
+    0 14px 30px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+button:hover::before,
+.hero-actions a:hover::before,
+.plan-select-btn:hover::before,
+.plan-card button:hover::before,
+.plan-button:hover::before {
+  opacity: 1;
+  transform: rotate(24deg) translateX(520%);
+}
+
+button:active,
+.hero-actions a:active,
+.plan-select-btn:active,
+.plan-card button:active,
+.plan-button:active {
+  transform: translateY(0) scale(.98);
+}
+
+.plans-nav-btn:hover {
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.78), transparent 20%),
+    linear-gradient(135deg, #fff4ad 0%, var(--gold) 36%, var(--gold-strong) 100%) !important;
+  color: #201200 !important;
+  box-shadow:
+    0 0 30px rgba(255,214,107,.58),
+    0 0 72px rgba(255,183,3,.34),
+    0 16px 36px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.62) !important;
+}
+
+.grade-card {
+  position: relative;
+  min-height: 190px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 16% 10%, rgba(21,231,255,.08), transparent 34%),
+    radial-gradient(circle at 90% 92%, rgba(159,92,255,.10), transparent 40%),
+    rgba(255,255,255,.072);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.grade-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,.18);
+  box-shadow:
+    0 26px 62px rgba(0,0,0,.34),
+    0 0 34px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.grade-head {
+  color: rgba(255,255,255,.82);
+}
+
+.grade-head span {
+  display: inline-flex;
+  color: rgba(255,255,255,.72);
+  filter: drop-shadow(0 0 8px rgba(255,255,255,.12));
+}
+
+.grade-line {
+  height: 9px;
+  margin: 18px 0 13px;
+  background: rgba(255,255,255,.085);
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,.46),
+    0 0 14px rgba(255,255,255,.045);
+}
+
+.grade-line span {
+  position: relative;
+  box-shadow:
+    0 0 16px currentColor,
+    0 0 28px currentColor,
+    inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+.grade-line span.green {
+  color: #85ff47;
+  background: linear-gradient(90deg, rgba(133,255,71,.82), #85ff47);
+}
+
+.grade-line span.yellow {
+  color: #ffe45f;
+  background: linear-gradient(90deg, rgba(255,228,95,.82), #ffe45f);
+}
+
+.grade-line span.red {
+  color: #ff4f67;
+  background: linear-gradient(90deg, rgba(255,79,103,.82), #ff4f67);
+}
+
+.grade-line span.neutral {
+  color: var(--cyan);
+  background: linear-gradient(90deg, rgba(21,231,255,.82), var(--cyan));
+}
+
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  color: #ffffff !important;
+  text-shadow:
+    0 0 12px rgba(255,255,255,.22),
+    0 0 26px rgba(255,255,255,.08);
+}
+
+.grade-description {
+  margin: 8px 0 0;
+  color: rgba(248,251,255,.68);
+  font-size: 12.5px;
+  line-height: 1.52;
+  font-weight: 600;
+}
+
+.plans-shell {
+  transform: translateZ(0);
+  box-shadow:
+    0 42px 110px rgba(0,0,0,.52),
+    0 0 64px rgba(21,231,255,.08),
+    0 0 80px rgba(159,92,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+.plans-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  border: 1px solid rgba(255,214,107,.34);
+  background: rgba(255,214,107,.10);
+  box-shadow: 0 0 26px rgba(255,214,107,.14);
+}
+
+.plan-card {
+  transform: translateZ(0);
+}
+
+.plan-card.pro {
+  border-color: rgba(21,231,255,.22);
+  box-shadow:
+    0 30px 82px rgba(0,0,0,.40),
+    0 0 42px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.plan-card.platinum {
+  border-color: rgba(255,214,107,.32);
+  box-shadow:
+    0 30px 82px rgba(0,0,0,.42),
+    0 0 52px rgba(255,214,107,.10),
+    inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+.plan-select-btn {
+  min-height: 54px;
+  letter-spacing: .02em;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.18), transparent 26%),
+    rgba(255,255,255,.105) !important;
+}
+
+@media (max-width: 680px) {
+  .grade-card {
+    min-height: auto;
+  }
+}
+
+/* =========================
+   SCORE HELP POPUPS
+========================= */
+.grade-card {
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.grade-card:hover,
+.grade-card:has(.score-popup) {
+  z-index: 20;
+}
+
+.grade-score-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.score-help-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  background: rgba(255,255,255,.095) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.score-help-btn:hover {
+  background: rgba(255,255,255,.15) !important;
+  box-shadow:
+    0 0 22px rgba(21,231,255,.18),
+    0 0 34px rgba(133,255,71,.10),
+    0 10px 24px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-popup {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 98px;
+  z-index: 50;
+  padding: 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 36%),
+    radial-gradient(circle at 88% 100%, rgba(159,92,255,.16), transparent 42%),
+    rgba(3,8,18,.96);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 30px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  animation: popupIn .18s ease both;
+}
+
+.score-popup-title {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: .03em;
+}
+
+.score-popup ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.score-popup li {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  color: rgba(248,251,255,.78);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.score-popup li span {
+  color: rgba(248,251,255,.76);
+  font-weight: 700;
+}
+
+.score-popup li b {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.score-popup small {
+  display: block;
+  margin-top: 11px;
+  color: rgba(248,251,255,.48);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================
+   SMALLER SCORE INFO BUTTONS + METRIC-ONLY POPUP
+========================= */
+.grade-score-row {
+  gap: 7px;
+}
+
+.score-help-btn {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 12px rgba(21,231,255,.10),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.score-help-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 0 16px rgba(21,231,255,.18),
+    0 0 24px rgba(133,255,71,.08),
+    0 8px 18px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+.score-help-btn svg {
+  width: 11px !important;
+  height: 11px !important;
+  stroke-width: 2.8;
+}
+
+.score-popup li {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+
+.score-popup li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 0 10px rgba(21,231,255,.28);
+}
+
+.score-popup li b {
+  display: none !important;
+}
+
+/* =========================
+   RISK INFO POPUP + ONE PRO PLAN UPGRADE
+========================= */
+.mini-stat {
+  position: relative;
+  overflow: visible !important;
+  z-index: 1;
+}
+
+.mini-stat:has(.mini-stat-popup) {
+  z-index: 35;
+}
+
+.mini-stat-value-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.mini-stat-value-row b {
+  margin-top: 0 !important;
+}
+
+.mini-risk-help-btn {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.mini-stat-popup {
+  top: 62px !important;
+  left: 12px !important;
+  right: 12px !important;
+  min-width: 210px;
+}
+
+.pro-only-shell {
+  max-width: 1040px !important;
+  padding: 38px !important;
+  background:
+    radial-gradient(circle at 14% 2%, rgba(255,214,107,.18), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(21,231,255,.17), transparent 34%),
+    radial-gradient(circle at 75% 94%, rgba(159,92,255,.22), transparent 38%),
+    linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.055)) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+.pro-only-grid {
+  grid-template-columns: minmax(300px, 760px) !important;
+  justify-content: center;
+}
+
+.pro-only-card {
+  min-height: auto !important;
+  padding: 34px !important;
+  border-radius: 34px !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.125), rgba(255,255,255,.048)),
+    radial-gradient(circle at 14% 8%, rgba(255,214,107,.22), transparent 33%),
+    radial-gradient(circle at 93% 12%, rgba(21,231,255,.20), transparent 32%),
+    radial-gradient(circle at 78% 98%, rgba(133,255,71,.12), transparent 34%),
+    rgba(1,7,16,.62) !important;
+  border: 1px solid rgba(255,214,107,.30) !important;
+  box-shadow:
+    0 38px 100px rgba(0,0,0,.48),
+    0 0 70px rgba(255,214,107,.10),
+    0 0 64px rgba(21,231,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+
+.pro-only-card::after {
+  background: linear-gradient(90deg, transparent, rgba(255,214,107,.78), rgba(21,231,255,.52), transparent) !important;
+}
+
+.plan-top,
+.pro-only-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.plan-top span {
+  display: inline-flex;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  margin-bottom: 12px;
+}
+
+.plan-top h3 {
+  margin: 0 !important;
+  font-size: clamp(54px, 7vw, 76px) !important;
+  line-height: .9 !important;
+  letter-spacing: -3px !important;
+  color: #ffffff !important;
+  text-shadow:
+    0 0 24px rgba(255,255,255,.16),
+    0 0 38px rgba(255,214,107,.14) !important;
+}
+
+.plan-top h3::after {
+  display: none !important;
+}
+
+.plan-top p {
+  margin: 10px 0 0 !important;
+  color: rgba(248,251,255,.70) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+.plan-description {
+  margin: 0 0 24px !important;
+  max-width: 720px;
+  color: rgba(248,251,255,.82) !important;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.plan-features,
+.pro-only-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  margin: 24px 0 26px;
+}
+
+.plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.17);
+  color: rgba(248,251,255,.84);
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 650;
+}
+
+.plan-feature svg {
+  flex: 0 0 auto;
+  color: var(--gold);
+  filter: drop-shadow(0 0 9px rgba(255,214,107,.30));
+  margin-top: 1px;
+}
+
+.pro-only-card .plan-select-btn {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 18px !important;
+  color: #1c1200 !important;
+  background:
+    radial-gradient(circle at 28% 0%, rgba(255,255,255,.58), transparent 26%),
+    linear-gradient(135deg, #fff2a8, #ffd66b 44%, #ffb703) !important;
+  border-color: rgba(255,214,107,.72) !important;
+  box-shadow:
+    0 0 30px rgba(255,214,107,.35),
+    0 18px 38px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.55) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.pro-only-card .plan-select-btn:hover {
+  transform: translateY(-3px) !important;
+  box-shadow:
+    0 0 42px rgba(255,214,107,.48),
+    0 0 58px rgba(21,231,255,.12),
+    0 22px 46px rgba(0,0,0,.36),
+    inset 0 1px 0 rgba(255,255,255,.65) !important;
+}
+
+@media (max-width: 760px) {
+  .plan-features,
+  .pro-only-features {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-top,
+  .pro-only-top {
+    flex-direction: column;
+  }
+
+  .pro-only-shell {
+    padding: 24px !important;
+  }
+}
+
+/* =========================
+   INFO BUTTON FRONT-LAYER FIX
+   Keeps every circle-i popup above nearby cards/animations.
+========================= */
+.hero-card,
+.snapshot-grid,
+.grade-grid,
+.content,
+.layout {
+  overflow: visible !important;
+}
+
+.grade-card,
+.mini-stat {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.grade-card.popup-active,
+.mini-stat.popup-active {
+  z-index: 9998 !important;
+  isolation: isolate;
+}
+
+.grade-card.popup-active .score-popup,
+.mini-stat.popup-active .score-popup,
+.score-popup {
+  z-index: 9999 !important;
+}
+
+.score-help-btn {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  border-radius: 999px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  aspect-ratio: 1 / 1;
+}
+
+.score-help-btn svg {
+  display: none !important;
+}
+
+.info-letter {
+  display: block;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-.5px);
+  text-shadow: 0 0 10px rgba(255,255,255,.24);
+  pointer-events: none;
+}
+
+.score-help-btn:focus-visible {
+  outline: 2px solid rgba(21,231,255,.68);
+  outline-offset: 3px;
+}
+
+/* =========================
+   RISK POPUP COMPACT RESET
+   Keeps original i buttons/popups, but makes only the Risk popup smaller
+   so it does not overlap the Fast Read card.
+========================= */
+.mini-stat-popup {
+  top: 50px !important;
+  left: 10px !important;
+  right: 10px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 10px 11px !important;
+  border-radius: 15px !important;
+}
+
+.mini-stat-popup .score-popup-title {
+  font-size: 10px !important;
+  margin-bottom: 6px !important;
+  line-height: 1.15 !important;
+}
+
+.mini-stat-popup ul {
+  gap: 4px !important;
+}
+
+.mini-stat-popup li {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+  gap: 5px !important;
+}
+
+.mini-stat-popup li::before {
+  width: 4px !important;
+  height: 4px !important;
+  min-width: 4px !important;
+  margin-top: 4px !important;
+}
+
+.mini-stat-popup li span {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+}
+
+.mini-stat-popup small {
+  margin-top: 7px !important;
+  font-size: 8.5px !important;
+  line-height: 1.2 !important;
+}
+
+/* =========================================================
+   EVAL AI LANDING / FRONT PAGE
+   Shows first every time the app opens
+========================================================= */
+
+.landing-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 14% 12%, rgba(21,231,255,.20), transparent 34%),
+    radial-gradient(circle at 86% 16%, rgba(133,255,71,.16), transparent 32%),
+    radial-gradient(circle at 82% 82%, rgba(159,92,255,.24), transparent 36%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%);
+}
+
+.landing-orb,
+.landing-grid-glow {
+  position: absolute;
+  pointer-events: none;
+}
+
+.landing-orb {
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  filter: blur(6px);
+  opacity: .72;
+}
+
+.landing-orb-one {
+  left: -220px;
+  top: -210px;
+  background: radial-gradient(circle, rgba(21,231,255,.30), transparent 61%);
+}
+
+.landing-orb-two {
+  right: -230px;
+  bottom: -250px;
+  background: radial-gradient(circle, rgba(159,92,255,.34), transparent 62%);
+}
+
+.landing-grid-glow {
+  inset: 0;
+  background:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size: 54px 54px;
+  mask-image: radial-gradient(circle at 50% 50%, black, transparent 72%);
+  opacity: .34;
+}
+
+.landing-shell {
+  width: min(1260px, 100%);
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 40px;
+  padding: 34px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.052)),
+    radial-gradient(circle at 16% 0%, rgba(21,231,255,.14), transparent 33%),
+    radial-gradient(circle at 91% 14%, rgba(133,255,71,.10), transparent 31%),
+    radial-gradient(circle at 72% 104%, rgba(159,92,255,.18), transparent 36%);
+  box-shadow:
+    0 34px 95px rgba(0,0,0,.48),
+    inset 0 1px 0 rgba(255,255,255,.13);
+  overflow: hidden;
+}
+
+.landing-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.12), transparent 22%, transparent 70%, rgba(255,255,255,.045)),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.09), transparent 28%);
+}
+
+.landing-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.landing-brand-row img {
+  width: 132px;
+  height: 132px;
+  filter:
+    drop-shadow(0 18px 36px rgba(133,255,71,.25))
+    drop-shadow(0 0 30px rgba(21,231,255,.15));
+}
+
+.landing-brand-row span {
+  display: block;
+  color: rgba(248,251,255,.62);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.landing-brand-row h1 {
+  margin: 4px 0 0;
+  font-size: clamp(70px, 7vw, 110px);
+  line-height: .80;
+  letter-spacing: -4.8px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 34px rgba(255,255,255,.12);
+}
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) 430px;
+  gap: 30px;
+  align-items: stretch;
+}
+
+.landing-copy {
+  padding: 18px 0 10px;
+}
+
+.landing-kicker {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 13px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  background: rgba(255,255,255,.075);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.landing-copy h2 {
+  margin: 20px 0 18px;
+  max-width: 780px;
+  font-size: clamp(28px, 3.2vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -1.8px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow:
+    0 0 34px rgba(21,231,255,.13),
+    0 0 48px rgba(159,92,255,.10);
+}
+
+.landing-copy p {
+  margin: 0;
+  max-width: 770px;
+  color: rgba(248,251,255,.78);
+  font-size: 18px;
+  line-height: 1.78;
+  font-weight: 600;
+}
+
+.landing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.landing-continue-btn {
+  min-height: 60px;
+  padding: 0 24px;
+  border: 1px solid rgba(133,255,71,.46);
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #061006;
+  font-size: 18px;
+  font-weight: 900;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255,255,255,.82), transparent 22%),
+    linear-gradient(135deg, #ffffff 0%, #b8ff74 24%, #85ff47 62%, #41d90f 100%);
+  box-shadow:
+    0 0 26px rgba(133,255,71,.36),
+    0 18px 44px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.62);
+  overflow: hidden;
+  position: relative;
+  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+}
+
+.landing-continue-btn::before {
+  content: "";
+  position: absolute;
+  top: -120%;
+  left: -70%;
+  width: 70%;
+  height: 300%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.62), transparent);
+  transform: rotate(22deg);
+  transition: left .55s ease;
+}
+
+.landing-continue-btn:hover {
+  transform: translateY(-3px) scale(1.015);
+  filter: brightness(1.05);
+  box-shadow:
+    0 0 38px rgba(133,255,71,.47),
+    0 22px 54px rgba(0,0,0,.44),
+    inset 0 1px 0 rgba(255,255,255,.70);
+}
+
+.landing-continue-btn:hover::before {
+  left: 112%;
+}
+
+.landing-actions span {
+  color: rgba(248,251,255,.58);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.landing-score-preview {
+  min-height: 520px;
+  border: 1px solid rgba(255,255,255,.135);
+  border-radius: 34px;
+  padding: 26px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 26px;
+  background:
+    radial-gradient(circle at 22% 12%, rgba(21,231,255,.15), transparent 35%),
+    radial-gradient(circle at 92% 18%, rgba(133,255,71,.18), transparent 33%),
+    radial-gradient(circle at 78% 94%, rgba(159,92,255,.22), transparent 41%),
+    rgba(0,0,0,.22);
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.10);
+  overflow: hidden;
+}
+
+.preview-topline {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.preview-topline span {
+  color: rgba(248,251,255,.58);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.preview-topline b {
+  color: #ffffff;
+  font-size: 22px;
+  letter-spacing: .08em;
+}
+
+.preview-score-ring {
+  width: 226px;
+  height: 226px;
+  border-radius: 50%;
+  padding: 18px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.055), transparent 48%),
+    conic-gradient(from -90deg, #85ff47 324deg, rgba(255,255,255,.08) 0deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.09),
+    inset 0 0 32px rgba(0,0,0,.28),
+    0 24px 70px rgba(0,0,0,.34),
+    0 0 48px rgba(133,255,71,.46);
+  position: relative;
+  isolation: isolate;
+}
+
+.preview-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, #85ff47 324deg, transparent 0deg);
+  filter: blur(16px);
+  opacity: .48;
+  z-index: -1;
+}
+
+.preview-score-ring strong {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 76px;
+  font-weight: 800;
+  letter-spacing: -3px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.08), transparent 34%),
+    linear-gradient(145deg, rgba(1,8,16,.93), rgba(4,13,26,.78));
+  border: 1px solid rgba(255,255,255,.12);
+  text-shadow: 0 0 18px rgba(255,255,255,.22);
+}
+
+.preview-bars {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+}
+
+.preview-bars div {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-bars span {
+  color: rgba(248,251,255,.72);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.preview-bars div::after {
+  content: "";
+  grid-row: 2;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+}
+
+.preview-bars b {
+  grid-row: 2;
+  height: 8px;
+  border-radius: 999px;
+  background: #85ff47;
+  box-shadow: 0 0 16px rgba(133,255,71,.50);
+  z-index: 1;
+}
+
+.landing-points {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.landing-point-card {
+  min-height: 190px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.115);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.083), rgba(255,255,255,.038)),
+    rgba(0,0,0,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.landing-point-card > div {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 0 24px rgba(21,231,255,.10);
+}
+
+.landing-point-card h3 {
+  margin: 16px 0 8px;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.landing-point-card p {
+  margin: 0;
+  color: rgba(248,251,255,.66);
+  line-height: 1.55;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.landing-bottom-strip {
+  margin-top: 18px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(0,0,0,.16);
+}
+
+.landing-bottom-strip span {
+  color: rgba(248,251,255,.72);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+@media (max-width: 1040px) {
+  .landing-hero,
+  .landing-points {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-score-preview {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-page {
+    padding: 16px;
+  }
+
+  .landing-shell {
+    padding: 22px;
+    border-radius: 30px;
+  }
+
+  .landing-brand-row img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .landing-brand-row h1 {
+    font-size: 48px;
+    letter-spacing: -2.4px;
+  }
+
+  .landing-copy h2 {
+    font-size: 44px;
+    letter-spacing: -2.5px;
+  }
+
+  .landing-copy p {
+    font-size: 15px;
+    line-height: 1.68;
+  }
+
+  .landing-continue-btn {
+    width: 100%;
+  }
+
+  .preview-score-ring {
+    width: 190px;
+    height: 190px;
+  }
+
+  .preview-score-ring strong {
+    font-size: 66px;
+  }
+}
+
+/* =========================
+   LANDING PAGE TITLE / COPY POLISH
+========================= */
+
+.landing-brand-row {
+  align-items: center;
+  gap: 20px;
+}
+
+.landing-brand-row h1 {
+  margin: 0;
+  font-size: clamp(38px, 5.2vw, 74px);
+  line-height: .88;
+  letter-spacing: -3.1px;
+  word-break: break-word;
+}
+
+.landing-brand-row p {
+  margin: 10px 0 0;
+  color: rgba(248,251,255,.70);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.landing-copy p {
+  max-width: 800px;
+}
+
+.landing-point-card h3 {
+  letter-spacing: -.25px;
+}
+
+.landing-footnote {
+  margin: 14px 0 0;
+  text-align: center;
+  color: rgba(248,251,255,.46);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+@media (max-width: 680px) {
+  .landing-brand-row h1 {
+    font-size: clamp(30px, 10vw, 48px);
+    letter-spacing: -1.8px;
+  }
+
+  .landing-brand-row p {
+    font-size: 12px;
+  }
+}
+
+
+/* =========================
+   QUESTION MARK INFO BUTTON CLEANUP
+   Removes skipped-data note and centers ? inside every circular help button
+========================= */
+.score-help-btn {
+  position: relative !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+.info-letter {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  transform: none !important;
+  text-align: center !important;
+  pointer-events: none !important;
+}
+
+.score-popup small,
+.mini-stat-popup small {
+  display: none !important;
+}
+
+/* =========================
+   FINAL TITLE / LOGO SIZE SYNC
+   Keeps cover page and dashboard branding fluent.
+========================= */
+.brand img,
+.landing-brand-row img {
+  width: 132px !important;
+  height: 132px !important;
+}
+
+.brand h1,
+.landing-brand-row h1 {
+  margin: 0 !important;
+  font-size: clamp(70px, 7vw, 110px) !important;
+  line-height: .80 !important;
+  letter-spacing: -4.8px !important;
+  font-weight: 800 !important;
+}
+
+.landing-copy h2 {
+  font-size: clamp(28px, 3.2vw, 48px) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -1.8px !important;
+  max-width: 790px !important;
+}
+
+@media (max-width: 680px) {
+  .brand img,
+  .landing-brand-row img {
+    width: 104px !important;
+    height: 104px !important;
+  }
+
+  .brand h1,
+  .landing-brand-row h1 {
+    font-size: 64px !important;
+    letter-spacing: -3px !important;
+  }
+
+  .landing-copy h2 {
+    font-size: 30px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -1.2px !important;
+  }
+}
+
+
+/* =========================================================
+   CLERK ACCOUNT ACCESS PAGE — FINAL CLEAN VERSION
+   Old custom login/sign-up CSS has been removed from this file.
+========================================================= */
+.searchbar {
+  grid-template-columns: auto auto auto 1fr auto auto;
+}
+
+.topbar-user {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 14px 34px rgba(0,0,0,.22);
+}
+
+.clerk-access-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 14% 12%, rgba(21,231,255,.20), transparent 34%),
+    radial-gradient(circle at 86% 16%, rgba(133,255,71,.16), transparent 32%),
+    radial-gradient(circle at 82% 82%, rgba(159,92,255,.24), transparent 36%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%);
+}
+
+.clerk-access-orb {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(4px);
+}
+
+.clerk-access-orb-one {
+  width: 720px;
+  height: 720px;
+  left: -280px;
+  top: -260px;
+  background: radial-gradient(circle, rgba(21,231,255,.20), transparent 62%);
+}
+
+.clerk-access-orb-two {
+  width: 760px;
+  height: 760px;
+  right: -300px;
+  bottom: -310px;
+  background: radial-gradient(circle, rgba(159,92,255,.23), transparent 62%);
+}
+
+.clerk-access-grid-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .24;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black, transparent 70%);
+}
+
+.clerk-access-shell {
+  width: min(1180px, 100%);
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 40px;
+  padding: 30px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.052)),
+    radial-gradient(circle at 16% 0%, rgba(21,231,255,.14), transparent 33%),
+    radial-gradient(circle at 91% 14%, rgba(133,255,71,.10), transparent 31%),
+    radial-gradient(circle at 72% 104%, rgba(159,92,255,.18), transparent 36%);
+  box-shadow:
+    0 34px 95px rgba(0,0,0,.48),
+    inset 0 1px 0 rgba(255,255,255,.13);
+  overflow: hidden;
+}
+
+.clerk-access-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.12), transparent 22%, transparent 70%, rgba(255,255,255,.045)),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.09), transparent 28%);
+}
+
+.clerk-access-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.clerk-access-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.clerk-access-back {
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background: rgba(255,255,255,.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.clerk-access-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: right;
+}
+
+.clerk-access-brand img {
+  width: 74px;
+  height: 74px;
+  filter:
+    drop-shadow(0 14px 28px rgba(133,255,71,.25))
+    drop-shadow(0 0 24px rgba(21,231,255,.15));
+}
+
+.clerk-access-brand h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 46px;
+  line-height: .82;
+  letter-spacing: -2.4px;
+  font-weight: 800;
+}
+
+.clerk-access-brand p {
+  margin: 7px 0 0;
+  color: rgba(248,251,255,.64);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.clerk-access-layout {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.clerk-access-copy,
+.clerk-access-card {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.12), transparent 34%),
+    radial-gradient(circle at 88% 24%, rgba(133,255,71,.08), transparent 32%),
+    radial-gradient(circle at 78% 94%, rgba(159,92,255,.16), transparent 40%),
+    rgba(0,0,0,.18);
+  box-shadow:
+    0 24px 64px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+.clerk-access-copy {
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.clerk-access-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.clerk-access-copy h2 {
+  margin: 18px 0 16px;
+  color: #ffffff;
+  max-width: 640px;
+  font-size: clamp(38px, 4.6vw, 66px);
+  line-height: .92;
+  letter-spacing: -3px;
+  font-weight: 800;
+  text-shadow:
+    0 0 28px rgba(21,231,255,.12),
+    0 0 42px rgba(159,92,255,.10);
+}
+
+.clerk-access-copy p {
+  margin: 0;
+  color: rgba(248,251,255,.74);
+  font-size: 16px;
+  line-height: 1.75;
+  font-weight: 650;
+}
+
+.clerk-access-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.clerk-access-list span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(248,251,255,.86);
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.clerk-access-list svg {
+  color: var(--green);
+  filter: drop-shadow(0 0 8px rgba(133,255,71,.30));
+}
+
+.clerk-access-card {
+  padding: 26px;
+  position: relative;
+  z-index: 3;
+  overflow: visible;
+}
+
+.clerk-access-topline span {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.clerk-access-topline h3 {
+  margin: 7px 0 0;
+  color: #ffffff;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -1.2px;
+  font-weight: 800;
+}
+
+.clerk-access-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 7px;
+  margin: 18px 0 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(0,0,0,.22);
+}
+
+.clerk-access-tabs button {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 13px 14px;
+  color: rgba(248,251,255,.72);
+  background: transparent;
+  font-weight: 800;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+}
+
+.clerk-access-tabs button:hover,
+.clerk-access-tabs button.active {
+  color: #ffffff;
+  transform: translateY(-1px);
+  border-color: rgba(133,215,19,.34);
+  background:
+    radial-gradient(circle at 30% 0%, rgba(255,255,255,.16), transparent 34%),
+    linear-gradient(135deg, rgba(133,215,19,.22), rgba(21,231,255,.12));
+  box-shadow:
+    0 0 22px rgba(133,215,19,.18),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.clerk-access-panel {
+  display: grid;
+  place-items: center;
+}
+
+.clerk-root-box,
+.clerk-root-box > div {
+  width: 100%;
+}
+
+.clerk-card-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(21,231,255,.10), transparent 34%),
+    radial-gradient(circle at 90% 14%, rgba(133,215,19,.10), transparent 32%),
+    rgba(1,7,16,.72) !important;
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.clerk-title,
+.clerk-subtitle,
+.cl-formFieldLabel,
+.cl-footerActionText,
+.cl-identityPreviewText,
+.cl-formFieldInput,
+.cl-socialButtonsBlockButtonText,
+.cl-formFieldSuccessText,
+.cl-formFieldErrorText,
+.cl-alertText,
+.cl-internal-b3fm6y {
+  font-family: 'Oxanium', sans-serif !important;
+}
+
+.clerk-title {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  letter-spacing: -1px !important;
+}
+
+.clerk-subtitle {
+  color: rgba(248,251,255,.68) !important;
+}
+
+.cl-formFieldInput {
+  color: #ffffff !important;
+  background: rgba(0,0,0,.28) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  border-radius: 15px !important;
+}
+
+.cl-formFieldInput:focus {
+  box-shadow:
+    0 0 0 1px rgba(133,215,19,.42),
+    0 0 22px rgba(133,215,19,.12) !important;
+}
+
+.clerk-social-btn {
+  border-radius: 15px !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #ffffff !important;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease !important;
+}
+
+.clerk-social-btn:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(255,255,255,.13) !important;
+  box-shadow: 0 0 24px rgba(21,231,255,.14) !important;
+}
+
+.clerk-primary-btn,
+.auth-submit-btn {
+  border-radius: 16px !important;
+  color: #071006 !important;
+  font-weight: 800 !important;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.78), transparent 20%),
+    linear-gradient(135deg, #c8ff68, var(--green) 55%, #5fc300 100%) !important;
+  box-shadow:
+    0 0 28px rgba(133,215,19,.34),
+    inset 0 1px 0 rgba(255,255,255,.48) !important;
+}
+
+.auth-submit-btn {
+  border: 1px solid rgba(133,215,19,.50);
+  padding: 15px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.clerk-link {
+  color: var(--green) !important;
+  font-weight: 800 !important;
+}
+
+.clerk-access-ready {
+  min-height: 430px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 28px;
+  border-radius: 26px;
+  border: 1px solid rgba(133,215,19,.20);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(133,215,19,.16), transparent 34%),
+    radial-gradient(circle at 80% 90%, rgba(21,231,255,.12), transparent 36%),
+    rgba(0,0,0,.20);
+  box-shadow:
+    0 22px 65px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+.clerk-access-user,
+.topbar-user .cl-userButtonBox,
+.clerk-access-user .cl-userButtonBox {
+  display: grid;
+  place-items: center;
+}
+
+.clerk-access-user {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.08);
+  margin-bottom: 5px;
+}
+
+.clerk-access-ready span {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.clerk-access-ready h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: .94;
+  letter-spacing: -2px;
+  font-weight: 800;
+}
+
+.clerk-access-ready p {
+  margin: 0 0 10px;
+  max-width: 440px;
+  color: rgba(248,251,255,.72);
+  line-height: 1.65;
+}
+
+.loading-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.loading-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.08);
+  box-shadow: var(--shadow);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.missing-clerk-card {
+  max-width: 560px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.missing-clerk-card h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 28px;
+}
+
+.missing-clerk-card p {
+  margin: 0;
+  color: rgba(248,251,255,.70);
+  line-height: 1.6;
+}
+
+@media (max-width: 1180px) {
+  .searchbar {
+    grid-template-columns: auto auto auto 1fr auto auto;
+  }
+
+  .clerk-access-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-user {
+    width: 100%;
+  }
+
+  .clerk-access-page {
+    padding: 16px;
+  }
+
+  .clerk-access-shell,
+  .clerk-access-copy,
+  .clerk-access-card {
+    padding: 20px;
+  }
+
+  .clerk-access-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .clerk-access-brand {
+    text-align: left;
+  }
+
+  .clerk-access-brand img {
+    width: 62px;
+    height: 62px;
+  }
+
+  .clerk-access-brand h1 {
+    font-size: 38px;
+  }
+
+  .clerk-access-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   DASHBOARD PROFILE BUTTON — PREMIUM EVAL UPGRADE
+   Makes Clerk profile button stand out in the dashboard topbar.
+========================================================= */
+.topbar-user {
+  position: relative !important;
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  padding: 4px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 22px !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  border: 1px solid rgba(133,255,71,.34) !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.28), transparent 22%),
+    radial-gradient(circle at 76% 78%, rgba(159,92,255,.34), transparent 42%),
+    linear-gradient(145deg, rgba(21,231,255,.18), rgba(133,255,71,.13) 44%, rgba(159,92,255,.20)) !important;
+  box-shadow:
+    0 0 22px rgba(133,255,71,.20),
+    0 0 38px rgba(21,231,255,.12),
+    0 18px 42px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+  transition:
+    transform .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    background .22s ease !important;
+}
+
+.topbar-user::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(21,231,255,.55), rgba(133,255,71,.48), rgba(159,92,255,.50));
+  opacity: .46;
+  filter: blur(12px);
+  z-index: -1;
+  transition: opacity .22s ease, filter .22s ease;
+}
+
+.topbar-user::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 20px;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.22), transparent 34%, rgba(255,255,255,.08));
+  z-index: 2;
+}
+
+.topbar-user:hover {
+  transform: translateY(-3px) scale(1.035) !important;
+  border-color: rgba(255,255,255,.34) !important;
+  box-shadow:
+    0 0 28px rgba(133,255,71,.34),
+    0 0 54px rgba(21,231,255,.20),
+    0 24px 52px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+
+.topbar-user:hover::before {
+  opacity: .74;
+  filter: blur(15px);
+}
+
+.topbar-user .cl-userButtonBox,
+.topbar-user .cl-userButtonTrigger,
+.topbar-user .cl-avatarBox,
+.topbar-user button {
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  border-radius: 18px !important;
+}
+
+.topbar-user .cl-userButtonTrigger {
+  position: relative !important;
+  z-index: 4 !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.14), transparent 32%),
+    rgba(1,8,16,.58) !important;
+  box-shadow:
+    inset 0 0 18px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+  transition: transform .2s ease, box-shadow .2s ease !important;
+}
+
+.topbar-user .cl-userButtonTrigger:hover {
+  transform: scale(1.03) !important;
+}
+
+.topbar-user .cl-avatarBox {
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+  box-shadow:
+    0 0 18px rgba(133,255,71,.22),
+    inset 0 0 16px rgba(0,0,0,.24) !important;
+}
+
+.topbar-user .cl-avatarImage,
+.topbar-user .cl-avatarFallback {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 17px !important;
+}
+
+.topbar-user .cl-avatarFallback {
+  display: grid !important;
+  place-items: center !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  font-size: 18px !important;
+  letter-spacing: .02em !important;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.22), transparent 24%),
+    linear-gradient(145deg, rgba(21,231,255,.62), rgba(133,255,71,.50) 48%, rgba(159,92,255,.64)) !important;
+  text-shadow:
+    0 0 10px rgba(255,255,255,.28),
+    0 1px 2px rgba(0,0,0,.42) !important;
+}
+
+.topbar-user .cl-userButtonPopoverCard {
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(3,9,20,.92) !important;
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.44),
+    0 0 42px rgba(21,231,255,.12) !important;
+  backdrop-filter: blur(22px) !important;
+}
+
+@media (max-width: 680px) {
+  .topbar-user {
+    width: 100% !important;
+    height: 56px !important;
+    min-width: 0 !important;
+    border-radius: 18px !important;
+  }
+
+  .topbar-user .cl-userButtonBox,
+  .topbar-user .cl-userButtonTrigger,
+  .topbar-user .cl-avatarBox,
+  .topbar-user button {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+}
+
+/* =========================================================
+   EVAL TERMS AND CONDITIONS PAGE
+========================================================= */
+
+.terms-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 14% 14%, rgba(21,231,255,.16), transparent 31%),
+    radial-gradient(circle at 80% 18%, rgba(133,215,19,.13), transparent 34%),
+    radial-gradient(circle at 82% 82%, rgba(159,92,255,.20), transparent 36%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%);
+}
+
+.terms-orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(6px);
+  opacity: .88;
+}
+
+.terms-orb-one {
+  width: 700px;
+  height: 700px;
+  left: -260px;
+  top: -240px;
+  background: radial-gradient(circle, rgba(21,231,255,.18), transparent 62%);
+}
+
+.terms-orb-two {
+  width: 760px;
+  height: 760px;
+  right: -300px;
+  bottom: -320px;
+  background: radial-gradient(circle, rgba(159,92,255,.22), transparent 62%);
+}
+
+.terms-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 36px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.055)),
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.12), transparent 33%),
+    radial-gradient(circle at 88% 12%, rgba(133,215,19,.10), transparent 31%),
+    rgba(1,7,16,.68);
+  box-shadow:
+    0 34px 95px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  backdrop-filter: blur(22px);
+  padding: 30px;
+  overflow: hidden;
+}
+
+.terms-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 28%);
+  pointer-events: none;
+}
+
+.terms-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.terms-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 24px;
+  align-items: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255,255,255,.11);
+}
+
+.terms-kicker,
+.terms-accept-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .04em;
+}
+
+.terms-hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(44px, 6vw, 76px);
+  line-height: .88;
+  letter-spacing: -3.4px;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow:
+    0 0 28px rgba(21,231,255,.16),
+    0 0 42px rgba(159,92,255,.12);
+}
+
+.terms-hero p {
+  margin: 0;
+  max-width: 820px;
+  color: rgba(248,251,255,.74);
+  line-height: 1.72;
+  font-size: 16px;
+}
+
+.terms-mini-card {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(133,215,19,.16), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(21,231,255,.13), transparent 42%),
+    rgba(0,0,0,.20);
+  box-shadow:
+    0 24px 54px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+.terms-mini-card svg {
+  color: var(--green);
+  filter: drop-shadow(0 0 12px rgba(133,215,19,.40));
+}
+
+.terms-mini-card span,
+.terms-mini-card small {
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.terms-mini-card strong {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.terms-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 20px 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(255,214,107,.25);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,214,107,.12), transparent 42%),
+    rgba(255,214,107,.07);
+  color: rgba(255,244,204,.92);
+}
+
+.terms-alert svg {
+  min-width: 18px;
+  color: var(--yellow);
+  margin-top: 2px;
+}
+
+.terms-alert p {
+  margin: 0;
+  line-height: 1.58;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.terms-body {
+  display: grid;
+  gap: 14px;
+  max-height: 56vh;
+  overflow: auto;
+  padding: 4px 8px 4px 0;
+  scrollbar-width: thin;
+}
+
+.terms-section {
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,.105);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.073), rgba(255,255,255,.038)),
+    rgba(0,0,0,.15);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+}
+
+.terms-section.important {
+  border-color: rgba(255,95,115,.30);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,95,115,.12), transparent 36%),
+    linear-gradient(145deg, rgba(255,255,255,.078), rgba(255,255,255,.04)),
+    rgba(0,0,0,.18);
+  box-shadow:
+    0 0 34px rgba(255,95,115,.08),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.terms-section h2 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+
+.terms-section p {
+  margin: 10px 0 0;
+  color: rgba(248,251,255,.74);
+  font-size: 14px;
+  line-height: 1.72;
+  font-weight: 600;
+}
+
+.terms-accept-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid rgba(133,215,19,.24);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(133,215,19,.13), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(21,231,255,.10), transparent 42%),
+    rgba(0,0,0,.20);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.terms-accept-panel p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.terms-check-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  color: rgba(248,251,255,.82);
+  line-height: 1.55;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.terms-check-row input {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin-top: 2px;
+  accent-color: var(--green);
+}
+
+.terms-confirm-input {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  background: rgba(0,0,0,.26);
+  color: #ffffff;
+  outline: none;
+  padding: 15px 16px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.terms-confirm-input:focus {
+  border-color: rgba(133,215,19,.42);
+  box-shadow: 0 0 0 4px rgba(133,215,19,.10);
+}
+
+.terms-agree-btn {
+  width: 100%;
+  border: 1px solid rgba(133,215,19,.45);
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #081000;
+  font-weight: 900;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.72), transparent 20%),
+    linear-gradient(135deg, #e8ffad 0%, #85ff47 42%, #57c51e 100%);
+  box-shadow:
+    0 0 24px rgba(133,255,71,.32),
+    0 0 58px rgba(133,215,19,.17),
+    inset 0 1px 0 rgba(255,255,255,.55);
+  transition: transform .2s ease, filter .2s ease, opacity .2s ease;
+}
+
+.terms-agree-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+
+.terms-agree-btn:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+  filter: grayscale(.45);
+}
+
+@media (max-width: 820px) {
+  .terms-page {
+    padding: 16px;
+  }
+
+  .terms-shell {
+    padding: 20px;
+    border-radius: 28px;
+  }
+
+  .terms-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .terms-mini-card {
+    width: 100%;
+  }
+
+  .terms-body {
+    max-height: 54vh;
+  }
+
+  .terms-section {
+    padding: 16px;
+  }
+}
+
+/* =========================================================
+   DASHBOARD NAV + SUPPORT PAGE UPDATE
+========================================================= */
+.dashboard-link-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin: -8px 0 22px;
+  flex-wrap: wrap;
+}
+
+.dashboard-link-btn,
+.support-mini-nav button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 16px;
+  padding: 12px 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 800;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,.16), transparent 28%),
+    linear-gradient(135deg, rgba(255,255,255,.115), rgba(255,255,255,.06));
+  box-shadow:
+    0 14px 34px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.12);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.dashboard-link-btn::before,
+.support-mini-nav button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-115%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+  transition: transform .55s ease;
+  z-index: -1;
+}
+
+.dashboard-link-btn:hover,
+.support-mini-nav button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,.26);
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.31),
+    0 0 28px rgba(21,231,255,.12),
+    inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+.dashboard-link-btn:hover::before,
+.support-mini-nav button:hover::before {
+  transform: translateX(115%);
+}
+
+.dashboard-link-btn.highlight {
+  border-color: rgba(133,255,71,.25);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(133,255,71,.20), transparent 32%),
+    radial-gradient(circle at 95% 100%, rgba(159,92,255,.16), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  box-shadow:
+    0 16px 38px rgba(0,0,0,.28),
+    0 0 28px rgba(133,255,71,.12),
+    inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+.support-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.support-orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(6px);
+  z-index: 0;
+}
+
+.support-orb-one {
+  width: 760px;
+  height: 760px;
+  left: -280px;
+  top: -280px;
+  background: radial-gradient(circle, rgba(21,231,255,.18), transparent 58%);
+}
+
+.support-orb-two {
+  width: 720px;
+  height: 720px;
+  right: -260px;
+  bottom: -290px;
+  background: radial-gradient(circle, rgba(159,92,255,.22), transparent 60%);
+}
+
+.support-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, 100%);
+  padding: 30px;
+  border-radius: 36px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.055)),
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.13), transparent 34%),
+    radial-gradient(circle at 92% 16%, rgba(133,215,19,.10), transparent 30%),
+    radial-gradient(circle at 72% 104%, rgba(159,92,255,.17), transparent 38%);
+  box-shadow:
+    0 34px 95px rgba(0,0,0,.43),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.support-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.support-mini-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.support-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 22px;
+}
+
+.support-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: .03em;
+  margin-bottom: 12px;
+}
+
+.support-hero h1 {
+  margin: 0 0 14px;
+  color: #ffffff;
+  font-size: clamp(44px, 6vw, 78px);
+  line-height: .88;
+  letter-spacing: -3.5px;
+  font-weight: 800;
+  text-shadow:
+    0 0 30px rgba(21,231,255,.16),
+    0 0 42px rgba(159,92,255,.12);
+}
+
+.support-hero p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(248,251,255,.76);
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.support-contact-card,
+.support-card,
+.support-note {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.10), transparent 36%),
+    radial-gradient(circle at 92% 82%, rgba(159,92,255,.14), transparent 40%),
+    rgba(0,0,0,.20);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.support-contact-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.support-contact-card span {
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.support-contact-card h2 {
+  margin: 0 0 6px;
+  color: #ffffff;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -1.4px;
+}
+
+.support-contact-card a {
+  color: #ffffff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.07);
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+
+.support-contact-card a:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,.12);
+  border-color: rgba(133,255,71,.28);
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.support-card {
+  padding: 22px;
+}
+
+.support-card svg {
+  color: var(--green);
+  filter: drop-shadow(0 0 12px rgba(133,255,71,.24));
+}
+
+.support-card h3 {
+  margin: 13px 0 9px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.support-card p {
+  margin: 0;
+  color: rgba(248,251,255,.74);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.support-note {
+  padding: 17px 18px;
+  color: rgba(248,251,255,.70);
+  line-height: 1.6;
+  font-size: 13px;
+  text-align: center;
+}
+
+.terms-read-panel {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+@media (max-width: 980px) {
+  .dashboard-link-row {
+    justify-content: stretch;
+  }
+
+  .dashboard-link-btn {
+    flex: 1 1 190px;
+  }
+
+  .support-hero,
+  .support-grid,
+  .terms-read-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .support-page {
+    padding: 16px;
+  }
+
+  .support-shell {
+    padding: 20px;
+    border-radius: 28px;
+  }
+
+  .support-hero h1 {
+    font-size: 44px;
+    letter-spacing: -2.2px;
+  }
+
+  .support-hero p {
+    font-size: 15px;
+  }
+
+  .support-mini-nav,
+  .support-mini-nav button,
+  .dashboard-link-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   PROFILE BUTTON — AVATAR COLOR MATCHING GLOW
+   Uses --profile-accent from the signed-in user's Clerk profile image.
+========================================================= */
+.topbar-user {
+  --profile-accent: 159,92,255;
+  border-color: rgba(var(--profile-accent), .52) !important;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.30), transparent 22%),
+    radial-gradient(circle at 76% 78%, rgba(var(--profile-accent), .44), transparent 43%),
+    linear-gradient(145deg, rgba(var(--profile-accent), .34), rgba(21,231,255,.12) 48%, rgba(var(--profile-accent), .24)) !important;
+  box-shadow:
+    0 0 24px rgba(var(--profile-accent), .36),
+    0 0 54px rgba(var(--profile-accent), .18),
+    0 18px 42px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+.topbar-user::before {
+  background: linear-gradient(135deg, rgba(var(--profile-accent), .82), rgba(255,255,255,.22), rgba(var(--profile-accent), .58)) !important;
+  opacity: .58 !important;
+}
+
+.topbar-user:hover {
+  border-color: rgba(var(--profile-accent), .86) !important;
+  box-shadow:
+    0 0 34px rgba(var(--profile-accent), .54),
+    0 0 72px rgba(var(--profile-accent), .28),
+    0 24px 52px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.30) !important;
+}
+
+.topbar-user .cl-avatarBox {
+  border-color: rgba(var(--profile-accent), .55) !important;
+  box-shadow:
+    0 0 20px rgba(var(--profile-accent), .46),
+    inset 0 0 16px rgba(0,0,0,.24) !important;
+}
+
+.topbar-user .cl-userButtonTrigger {
+  box-shadow:
+    0 0 16px rgba(var(--profile-accent), .22),
+    inset 0 0 18px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.topbar-user .cl-avatarFallback {
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255,255,255,.24), transparent 24%),
+    linear-gradient(145deg, rgba(var(--profile-accent), .90), rgba(var(--profile-accent), .58), rgba(1,8,16,.78)) !important;
+}
+
+.topbar-user .cl-userButtonPopoverCard {
+  box-shadow:
+    0 28px 75px rgba(0,0,0,.44),
+    0 0 48px rgba(var(--profile-accent), .18) !important;
+}
+
+/* =========================
+   CLERK EMAIL-ONLY AUTH CLEANUP
+   Removes Google/Apple social provider buttons from the embedded Clerk UI.
+========================= */
+.clerk-social-hidden,
+.clerk-social-hidden *,
+.cl-socialButtonsBlockButton,
+.cl-socialButtonsBlockButtonText,
+.cl-socialButtons,
+.cl-socialButtonsBlock,
+.cl-dividerRow,
+.clerk-auth-divider-hidden {
+  display: none !important;
+}
+
+.clerk-access-panel .cl-card,
+.clerk-access-panel .clerk-card-shell {
+  padding-top: 30px !important;
+}
+
+/* =========================================================
+   FINAL DASHBOARD NAV / TOPBAR POSITION UPDATE
+   Moves utility links below metrics and makes top buttons consistent.
+========================================================= */
+.searchbar {
+  grid-template-columns: auto auto auto 1fr auto auto !important;
+}
+
+.topbar-user {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  padding: 4px !important;
+  border-radius: 18px !important;
+  align-self: end !important;
+}
+
+.topbar-user::before {
+  inset: -3px !important;
+  border-radius: 22px !important;
+}
+
+.topbar-user::after {
+  border-radius: 16px !important;
+}
+
+.topbar-user .cl-userButtonBox,
+.topbar-user .cl-userButtonTrigger,
+.topbar-user .cl-avatarBox,
+.topbar-user button {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  min-height: 46px !important;
+  border-radius: 15px !important;
+}
+
+.topbar-user .cl-avatarImage,
+.topbar-user .cl-avatarFallback {
+  border-radius: 14px !important;
+}
+
+.dashboard-link-row {
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: -2px 0 0 !important;
+  padding: 4px 0 2px !important;
+}
+
+.dashboard-link-btn {
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  gap: 7px !important;
+  font-size: 12px !important;
+  letter-spacing: .01em !important;
+  min-height: 42px !important;
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.11) !important;
+}
+
+.dashboard-link-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+@media (max-width: 1180px) {
+  .searchbar {
+    grid-template-columns: auto auto auto 1fr auto auto !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-user {
+    width: 100% !important;
+    height: 56px !important;
+    min-width: 0 !important;
+  }
+
+  .dashboard-link-row {
+    padding-top: 0 !important;
+  }
+}
+
+/* =========================
+   MAIN EVAL SCORE COLOR INSIGHT
+========================= */
+.score-panel {
+  position: relative;
+  overflow: visible;
+  z-index: 5;
+}
+
+.score-insight-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.score-insight-wrap.popup-active {
+  z-index: 10000;
+}
+
+.score-main-help-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  background: rgba(255,255,255,.105) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.14),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.score-main-help-btn .info-letter {
+  font-size: 13px;
+}
+
+.score-insight-popup {
+  left: 50% !important;
+  right: auto !important;
+  top: 38px !important;
+  width: min(330px, 86vw);
+  transform: translateX(-50%);
+  text-align: left;
+  padding: 16px !important;
+}
+
+.score-insight-popup.green {
+  border-color: rgba(133,255,71,.28);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(133,255,71,.16),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup.yellow {
+  border-color: rgba(255,228,95,.30);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(255,228,95,.14),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup.red {
+  border-color: rgba(255,79,103,.32);
+  box-shadow:
+    0 24px 58px rgba(0,0,0,.48),
+    0 0 34px rgba(255,79,103,.15),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.score-insight-popup p {
+  margin: 0;
+  color: rgba(248,251,255,.84);
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+
+/* =========================
+   MAIN SCORE POPUP FRONT-LAYER FIX
+   Forces the new score-color help popup above the hero/card animation layers.
+========================= */
+.hero-card {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.hero-card.score-popup-active {
+  z-index: 2147483000 !important;
+  overflow: visible !important;
+  isolation: isolate;
+}
+
+.hero-card.score-popup-active .score-panel {
+  position: relative !important;
+  z-index: 2147483001 !important;
+  overflow: visible !important;
+}
+
+.hero-card.score-popup-active .score-insight-wrap.popup-active {
+  position: relative !important;
+  z-index: 2147483002 !important;
+}
+
+.hero-card.score-popup-active .score-insight-popup {
+  z-index: 2147483003 !important;
+  pointer-events: auto;
+}
+
+/* Small assistant/topbar update */
+.assistant-kicker {
+  color: #ffffff !important;
+}
+
+.searchbar {
+  grid-template-columns: auto auto auto 1fr auto auto !important;
+}
+
+@media (max-width: 1180px) {
+  .searchbar {
+    grid-template-columns: auto auto auto 1fr auto auto !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   COMPACT DASHBOARD TOPBAR UPDATE
+   Keeps the profile separate and makes the ticker/search bubble tighter.
+========================================================= */
+.topbar {
+  grid-template-columns: minmax(320px, 1fr) auto !important;
+  align-items: start !important;
+  gap: 20px !important;
+  margin-bottom: 32px !important;
+}
+
+.topbar-actions-stack {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  width: fit-content;
+  margin-left: auto;
+}
+
+.profile-bubble {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.075);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 44px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.profile-bubble .topbar-user {
+  width: 62px !important;
+  height: 62px !important;
+  min-width: 62px !important;
+  min-height: 62px !important;
+  padding: 5px !important;
+  border-radius: 999px !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user::before,
+.profile-bubble .topbar-user::after {
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-avatarImage,
+.profile-bubble .topbar-user .cl-avatarFallback {
+  border-radius: 999px !important;
+}
+
+.compact-searchbar,
+.searchbar.compact-searchbar {
+  width: fit-content !important;
+  max-width: 100% !important;
+  grid-template-columns: 52px 340px 52px 52px 52px !important;
+  gap: 10px !important;
+  align-items: end !important;
+  padding: 10px !important;
+  border-radius: 23px !important;
+}
+
+.compact-searchbar .ticker-field {
+  width: 340px !important;
+  max-width: 340px !important;
+}
+
+.compact-searchbar input {
+  height: 52px !important;
+  padding: 12px 15px !important;
+  font-size: 20px !important;
+}
+
+.compact-searchbar button,
+.compact-searchbar .ai-nav-btn,
+.compact-searchbar .plans-nav-btn,
+.compact-searchbar .ghost-btn {
+  width: 52px !important;
+  min-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+  align-self: end !important;
+}
+
+.compact-searchbar .plans-nav-btn {
+  order: 0;
+}
+
+.compact-searchbar .ticker-field {
+  order: 1;
+}
+
+.compact-searchbar button[aria-label="Search stock"] {
+  order: 2;
+}
+
+.compact-searchbar .ghost-btn {
+  order: 3;
+}
+
+.compact-searchbar .ai-nav-btn {
+  order: 4;
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-actions-stack {
+    justify-items: start;
+    width: 100%;
+  }
+
+  .compact-searchbar,
+  .searchbar.compact-searchbar {
+    grid-template-columns: 52px minmax(190px, 340px) 52px 52px 52px !important;
+  }
+
+  .compact-searchbar .ticker-field {
+    width: auto !important;
+    max-width: 340px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar-actions-stack {
+    justify-items: stretch;
+  }
+
+  .profile-bubble {
+    justify-self: start;
+  }
+
+  .compact-searchbar,
+  .searchbar.compact-searchbar {
+    width: 100% !important;
+    grid-template-columns: repeat(4, 52px) 1fr !important;
+    align-items: end !important;
+  }
+
+  .compact-searchbar .plans-nav-btn {
+    order: 0;
+  }
+
+  .compact-searchbar button[aria-label="Search stock"] {
+    order: 1;
+  }
+
+  .compact-searchbar .ghost-btn {
+    order: 2;
+  }
+
+  .compact-searchbar .ai-nav-btn {
+    order: 3;
+  }
+
+  .compact-searchbar .ticker-field {
+    order: 4;
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* =========================================================
+   DASHBOARD TICKER BUBBLE ABOVE POWER SCORE
+   Keeps controls compact and places the search/add controls in the report column.
+========================================================= */
+.topbar {
+  margin-bottom: 20px !important;
+}
+
+.topbar-actions-stack {
+  justify-items: end !important;
+}
+
+.score-searchbar,
+.searchbar.score-searchbar {
+  justify-self: start !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 0 2px 0 !important;
+  grid-template-columns: 52px 230px 52px 52px 52px !important;
+  align-items: center !important;
+}
+
+.score-searchbar .ticker-field {
+  width: 230px !important;
+  max-width: 230px !important;
+}
+
+.score-searchbar .ticker-field label {
+  display: none !important;
+}
+
+.score-searchbar input {
+  height: 52px !important;
+  padding: 12px 15px !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: .06em !important;
+}
+
+.score-searchbar input::placeholder {
+  color: rgba(248,251,255,.48) !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+}
+
+.watch-add button:disabled,
+.score-searchbar button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+@media (max-width: 1180px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px minmax(190px, 230px) 52px 52px 52px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: auto !important;
+    max-width: 230px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    grid-template-columns: repeat(4, 52px) 1fr !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+
+/* =========================================================
+   PROFILE + WATCHLIST ALIGNMENT UPDATE
+   Removes the outer profile bubble, centers the avatar with the Eval title,
+   and lowers the watchlist so it starts with the Power Score card.
+========================================================= */
+
+.topbar {
+  align-items: center !important;
+  margin-bottom: 20px !important;
+}
+
+.topbar-actions-stack {
+  align-self: center !important;
+  justify-self: end !important;
+  justify-items: center !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.profile-bubble {
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user {
+  width: 76px !important;
+  height: 76px !important;
+  min-width: 76px !important;
+  min-height: 76px !important;
+  padding: 6px !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: center !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user .cl-avatarImage,
+.profile-bubble .topbar-user .cl-avatarFallback {
+  border-radius: 999px !important;
+}
+
+.watch-panel {
+  margin-top: 94px !important;
+}
+
+@media (max-width: 1180px) {
+  .topbar-actions-stack {
+    justify-self: start !important;
+  }
+
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .profile-bubble {
+    justify-self: start !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 68px !important;
+    height: 68px !important;
+    min-width: 68px !important;
+    min-height: 68px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+  }
+}
+
+
+/* =========================================================
+   AI ASSISTANT STARTER BUBBLE UPDATE
+   Makes the intro bubble fit the text, adds neon/gold emphasis,
+   and keeps the assistant page clean.
+========================================================= */
+
+.chat-bubble.assistant:first-child,
+.chat-bubble.assistant.intro,
+.chat-messages .chat-bubble.assistant:first-of-type {
+  max-width: 620px !important;
+  width: fit-content !important;
+  min-height: auto !important;
+  padding: 18px 20px !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,214,107,.24), transparent 30%),
+    radial-gradient(circle at 82% 12%, rgba(133,255,71,.20), transparent 34%),
+    linear-gradient(135deg, rgba(18,58,39,.94), rgba(18,43,31,.84)) !important;
+  border: 1px solid rgba(255,214,107,.72) !important;
+  box-shadow:
+    0 0 0 1px rgba(133,255,71,.18),
+    0 0 24px rgba(255,214,107,.36),
+    0 0 42px rgba(133,255,71,.18),
+    inset 0 1px 0 rgba(255,255,255,.15) !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.chat-bubble.assistant:first-child::before,
+.chat-bubble.assistant.intro::before,
+.chat-messages .chat-bubble.assistant:first-of-type::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 30px;
+  pointer-events: none;
+  border: 1px solid rgba(255,214,107,.58);
+  box-shadow:
+    0 0 18px rgba(255,214,107,.38),
+    0 0 34px rgba(133,255,71,.16);
+}
+
+.chat-bubble.assistant:first-child span,
+.chat-bubble.assistant.intro span,
+.chat-messages .chat-bubble.assistant:first-of-type span {
+  color: rgba(255,214,107,.95) !important;
+  letter-spacing: .04em;
+}
+
+.chat-bubble.assistant:first-child p,
+.chat-bubble.assistant.intro p,
+.chat-messages .chat-bubble.assistant:first-of-type p {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
+  max-width: 560px !important;
+}
+
+.chat-input textarea {
+  min-height: 64px !important;
+}
+
+@media (max-width: 680px) {
+  .chat-bubble.assistant:first-child,
+  .chat-bubble.assistant.intro,
+  .chat-messages .chat-bubble.assistant:first-of-type {
+    max-width: 100% !important;
+    width: auto !important;
+  }
+}
+
+
+/* =========================================================
+   AI ASSISTANT INTRO BUBBLE — TIGHT PURPLE / SILVER UPDATE
+   Tighter to text, purple interior, silver trim, no outside glow.
+========================================================= */
+
+.chat-messages {
+  align-content: start !important;
+}
+
+.chat-bubble.assistant:first-child,
+.chat-bubble.assistant.intro,
+.chat-messages .chat-bubble.assistant:first-of-type {
+  width: fit-content !important;
+  max-width: 610px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 15px 18px !important;
+  margin: 0 !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(135deg, rgba(72,49,122,.95), rgba(37,31,72,.92)) !important;
+  border: 1px solid rgba(224,229,238,.78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(0,0,0,.20) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.chat-bubble.assistant:first-child::before,
+.chat-bubble.assistant.intro::before,
+.chat-messages .chat-bubble.assistant:first-of-type::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 3px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(192,199,214,.42) !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+.chat-bubble.assistant:first-child::after,
+.chat-bubble.assistant.intro::after,
+.chat-messages .chat-bubble.assistant:first-of-type::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.16), transparent 34%, rgba(255,255,255,.05)) !important;
+  pointer-events: none !important;
+}
+
+.chat-bubble.assistant:first-child span,
+.chat-bubble.assistant.intro span,
+.chat-messages .chat-bubble.assistant:first-of-type span {
+  color: rgba(230,234,244,.92) !important;
+  margin-bottom: 6px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.chat-bubble.assistant:first-child p,
+.chat-bubble.assistant.intro p,
+.chat-messages .chat-bubble.assistant:first-of-type p {
+  color: #ffffff !important;
+  font-weight: 750 !important;
+  line-height: 1.45 !important;
+  max-width: 540px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.chat-panel {
+  overflow: hidden !important;
+}
+
+@media (max-width: 680px) {
+  .chat-bubble.assistant:first-child,
+  .chat-bubble.assistant.intro,
+  .chat-messages .chat-bubble.assistant:first-of-type {
+    width: auto !important;
+    max-width: 100% !important;
+  }
+}
+
+
+/* =========================================================
+   DASHBOARD WELCOME TEXT NEXT TO PROFILE
+========================================================= */
+
+.profile-welcome-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  color: #ffffff !important;
+  font-family: 'Oxanium', sans-serif !important;
+}
+
+.profile-welcome-text {
+  display: grid !important;
+  gap: 2px !important;
+  text-align: right !important;
+  color: #ffffff !important;
+  font-family: 'Oxanium', sans-serif !important;
+  line-height: 1 !important;
+}
+
+.profile-welcome-text span {
+  color: rgba(255,255,255,.72) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: .02em !important;
+  font-family: 'Oxanium', sans-serif !important;
+}
+
+.profile-welcome-text strong {
+  color: #ffffff !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -.5px !important;
+  font-family: 'Oxanium', sans-serif !important;
+}
+
+@media (max-width: 680px) {
+  .profile-welcome-wrap {
+    gap: 12px !important;
+  }
+
+  .profile-welcome-text strong {
+    font-size: 20px !important;
+  }
+
+  .profile-welcome-text span {
+    font-size: 12px !important;
+  }
+}
+
+
+/* =========================================================
+   CLICKABLE INDUSTRY + TOP 5 INDUSTRY POPUP
+========================================================= */
+
+.industry-link {
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(248,251,255,.82) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(255,255,255,.26);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.industry-link:hover {
+  color: #ffffff !important;
+  text-decoration-color: rgba(255,255,255,.82);
+}
+
+.industry-link:disabled {
+  cursor: default;
+  text-decoration: none;
+  color: var(--muted) !important;
+}
+
+.industry-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0,0,0,.58);
+  backdrop-filter: blur(10px);
+}
+
+.industry-modal {
+  width: min(560px, 100%);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.13), transparent 34%),
+    radial-gradient(circle at 92% 18%, rgba(159,92,255,.17), transparent 34%),
+    linear-gradient(145deg, rgba(7,17,31,.96), rgba(19,18,39,.96));
+  box-shadow:
+    0 34px 90px rgba(0,0,0,.48),
+    inset 0 1px 0 rgba(255,255,255,.11);
+  padding: 22px;
+}
+
+.industry-modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.industry-modal-head span {
+  display: block;
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.industry-modal-head h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.industry-close-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.08);
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.industry-list {
+  display: grid;
+  gap: 10px;
+}
+
+.industry-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  padding: 13px;
+  color: #ffffff;
+  background: rgba(255,255,255,.06);
+}
+
+.industry-row:hover {
+  background: rgba(255,255,255,.10);
+}
+
+.industry-rank {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #ffffff;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.12);
+  font-weight: 800;
+}
+
+.industry-row strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.industry-row div span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.industry-row b {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.industry-loading,
+.industry-error,
+.industry-note {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.industry-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0;
+}
+
+.industry-note {
+  font-size: 12px;
+  margin: 16px 0 0;
+  color: var(--soft);
+}
+
+/* =========================================================
+   INDUSTRY PAGE + CACHED TOP RANKINGS UPDATE
+========================================================= */
+
+.industry-page {
+  min-height: 68vh;
+  display: grid;
+  place-items: start center;
+}
+
+.industry-page-shell {
+  width: min(1180px, 100%);
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 34px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(21,231,255,.12), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(159,92,255,.18), transparent 38%),
+    linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.045));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+}
+
+.industry-page-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 22px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.industry-page-head h2 {
+  margin: 10px 0 10px;
+  color: #ffffff;
+  font-size: clamp(42px, 6vw, 74px);
+  line-height: .88;
+  letter-spacing: -3px;
+  font-weight: 800;
+}
+
+.industry-page-head p,
+.industry-explain-card p {
+  margin: 0;
+  max-width: 860px;
+  color: rgba(248,251,255,.78);
+  line-height: 1.65;
+  font-size: 16px;
+}
+
+.industry-explain-card {
+  padding: 18px 20px;
+  margin: 18px 0 22px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(0,0,0,.16);
+}
+
+.industry-explain-card strong {
+  display: block;
+  color: #ffffff;
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.industry-leader-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.industry-leader-card {
+  width: 100%;
+  min-height: 270px;
+  border-radius: 26px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 34%),
+    rgba(0,0,0,.18);
+  color: #ffffff;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 12px;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.industry-leader-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255,255,255,.09);
+}
+
+.industry-leader-card.gold {
+  border-color: rgba(255,214,107,.85);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,214,107,.25), transparent 42%),
+    rgba(0,0,0,.20);
+  box-shadow: 0 0 34px rgba(255,214,107,.18);
+}
+
+.industry-leader-card.silver {
+  border-color: rgba(224,229,238,.82);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(224,229,238,.22), transparent 42%),
+    rgba(0,0,0,.20);
+}
+
+.industry-leader-card.bronze {
+  border-color: rgba(205,127,50,.82);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(205,127,50,.24), transparent 42%),
+    rgba(0,0,0,.20);
+}
+
+.industry-medal {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+}
+
+.industry-leader-card.gold .industry-medal {
+  color: #241500;
+  background: linear-gradient(135deg, #fff4ad, #ffd66b, #ffb703);
+}
+
+.industry-leader-card.silver .industry-medal {
+  color: #111827;
+  background: linear-gradient(135deg, #ffffff, #dfe5ee, #aeb7c4);
+}
+
+.industry-leader-card.bronze .industry-medal {
+  color: #1f1005;
+  background: linear-gradient(135deg, #f1b66f, #cd7f32, #8d4b18);
+}
+
+.industry-score-pie {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  padding: 8px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.05), transparent 48%),
+    conic-gradient(from -90deg, var(--industry-ring-bright) var(--industry-score-angle), rgba(255,255,255,.09) 0deg);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.09),
+    0 0 24px var(--industry-ring-glow);
+}
+
+.industry-score-pie.green {
+  --industry-ring-bright: #85ff47;
+  --industry-ring-glow: rgba(133,255,71,.30);
+}
+
+.industry-score-pie.yellow {
+  --industry-ring-bright: #ffe45f;
+  --industry-ring-glow: rgba(255,228,95,.30);
+}
+
+.industry-score-pie.red {
+  --industry-ring-bright: #ff4f67;
+  --industry-ring-glow: rgba(255,79,103,.30);
+}
+
+.industry-score-pie.neutral {
+  --industry-ring-bright: var(--cyan);
+  --industry-ring-glow: rgba(21,231,255,.24);
+}
+
+.industry-score-pie strong {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, rgba(1,8,16,.94), rgba(4,13,26,.80));
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.industry-leader-copy h3 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.industry-leader-copy p {
+  margin: 7px 0;
+  color: rgba(248,251,255,.70);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.industry-leader-copy span {
+  display: block;
+  color: var(--soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.industry-loading-page,
+.industry-error-page {
+  min-height: 230px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.16);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .industry-leader-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .industry-page-shell {
+    padding: 18px;
+  }
+
+  .industry-page-head,
+  .industry-leader-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   BIGGER WELCOME + PROFILE AREA
+   Profile is slightly smaller than the Eval logo and text scales with it.
+========================================================= */
+
+.profile-welcome-wrap {
+  gap: 24px !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.profile-welcome-text {
+  gap: 7px !important;
+  line-height: .92 !important;
+  text-align: right !important;
+}
+
+.profile-welcome-text span {
+  font-size: clamp(20px, 1.45vw, 28px) !important;
+  font-weight: 800 !important;
+  color: rgba(255,255,255,.78) !important;
+  letter-spacing: .02em !important;
+}
+
+.profile-welcome-text strong {
+  font-size: clamp(42px, 4.1vw, 76px) !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  letter-spacing: -2.2px !important;
+  line-height: .9 !important;
+}
+
+.profile-bubble .topbar-user {
+  width: clamp(104px, 7.2vw, 124px) !important;
+  height: clamp(104px, 7.2vw, 124px) !important;
+  min-width: clamp(104px, 7.2vw, 124px) !important;
+  min-height: clamp(104px, 7.2vw, 124px) !important;
+  padding: 8px !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: clamp(92px, 6.35vw, 110px) !important;
+  height: clamp(92px, 6.35vw, 110px) !important;
+  min-width: clamp(92px, 6.35vw, 110px) !important;
+  min-height: clamp(92px, 6.35vw, 110px) !important;
+  border-radius: 999px !important;
+}
+
+.profile-bubble .topbar-user {
+  box-shadow:
+    0 0 34px rgba(var(--profile-accent), .52),
+    0 0 78px rgba(var(--profile-accent), .23),
+    inset 0 0 0 1px rgba(255,255,255,.20) !important;
+}
+
+.topbar-actions-stack {
+  align-self: center !important;
+}
+
+@media (max-width: 1180px) {
+  .profile-welcome-wrap {
+    justify-content: flex-start !important;
+  }
+
+  .profile-welcome-text {
+    text-align: left !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .profile-welcome-wrap {
+    gap: 14px !important;
+  }
+
+  .profile-welcome-text span {
+    font-size: 16px !important;
+  }
+
+  .profile-welcome-text strong {
+    font-size: 34px !important;
+    letter-spacing: -1px !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 82px !important;
+    height: 82px !important;
+    min-width: 82px !important;
+    min-height: 82px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 72px !important;
+    height: 72px !important;
+    min-width: 72px !important;
+    min-height: 72px !important;
+  }
+}
+
+
+/* =========================================================
+   PRICE / RISK SNAPSHOT UPDATE
+   Bigger price bubble, risk strengths underneath, market cap moved to Key Metrics.
+========================================================= */
+
+.snapshot-grid-refined {
+  grid-template-columns: 1fr !important;
+  align-content: center !important;
+}
+
+.price-mini-stat {
+  padding: 21px 20px !important;
+  min-height: 112px !important;
+  border-color: rgba(21,231,255,.36) !important;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.18), transparent 35%),
+    radial-gradient(circle at 92% 0%, rgba(255,255,255,.10), transparent 32%),
+    rgba(0,0,0,.24) !important;
+  box-shadow:
+    0 18px 46px rgba(0,0,0,.28),
+    0 0 24px rgba(21,231,255,.13),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+.price-mini-stat span {
+  color: rgba(248,251,255,.82) !important;
+  font-size: 13px !important;
+}
+
+.price-mini-stat b {
+  font-size: clamp(30px, 2.35vw, 42px) !important;
+  letter-spacing: -1.5px !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 18px rgba(255,255,255,.14) !important;
+}
+
+.risk-strength-summary {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(255,255,255,.09);
+}
+
+.risk-strength-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.risk-strength-summary span {
+  color: var(--soft) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.risk-strength-summary b {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  line-height: 1.2;
+  text-align: right;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 1180px) {
+  .snapshot-grid-refined {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .snapshot-grid-refined {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   SLIGHTLY SMALLER WELCOME + PROFILE AREA
+========================================================= */
+
+.profile-welcome-wrap {
+  gap: 20px !important;
+}
+
+.profile-welcome-text {
+  gap: 5px !important;
+}
+
+.profile-welcome-text span {
+  font-size: clamp(18px, 1.25vw, 24px) !important;
+}
+
+.profile-welcome-text strong {
+  font-size: clamp(36px, 3.45vw, 64px) !important;
+  letter-spacing: -1.8px !important;
+}
+
+.profile-bubble .topbar-user {
+  width: clamp(94px, 6.45vw, 112px) !important;
+  height: clamp(94px, 6.45vw, 112px) !important;
+  min-width: clamp(94px, 6.45vw, 112px) !important;
+  min-height: clamp(94px, 6.45vw, 112px) !important;
+  padding: 7px !important;
+}
+
+.profile-bubble .topbar-user .cl-userButtonBox,
+.profile-bubble .topbar-user .cl-userButtonTrigger,
+.profile-bubble .topbar-user .cl-avatarBox,
+.profile-bubble .topbar-user button {
+  width: clamp(82px, 5.65vw, 98px) !important;
+  height: clamp(82px, 5.65vw, 98px) !important;
+  min-width: clamp(82px, 5.65vw, 98px) !important;
+  min-height: clamp(82px, 5.65vw, 98px) !important;
+}
+
+@media (max-width: 680px) {
+  .profile-welcome-wrap {
+    gap: 12px !important;
+  }
+
+  .profile-welcome-text span {
+    font-size: 14px !important;
+  }
+
+  .profile-welcome-text strong {
+    font-size: 30px !important;
+    letter-spacing: -.8px !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 74px !important;
+    height: 74px !important;
+    min-width: 74px !important;
+    min-height: 74px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    min-height: 64px !important;
+  }
+}
+
+
+/* =========================================================
+   PHONE VIEW — MINI DESKTOP LAYOUT ONLY
+   Keeps desktop/laptop unchanged. This only runs on phones.
+   Goal: same top-left title / top-right profile feel, not a stacked app.
+========================================================= */
+
+@media (max-width: 680px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px !important;
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+  }
+
+  .brand {
+    min-width: 0 !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .brand img {
+    width: 62px !important;
+    height: 62px !important;
+  }
+
+  .brand h1 {
+    font-size: clamp(40px, 12vw, 52px) !important;
+    letter-spacing: -2.4px !important;
+    line-height: .82 !important;
+  }
+
+  .topbar-actions-stack {
+    width: auto !important;
+    margin-left: 0 !important;
+    justify-self: end !important;
+    justify-items: end !important;
+    align-self: center !important;
+  }
+
+  .profile-welcome-wrap {
+    gap: 8px !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+
+  .profile-welcome-text {
+    text-align: right !important;
+    gap: 2px !important;
+    line-height: .9 !important;
+  }
+
+  .profile-welcome-text span {
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+
+  .profile-welcome-text strong {
+    font-size: clamp(18px, 6vw, 24px) !important;
+    letter-spacing: -.7px !important;
+    line-height: .92 !important;
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-bubble {
+    justify-self: end !important;
+  }
+
+  .profile-bubble .topbar-user {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    padding: 4px !important;
+  }
+
+  .profile-bubble .topbar-user .cl-userButtonBox,
+  .profile-bubble .topbar-user .cl-userButtonTrigger,
+  .profile-bubble .topbar-user .cl-avatarBox,
+  .profile-bubble .topbar-user button {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+  }
+
+  .layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 116px !important;
+    gap: 8px !important;
+    align-items: start !important;
+  }
+
+  .content {
+    min-width: 0 !important;
+    gap: 9px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: 34px minmax(72px, 1fr) 34px 34px 34px !important;
+    gap: 5px !important;
+    padding: 6px !important;
+    border-radius: 16px !important;
+    align-items: center !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .score-searchbar input {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 7px 8px !important;
+    font-size: 14px !important;
+    letter-spacing: .04em !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .hero-card {
+    display: grid !important;
+    grid-template-columns: 104px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    min-height: 0 !important;
+    border-radius: 22px !important;
+    align-items: center !important;
+  }
+
+  .score-panel {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    align-content: center !important;
+    justify-items: center !important;
+  }
+
+  .score-ring {
+    width: 96px !important;
+    height: 96px !important;
+    padding: 9px !important;
+  }
+
+  .score-core strong {
+    font-size: 38px !important;
+    letter-spacing: -1.8px !important;
+  }
+
+  .score-insight-wrap {
+    margin-top: 7px !important;
+  }
+
+  .score-main-help-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+  }
+
+  .company-panel {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+  }
+
+  .assistant-kicker,
+  .eyebrow,
+  .section-title {
+    font-size: 9px !important;
+    gap: 4px !important;
+  }
+
+  .company-panel h2 {
+    font-size: clamp(21px, 7vw, 28px) !important;
+    letter-spacing: -1.1px !important;
+    margin: 6px 0 !important;
+    max-width: 100% !important;
+  }
+
+  .subline {
+    font-size: 10px !important;
+    margin: 0 0 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  .hero-actions {
+    gap: 6px !important;
+  }
+
+  .hero-actions button,
+  .hero-actions a {
+    min-height: 30px !important;
+    padding: 7px 9px !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+  }
+
+  .hero-actions svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .snapshot-grid,
+  .snapshot-grid-refined {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    align-content: start !important;
+  }
+
+  .mini-stat {
+    padding: 8px !important;
+    border-radius: 13px !important;
+  }
+
+  .mini-stat span {
+    font-size: 9px !important;
+    gap: 4px !important;
+  }
+
+  .mini-stat b {
+    margin-top: 5px !important;
+    font-size: 15px !important;
+    line-height: 1.05 !important;
+  }
+
+  .price-mini-stat {
+    min-height: 0 !important;
+    padding: 10px !important;
+  }
+
+  .price-mini-stat b {
+    font-size: 20px !important;
+    letter-spacing: -.8px !important;
+  }
+
+  .risk-strength-summary {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    gap: 5px !important;
+  }
+
+  .risk-strength-summary span {
+    font-size: 8px !important;
+  }
+
+  .risk-strength-summary b {
+    font-size: 9px !important;
+  }
+
+  .grade-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .grade-card {
+    padding: 10px !important;
+    border-radius: 17px !important;
+  }
+
+  .grade-head {
+    gap: 6px !important;
+  }
+
+  .grade-head h3 {
+    font-size: 10px !important;
+  }
+
+  .grade-line {
+    height: 6px !important;
+    margin: 10px 0 7px !important;
+  }
+
+  .grade-card strong {
+    font-size: 22px !important;
+  }
+
+  .grade-card p {
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+  }
+
+  .metrics-card {
+    padding: 12px !important;
+    border-radius: 20px !important;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .metric-tile {
+    padding: 10px !important;
+    border-radius: 15px !important;
+  }
+
+  .metric-tile h3 {
+    font-size: 10px !important;
+  }
+
+  .metric-tile div span {
+    font-size: 8px !important;
+    max-width: 42% !important;
+  }
+
+  .metric-tile strong {
+    font-size: 18px !important;
+    margin: 7px 0 5px !important;
+  }
+
+  .metric-tile p,
+  .metric-tile small {
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+  }
+
+  .watch-panel {
+    position: static !important;
+    order: initial !important;
+    width: 116px !important;
+    max-width: 116px !important;
+    max-height: none !important;
+    margin-top: 43px !important;
+    padding: 8px !important;
+    border-radius: 18px !important;
+    overflow: visible !important;
+  }
+
+  .panel-head {
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .panel-head h2 {
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+
+  .panel-head p {
+    display: none !important;
+  }
+
+  .icon-btn,
+  .delete-btn {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 9px !important;
+  }
+
+  .icon-btn svg,
+  .delete-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .watch-add {
+    grid-template-columns: 1fr 28px !important;
+    gap: 5px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .watch-add label {
+    display: none !important;
+  }
+
+  .watch-add input {
+    height: 28px !important;
+    padding: 5px 6px !important;
+    border-radius: 9px !important;
+    font-size: 10px !important;
+    letter-spacing: .05em !important;
+  }
+
+  .watch-add button {
+    width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .watch-list {
+    gap: 7px !important;
+  }
+
+  .watch-row {
+    grid-template-columns: 1fr 42px 24px !important;
+    gap: 5px !important;
+    padding: 7px !important;
+    border-radius: 14px !important;
+  }
+
+  .watch-info strong {
+    font-size: 11px !important;
+  }
+
+  .watch-score-ring {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 4px !important;
+  }
+
+  .watch-score-ring strong {
+    font-size: 10px !important;
+    letter-spacing: -.3px !important;
+  }
+
+  .dashboard-link-row {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    padding-top: 0 !important;
+  }
+
+  .dashboard-link-row button {
+    min-height: 34px !important;
+    padding: 7px 6px !important;
+    border-radius: 11px !important;
+    font-size: 9px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 104px !important;
+    gap: 6px !important;
+  }
+
+  .watch-panel {
+    width: 104px !important;
+    max-width: 104px !important;
+  }
+
+  .hero-card {
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+    padding: 8px !important;
+  }
+
+  .score-ring {
+    width: 86px !important;
+    height: 86px !important;
+  }
+
+  .score-core strong {
+    font-size: 34px !important;
+  }
+
+  .company-panel h2 {
+    font-size: 20px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 31px minmax(58px, 1fr) 31px 31px 31px !important;
+    gap: 4px !important;
+    padding: 5px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn {
+    width: 31px !important;
+    min-width: 31px !important;
+    height: 31px !important;
+    min-height: 31px !important;
+  }
+
+  .score-searchbar input {
+    height: 31px !important;
+    min-height: 31px !important;
+    font-size: 12px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE CLEANUP ONLY
+   Desktop/laptop layout stays unchanged.
+   - Hide detailed descriptions on phone
+   - Move watchlist to its own mobile page
+   - Fix ticker/action button alignment under title
+========================================================= */
+
+.mobile-watchlist-nav-btn {
+  display: none !important;
+}
+
+.mobile-watchlist-page {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  /* Remove the longer explanation text only on phone */
+  .grade-description,
+  .metric-tile p,
+  .metric-tile small,
+  .metric-description,
+  .metric-source,
+  .market-cap-explanation {
+    display: none !important;
+  }
+
+  .grade-card {
+    min-height: 0 !important;
+  }
+
+  .metric-tile {
+    min-height: 0 !important;
+  }
+
+  /* Main dashboard should use the full width because watchlist becomes its own page */
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .layout > .watch-panel:not(.mobile-watch-panel) {
+    display: none !important;
+  }
+
+  .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+  }
+
+  .mobile-watchlist-page {
+    display: grid !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .mobile-watchlist-back {
+    width: fit-content !important;
+    min-height: 40px !important;
+    padding: 10px 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  .mobile-watch-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .mobile-watch-panel .panel-head p {
+    display: block !important;
+    font-size: 12px !important;
+  }
+
+  .mobile-watch-panel .watch-add {
+    grid-template-columns: 1fr 46px !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add input {
+    height: 46px !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add button {
+    width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-list {
+    gap: 10px !important;
+  }
+
+  .mobile-watch-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-info strong {
+    font-size: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring strong {
+    font-size: 16px !important;
+  }
+
+  .mobile-watch-panel .delete-btn,
+  .mobile-watch-panel .icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 13px !important;
+  }
+
+  /* Ticker bubble: keep all buttons in a clean row under the title */
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 36px minmax(90px, 1fr) 36px 36px 36px 36px !important;
+    gap: 6px !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 7px !important;
+    border-radius: 17px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 8px 9px !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    letter-spacing: .05em !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    align-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* With no watchlist column, the hero can breathe more on mobile */
+  .hero-card {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+  }
+
+  .score-ring {
+    width: 106px !important;
+    height: 106px !important;
+  }
+
+  .score-core strong {
+    font-size: 42px !important;
+  }
+
+  .grade-grid,
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 32px minmax(72px, 1fr) 32px 32px 32px 32px !important;
+    gap: 5px !important;
+    padding: 6px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar input {
+    height: 32px !important;
+    min-height: 32px !important;
+    font-size: 12px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE ADD TICKER BUBBLE FIX
+   Desktop/laptop unchanged.
+   - Smaller buttons
+   - Smaller ticker input
+   - Watchlist button forced to far right
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 30px minmax(58px, 82px) 30px 30px 30px 30px !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: 5px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 0 auto 8px !important;
+    padding: 6px !important;
+    border-radius: 15px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 82px !important;
+    min-width: 58px !important;
+    max-width: 82px !important;
+  }
+
+  .score-searchbar input {
+    width: 82px !important;
+    max-width: 82px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 6px 7px !important;
+    font-size: 11px !important;
+    letter-spacing: .04em !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+    grid-column: 6 !important;
+    justify-self: end !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px minmax(52px, 70px) 28px 28px 28px 28px !important;
+    gap: 4px !important;
+    padding: 5px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 70px !important;
+    max-width: 70px !important;
+  }
+
+  .score-searchbar input {
+    width: 70px !important;
+    max-width: 70px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 10px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE TICKER BUBBLE HARD ORDER FIX
+   Fixes phone-only control ordering shown in screenshot.
+   Desktop/laptop unchanged.
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 30px 30px minmax(68px, 86px) 30px 30px 30px !important;
+    grid-auto-flow: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    column-gap: 5px !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 26px) !important;
+    margin: 0 auto 10px !important;
+    padding: 6px 8px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Exact mobile order:
+     1 Plans, 2 Search, 3 Ticker input, 4 Add, 5 AI, 6 Watchlist */
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 86px !important;
+    min-width: 68px !important;
+    max-width: 86px !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar input {
+    width: 86px !important;
+    max-width: 86px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 6px 7px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    letter-spacing: .045em !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .score-searchbar label {
+    display: none !important;
+  }
+
+  /* Prevent iPhone text cursor/keyboard focus from stretching the grid */
+  .score-searchbar:focus-within {
+    width: fit-content !important;
+    max-width: calc(100vw - 26px) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px 28px minmax(60px, 74px) 28px 28px 28px !important;
+    column-gap: 4px !important;
+    padding: 5px 7px !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 74px !important;
+    min-width: 60px !important;
+    max-width: 74px !important;
+  }
+
+  .score-searchbar input {
+    width: 74px !important;
+    max-width: 74px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 11px !important;
+    padding: 5px 6px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE WATCHLIST BUTTON + SEPARATE PAGE
+   Desktop/laptop unchanged.
+========================================================= */
+
+.mobile-watchlist-nav-btn {
+  display: none !important;
+}
+
+.mobile-watchlist-page {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+  }
+
+  /* Keep desktop sidebar hidden on mobile because watchlist has its own page */
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .layout > .watch-panel:not(.mobile-watch-panel) {
+    display: none !important;
+  }
+
+  .mobile-watchlist-page {
+    display: grid !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .mobile-watchlist-back {
+    width: fit-content !important;
+    min-height: 40px !important;
+    padding: 10px 13px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 0 !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  .mobile-watch-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .mobile-watch-panel .panel-head p {
+    display: block !important;
+    font-size: 12px !important;
+  }
+
+  .mobile-watch-panel .watch-add {
+    grid-template-columns: 1fr 46px !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add input {
+    height: 46px !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-add button {
+    width: 46px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .mobile-watch-panel .watch-list {
+    gap: 10px !important;
+  }
+
+  .mobile-watch-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-info strong {
+    font-size: 18px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .mobile-watch-panel .watch-score-ring strong {
+    font-size: 16px !important;
+  }
+
+  .mobile-watch-panel .delete-btn,
+  .mobile-watch-panel .icon-btn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 13px !important;
+  }
+
+  /* Final phone ticker order:
+     Plans | Search | Input | Add | AI | Watchlist */
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 28px 28px minmax(62px, 78px) 28px 28px 28px !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto 10px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    width: 78px !important;
+    max-width: 78px !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar input {
+    width: 78px !important;
+    max-width: 78px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: 11px !important;
+    text-align: center !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+  }
+
+  .score-searchbar svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE FULL-WIDTH TICKER BUBBLE
+   Desktop/laptop unchanged.
+   Makes the add ticker bubble match the main Power Score card width
+   and enlarges the input/buttons for easier phone typing.
+========================================================= */
+
+@media (max-width: 680px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 8px !important;
+    border-radius: 18px !important;
+    display: grid !important;
+    grid-template-columns: 38px 38px minmax(118px, 1fr) 38px 38px 38px !important;
+    gap: 7px !important;
+    justify-content: stretch !important;
+    justify-items: center !important;
+    align-items: center !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 6 !important;
+    display: inline-flex !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    max-width: none !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 9px 11px !important;
+    font-size: 15px !important;
+    letter-spacing: .055em !important;
+    border-radius: 13px !important;
+    text-align: left !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .score-searchbar svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .score-searchbar:focus-within {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(96px, 1fr) 34px 34px 34px !important;
+    gap: 5px !important;
+    padding: 7px !important;
+  }
+
+  .score-searchbar input {
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 13px !important;
+    padding: 8px 9px !important;
+    border-radius: 12px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    border-radius: 11px !important;
+  }
+
+  .score-searchbar svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+}
+
+
+/* =========================================================
+   AI ASSISTANT BUBBLE BLEND + INPUT SPACING UPDATE
+   Makes the intro bubble blend with the main dashboard background
+   and raises the ask input closer to it.
+========================================================= */
+
+.chat-bubble.assistant:first-child,
+.chat-bubble.assistant.intro,
+.chat-messages .chat-bubble.assistant:first-of-type {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(21,231,255,.10), transparent 36%),
+    radial-gradient(circle at 88% 14%, rgba(133,215,19,.08), transparent 34%),
+    radial-gradient(circle at 78% 86%, rgba(159,92,255,.14), transparent 42%),
+    linear-gradient(135deg, rgba(16,42,45,.96), rgba(28,31,50,.94) 52%, rgba(26,20,48,.92)) !important;
+  border: 1px solid rgba(210,216,226,.68) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(0,0,0,.22) !important;
+}
+
+.chat-bubble.assistant:first-child::before,
+.chat-bubble.assistant.intro::before,
+.chat-messages .chat-bubble.assistant:first-of-type::before {
+  border: 1px solid rgba(198,207,221,.36) !important;
+  box-shadow: none !important;
+}
+
+.chat-bubble.assistant:first-child::after,
+.chat-bubble.assistant.intro::after,
+.chat-messages .chat-bubble.assistant:first-of-type::after {
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.13), transparent 38%, rgba(255,255,255,.04)) !important;
+}
+
+.chat-messages {
+  min-height: 285px !important;
+  max-height: 46vh !important;
+  align-content: start !important;
+}
+
+.chat-input {
+  margin-top: 8px !important;
+}
+
+.chat-panel {
+  padding-bottom: 14px !important;
+}
+
+@media (max-width: 680px) {
+  .chat-messages {
+    min-height: 230px !important;
+    max-height: 42vh !important;
+  }
+
+  .chat-input {
+    margin-top: 7px !important;
+  }
+}
+
+
+/* =========================================================
+   GLASSMORPHISM SCORE RINGS — SITEWIDE
+   Applies to the main Power Score, watchlist mini rings,
+   industry ranking score rings, and landing preview ring.
+   Rings still fill from the top / 12 o'clock position.
+========================================================= */
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255,255,255,.32), transparent 24%),
+    radial-gradient(circle at 68% 76%, rgba(21,231,255,.14), transparent 38%),
+    radial-gradient(circle at 28% 84%, rgba(159,92,255,.15), transparent 36%),
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff))) var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -14px 28px rgba(0,0,0,.28),
+    0 22px 58px rgba(0,0,0,.34),
+    0 0 36px var(--ring-glow, var(--watch-glow, var(--industry-ring-glow, rgba(21,231,255,.26)))) !important;
+  backdrop-filter: blur(16px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
+  overflow: visible !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before {
+  background:
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright)) var(--score-angle, var(--watch-score-angle)), transparent 0deg) !important;
+  filter: blur(12px) !important;
+  opacity: .30 !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after {
+  inset: 9px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.018) 44%, rgba(0,0,0,.16)),
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.18), transparent 28%) !important;
+  box-shadow:
+    inset 0 0 22px rgba(255,255,255,.045),
+    inset 0 0 34px rgba(0,0,0,.36) !important;
+}
+
+.score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.preview-score-ring strong {
+  background:
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.13), transparent 28%),
+    linear-gradient(145deg, rgba(255,255,255,.095), rgba(5,12,24,.68) 38%, rgba(0,0,0,.52)) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 0 30px rgba(0,0,0,.38) !important;
+  backdrop-filter: blur(12px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
+}
+
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green {
+  --ring-bright: rgba(133,255,71,.96);
+  --watch-ring-bright: rgba(133,255,71,.96);
+  --industry-ring-bright: rgba(133,255,71,.96);
+  --ring-glow: rgba(133,255,71,.34);
+  --watch-glow: rgba(133,255,71,.30);
+  --industry-ring-glow: rgba(133,255,71,.28);
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow {
+  --ring-bright: rgba(255,228,95,.98);
+  --watch-ring-bright: rgba(255,228,95,.98);
+  --industry-ring-bright: rgba(255,228,95,.98);
+  --ring-glow: rgba(255,228,95,.34);
+  --watch-glow: rgba(255,228,95,.30);
+  --industry-ring-glow: rgba(255,228,95,.28);
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red {
+  --ring-bright: rgba(255,79,103,.98);
+  --watch-ring-bright: rgba(255,79,103,.98);
+  --industry-ring-bright: rgba(255,79,103,.98);
+  --ring-glow: rgba(255,79,103,.34);
+  --watch-glow: rgba(255,79,103,.30);
+  --industry-ring-glow: rgba(255,79,103,.28);
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.industry-score-pie.neutral {
+  --ring-bright: rgba(21,231,255,.96);
+  --watch-ring-bright: rgba(21,231,255,.96);
+  --industry-ring-bright: rgba(21,231,255,.96);
+  --ring-glow: rgba(21,231,255,.30);
+  --watch-glow: rgba(21,231,255,.26);
+  --industry-ring-glow: rgba(21,231,255,.24);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: rgba(21,231,255,.95);
+  --ring-glow: rgba(21,231,255,.28);
+}
+
+
+/* =========================================================
+   GLASSMORPHISM SCORE BARS — CATEGORY CARDS
+   Keeps Growth / Profitability / Financial Health / Valuation /
+   Momentum / Pullback as bars while matching the glass ring theme.
+========================================================= */
+
+.grade-line {
+  height: 9px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.045)),
+    rgba(0,0,0,.22) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(0,0,0,.28) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.grade-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.18), transparent 24%, rgba(255,255,255,.04) 58%, transparent);
+  opacity: .55;
+}
+
+.grade-line span {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.34), transparent 30%, rgba(255,255,255,.13) 64%, transparent);
+  opacity: .72;
+}
+
+.grade-line span.green {
+  background:
+    linear-gradient(90deg, rgba(81,255,95,.96), rgba(133,255,71,.96), rgba(21,231,255,.72)) !important;
+  box-shadow:
+    0 0 18px rgba(133,255,71,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.yellow {
+  background:
+    linear-gradient(90deg, rgba(255,214,107,.96), rgba(255,228,95,.98), rgba(255,255,255,.55)) !important;
+  box-shadow:
+    0 0 18px rgba(255,228,95,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.red {
+  background:
+    linear-gradient(90deg, rgba(255,79,103,.98), rgba(255,95,115,.92), rgba(255,214,107,.46)) !important;
+  box-shadow:
+    0 0 18px rgba(255,79,103,.34),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-line span.neutral {
+  background:
+    linear-gradient(90deg, rgba(111,140,255,.92), rgba(21,231,255,.92), rgba(255,255,255,.45)) !important;
+  box-shadow:
+    0 0 18px rgba(21,231,255,.30),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+.grade-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.075), transparent 36%),
+    radial-gradient(circle at 96% 18%, rgba(159,92,255,.085), transparent 34%),
+    rgba(255,255,255,.074) !important;
+}
+
+.grade-card strong.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 18px rgba(133,255,71,.18);
+}
+
+.grade-card strong.yellow {
+  color: #ffe45f !important;
+  text-shadow: 0 0 18px rgba(255,228,95,.18);
+}
+
+.grade-card strong.red {
+  color: #ff4f67 !important;
+  text-shadow: 0 0 18px rgba(255,79,103,.18);
+}
+
+.grade-card strong.neutral {
+  color: #15e7ff !important;
+  text-shadow: 0 0 18px rgba(21,231,255,.16);
+}
+
+@media (max-width: 680px) {
+  .grade-line {
+    height: 7px !important;
+  }
+}
+
+
+/* =========================================================
+   PULSE RING SCORE STYLE — SITEWIDE
+   Applies to main Power Score, watchlist mini rings,
+   industry ranking rings, and landing preview ring.
+   Rings still fill from the top / 12 o'clock position.
+========================================================= */
+
+@keyframes evalPulseRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: .48;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: .82;
+  }
+}
+
+@keyframes evalPulseGlow {
+  0%, 100% {
+    filter: blur(13px);
+    opacity: .32;
+  }
+  50% {
+    filter: blur(18px);
+    opacity: .62;
+  }
+}
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff))) var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 30px var(--ring-glow, var(--watch-glow, var(--industry-ring-glow, rgba(21,231,255,.28)))) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  background:
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright)) var(--score-angle, var(--watch-score-angle)), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .44 !important;
+  z-index: -1 !important;
+  animation: evalPulseGlow 2.4s ease-in-out infinite !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ring-bright, var(--watch-ring-bright)) !important;
+  opacity: .32 !important;
+  box-shadow:
+    0 0 22px var(--ring-glow, var(--watch-glow)),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  animation: evalPulseRing 2.4s ease-in-out infinite !important;
+}
+
+.score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.preview-score-ring strong {
+  background:
+    radial-gradient(circle at 50% 36%, rgba(255,255,255,.085), transparent 30%),
+    linear-gradient(145deg, rgba(1,8,16,.96), rgba(4,13,26,.82)) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 32px rgba(0,0,0,.48),
+    inset 0 0 18px rgba(255,255,255,.035) !important;
+}
+
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green {
+  --ring-bright: #85ff47;
+  --watch-ring-bright: #85ff47;
+  --industry-ring-bright: #85ff47;
+  --ring-glow: rgba(133,255,71,.42);
+  --watch-glow: rgba(133,255,71,.35);
+  --industry-ring-glow: rgba(133,255,71,.32);
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow {
+  --ring-bright: #ffe45f;
+  --watch-ring-bright: #ffe45f;
+  --industry-ring-bright: #ffe45f;
+  --ring-glow: rgba(255,228,95,.42);
+  --watch-glow: rgba(255,228,95,.36);
+  --industry-ring-glow: rgba(255,228,95,.32);
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red {
+  --ring-bright: #ff4f67;
+  --watch-ring-bright: #ff4f67;
+  --industry-ring-bright: #ff4f67;
+  --ring-glow: rgba(255,79,103,.42);
+  --watch-glow: rgba(255,79,103,.36);
+  --industry-ring-glow: rgba(255,79,103,.32);
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.industry-score-pie.neutral {
+  --ring-bright: #15e7ff;
+  --watch-ring-bright: #15e7ff;
+  --industry-ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.36);
+  --watch-glow: rgba(21,231,255,.30);
+  --industry-ring-glow: rgba(21,231,255,.28);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.32);
+}
+
+/* =========================================================
+   PULSE THEME SCORE BARS — CATEGORY CARDS
+   Bars stay bars, but match the pulse/neon ring theme.
+========================================================= */
+
+.grade-line {
+  height: 9px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.035)),
+    rgba(0,0,0,.24) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.28) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.grade-line span {
+  position: relative !important;
+  height: 100% !important;
+  border-radius: 999px !important;
+  overflow: visible !important;
+}
+
+.grade-line span::before {
+  content: "";
+  position: absolute;
+  inset: -5px -8px;
+  border-radius: 999px;
+  background: inherit;
+  filter: blur(10px);
+  opacity: .42;
+  pointer-events: none;
+  animation: evalPulseGlow 2.4s ease-in-out infinite;
+}
+
+.grade-line span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 14px currentColor,
+    0 0 24px currentColor;
+  opacity: .88;
+}
+
+.grade-line span.green {
+  color: #85ff47 !important;
+  background: linear-gradient(90deg, rgba(133,255,71,.52), #85ff47) !important;
+  box-shadow: 0 0 17px rgba(133,255,71,.34) !important;
+}
+
+.grade-line span.yellow {
+  color: #ffe45f !important;
+  background: linear-gradient(90deg, rgba(255,228,95,.52), #ffe45f) !important;
+  box-shadow: 0 0 17px rgba(255,228,95,.34) !important;
+}
+
+.grade-line span.red {
+  color: #ff4f67 !important;
+  background: linear-gradient(90deg, rgba(255,79,103,.52), #ff4f67) !important;
+  box-shadow: 0 0 17px rgba(255,79,103,.34) !important;
+}
+
+.grade-line span.neutral {
+  color: #15e7ff !important;
+  background: linear-gradient(90deg, rgba(21,231,255,.50), #15e7ff) !important;
+  box-shadow: 0 0 17px rgba(21,231,255,.30) !important;
+}
+
+.grade-card {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.06), transparent 36%),
+    radial-gradient(circle at 96% 18%, rgba(159,92,255,.07), transparent 34%),
+    rgba(255,255,255,.074) !important;
+}
+
+.grade-card strong.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 18px rgba(133,255,71,.20);
+}
+
+.grade-card strong.yellow {
+  color: #ffe45f !important;
+  text-shadow: 0 0 18px rgba(255,228,95,.20);
+}
+
+.grade-card strong.red {
+  color: #ff4f67 !important;
+  text-shadow: 0 0 18px rgba(255,79,103,.20);
+}
+
+.grade-card strong.neutral {
+  color: #15e7ff !important;
+  text-shadow: 0 0 18px rgba(21,231,255,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-ring::before,
+  .score-ring::after,
+  .watch-score-ring::before,
+  .watch-score-ring::after,
+  .grade-line span::before {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .grade-line {
+    height: 7px !important;
+  }
+
+  .grade-line span::after {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+
+/* =========================================================
+   REMOVE WHITE CAPS FROM CATEGORY BARS
+   Keeps the neon/pulse bar theme but removes the white base/end marks.
+========================================================= */
+
+.grade-line span::after {
+  display: none !important;
+  content: none !important;
+}
+
+.grade-line::after {
+  opacity: .18 !important;
+}
+
+.grade-line span {
+  box-shadow:
+    0 0 14px currentColor,
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.18) !important;
+}
+
+
+/* =========================================================
+   SOFI REFERRAL BUTTON + INDUSTRY PULSE RINGS UPDATE
+   - Adds a small SoFi-style referral button next to AI
+   - Ensures industry ranking score rings use the pulse style too
+========================================================= */
+
+.sofi-referral-btn {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 180, 176, .72);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: -.2px;
+  background:
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.38), transparent 21%),
+    linear-gradient(135deg, #00b4b0 0%, #008f91 46%, #055b67 100%);
+  box-shadow:
+    0 0 18px rgba(0,180,176,.34),
+    0 0 38px rgba(0,116,128,.20),
+    inset 0 1px 0 rgba(255,255,255,.32);
+}
+
+.sofi-referral-btn span {
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.sofi-referral-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+/* Industry ranking score rings were still carrying older glass styling.
+   Force them into the same pulse/neon language as the main and watchlist rings. */
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--industry-ring-bright, #15e7ff) var(--industry-score-angle, 0deg), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 22px rgba(0,0,0,.32),
+    0 12px 34px rgba(0,0,0,.30),
+    0 0 24px var(--industry-ring-glow, rgba(21,231,255,.28)) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.industry-score-pie::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from -90deg, var(--industry-ring-bright, #15e7ff) var(--industry-score-angle, 0deg), transparent 0deg);
+  filter: blur(11px);
+  opacity: .42;
+  z-index: -1;
+  animation: evalPulseGlow 2.4s ease-in-out infinite;
+}
+
+.industry-score-pie::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--industry-ring-bright, #15e7ff);
+  opacity: .28;
+  box-shadow: 0 0 18px var(--industry-ring-glow, rgba(21,231,255,.28));
+  pointer-events: none;
+  animation: evalPulseRing 2.4s ease-in-out infinite;
+}
+
+.industry-score-pie strong {
+  position: relative;
+  z-index: 1;
+}
+
+.industry-score-pie.green {
+  --industry-ring-bright: #85ff47;
+  --industry-ring-glow: rgba(133,255,71,.32);
+}
+
+.industry-score-pie.yellow {
+  --industry-ring-bright: #ffe45f;
+  --industry-ring-glow: rgba(255,228,95,.32);
+}
+
+.industry-score-pie.red {
+  --industry-ring-bright: #ff4f67;
+  --industry-ring-glow: rgba(255,79,103,.32);
+}
+
+.industry-score-pie.neutral {
+  --industry-ring-bright: #15e7ff;
+  --industry-ring-glow: rgba(21,231,255,.28);
+}
+
+@media (max-width: 680px) {
+  .sofi-referral-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border-radius: 12px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 9px !important;
+    letter-spacing: -.3px;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 38px 38px minmax(95px, 1fr) 38px 38px 38px 38px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 7 !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .sofi-referral-btn {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    border-radius: 11px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 8px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(78px, 1fr) 34px 34px 34px 34px !important;
+    gap: 5px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .industry-score-pie::before,
+  .industry-score-pie::after {
+    animation: none !important;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP + MOBILE TICKER BUBBLE LAYOUT FIX
+   Fixes SoFi button squeezing the dashboard ticker bubble.
+   - Desktop: one clean row above Power Score
+   - Watchlist top aligns with Power Score card
+   - Mobile: full-width one-row layout stays usable
+========================================================= */
+
+/* Desktop/tablet default */
+.score-searchbar,
+.searchbar.score-searchbar {
+  width: min(100%, 820px) !important;
+  max-width: 820px !important;
+  display: grid !important;
+  grid-template-columns: 56px 56px minmax(180px, 280px) 56px 56px 56px 56px !important;
+  gap: 10px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  justify-items: center !important;
+  padding: 12px !important;
+  margin: 0 auto 22px !important;
+  border-radius: 26px !important;
+}
+
+.score-searchbar .plans-nav-btn {
+  grid-column: 1 !important;
+}
+
+.score-searchbar > button[aria-label="Search stock"] {
+  grid-column: 2 !important;
+}
+
+.score-searchbar .ticker-field {
+  grid-column: 3 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+.score-searchbar .ghost-btn {
+  grid-column: 4 !important;
+}
+
+.score-searchbar .ai-nav-btn {
+  grid-column: 5 !important;
+}
+
+.score-searchbar .sofi-referral-btn {
+  grid-column: 6 !important;
+}
+
+.score-searchbar .mobile-watchlist-nav-btn {
+  grid-column: 7 !important;
+}
+
+.score-searchbar input {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.score-searchbar button,
+.score-searchbar .plans-nav-btn,
+.score-searchbar .ghost-btn,
+.score-searchbar .ai-nav-btn,
+.score-searchbar .mobile-watchlist-nav-btn,
+.score-searchbar .sofi-referral-btn {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  padding: 0 !important;
+  align-self: center !important;
+  justify-self: center !important;
+}
+
+/* Hide mobile-only watchlist button on desktop so the row does not overflow */
+.mobile-watchlist-nav-btn {
+  display: none !important;
+}
+
+/* Align the watchlist top with the Power Score card, not the ticker bubble */
+.watch-panel {
+  margin-top: 0 !important;
+}
+
+/* Keep top ticker area from creating weird overflow after adding SoFi */
+.content > .score-searchbar,
+.content > .searchbar.score-searchbar {
+  justify-self: center !important;
+}
+
+/* Medium screens */
+@media (max-width: 1180px) and (min-width: 681px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    max-width: 760px !important;
+    grid-template-columns: 52px 52px minmax(150px, 240px) 52px 52px 52px !important;
+    gap: 9px !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: none !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 12px !important;
+  }
+}
+
+/* Mobile: include watchlist button and keep everything one line */
+@media (max-width: 680px) {
+  .mobile-watchlist-nav-btn {
+    display: inline-flex !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 8px !important;
+    border-radius: 18px !important;
+    display: grid !important;
+    grid-template-columns: 36px 36px minmax(90px, 1fr) 36px 36px 36px 36px !important;
+    gap: 6px !important;
+    justify-content: stretch !important;
+    justify-items: center !important;
+    align-items: center !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    grid-column: 7 !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    max-width: none !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 8px 10px !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+    text-align: left !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .score-searchbar svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 9px !important;
+    letter-spacing: -.25px !important;
+  }
+}
+
+/* Smaller iPhones */
+@media (max-width: 390px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 32px 32px minmax(74px, 1fr) 32px 32px 32px 32px !important;
+    gap: 5px !important;
+    padding: 7px !important;
+  }
+
+  .score-searchbar input {
+    height: 34px !important;
+    min-height: 34px !important;
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .mobile-watchlist-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    border-radius: 10px !important;
+  }
+
+  .score-searchbar svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 8px !important;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP TOPBAR RESTORE — MOBILE SAFE
+   Fixes laptop/desktop ticker bubble after adding SoFi.
+   Mobile rules stay untouched under 680px.
+========================================================= */
+
+@media (min-width: 681px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    width: min(100%, 760px) !important;
+    max-width: 760px !important;
+    display: grid !important;
+    grid-template-columns: 56px 56px minmax(180px, 285px) 56px 56px 56px !important;
+    grid-template-rows: 56px !important;
+    grid-auto-rows: 56px !important;
+    gap: 10px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    justify-items: center !important;
+    padding: 12px !important;
+    margin: 0 auto 22px !important;
+    border-radius: 26px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: none !important;
+  }
+
+  .score-searchbar input {
+    width: 100% !important;
+    max-width: none !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    padding: 15px 16px !important;
+    font-size: 20px !important;
+    text-align: left !important;
+    border-radius: 16px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    padding: 0 !important;
+    border-radius: 18px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 13px !important;
+  }
+
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP-ONLY DASHBOARD ALIGNMENT FIX
+   Mobile stays untouched.
+   - Ticker bubble aligns with left side of Power Score card
+   - Ticker bubble tightened to remove side blank space
+   - Watchlist top aligns with Power Score card
+========================================================= */
+
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .content > .searchbar.score-searchbar,
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    justify-self: start !important;
+    margin: 0 0 22px 0 !important;
+    width: fit-content !important;
+    max-width: none !important;
+    grid-template-columns: 50px 50px 235px 50px 50px 50px !important;
+    grid-template-rows: 50px !important;
+    grid-auto-rows: 50px !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    border-radius: 22px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 235px !important;
+    min-width: 235px !important;
+    max-width: 235px !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+    grid-row: 1 !important;
+  }
+
+  .score-searchbar .mobile-watchlist-nav-btn {
+    display: none !important;
+  }
+
+  .score-searchbar input {
+    width: 235px !important;
+    max-width: 235px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 13px 15px !important;
+    font-size: 19px !important;
+    border-radius: 15px !important;
+    text-align: left !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+    align-self: center !important;
+    justify-self: center !important;
+  }
+
+  .score-searchbar svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .sofi-referral-btn span {
+    font-size: 12px !important;
+  }
+
+  .watch-panel {
+    margin-top: 72px !important;
+  }
+
+  .layout {
+    align-items: start !important;
+  }
+}
+
+/* Wider desktop screens: keep exact same left alignment but allow a slightly larger ticker field */
+@media (min-width: 1320px) {
+  .content > .score-searchbar,
+  .content > .searchbar.score-searchbar,
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px !important;
+    grid-template-rows: 52px !important;
+    grid-auto-rows: 52px !important;
+    gap: 9px !important;
+    padding: 11px !important;
+  }
+
+  .score-searchbar .ticker-field,
+  .score-searchbar input {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+  }
+
+  .score-searchbar input {
+    height: 52px !important;
+    min-height: 52px !important;
+  }
+
+  .score-searchbar button,
+  .score-searchbar .plans-nav-btn,
+  .score-searchbar .ghost-btn,
+  .score-searchbar .ai-nav-btn,
+  .score-searchbar .sofi-referral-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+
+/* =========================================================
+   PULSE RINGS — TOP START / TOP FINISH FIX
+   Forces every score ring to fill from 12 o'clock instead of the left.
+   Applies to main score, watchlist scores, industry scores, and previews.
+========================================================= */
+
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.preview-score-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(
+      from -90deg,
+      var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff)))
+      var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))),
+      rgba(255,255,255,.075) 0deg
+    ) !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before,
+.industry-score-pie::before,
+.preview-score-ring::before {
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--ring-bright, var(--watch-ring-bright, var(--industry-ring-bright, #15e7ff)))
+      var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 0deg))),
+      transparent 0deg
+    ) !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after,
+.industry-score-pie::after,
+.preview-score-ring::after {
+  transform-origin: center !important;
+}
+
+/* Make sure each ring class maps its own score angle correctly */
+.score-ring {
+  --score-angle: var(--score-angle);
+}
+
+.watch-score-ring {
+  --score-angle: var(--watch-score-angle);
+}
+
+.industry-score-pie {
+  --score-angle: var(--industry-score-angle);
+}
+
+.preview-score-ring {
+  --score-angle: 274deg;
+}
+
+
+/* =========================================================
+   HOMEPAGE PREVIEW PULSE RING + WHITE CATEGORY NUMBERS
+   - Homepage pie/ring matches pulse score rings
+   - Growth/Momentum/etc. numbers are white
+========================================================= */
+
+.preview-score-ring,
+.landing-score-ring,
+.home-score-ring {
+  --score-angle: 274deg;
+  --ring-bright: #15e7ff;
+  --ring-glow: rgba(21,231,255,.34);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), rgba(255,255,255,.075) 0deg) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 30px var(--ring-glow) !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+}
+
+.preview-score-ring::before,
+.landing-score-ring::before,
+.home-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  background:
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .44 !important;
+  z-index: -1 !important;
+  animation: evalPulseGlow 2.4s ease-in-out infinite !important;
+}
+
+.preview-score-ring::after,
+.landing-score-ring::after,
+.home-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ring-bright) !important;
+  opacity: .32 !important;
+  box-shadow:
+    0 0 22px var(--ring-glow),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  animation: evalPulseRing 2.4s ease-in-out infinite !important;
+}
+
+/* Make all category score numbers white, while keeping bars colored */
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  color: #ffffff !important;
+  text-shadow:
+    0 0 18px rgba(255,255,255,.16),
+    0 0 28px rgba(255,255,255,.08) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-score-ring::before,
+  .preview-score-ring::after,
+  .landing-score-ring::before,
+  .landing-score-ring::after,
+  .home-score-ring::before,
+  .home-score-ring::after {
+    animation: none !important;
+  }
+}
+
+
+/* =========================================================
+   HOMEPAGE PREVIEW RING — DASHBOARD GREEN
+   Makes the homepage preview score ring match the dashboard green pulse style.
+========================================================= */
+
+.preview-score-ring,
+.landing-score-ring,
+.home-score-ring {
+  --score-angle: 324deg !important;
+  --ring-bright: #85ff47 !important;
+  --ring-glow: rgba(133,255,71,.38) !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 48%),
+    conic-gradient(from -90deg, #85ff47 var(--score-angle), rgba(255,255,255,.075) 0deg) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.055),
+    inset 0 0 28px rgba(0,0,0,.32),
+    0 20px 58px rgba(0,0,0,.34),
+    0 0 34px rgba(133,255,71,.38) !important;
+}
+
+.preview-score-ring::before,
+.landing-score-ring::before,
+.home-score-ring::before {
+  background:
+    conic-gradient(from -90deg, #85ff47 var(--score-angle), transparent 0deg) !important;
+  filter: blur(15px) !important;
+  opacity: .46 !important;
+}
+
+.preview-score-ring::after,
+.landing-score-ring::after,
+.home-score-ring::after {
+  border-color: #85ff47 !important;
+  box-shadow:
+    0 0 22px rgba(133,255,71,.38),
+    inset 0 0 18px rgba(255,255,255,.045) !important;
+}
+
+
+/* =========================================================
+   MOBILE DAILY PRICE CHANGE CHIP
+   Mobile only: daily % change bubble beside Price.
+   Desktop remains visually unchanged.
+========================================================= */
+
+.daily-change-chip {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .price-mini-stat b {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+
+  .daily-change-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 44px !important;
+    height: 24px !important;
+    padding: 0 8px !important;
+    margin-left: 7px !important;
+    border-radius: 999px !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: -.15px !important;
+    line-height: 1 !important;
+    border: 1px solid rgba(21,231,255,.42) !important;
+    background:
+      radial-gradient(circle at 25% 20%, rgba(255,255,255,.18), transparent 28%),
+      linear-gradient(135deg, rgba(12,35,40,.90), rgba(19,26,42,.88)) !important;
+    color: #ffffff !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(21,231,255,.15) !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+  }
+
+  .daily-change-chip.up {
+    border-color: rgba(133,255,71,.48) !important;
+    color: #85ff47 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(133,255,71,.18) !important;
+  }
+
+  .daily-change-chip.down {
+    border-color: rgba(255,79,103,.50) !important;
+    color: #ff4f67 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.13),
+      0 0 14px rgba(255,79,103,.18) !important;
+  }
+
+  .daily-change-chip.neutral {
+    color: rgba(255,255,255,.78) !important;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP WATCHLIST ALIGNMENT FIX
+   Lines the watchlist top up with the Power Score/report card.
+   Mobile layout stays untouched.
+========================================================= */
+
+@media (min-width: 681px) {
+  .watch-panel {
+    margin-top: 0 !important;
+    align-self: start !important;
+  }
+
+  .layout {
+    align-items: start !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .watch-panel {
+    margin-top: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP-ONLY WATCHLIST LOWER ALIGNMENT
+   Pushes watchlist down so its top aligns with the Power Score card.
+   Mobile layout is untouched.
+========================================================= */
+
+@media (min-width: 681px) {
+  .layout > .watch-panel {
+    margin-top: 128px !important;
+    align-self: start !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .layout > .watch-panel {
+    margin-top: 112px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .layout > .watch-panel {
+    margin-top: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   FORCE DESKTOP WATCHLIST ALIGNMENT
+   Stronger than margin-top because earlier desktop rules were overriding it.
+   Shifts only the desktop/laptop watchlist down to match the Power Score card.
+   Mobile remains untouched.
+========================================================= */
+
+@media (min-width: 681px) {
+  body .app-shell .layout > aside.watch-panel:not(.mobile-watch-panel) {
+    margin-top: 0 !important;
+    transform: translateY(128px) !important;
+    align-self: start !important;
+    will-change: transform;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  body .app-shell .layout > aside.watch-panel:not(.mobile-watch-panel) {
+    transform: translateY(112px) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  body .app-shell .layout > aside.watch-panel,
+  body .app-shell .layout > aside.watch-panel:not(.mobile-watch-panel) {
+    margin-top: 0 !important;
+    transform: none !important;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST MOVED TO SEPARATE PAGE
+   Removes dashboard sidebar and opens watchlist from its own button.
+========================================================= */
+
+.watchlist-nav-btn {
+  display: inline-flex !important;
+}
+
+.layout > .watch-panel:not(.watchlist-page-panel) {
+  display: none !important;
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.watchlist-page {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.watchlist-page-back {
+  width: fit-content;
+}
+
+.watchlist-page-panel {
+  display: block !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 0 !important;
+  transform: none !important;
+  padding: 24px !important;
+  border-radius: 30px !important;
+  overflow: visible !important;
+}
+
+.watchlist-page-panel .panel-head h2 {
+  font-size: 30px !important;
+}
+
+.watchlist-page-panel .panel-head p {
+  display: block !important;
+  font-size: 13px !important;
+}
+
+.watchlist-page-panel .watch-add {
+  grid-template-columns: 1fr 56px !important;
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+.watchlist-page-panel .watch-add input {
+  height: 56px !important;
+  padding: 14px 16px !important;
+  font-size: 19px !important;
+  border-radius: 17px !important;
+}
+
+.watchlist-page-panel .watch-add button {
+  width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 17px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 12px !important;
+}
+
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 1fr 76px 44px !important;
+  gap: 14px !important;
+  padding: 14px 16px !important;
+  border-radius: 22px !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 22px !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 70px !important;
+  height: 70px !important;
+  padding: 8px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 18px !important;
+}
+
+.watchlist-page-panel .delete-btn,
+.watchlist-page-panel .icon-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 15px !important;
+}
+
+/* Top 3 ranked rings: gold / silver / bronze look while keeping pulse ring style */
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+  border-color: rgba(255,215,107,.55) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+  border-color: rgba(223,229,238,.52) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+  border-color: rgba(205,127,50,.52) !important;
+}
+
+/* Desktop ticker row now has one extra watchlist button */
+@media (min-width: 681px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 50px 50px 235px 50px 50px 50px 50px !important;
+  }
+
+  .score-searchbar .plans-nav-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .ai-nav-btn {
+    grid-column: 6 !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 1320px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+/* Mobile: keep same separate-page idea and fit all controls */
+@media (max-width: 680px) {
+  .watchlist-page {
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  .watchlist-page-panel {
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .watchlist-page-panel .panel-head h2 {
+    font-size: 20px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 1fr 64px 38px !important;
+    gap: 10px !important;
+    padding: 11px !important;
+    border-radius: 18px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 6px !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px 34px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+}
+
+
+/* =========================================================
+   MAG 7 DASHBOARD PANEL + EMPTY USER WATCHLIST PAGE
+   Mag 7 is separate from the user's watchlist.
+========================================================= */
+
+.mag7-panel {
+  position: static !important;
+  align-self: start !important;
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 92% 20%, rgba(159,92,255,.10), transparent 34%),
+    rgba(255,255,255,.075);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 24px 70px rgba(0,0,0,.30);
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 420px) !important;
+}
+
+.layout > .watch-panel:not(.watchlist-page-panel) {
+  display: none !important;
+}
+
+.mag7-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mag7-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px 1fr 62px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.12);
+  color: #ffffff;
+  text-align: left;
+}
+
+.mag7-row:hover {
+  background: rgba(255,255,255,.08);
+}
+
+.mag7-rank {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.mag7-row.rank-1 .mag7-rank {
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f);
+  color: #16130a;
+}
+
+.mag7-row.rank-2 .mag7-rank {
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5);
+  color: #111722;
+}
+
+.mag7-row.rank-3 .mag7-rank {
+  background: linear-gradient(135deg, #e0a05d, #9a5b24);
+  color: #fff4e8;
+}
+
+.mag7-row strong {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: .03em;
+}
+
+.mag7-row .watch-score-ring {
+  width: 58px !important;
+  height: 58px !important;
+  padding: 6px !important;
+}
+
+.mag7-row .watch-score-ring strong {
+  font-size: 15px !important;
+}
+
+.mag7-row.rank-1 .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.mag7-row.rank-2 .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.mag7-row.rank-3 .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+.mag7-summary {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(0,0,0,.14);
+  display: grid;
+  gap: 9px;
+}
+
+.mag7-summary > span {
+  color: var(--soft);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.mag7-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.mag7-summary b {
+  color: var(--soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.mag7-summary strong {
+  color: #ffffff;
+  font-size: 13px;
+  text-align: right;
+}
+
+.watchlist-page-panel .watch-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px dashed rgba(255,255,255,.16);
+  color: var(--muted);
+  background: rgba(255,255,255,.04);
+}
+
+@media (min-width: 681px) {
+  body .app-shell .layout > aside.mag7-panel {
+    transform: none !important;
+    margin-top: 0 !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 50px 50px 235px 50px 50px 50px 50px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (min-width: 1320px) {
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mag7-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .mag7-row {
+    grid-template-columns: 30px 1fr 56px;
+    gap: 9px;
+    padding: 9px 10px;
+  }
+
+  .mag7-row .watch-score-ring {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .mag7-row strong {
+    font-size: 16px;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px 34px !important;
+  }
+
+  .score-searchbar .watchlist-nav-btn {
+    grid-column: 7 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+}
+
+
+/* =========================================================
+   INDUSTRY TOP 3 ONLY — GOLD / SILVER / BRONZE
+========================================================= */
+
+.industry-row:nth-child(n+4) {
+  display: none !important;
+}
+
+.industry-row:nth-child(1) .industry-rank,
+.industry-card:nth-child(1) .industry-rank {
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f) !important;
+  color: #16130a !important;
+  border-color: rgba(255,215,107,.58) !important;
+}
+
+.industry-row:nth-child(2) .industry-rank,
+.industry-card:nth-child(2) .industry-rank {
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5) !important;
+  color: #111722 !important;
+  border-color: rgba(223,229,238,.56) !important;
+}
+
+.industry-row:nth-child(3) .industry-rank,
+.industry-card:nth-child(3) .industry-rank {
+  background: linear-gradient(135deg, #e0a05d, #9a5b24) !important;
+  color: #fff4e8 !important;
+  border-color: rgba(205,127,50,.56) !important;
+}
+
+.industry-row:nth-child(1) .industry-score-pie {
+  --industry-ring-bright: #ffd76b !important;
+  --industry-ring-glow: rgba(255,215,107,.40) !important;
+}
+
+.industry-row:nth-child(2) .industry-score-pie {
+  --industry-ring-bright: #dfe5ee !important;
+  --industry-ring-glow: rgba(223,229,238,.34) !important;
+}
+
+.industry-row:nth-child(3) .industry-score-pie {
+  --industry-ring-bright: #cd7f32 !important;
+  --industry-ring-glow: rgba(205,127,50,.34) !important;
+}
+
+
+/* =========================================================
+   MAG 7 + WATCHLIST PAGE LAYOUT FIX
+   - Desktop: Mag 7 aligns with Power Score card, not add ticker row
+   - Watchlist page: compact list fits up to 15 stocks better
+   - Watchlist top 3: gold / silver / bronze
+   - Mobile layout remains separate and usable
+========================================================= */
+
+/* Desktop/laptop only: push Mag 7 down to align with the Power Score/report card */
+@media (min-width: 681px) {
+  body .app-shell .layout > aside.mag7-panel {
+    margin-top: 126px !important;
+    transform: none !important;
+    align-self: start !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  body .app-shell .layout > aside.mag7-panel {
+    margin-top: 112px !important;
+  }
+}
+
+/* Watchlist page should start lower and use more of the screen cleanly */
+.watchlist-page {
+  width: min(860px, 100%) !important;
+  margin: 26px auto 0 !important;
+  display: grid !important;
+  gap: 14px !important;
+}
+
+.watchlist-page-back {
+  margin-bottom: 2px !important;
+}
+
+.watchlist-page-panel {
+  padding: 18px !important;
+  border-radius: 26px !important;
+}
+
+.watchlist-page-panel .panel-head {
+  margin-bottom: 12px !important;
+}
+
+.watchlist-page-panel .panel-head h2 {
+  font-size: 25px !important;
+}
+
+.watchlist-page-panel .panel-head p {
+  font-size: 11px !important;
+}
+
+.watchlist-page-panel .watch-add {
+  grid-template-columns: 1fr 46px !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.watchlist-page-panel .watch-add input {
+  height: 46px !important;
+  padding: 10px 13px !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-add button {
+  width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 7px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 1fr 56px 34px !important;
+  gap: 10px !important;
+  min-height: 0 !important;
+  padding: 8px 10px !important;
+  border-radius: 15px !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 16px !important;
+  letter-spacing: .035em !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 50px !important;
+  height: 50px !important;
+  padding: 5px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 13px !important;
+}
+
+.watchlist-page-panel .delete-btn,
+.watchlist-page-panel .icon-btn {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 12px !important;
+}
+
+.watchlist-page-panel .delete-btn svg,
+.watchlist-page-panel .icon-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Gold / silver / bronze for user's watchlist top 3 */
+.watchlist-page-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.30) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,215,107,.11), transparent 34%),
+    rgba(255,255,255,.055) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.28) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(223,229,238,.10), transparent 34%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.30) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(205,127,50,.11), transparent 34%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+  border-color: rgba(255,215,107,.52) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+  border-color: rgba(223,229,238,.50) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+  border-color: rgba(205,127,50,.50) !important;
+}
+
+/* Make the empty prompt fill space nicely without making the list huge when full */
+.watchlist-page-panel .watch-empty {
+  min-height: 190px !important;
+  padding: 22px !important;
+}
+
+/* Mobile: do not use desktop Mag 7 offset; keep page compact and readable */
+@media (max-width: 680px) {
+  body .app-shell .layout > aside.mag7-panel {
+    margin-top: 0 !important;
+    transform: none !important;
+  }
+
+  .watchlist-page {
+    width: 100% !important;
+    margin: 12px auto 0 !important;
+    gap: 10px !important;
+  }
+
+  .watchlist-page-panel {
+    padding: 12px !important;
+    border-radius: 20px !important;
+  }
+
+  .watchlist-page-panel .panel-head h2 {
+    font-size: 19px !important;
+  }
+
+  .watchlist-page-panel .watch-add {
+    grid-template-columns: 1fr 40px !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .watchlist-page-panel .watch-add input {
+    height: 40px !important;
+    font-size: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .watchlist-page-panel .watch-add button {
+    width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    border-radius: 12px !important;
+  }
+
+  .watchlist-page-panel .watch-list {
+    gap: 6px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 1fr 48px 32px !important;
+    gap: 8px !important;
+    padding: 7px 9px !important;
+    border-radius: 14px !important;
+  }
+
+  .watchlist-page-panel .watch-info strong {
+    font-size: 15px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 4px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring strong {
+    font-size: 12px !important;
+  }
+
+  .watchlist-page-panel .delete-btn,
+  .watchlist-page-panel .icon-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 11px !important;
+  }
+}
+
+
+/* =========================================================
+   MAG 7 + WATCHLIST PER-STOCK STRENGTH/WEAKNESS
+   Also tightens main report spacing to reduce dead space.
+========================================================= */
+
+.mag7-row {
+  grid-template-columns: 34px minmax(0, 1fr) 58px !important;
+  gap: 10px !important;
+  padding: 9px 10px !important;
+}
+
+.mag7-main {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.mag7-main > strong,
+.watch-info > strong {
+  line-height: 1;
+}
+
+.row-sw {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.row-sw span {
+  color: rgba(226,234,242,.68);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: .015em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mag7-row .watch-score-ring {
+  width: 54px !important;
+  height: 54px !important;
+  padding: 5px !important;
+}
+
+.mag7-row .watch-score-ring strong {
+  font-size: 14px !important;
+}
+
+.watchlist-page-panel .watch-row {
+  grid-template-columns: minmax(0, 1fr) 52px 32px !important;
+  gap: 8px !important;
+  padding: 7px 9px !important;
+}
+
+.watchlist-page-panel .watch-info {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 4px !important;
+  text-align: left !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.watchlist-page-panel .watch-row-sw {
+  gap: 2px !important;
+}
+
+.watchlist-page-panel .watch-row-sw span {
+  font-size: 9px !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 48px !important;
+  height: 48px !important;
+  padding: 4px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 12px !important;
+}
+
+.watchlist-page-panel .delete-btn {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Tighten the main report card dead space */
+@media (min-width: 681px) {
+  .report-card {
+    column-gap: clamp(16px, 2vw, 30px) !important;
+    grid-template-columns: minmax(230px, 300px) minmax(260px, 1fr) minmax(220px, 280px) !important;
+    align-items: center !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main {
+    max-width: 430px !important;
+  }
+
+  .layout {
+    column-gap: 24px !important;
+  }
+
+  .mag7-panel {
+    max-width: 390px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .mag7-row {
+    grid-template-columns: 28px minmax(0, 1fr) 48px !important;
+    gap: 7px !important;
+    padding: 8px 9px !important;
+  }
+
+  .row-sw span {
+    font-size: 8.5px !important;
+  }
+
+  .mag7-row .watch-score-ring {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: minmax(0, 1fr) 44px 30px !important;
+    gap: 7px !important;
+    padding: 6px 8px !important;
+  }
+
+  .watchlist-page-panel .watch-info strong {
+    font-size: 14px !important;
+  }
+
+  .watchlist-page-panel .watch-row-sw span {
+    font-size: 8px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .watchlist-page-panel .delete-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST PAGE TIGHT ROW LAYOUT + STRONG/WEAK
+   Removes the huge gap between ticker and score.
+   Keeps 15 stocks fitting vertically better.
+========================================================= */
+
+.watchlist-page {
+  width: min(660px, 100%) !important;
+  margin: 20px auto 0 !important;
+}
+
+.watchlist-page-panel {
+  padding: 16px !important;
+  border-radius: 24px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 6px !important;
+}
+
+.watchlist-page-panel .watch-row {
+  width: fit-content !important;
+  min-width: min(100%, 560px) !important;
+  max-width: 100% !important;
+  grid-template-columns: minmax(230px, 360px) 50px 32px !important;
+  justify-content: start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 7px 9px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-info {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 4px !important;
+  text-align: left !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.watchlist-page-panel .watch-row-sw {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+.watchlist-page-panel .watch-row-sw span {
+  color: rgba(226,234,242,.68) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  letter-spacing: .015em !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 46px !important;
+  height: 46px !important;
+  padding: 4px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 12px !important;
+}
+
+.watchlist-page-panel .delete-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 11px !important;
+}
+
+.watchlist-page-panel .delete-btn svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+/* Keep the top 3 color system on the tighter watchlist rows */
+.watchlist-page-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.30) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.28) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.30) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+@media (max-width: 680px) {
+  .watchlist-page {
+    width: 100% !important;
+    margin: 12px auto 0 !important;
+  }
+
+  .watchlist-page-panel {
+    padding: 12px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-columns: minmax(0, 1fr) 42px 30px !important;
+    gap: 7px !important;
+    padding: 6px 8px !important;
+  }
+
+  .watchlist-page-panel .watch-info strong {
+    font-size: 14px !important;
+  }
+
+  .watchlist-page-panel .watch-row-sw span {
+    font-size: 8px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .watchlist-page-panel .delete-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST PAGE FINAL TIGHTEN
+   Matches Mag 7 bubble size and forces Strong/Weak visible per row.
+========================================================= */
+
+.watchlist-page {
+  width: min(430px, 100%) !important;
+  max-width: 430px !important;
+  margin: 20px auto 0 !important;
+  gap: 12px !important;
+}
+
+.watchlist-page-panel {
+  width: 100% !important;
+  max-width: 430px !important;
+  padding: 16px !important;
+  border-radius: 28px !important;
+}
+
+.watchlist-page-panel .panel-head {
+  margin-bottom: 12px !important;
+}
+
+.watchlist-page-panel .panel-head h2 {
+  font-size: 25px !important;
+}
+
+.watchlist-page-panel .watch-add {
+  grid-template-columns: 1fr 46px !important;
+  gap: 9px !important;
+  margin-bottom: 12px !important;
+}
+
+.watchlist-page-panel .watch-add input {
+  height: 46px !important;
+  padding: 10px 13px !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-add button {
+  width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: 14px !important;
+}
+
+.watchlist-page-panel .watch-list {
+  gap: 7px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.watchlist-page-panel .watch-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  grid-template-columns: minmax(0, 1fr) 50px 32px !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  padding: 8px 9px !important;
+  border-radius: 16px !important;
+}
+
+.watchlist-page-panel .watch-info {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 4px !important;
+  text-align: left !important;
+  justify-items: start !important;
+  align-items: center !important;
+}
+
+.watchlist-page-panel .watch-info strong {
+  font-size: 15px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+}
+
+.watchlist-page-panel .watch-row-sw {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.watchlist-page-panel .watch-row-sw span {
+  display: block !important;
+  color: rgba(226,234,242,.72) !important;
+  font-size: 8.5px !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  letter-spacing: .01em !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  max-width: 230px !important;
+}
+
+.watchlist-page-panel .watch-score-ring {
+  width: 46px !important;
+  height: 46px !important;
+  padding: 4px !important;
+}
+
+.watchlist-page-panel .watch-score-ring strong {
+  font-size: 12px !important;
+}
+
+.watchlist-page-panel .delete-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 11px !important;
+}
+
+.watchlist-page-panel .delete-btn svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+/* Top 3 gold / silver / bronze on the tighter watchlist page */
+.watchlist-page-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.34) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,215,107,.12), transparent 36%),
+    rgba(255,255,255,.055) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.30) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(223,229,238,.10), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.32) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(205,127,50,.12), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watchlist-page-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+.watchlist-page-panel .watch-empty {
+  min-height: 170px !important;
+  padding: 20px !important;
+}
+
+/* Mobile keeps full width but still shows Strong/Weak */
+@media (max-width: 680px) {
+  .watchlist-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 12px auto 0 !important;
+  }
+
+  .watchlist-page-panel {
+    max-width: 100% !important;
+    padding: 12px !important;
+  }
+
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: minmax(0, 1fr) 42px 30px !important;
+    gap: 7px !important;
+    padding: 7px 8px !important;
+  }
+
+  .watchlist-page-panel .watch-info strong {
+    font-size: 14px !important;
+  }
+
+  .watchlist-page-panel .watch-row-sw span {
+    font-size: 8px !important;
+    max-width: 190px !important;
+  }
+
+  .watchlist-page-panel .watch-score-ring {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .watchlist-page-panel .delete-btn {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
+
+
+/* =========================================================
+   NEWS SENTIMENT CATEGORY + CLEAN METRIC POPUPS
+========================================================= */
+
+.score-popup {
+  min-width: 300px !important;
+  max-width: 390px !important;
+  padding: 17px 18px !important;
+}
+
+.score-popup-title {
+  font-size: 15px !important;
+}
+
+.score-popup li span {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+.score-popup li small {
+  display: block !important;
+  margin-top: 3px !important;
+  color: rgba(226,234,242,.58) !important;
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+}
+
+.grades-grid,
+.grade-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.mag7-help-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.86);
+  vertical-align: middle;
+  cursor: help;
+}
+
+.mag7-help-pop {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(5, 9, 18, .96);
+  box-shadow: 0 18px 44px rgba(0,0,0,.42);
+  color: rgba(255,255,255,.86);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.mag7-help-btn:hover .mag7-help-pop,
+.mag7-help-btn:focus .mag7-help-pop {
+  opacity: 1;
+}
+
+@media (max-width: 680px) {
+  .grades-grid,
+  .grade-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .score-popup {
+    min-width: 260px !important;
+    max-width: calc(100vw - 34px) !important;
+  }
+}
+
+
+/* =========================================================
+   NEWS SENTIMENT SECTION UNDER POWER SCORE
+   Shows top 3 AI-weighted news topics with score + article link.
+========================================================= */
+
+.news-sentiment-card {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(21,231,255,.10), transparent 34%),
+    radial-gradient(circle at 90% 20%, rgba(133,255,71,.08), transparent 32%),
+    rgba(255,255,255,.065);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 22px 70px rgba(0,0,0,.26);
+}
+
+.news-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.news-section-title small {
+  color: rgba(226,234,242,.62);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.news-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 1000;
+  color: #fff;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.news-score-pill.green {
+  color: #85ff47;
+  border-color: rgba(133,255,71,.38);
+  box-shadow: 0 0 18px rgba(133,255,71,.14);
+}
+
+.news-score-pill.yellow {
+  color: #ffe56b;
+  border-color: rgba(255,229,107,.38);
+  box-shadow: 0 0 18px rgba(255,229,107,.14);
+}
+
+.news-score-pill.red {
+  color: #ff4f67;
+  border-color: rgba(255,79,103,.38);
+  box-shadow: 0 0 18px rgba(255,79,103,.14);
+}
+
+.news-overall-summary {
+  color: rgba(226,234,242,.76);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0 0 14px;
+  max-width: 940px;
+}
+
+.news-topic-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.news-topic-card {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    linear-gradient(145deg, rgba(7,14,24,.62), rgba(32,25,54,.38));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.news-topic-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 9px;
+}
+
+.news-topic-head span {
+  display: block;
+  color: rgba(226,234,242,.55);
+  font-size: 9px;
+  font-weight: 1000;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+
+.news-topic-head h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.18;
+  font-weight: 1000;
+  letter-spacing: .01em;
+}
+
+.news-topic-head b {
+  flex: 0 0 auto;
+  min-width: 34px;
+  text-align: right;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.news-topic-head b.green {
+  color: #85ff47;
+}
+
+.news-topic-head b.yellow {
+  color: #ffe56b;
+}
+
+.news-topic-head b.red {
+  color: #ff4f67;
+}
+
+.news-topic-card p {
+  color: rgba(226,234,242,.74);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.42;
+  margin: 0 0 10px;
+}
+
+.news-topic-card a {
+  display: inline-flex;
+  align-items: center;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 1000;
+  text-decoration: none;
+  padding: 7px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.07);
+}
+
+.news-topic-card a:hover {
+  background: rgba(255,255,255,.12);
+}
+
+@media (max-width: 980px) {
+  .news-topic-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .news-sentiment-card {
+    padding: 15px;
+    border-radius: 22px;
+    margin-top: 12px;
+  }
+
+  .news-overall-summary {
+    font-size: 11px;
+  }
+
+  .news-topic-card {
+    padding: 12px;
+    border-radius: 16px;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST INLINE PANEL + MOMENTUM FIX COMPANION STYLES
+========================================================= */
+
+/* Hide Mag 7 panel entirely if old component remains in bundle */
+.mag7-panel {
+  display: none !important;
+}
+
+/* Main desktop layout gets watchlist back on the right */
+@media (min-width: 681px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 420px) !important;
+    column-gap: 24px !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    display: block !important;
+    position: static !important;
+    align-self: start !important;
+    max-width: 420px !important;
+    margin-top: 126px !important;
+    transform: none !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 52px 52px 260px 52px 52px 52px 52px !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile keeps star watchlist button */
+@media (max-width: 680px) {
+  .mobile-only-watchlist-btn {
+    display: inline-flex !important;
+  }
+
+  .score-searchbar,
+  .searchbar.score-searchbar {
+    grid-template-columns: 34px 34px minmax(76px, 1fr) 34px 34px 34px !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+
+  .score-searchbar .mobile-only-watchlist-btn {
+    grid-column: 6 !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 11px !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    display: none !important;
+  }
+}
+
+/* Watchlist text a bit bigger than old Mag7 small text */
+.watch-panel .panel-head p {
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  color: rgba(226,234,242,.66) !important;
+}
+
+.watch-panel .watch-info strong {
+  font-size: 18px !important;
+}
+
+.watch-panel .watch-row-sw span,
+.watch-panel .row-sw span {
+  font-size: 10.5px !important;
+  line-height: 1.14 !important;
+}
+
+/* Ranked gold / silver / bronze like Mag 7 */
+.watch-panel .watch-row:nth-child(1) {
+  border-color: rgba(255,215,107,.34) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,215,107,.12), transparent 36%),
+    rgba(255,255,255,.055) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) {
+  border-color: rgba(223,229,238,.30) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(223,229,238,.10), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) {
+  border-color: rgba(205,127,50,.32) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(205,127,50,.12), transparent 36%),
+    rgba(255,255,255,.052) !important;
+}
+
+.watch-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+/* Remove key metrics section if any old markup survives */
+.metrics-card {
+  display: none !important;
+}
+
+
+/* =========================================================
+   POPUP NULL FILTER + WATCHLIST RANK + SEARCHBAR TIGHTEN
+========================================================= */
+
+/* Pull add ticker bubble closer to Power Score and tighten width */
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .searchbar.score-searchbar {
+    margin-bottom: 12px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    justify-self: start !important;
+    grid-template-columns: 52px 52px 230px 52px 52px !important;
+    padding-right: 12px !important;
+  }
+
+  .hero-card {
+    margin-top: 0 !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+}
+
+/* Watchlist rows now show 1-N rank badge */
+.watch-panel .watch-row {
+  grid-template-columns: 34px minmax(0, 1fr) 52px 34px !important;
+  align-items: center !important;
+}
+
+.watch-rank-number {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 1000;
+  color: rgba(255,255,255,.88);
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.08);
+}
+
+.watch-rank-number.rank-1 {
+  color: #16130a;
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f);
+  border-color: rgba(255,215,107,.58);
+}
+
+.watch-rank-number.rank-2 {
+  color: #111722;
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5);
+  border-color: rgba(223,229,238,.56);
+}
+
+.watch-rank-number.rank-3 {
+  color: #fff4e8;
+  background: linear-gradient(135deg, #e0a05d, #9a5b24);
+  border-color: rgba(205,127,50,.56);
+}
+
+/* Remove the old row-wide gold/silver/bronze background treatment */
+.watch-panel .watch-row:nth-child(1),
+.watch-panel .watch-row:nth-child(2),
+.watch-panel .watch-row:nth-child(3) {
+  background: rgba(255,255,255,.052) !important;
+}
+
+.watch-panel .watch-info strong {
+  font-size: 19px !important;
+  letter-spacing: .04em !important;
+}
+
+.watch-panel .watch-row-sw span,
+.watch-panel .row-sw span {
+  font-size: 10.8px !important;
+}
+
+/* Keep top 3 score rings gold/silver/bronze */
+.watch-panel .watch-row:nth-child(1) .watch-score-ring {
+  --watch-ring-bright: #ffd76b !important;
+  --watch-glow: rgba(255,215,107,.40) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .watch-score-ring {
+  --watch-ring-bright: #dfe5ee !important;
+  --watch-glow: rgba(223,229,238,.34) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .watch-score-ring {
+  --watch-ring-bright: #cd7f32 !important;
+  --watch-glow: rgba(205,127,50,.34) !important;
+}
+
+/* Mobile adapts rank column */
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 28px minmax(0, 1fr) 42px 30px !important;
+    gap: 7px !important;
+  }
+
+  .watch-rank-number {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 8px !important;
+    font-size: 10px !important;
+  }
+
+  .watch-panel .watch-info strong {
+    font-size: 15px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL HOTFIX: WATCHLIST RANKS WITHOUT JS index
+   Prevents blank screen from ReferenceError: index is not defined.
+========================================================= */
+
+.watch-panel .watch-list,
+.watchlist-page-panel .watch-list {
+  counter-reset: watchRank !important;
+}
+
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  counter-increment: watchRank !important;
+  grid-template-columns: 34px minmax(0, 1fr) 52px 34px !important;
+}
+
+.watch-rank-number {
+  width: 28px !important;
+  height: 28px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  color: rgba(255,255,255,.88) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.08) !important;
+  flex: 0 0 auto !important;
+}
+
+.watch-rank-number::before {
+  content: counter(watchRank) !important;
+}
+
+.watch-panel .watch-row:nth-child(1) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(1) .watch-rank-number {
+  color: #16130a !important;
+  background: linear-gradient(135deg, #ffe68a, #ffbf3f) !important;
+  border-color: rgba(255,215,107,.58) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(2) .watch-rank-number {
+  color: #111722 !important;
+  background: linear-gradient(135deg, #f4f7fb, #aeb7c5) !important;
+  border-color: rgba(223,229,238,.56) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .watch-rank-number,
+.watchlist-page-panel .watch-row:nth-child(3) .watch-rank-number {
+  color: #fff4e8 !important;
+  background: linear-gradient(135deg, #e0a05d, #9a5b24) !important;
+  border-color: rgba(205,127,50,.56) !important;
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 28px minmax(0, 1fr) 42px 30px !important;
+  }
+
+  .watch-rank-number {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 8px !important;
+    font-size: 10px !important;
+  }
+}
+
+
+/* =========================================================
+   CLEANUP: PRICE BUBBLE, SEARCHBAR WIDTH, WATCHLIST TEXT
+========================================================= */
+
+/* Price bubble matches Risk bubble theme, no turquoise accent */
+.price-card,
+.price-stat,
+.price-bubble,
+.stat-card.price,
+.mini-stat.price,
+.stat-card:first-child {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.72), rgba(22,20,34,.72)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.20) !important;
+}
+
+/* Remove cyan/turquoise lines/glows that were attached to price */
+.price-card::before,
+.price-stat::before,
+.price-bubble::before,
+.stat-card.price::before,
+.mini-stat.price::before,
+.stat-card:first-child::before {
+  background: rgba(255,255,255,.08) !important;
+  box-shadow: none !important;
+}
+
+.price-card *,
+.price-stat *,
+.price-bubble *,
+.stat-card.price *,
+.mini-stat.price * {
+  text-shadow: none;
+}
+
+/* Tighten top add ticker/search bubble. Pull right edge closer to add button and shift input left wider. */
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .searchbar.score-searchbar {
+    width: fit-content !important;
+    max-width: none !important;
+    margin-bottom: 10px !important;
+    padding: 10px 12px !important;
+    grid-template-columns: 52px 52px 285px 52px 52px !important;
+    column-gap: 10px !important;
+    justify-content: start !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 285px !important;
+    max-width: 285px !important;
+  }
+
+  .score-searchbar .ticker-field input {
+    width: 100% !important;
+  }
+}
+
+/* Watchlist subtitle cleaned up and slightly stronger */
+.watch-panel .panel-head p,
+.watchlist-page-panel .panel-head p {
+  font-size: 12.5px !important;
+  letter-spacing: .01em !important;
+  color: rgba(226,234,242,.70) !important;
+}
+
+/* Remove visual space left by Current stock report kicker if empty */
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty {
+  display: none !important;
+}
+
+/* If the kicker contained only removed text, tighten company title upward */
+.report-main h1,
+.company-main h1,
+.stock-main h1 {
+  margin-top: 0 !important;
+}
+
+
+/* =========================================================
+   CLEAN FIX: SEARCH BAR, PRICE BUBBLE, WATCHLIST SPACING
+========================================================= */
+
+/* Search bubble: compact, aligned, no weird open right space */
+@media (min-width: 681px) {
+  .content > .score-searchbar,
+  .searchbar.score-searchbar,
+  form.score-searchbar {
+    display: grid !important;
+    grid-template-columns: 52px 52px 270px 52px 52px !important;
+    width: 520px !important;
+    max-width: 520px !important;
+    min-width: 0 !important;
+    justify-content: start !important;
+    justify-items: stretch !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    margin: 0 0 24px 0 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    width: 270px !important;
+    max-width: 270px !important;
+    min-width: 270px !important;
+  }
+
+  .score-searchbar .ticker-field input {
+    width: 100% !important;
+  }
+
+  .score-searchbar .desktop-ai-left-btn {
+    grid-column: 1 !important;
+  }
+
+  .score-searchbar .sofi-referral-btn {
+    grid-column: 2 !important;
+  }
+
+  .score-searchbar .ticker-field {
+    grid-column: 3 !important;
+  }
+
+  .score-searchbar > button[aria-label="Search stock"] {
+    grid-column: 4 !important;
+  }
+
+  .score-searchbar .ghost-btn {
+    grid-column: 5 !important;
+  }
+}
+
+/* Price card: match Risk bubble style and kill turquoise accent */
+.price-box,
+.price-card,
+.price-stat,
+.price-bubble,
+.stat-card.price,
+.mini-stat.price,
+.report-side > :first-child,
+.stat-stack > :first-child {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.74), rgba(22,20,34,.74)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.20) !important;
+}
+
+.price-box::before,
+.price-card::before,
+.price-stat::before,
+.price-bubble::before,
+.stat-card.price::before,
+.mini-stat.price::before,
+.report-side > :first-child::before,
+.stat-stack > :first-child::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Watchlist: move score ring left, keep delete clean and visible */
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 34px minmax(0, 1fr) 58px 38px !important;
+  column-gap: 9px !important;
+  padding-right: 12px !important;
+  overflow: visible !important;
+}
+
+.watch-panel .watch-score-ring,
+.watchlist-page-panel .watch-score-ring {
+  justify-self: start !important;
+  margin-right: 8px !important;
+}
+
+.watch-panel .delete-btn,
+.watchlist-page-panel .delete-btn {
+  justify-self: end !important;
+  z-index: 3 !important;
+  position: relative !important;
+}
+
+/* Remove old current stock report kicker if text was removed */
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty {
+  display: none !important;
+}
+
+
+/* =========================================================
+   FINAL FIX: PRICE BUBBLE, REMOVE REPORT ICON, WATCHLIST OVERLAP
+========================================================= */
+
+/* Remove any leftover standalone icon/kicker where Current stock report used to be */
+.report-kicker,
+.stock-kicker,
+.current-report-kicker,
+.report-label {
+  min-height: 0 !important;
+}
+
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty,
+.report-label:empty {
+  display: none !important;
+}
+
+/* Price bubble: actual card override. Match Risk bubble and remove cyan/turquoise. */
+.hero-side .mini-card:first-child,
+.hero-side .info-card:first-child,
+.hero-side .stat-card:first-child,
+.hero-side > div:first-child,
+.report-side .mini-card:first-child,
+.report-side .info-card:first-child,
+.report-side .stat-card:first-child,
+.report-side > div:first-child,
+.stock-side .mini-card:first-child,
+.stock-side .info-card:first-child,
+.stock-side .stat-card:first-child,
+.stock-side > div:first-child,
+[class*="price" i],
+[class*="Price"] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    linear-gradient(145deg, rgba(9,18,24,.76), rgba(22,20,34,.76)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+/* Kill pseudo-element cyan border/glow on price card */
+.hero-side .mini-card:first-child::before,
+.hero-side .info-card:first-child::before,
+.hero-side .stat-card:first-child::before,
+.hero-side > div:first-child::before,
+.report-side .mini-card:first-child::before,
+.report-side .info-card:first-child::before,
+.report-side .stat-card:first-child::before,
+.report-side > div:first-child::before,
+.stock-side .mini-card:first-child::before,
+.stock-side .info-card:first-child::before,
+.stock-side .stat-card:first-child::before,
+.stock-side > div:first-child::before,
+[class*="price" i]::before,
+[class*="Price"]::before,
+.hero-side .mini-card:first-child::after,
+.hero-side .info-card:first-child::after,
+.hero-side .stat-card:first-child::after,
+.hero-side > div:first-child::after,
+.report-side .mini-card:first-child::after,
+.report-side .info-card:first-child::after,
+.report-side .stat-card:first-child::after,
+.report-side > div:first-child::after,
+.stock-side .mini-card:first-child::after,
+.stock-side .info-card:first-child::after,
+.stock-side .stat-card:first-child::after,
+.stock-side > div:first-child::after,
+[class*="price" i]::after,
+[class*="Price"]::after {
+  opacity: 0 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* If price bubble has inline turquoise color variables, neutralize them */
+.hero-side .mini-card:first-child,
+.report-side .mini-card:first-child,
+.stock-side .mini-card:first-child,
+[class*="price" i],
+[class*="Price"] {
+  --cyan: rgba(255,255,255,.12) !important;
+  --accent: rgba(255,255,255,.12) !important;
+  --glow: rgba(0,0,0,.18) !important;
+  --ring: rgba(255,255,255,.14) !important;
+}
+
+/* Watchlist: create a dedicated score/delete area so the ring does not overlap trash */
+.watch-panel .watch-row,
+.watchlist-page-panel .watch-row {
+  grid-template-columns: 34px minmax(0, 1fr) 52px 42px !important;
+  column-gap: 12px !important;
+  padding-right: 16px !important;
+  overflow: visible !important;
+}
+
+.watch-panel .watch-score-ring,
+.watchlist-page-panel .watch-score-ring {
+  justify-self: start !important;
+  transform: translateX(-14px) !important;
+  margin-right: 0 !important;
+  z-index: 1 !important;
+}
+
+.watch-panel .delete-btn,
+.watchlist-page-panel .delete-btn {
+  justify-self: end !important;
+  transform: translateX(0) !important;
+  position: relative !important;
+  z-index: 5 !important;
+  margin-left: 0 !important;
+}
+
+/* Make sure the trash hitbox is not covered by glow */
+.watch-panel .watch-score-ring::before,
+.watch-panel .watch-score-ring::after,
+.watchlist-page-panel .watch-score-ring::before,
+.watchlist-page-panel .watch-score-ring::after {
+  pointer-events: none !important;
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    grid-template-columns: 28px minmax(0, 1fr) 42px 34px !important;
+    column-gap: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    transform: translateX(-8px) !important;
+  }
+}
+
+
+
+
+
+/* =========================================================
+   DESKTOP HARD LAYOUT GUARD
+   Prevents report cards/news/company text from overlapping right Watchlist.
+========================================================= */
+
+@media (min-width: 981px) {
+  .layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) clamp(360px, 27vw, 430px) !important;
+    gap: clamp(24px, 2.5vw, 40px) !important;
+    align-items: start !important;
+    width: min(100%, 1500px) !important;
+    max-width: 1500px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    overflow: visible !important;
+  }
+
+  .content,
+  .main-column,
+  .dashboard-main,
+  .report-column {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: clamp(360px, 27vw, 430px) !important;
+    min-width: 0 !important;
+    position: sticky !important;
+    top: 24px !important;
+    align-self: start !important;
+    margin: 0 !important;
+    transform: none !important;
+    z-index: 4 !important;
+  }
+
+  .layout > :not(.watch-panel) {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .hero-card,
+  .report-card,
+  .stock-report-card,
+  .stock-news-card,
+  .grade-grid,
+  .grades-grid {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    overflow: hidden !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    min-width: 0 !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  .stock-news-card {
+    clear: both !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  .watch-panel {
+    position: relative;
+    z-index: 5 !important;
+  }
+}
+
+/* Extra guard for laptop widths where overlap usually happens */
+@media (min-width: 981px) and (max-width: 1320px) {
+  .layout {
+    grid-template-columns: minmax(0, calc(100% - 390px)) 370px !important;
+    gap: 22px !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    max-width: 370px !important;
+  }
+
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    padding-right: clamp(18px, 2vw, 28px) !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(42px, 5.2vw, 68px) !important;
+    line-height: .98 !important;
+  }
+}
+
+/* Keep mobile/tablet behavior separate */
+@media (max-width: 980px) {
+  .layout {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    display: none !important;
+  }
+}
+
+
+/* =========================================================
+   CLEAN NEWS DISPLAY + COMPANY NAME FIT
+========================================================= */
+
+/* Hide any accidental raw/plain News Sentiment output.
+   Styled .stock-news-card stays visible. */
+.report-main > h2,
+.company-main > h2,
+.stock-main > h2,
+.content > h2 {
+  display: none !important;
+}
+
+/* Keep the styled top news bubble and score-card News Sentiment visible */
+.stock-news-card h2,
+.grade-card h2,
+.score-card h2,
+.section-title h2 {
+  display: initial !important;
+}
+
+/* Make long company names fit without squeezing Price/Risk cards */
+@media (min-width: 981px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns: minmax(250px, 360px) minmax(0, 1fr) minmax(220px, 270px) !important;
+    column-gap: clamp(22px, 2.2vw, 34px) !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(44px, 4.7vw, 66px) !important;
+    line-height: .98 !important;
+    letter-spacing: -0.035em !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side {
+    width: 100% !important;
+    min-width: 220px !important;
+    max-width: 270px !important;
+    justify-self: end !important;
+  }
+}
+
+@media (min-width: 981px) and (max-width: 1320px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns: minmax(210px, 310px) minmax(0, 1fr) minmax(205px, 245px) !important;
+    column-gap: 20px !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 4.25vw, 58px) !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side {
+    min-width: 205px !important;
+    max-width: 245px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 11vw, 58px) !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+/* Remove leftover icon above company name */
+.report-kicker,
+.stock-kicker,
+.current-report-kicker,
+.report-label,
+.stock-label {
+  min-height: 0 !important;
+}
+
+.report-kicker:empty,
+.stock-kicker:empty,
+.current-report-kicker:empty,
+.report-label:empty,
+.stock-label:empty {
+  display: none !important;
+}
+
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child {
+  display: none !important;
+}
+
+
+/* =========================================================
+   HARD FIX: POWER SCORE REPORT CARD NEVER OVERLAPS
+   Locks score, company text, and price/risk stack into separate columns.
+========================================================= */
+
+@media (min-width: 981px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    display: grid !important;
+    grid-template-columns:
+      clamp(250px, 25vw, 360px)
+      minmax(0, 1fr)
+      clamp(220px, 20vw, 280px) !important;
+    column-gap: clamp(20px, 2vw, 34px) !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    justify-self: center !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-column: 3 !important;
+    min-width: 220px !important;
+    max-width: 280px !important;
+    width: 100% !important;
+    justify-self: end !important;
+    z-index: 2 !important;
+    position: relative !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    font-size: clamp(38px, 4.35vw, 66px) !important;
+    line-height: .98 !important;
+    letter-spacing: -0.045em !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    hyphens: auto !important;
+    white-space: normal !important;
+  }
+
+  .report-main p,
+  .company-main p,
+  .stock-main p,
+  .hero-main p {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+/* Laptop width: prioritize no overlap over huge company name */
+@media (min-width: 981px) and (max-width: 1360px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns:
+      clamp(220px, 24vw, 310px)
+      minmax(0, 1fr)
+      230px !important;
+    column-gap: 18px !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    min-width: 230px !important;
+    max-width: 230px !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(34px, 4vw, 54px) !important;
+    line-height: .96 !important;
+  }
+}
+
+/* Smaller laptop / half-screen: stack the price/risk under company instead of overlapping */
+@media (min-width: 981px) and (max-width: 1180px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    grid-template-areas:
+      "score company"
+      "score stats" !important;
+    row-gap: 18px !important;
+    column-gap: 22px !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-area: score !important;
+    grid-column: auto !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    grid-column: auto !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    grid-column: auto !important;
+    justify-self: start !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 230px) minmax(0, 230px) !important;
+    gap: 12px !important;
+    max-width: 480px !important;
+    width: 100% !important;
+  }
+}
+
+/* Mobile/tablet remains stacked and safe */
+@media (max-width: 980px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    overflow: hidden !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST: NO INNER SCROLL
+   Panel grows when stocks are added and shrinks when deleted.
+========================================================= */
+
+@media (min-width: 681px) {
+  .watch-panel:not(.watchlist-page-panel) {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .watch-panel:not(.watchlist-page-panel) .watch-list,
+  .watch-panel:not(.watchlist-page-panel) .watch-items,
+  .watch-panel:not(.watchlist-page-panel) .watch-scroll,
+  .watch-panel:not(.watchlist-page-panel) .watchlist-scroll,
+  .watch-panel:not(.watchlist-page-panel) .panel-scroll,
+  .watch-panel:not(.watchlist-page-panel) [class*="scroll" i] {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .watch-panel:not(.watchlist-page-panel) .watch-row {
+    flex-shrink: 0 !important;
+  }
+
+  .layout > .watch-panel:not(.watchlist-page-panel) {
+    position: static !important;
+    top: auto !important;
+    align-self: start !important;
+  }
+}
+
+/* Mobile keeps the separate watchlist page behavior, but removes nested scroll there too */
+@media (max-width: 680px) {
+  .watchlist-page-panel,
+  .watchlist-page-panel .watch-list,
+  .watchlist-page-panel .watch-items,
+  .watchlist-page-panel .watch-scroll,
+  .watchlist-page-panel .watchlist-scroll,
+  .watchlist-page-panel .panel-scroll,
+  .watchlist-page-panel [class*="scroll" i] {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL REPORT CARD CLEANUP:
+   remove icon above company name, fit Price/Risk, mobile reorder.
+========================================================= */
+
+/* Hide the leftover decorative icon above company name */
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child,
+.report-main .report-kicker,
+.company-main .report-kicker,
+.stock-main .report-kicker,
+.hero-main .report-kicker,
+.report-main .stock-label,
+.company-main .stock-label,
+.stock-main .stock-label,
+.hero-main .stock-label,
+.report-main .title-chip,
+.company-main .title-chip,
+.stock-main .title-chip,
+.hero-main .title-chip {
+  display: none !important;
+}
+
+/* Desktop: Price/Risk stack fits content instead of huge empty cards */
+@media (min-width: 981px) {
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    width: fit-content !important;
+    min-width: 205px !important;
+    max-width: 235px !important;
+    justify-self: end !important;
+    display: grid !important;
+    gap: 12px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 205px !important;
+    max-width: 205px !important;
+    min-width: 205px !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side h3,
+  .report-side h3,
+  .stock-side h3,
+  .stat-stack h3,
+  .hero-side strong,
+  .report-side strong,
+  .stock-side strong,
+  .stat-stack strong {
+    white-space: nowrap !important;
+  }
+}
+
+/* Force Price and Risk to exactly the same non-black theme on desktop and mobile */
+.hero-side > *,
+.report-side > *,
+.stock-side > *,
+.stat-stack > *,
+.price-card,
+.price-box,
+.price-stat,
+.price-bubble,
+.risk-card,
+.risk-box,
+.risk-stat,
+.risk-bubble,
+[class*="price" i],
+[class*="risk" i] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.045), transparent 42%),
+    linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.065),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+.hero-side > *::before,
+.report-side > *::before,
+.stock-side > *::before,
+.stat-stack > *::before,
+.price-card::before,
+.price-box::before,
+.price-stat::before,
+.price-bubble::before,
+.risk-card::before,
+.risk-box::before,
+.risk-stat::before,
+.risk-bubble::before,
+[class*="price" i]::before,
+[class*="risk" i]::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Mobile: company/buttons first, Eval Score centered and larger, then Price left + Risk right */
+@media (max-width: 680px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "company company"
+      "score score"
+      "stats stats" !important;
+    row-gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    text-align: center !important;
+    justify-self: center !important;
+    width: 100% !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-area: score !important;
+    justify-self: center !important;
+    transform: scale(1.08) !important;
+    transform-origin: center !important;
+    margin: 4px auto 2px !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side > :first-child,
+  .report-side > :first-child,
+  .stock-side > :first-child,
+  .stat-stack > :first-child {
+    grid-column: 1 !important;
+  }
+
+  .hero-side > :nth-child(2),
+  .report-side > :nth-child(2),
+  .stock-side > :nth-child(2),
+  .stat-stack > :nth-child(2) {
+    grid-column: 2 !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    font-size: clamp(38px, 10vw, 56px) !important;
+    line-height: .98 !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    transform: scale(1.02) !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    gap: 8px !important;
+  }
+}
+
+
+/* Eval UI update: hard price/risk + mobile score layout sync */
+
+/* Remove leftover decorative report icon above company name */
+.report-main > svg:first-child,
+.company-main > svg:first-child,
+.stock-main > svg:first-child,
+.hero-main > svg:first-child,
+.report-main .report-kicker,
+.company-main .report-kicker,
+.stock-main .report-kicker,
+.hero-main .report-kicker,
+.report-main .stock-label,
+.company-main .stock-label,
+.stock-main .stock-label,
+.hero-main .stock-label,
+.report-main .title-chip,
+.company-main .title-chip,
+.stock-main .title-chip,
+.hero-main .title-chip {
+  display: none !important;
+}
+
+/* Desktop: make Price/Risk compact and matching */
+@media (min-width: 981px) {
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    width: fit-content !important;
+    min-width: 205px !important;
+    max-width: 235px !important;
+    justify-self: end !important;
+    display: grid !important;
+    gap: 12px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 205px !important;
+    max-width: 205px !important;
+    min-width: 205px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Match Price and Risk bubble theme everywhere */
+.hero-side > *,
+.report-side > *,
+.stock-side > *,
+.stat-stack > *,
+.price-card,
+.price-box,
+.price-stat,
+.price-bubble,
+.risk-card,
+.risk-box,
+.risk-stat,
+.risk-bubble,
+[class*="price" i],
+[class*="risk" i] {
+  border-color: rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.045), transparent 42%),
+    linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.065),
+    0 18px 44px rgba(0,0,0,.22) !important;
+  outline: none !important;
+}
+
+.hero-side > *::before,
+.report-side > *::before,
+.stock-side > *::before,
+.stat-stack > *::before,
+.price-card::before,
+.price-box::before,
+.price-stat::before,
+.price-bubble::before,
+.risk-card::before,
+.risk-box::before,
+.risk-stat::before,
+.risk-bubble::before,
+[class*="price" i]::before,
+[class*="risk" i]::before {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Mobile: company/buttons, then centered score, then price left and risk right */
+@media (max-width: 680px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "company company"
+      "score score"
+      "stats stats" !important;
+    row-gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    text-align: center !important;
+    justify-self: center !important;
+    width: 100% !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score {
+    grid-area: score !important;
+    justify-self: center !important;
+    transform: scale(1.08) !important;
+    transform-origin: center !important;
+    margin: 4px auto 2px !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .hero-side > :first-child,
+  .report-side > :first-child,
+  .stock-side > :first-child,
+  .stat-stack > :first-child {
+    grid-column: 1 !important;
+  }
+
+  .hero-side > :nth-child(2),
+  .report-side > :nth-child(2),
+  .stock-side > :nth-child(2),
+  .stat-stack > :nth-child(2) {
+    grid-column: 2 !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE REPORT LAYOUT: centered company, score, bottom stats
+   Only affects phone/mobile layout.
+========================================================= */
+
+@media (max-width: 680px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-height: auto !important;
+    padding: 26px 18px 24px !important;
+    border-radius: 30px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 18px !important;
+    align-items: center !important;
+    justify-items: center !important;
+    overflow: hidden !important;
+  }
+
+  /* Company name/details/buttons centered at the top */
+  .report-main,
+  .company-main,
+  .stock-main,
+  .hero-main {
+    grid-area: company !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    justify-self: center !important;
+    display: grid !important;
+    justify-items: center !important;
+  }
+
+  .report-main > svg:first-child,
+  .company-main > svg:first-child,
+  .stock-main > svg:first-child,
+  .hero-main > svg:first-child,
+  .report-main .report-kicker,
+  .company-main .report-kicker,
+  .stock-main .report-kicker,
+  .hero-main .report-kicker,
+  .report-main .stock-label,
+  .company-main .stock-label,
+  .stock-main .stock-label,
+  .hero-main .stock-label,
+  .report-main .title-chip,
+  .company-main .title-chip,
+  .stock-main .title-chip,
+  .hero-main .title-chip {
+    display: none !important;
+  }
+
+  .report-main h1,
+  .company-main h1,
+  .stock-main h1,
+  .hero-main h1 {
+    text-align: center !important;
+    margin: 0 auto 7px !important;
+    font-size: clamp(42px, 11.5vw, 64px) !important;
+    line-height: .96 !important;
+    letter-spacing: -0.045em !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .report-main p,
+  .company-main p,
+  .stock-main p,
+  .hero-main p {
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .report-main .company-actions,
+  .company-main .company-actions,
+  .stock-main .company-actions,
+  .hero-main .company-actions,
+  .report-main .action-row,
+  .company-main .action-row,
+  .stock-main .action-row,
+  .hero-main .action-row {
+    justify-content: center !important;
+    justify-self: center !important;
+    margin-top: 14px !important;
+  }
+
+  /* Eval score centered underneath company buttons and made larger */
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score,
+  .score-ring-wrap,
+  .main-score-wrap {
+    grid-area: score !important;
+    justify-self: center !important;
+    align-self: center !important;
+    margin: 4px auto 2px !important;
+    transform: scale(1.18) !important;
+    transform-origin: center center !important;
+    max-width: 100% !important;
+    z-index: 2 !important;
+  }
+
+  /* Price and Risk bubbles bottom row, inside same report bubble */
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    grid-area: stats !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+    margin-top: 6px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  .price-card,
+  .price-box,
+  .price-stat,
+  .price-bubble,
+  .risk-card,
+  .risk-box,
+  .risk-stat,
+  .risk-bubble {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 118px !important;
+    box-sizing: border-box !important;
+    border-radius: 22px !important;
+    padding: 16px !important;
+  }
+
+  .hero-side > :first-child,
+  .report-side > :first-child,
+  .stock-side > :first-child,
+  .stat-stack > :first-child {
+    grid-column: 1 !important;
+  }
+
+  .hero-side > :nth-child(2),
+  .report-side > :nth-child(2),
+  .stock-side > :nth-child(2),
+  .stat-stack > :nth-child(2) {
+    grid-column: 2 !important;
+  }
+
+  /* Price/Risk matching theme, not black */
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > *,
+  [class*="price" i],
+  [class*="risk" i] {
+    border-color: rgba(255,255,255,.10) !important;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,.05), transparent 42%),
+      linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.065),
+      0 18px 44px rgba(0,0,0,.22) !important;
+  }
+
+  .hero-side > *::before,
+  .report-side > *::before,
+  .stock-side > *::before,
+  .stat-stack > *::before,
+  [class*="price" i]::before,
+  [class*="risk" i]::before {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card,
+  .report-card,
+  .stock-report-card {
+    padding: 22px 14px 20px !important;
+    row-gap: 15px !important;
+  }
+
+  .score-wrap,
+  .score-area,
+  .power-score-wrap,
+  .hero-score,
+  .report-score,
+  .score-ring-wrap,
+  .main-score-wrap {
+    transform: scale(1.10) !important;
+  }
+
+  .hero-side,
+  .report-side,
+  .stock-side,
+  .stat-stack {
+    gap: 8px !important;
+  }
+
+  .hero-side > *,
+  .report-side > *,
+  .stock-side > *,
+  .stat-stack > * {
+    min-height: 108px !important;
+    padding: 13px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE REPORT FIX USING ACTUAL CLASSES
+   Actual markup: .hero-card > .score-panel + .company-panel + .snapshot-grid
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Big report bubble becomes a single-column layout */
+  .hero-card {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-height: auto !important;
+    padding: 26px 18px 24px !important;
+    border-radius: 30px !important;
+
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 18px !important;
+    align-items: center !important;
+    justify-items: center !important;
+    overflow: hidden !important;
+  }
+
+  /* Company name centered at top */
+  .hero-card .company-panel {
+    grid-area: company !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    display: grid !important;
+    justify-items: center !important;
+    text-align: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .hero-card .company-panel .eyebrow,
+  .hero-card .company-panel > svg:first-child {
+    display: none !important;
+  }
+
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    margin: 0 auto 8px !important;
+    font-size: clamp(42px, 11.5vw, 64px) !important;
+    line-height: .96 !important;
+    letter-spacing: -0.045em !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+
+  .hero-card .company-panel .subline,
+  .hero-card .company-panel p {
+    text-align: center !important;
+    justify-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .hero-card .company-panel .hero-actions {
+    justify-content: center !important;
+    justify-self: center !important;
+    margin-top: 14px !important;
+  }
+
+  /* Eval Score centered underneath company buttons */
+  .hero-card .score-panel {
+    grid-area: score !important;
+    justify-self: center !important;
+    align-self: center !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 8px auto 2px !important;
+    transform: scale(1.18) !important;
+    transform-origin: center center !important;
+    z-index: 2 !important;
+  }
+
+  .hero-card .score-panel .score-ring {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Price/Risk at bottom in two columns */
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    grid-area: stats !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas: "price risk" !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 118px !important;
+    box-sizing: border-box !important;
+    border-radius: 22px !important;
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child {
+    grid-area: price !important;
+  }
+
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    grid-area: risk !important;
+  }
+
+  /* Match price/risk theme; remove black/cyan look */
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .hero-card .mini-stat,
+  .hero-card .price-mini-stat {
+    border-color: rgba(255,255,255,.10) !important;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,.05), transparent 42%),
+      linear-gradient(145deg, rgba(16, 31, 34, .82), rgba(23, 22, 38, .84)) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.065),
+      0 18px 44px rgba(0,0,0,.22) !important;
+  }
+
+  .hero-card .snapshot-grid > *::before,
+  .hero-card .snapshot-grid-refined > *::before,
+  .hero-card .mini-stat::before,
+  .hero-card .price-mini-stat::before {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card {
+    padding: 22px 14px 20px !important;
+    row-gap: 15px !important;
+  }
+
+  .hero-card .score-panel {
+    transform: scale(1.10) !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    gap: 8px !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > * {
+    min-height: 108px !important;
+    padding: 13px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE PRICE/RISK THEME BLEND
+   Makes Price + Risk bubbles match the green report-card gradient.
+========================================================= */
+
+@media (max-width: 680px) {
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .hero-card .mini-stat,
+  .hero-card .price-mini-stat {
+    border-color: rgba(255,255,255,.12) !important;
+    background:
+      radial-gradient(circle at 22% 0%, rgba(133,255,71,.10), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.055), transparent 38%),
+      linear-gradient(145deg, rgba(24, 69, 55, .62), rgba(30, 55, 49, .58)) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.08),
+      0 14px 34px rgba(0,0,0,.16) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .hero-card .snapshot-grid > *::before,
+  .hero-card .snapshot-grid-refined > *::before,
+  .hero-card .mini-stat::before,
+  .hero-card .price-mini-stat::before {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .hero-card .snapshot-grid > *::after,
+  .hero-card .snapshot-grid-refined > *::after,
+  .hero-card .mini-stat::after,
+  .hero-card .price-mini-stat::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .hero-card .snapshot-grid .risk-strength-summary,
+  .hero-card .snapshot-grid-refined .risk-strength-summary {
+    background: rgba(8, 18, 21, .28) !important;
+    border-color: rgba(255,255,255,.08) !important;
+  }
+
+  .hero-card .daily-change-chip {
+    background: rgba(12, 36, 29, .42) !important;
+    border-color: rgba(133,255,71,.42) !important;
+  }
+}
+
+
+/* =========================================================
+   RISK HELP BUTTON MATCH
+   Makes the Risk ? button match the other metric/help ? buttons.
+========================================================= */
+
+.risk-help-btn,
+.risk-card .score-help-btn,
+.risk-box .score-help-btn,
+.risk-bubble .score-help-btn,
+.mini-stat .score-help-btn,
+.snapshot-grid .score-help-btn,
+.snapshot-grid-refined .score-help-btn {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    radial-gradient(circle at 32% 18%, rgba(255,255,255,.24), transparent 42%),
+    rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 8px 18px rgba(0,0,0,.20) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+}
+
+.risk-help-btn:hover,
+.risk-card .score-help-btn:hover,
+.risk-box .score-help-btn:hover,
+.risk-bubble .score-help-btn:hover,
+.mini-stat .score-help-btn:hover,
+.snapshot-grid .score-help-btn:hover,
+.snapshot-grid-refined .score-help-btn:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  background:
+    radial-gradient(circle at 32% 18%, rgba(255,255,255,.34), transparent 42%),
+    rgba(255,255,255,.14) !important;
+}
+
+.risk-help-btn .info-letter,
+.risk-card .score-help-btn .info-letter,
+.risk-box .score-help-btn .info-letter,
+.risk-bubble .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter,
+.snapshot-grid .score-help-btn .info-letter,
+.snapshot-grid-refined .score-help-btn .info-letter {
+  display: block !important;
+  color: inherit !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 680px) {
+  .risk-help-btn,
+  .risk-card .score-help-btn,
+  .risk-box .score-help-btn,
+  .risk-bubble .score-help-btn,
+  .mini-stat .score-help-btn,
+  .snapshot-grid .score-help-btn,
+  .snapshot-grid-refined .score-help-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    font-size: 10px !important;
+  }
+
+  .risk-help-btn .info-letter,
+  .risk-card .score-help-btn .info-letter,
+  .risk-box .score-help-btn .info-letter,
+  .risk-bubble .score-help-btn .info-letter,
+  .mini-stat .score-help-btn .info-letter,
+  .snapshot-grid .score-help-btn .info-letter,
+  .snapshot-grid-refined .score-help-btn .info-letter {
+    font-size: 10px !important;
+  }
+}
+
+
+/* =========================================================
+   RISK HELP BUTTON MATCH + BIGGER MOBILE EVAL SCORE
+========================================================= */
+
+/* Risk ? button matches other help buttons */
+.risk-help-btn,
+.risk-card .score-help-btn,
+.risk-box .score-help-btn,
+.risk-bubble .score-help-btn,
+.mini-stat .score-help-btn,
+.snapshot-grid .score-help-btn,
+.snapshot-grid-refined .score-help-btn {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background:
+    radial-gradient(circle at 32% 18%, rgba(255,255,255,.24), transparent 42%),
+    rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 8px 18px rgba(0,0,0,.20) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+}
+
+.risk-help-btn .info-letter,
+.risk-card .score-help-btn .info-letter,
+.risk-box .score-help-btn .info-letter,
+.risk-bubble .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter,
+.snapshot-grid .score-help-btn .info-letter,
+.snapshot-grid-refined .score-help-btn .info-letter {
+  display: block !important;
+  color: inherit !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+}
+
+/* Make mobile main Eval Score noticeably bigger */
+@media (max-width: 680px) {
+  .hero-card .score-panel {
+    transform: scale(1.30) !important;
+    transform-origin: center center !important;
+    margin: 22px auto 18px !important;
+  }
+
+  .hero-card .score-panel .score-ring {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .risk-help-btn,
+  .risk-card .score-help-btn,
+  .risk-box .score-help-btn,
+  .risk-bubble .score-help-btn,
+  .mini-stat .score-help-btn,
+  .snapshot-grid .score-help-btn,
+  .snapshot-grid-refined .score-help-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    font-size: 10px !important;
+  }
+
+  .risk-help-btn .info-letter,
+  .risk-card .score-help-btn .info-letter,
+  .risk-box .score-help-btn .info-letter,
+  .risk-bubble .score-help-btn .info-letter,
+  .mini-stat .score-help-btn .info-letter,
+  .snapshot-grid .score-help-btn .info-letter,
+  .snapshot-grid-refined .score-help-btn .info-letter {
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card .score-panel {
+    transform: scale(1.20) !important;
+    margin: 18px auto 14px !important;
+  }
+}
+
+
+/* =========================================================
+   UI FIXES + EARNINGS QUALITY
+========================================================= */
+
+/* Center the risk ? button */
+.snapshot-grid .score-help-btn,
+.snapshot-grid-refined .score-help-btn,
+.mini-stat .score-help-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1 !important;
+}
+
+.snapshot-grid .score-help-btn .info-letter,
+.snapshot-grid-refined .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter {
+  display: block !important;
+  line-height: 1 !important;
+  transform: translateY(-.5px) !important;
+}
+
+/* Remove strongest/weakest from main risk bubble */
+.risk-strength-summary {
+  display: none !important;
+}
+
+/* Mobile: daily change is white text, not green pill; price/risk values bigger */
+@media (max-width: 680px) {
+  .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 15px !important;
+    font-weight: 1000 !important;
+  }
+
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .hero-card .mini-stat {
+    min-height: 126px !important;
+  }
+
+  .hero-card .snapshot-grid .mini-stat strong,
+  .hero-card .snapshot-grid-refined .mini-stat strong,
+  .hero-card .snapshot-grid .mini-stat b,
+  .hero-card .snapshot-grid-refined .mini-stat b {
+    font-size: 23px !important;
+  }
+
+  .hero-card .snapshot-grid .mini-stat label,
+  .hero-card .snapshot-grid-refined .mini-stat label,
+  .hero-card .snapshot-grid .mini-stat span,
+  .hero-card .snapshot-grid-refined .mini-stat span {
+    font-size: 13px !important;
+  }
+}
+
+
+/* Sleep fix: center actual risk question mark button */
+.snapshot-grid-refined .score-help-btn,
+.snapshot-grid .score-help-btn,
+.mini-stat .score-help-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.snapshot-grid-refined .score-help-btn .info-letter,
+.snapshot-grid .score-help-btn .info-letter,
+.mini-stat .score-help-btn .info-letter {
+  display: block !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateY(-1px) !important;
+  text-align: center !important;
+}
+
+
+/* Final risk/price cleanup */
+.mini-risk-help-btn {
+  display: none !important;
+}
+
+.snapshot-grid-refined .mini-stat b,
+.snapshot-grid .mini-stat b {
+  font-size: clamp(28px, 2.3vw, 42px) !important;
+  line-height: .95 !important;
+}
+
+.snapshot-grid-refined .mini-stat span,
+.snapshot-grid .mini-stat span {
+  font-size: 15px !important;
+}
+
+.snapshot-grid-refined .daily-change-chip,
+.snapshot-grid .daily-change-chip {
+  font-size: 16px !important;
+  font-weight: 1000 !important;
+}
+
+@media (max-width: 680px) {
+  .snapshot-grid-refined .mini-stat b,
+  .snapshot-grid .mini-stat b {
+    font-size: 25px !important;
+  }
+
+  .snapshot-grid-refined .daily-change-chip,
+  .snapshot-grid .daily-change-chip {
+    font-size: 16px !important;
+  }
+}
+
+
+/* Layout update: ticker opens company site, Add button in report corner */
+.ticker-company-link {
+  color: rgba(255,255,255,.86) !important;
+  text-decoration: none !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(255,255,255,.35) !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  border-bottom-color: rgba(133,255,71,.85) !important;
+}
+
+.hero-card {
+  position: relative !important;
+}
+
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 24px !important;
+  right: 24px !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  min-height: 42px !important;
+  border-radius: 15px !important;
+  z-index: 8 !important;
+  padding: 0 !important;
+}
+
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 680px) {
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 14px !important;
+  }
+}
+
+
+
+   Keeps original pie/ring charts and bar charts.
+   Only prevents overlap inside the main Eval Score bubble.
+========================================================= */
+
+.hero-card {
+  position: relative !important;
+  min-height: 430px !important;
+  padding-top: 48px !important;
+  padding-right: 54px !important;
+  overflow: visible !important;
+}
+
+/* Give the right-side price/risk stack room away from the corner + button */
+.hero-card .snapshot-grid,
+.hero-card .snapshot-grid-refined {
+  margin-top: 30px !important;
+  padding-top: 4px !important;
+}
+
+/* Give company content breathing room but keep desktop layout intact */
+.hero-card .company-panel {
+  padding-top: 16px !important;
+}
+
+/* Add button stays in the top-right, smaller, and never over the price card */
+.hero-card .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 24px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  z-index: 20 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+/* Since the + moved to the corner, remove old action-row spacing */
+.hero-card .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* Clickable ticker link */
+.ticker-company-link {
+  color: rgba(255,255,255,.86) !important;
+  text-decoration: none !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(255,255,255,.35) !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  border-bottom-color: rgba(133,255,71,.85) !important;
+}
+
+/* Desktop: keep price/risk cards safely below corner button */
+@media (min-width: 981px) {
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    align-self: center !important;
+    transform: translateY(18px) !important;
+  }
+}
+
+/* Mobile: taller card, score/company/stats stay inside with no overlap */
+@media (max-width: 680px) {
+  .hero-card {
+    min-height: 690px !important;
+    padding-top: 60px !important;
+    padding-right: 18px !important;
+    padding-left: 18px !important;
+    padding-bottom: 26px !important;
+    overflow: visible !important;
+  }
+
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 13px !important;
+  }
+
+  .hero-card .company-panel {
+    padding-top: 8px !important;
+  }
+
+  .hero-card .score-panel {
+    margin-top: 18px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    margin-top: 22px !important;
+    transform: none !important;
+  }
+}
+
+
+/* Ticker link: clickable like the industry link, opens company website */
+.ticker-company-link {
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: rgba(255,255,255,.86) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  line-height: inherit !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.22) !important;
+}
+
+.ticker-company-link.is-disabled {
+  cursor: default !important;
+  text-decoration-color: rgba(255,255,255,.20) !important;
+}
+
+
+
+   Simple, stable, no overlap, original rings/bars preserved.
+========================================================= */
+
+/* Hide SoFi/referral leftovers completely */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.referral-btn,
+.referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
+  display: none !important;
+}
+
+/* Compact top bar: wraps exact visible controls only */
+.eval-clean-searchbar {
+  width: fit-content !important;
+  max-width: calc(100vw - 72px) !important;
+  min-width: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin: 0 auto 0 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.eval-clean-searchbar > * {
+  flex: 0 0 auto !important;
+}
+
+.eval-clean-searchbar .ticker-field {
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
+  flex: 0 0 300px !important;
+}
+
+.eval-clean-searchbar .eval-clean-ticker-input,
+.eval-clean-searchbar input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.eval-clean-searchbar button {
+  flex: 0 0 auto !important;
+}
+
+/* Clickable ticker next to industry */
+.ticker-company-link {
+  color: rgba(255,255,255,.9) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 1px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.24) !important;
+}
+
+.ticker-company-link.is-disabled {
+  cursor: default !important;
+  opacity: .88 !important;
+}
+
+/* Main report: two-row grid. This avoids company/price overlap entirely. */
+.eval-clean-hero {
+  position: relative !important;
+  min-height: 470px !important;
+  padding: 42px 38px 38px !important;
+  display: grid !important;
+  grid-template-columns: 330px minmax(0, 1fr) 290px !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "score company stats"
+    "score company stats" !important;
+  align-items: center !important;
+  column-gap: 42px !important;
+  overflow: hidden !important;
+}
+
+/* Score ring lives left and stays centered */
+.eval-clean-hero .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Company info gets a dedicated center lane */
+.eval-clean-hero .company-panel {
+  grid-area: company !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 2 !important;
+}
+
+.eval-clean-hero .company-panel h2 {
+  margin: 0 0 14px !important;
+  max-width: 100% !important;
+  font-size: clamp(54px, 4.6vw, 78px) !important;
+  line-height: .94 !important;
+  letter-spacing: -0.055em !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+.eval-clean-hero .company-panel .subline {
+  margin: 0 !important;
+  font-size: clamp(18px, 1.28vw, 23px) !important;
+}
+
+/* Remove action-row height; add button moves to corner */
+.eval-clean-hero .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+/* Price/Risk cards get an isolated right lane */
+.eval-clean-hero .snapshot-grid,
+.eval-clean-hero .snapshot-grid-refined {
+  grid-area: stats !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 290px !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 15px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  z-index: 2 !important;
+}
+
+.eval-clean-hero .snapshot-grid > *,
+.eval-clean-hero .snapshot-grid-refined > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Corner add button: small and not in content flow */
+.eval-clean-hero .eval-hero-add-btn,
+.eval-clean-hero .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  z-index: 10 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+/* Make empty report visually line up with dashboard width */
+.empty-report {
+  min-height: 210px !important;
+}
+
+/* Laptop fit */
+@media (max-width: 1240px) and (min-width: 901px) {
+  .eval-clean-hero {
+    grid-template-columns: 300px minmax(0, 1fr) 270px !important;
+    column-gap: 30px !important;
+    padding: 42px 32px 38px !important;
+  }
+
+  .eval-clean-hero .company-panel h2 {
+    font-size: clamp(48px, 4.25vw, 66px) !important;
+  }
+
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined {
+    max-width: 270px !important;
+  }
+}
+
+/* Tablet/mobile stacked layout */
+@media (max-width: 900px) {
+  .eval-clean-searchbar {
+    max-width: calc(100vw - 32px) !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .eval-clean-searchbar .ticker-field {
+    width: clamp(170px, 42vw, 240px) !important;
+    min-width: 0 !important;
+    max-width: 240px !important;
+    flex: 1 1 clamp(170px, 42vw, 240px) !important;
+  }
+
+  .eval-clean-hero {
+    min-height: auto !important;
+    padding: 60px 20px 28px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .eval-clean-hero .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-clean-hero .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(42px, 11vw, 64px) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .eval-clean-hero .eval-hero-add-btn,
+  .eval-clean-hero .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+
+
+   No forced grid. Bubble simply shrink-wraps visible controls.
+========================================================= */
+
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.referral-btn,
+.referral-button,
+.promo-btn,
+.promo-button,
+.plan-btn,
+.plans-btn,
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
+  display: none !important;
+}
+
+/* The actual search bubble should shrink to children */
+.eval-safe-searchbar {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 72px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* Do not let children stretch and create ghost space */
+.eval-safe-searchbar > * {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Ticker field controls the only wide area */
+.eval-safe-searchbar .ticker-field,
+.eval-safe-searchbar .eval-safe-ticker-field {
+  width: 285px !important;
+  min-width: 285px !important;
+  max-width: 285px !important;
+  flex-basis: 285px !important;
+}
+
+.eval-safe-searchbar input,
+.eval-safe-searchbar .eval-safe-ticker-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Buttons stay normal square size but do not reserve removed button space */
+.eval-safe-searchbar button,
+.eval-safe-searchbar a {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Collapse empty wrappers if the old buttons left blank nodes behind */
+.eval-safe-searchbar > :empty {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Keep the clean hero layout from the rebuild */
+.eval-clean-hero {
+  position: relative !important;
+  min-height: 470px !important;
+  padding: 42px 38px 38px !important;
+  display: grid !important;
+  grid-template-columns: 330px minmax(0, 1fr) 290px !important;
+  grid-template-areas: "score company stats" !important;
+  align-items: center !important;
+  column-gap: 42px !important;
+  overflow: hidden !important;
+}
+
+.eval-clean-hero .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+
+.eval-clean-hero .company-panel {
+  grid-area: company !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.eval-clean-hero .company-panel h2 {
+  margin: 0 0 14px !important;
+  max-width: 100% !important;
+  font-size: clamp(54px, 4.6vw, 78px) !important;
+  line-height: .94 !important;
+  letter-spacing: -0.055em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.eval-clean-hero .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.eval-clean-hero .snapshot-grid,
+.eval-clean-hero .snapshot-grid-refined {
+  grid-area: stats !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
+  max-width: 290px !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 15px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.eval-clean-hero .eval-hero-add-btn,
+.eval-clean-hero .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  z-index: 10 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+.ticker-company-link {
+  color: rgba(255,255,255,.9) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 1px !important;
+  cursor: pointer !important;
+}
+
+@media (max-width: 900px) {
+  .eval-safe-searchbar {
+    max-width: calc(100vw - 32px) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .eval-safe-searchbar .ticker-field,
+  .eval-safe-searchbar .eval-safe-ticker-field {
+    width: clamp(170px, 42vw, 240px) !important;
+    min-width: 0 !important;
+    max-width: 240px !important;
+    flex-basis: clamp(170px, 42vw, 240px) !important;
+  }
+
+  .eval-clean-hero {
+    min-height: auto !important;
+    padding: 60px 20px 28px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .eval-clean-hero .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-clean-hero .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(42px, 11vw, 64px) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+
+
+========================================================= */
+
+/* Keep search bubble sane without forced grid */
+.eval-safe-searchbar,
+.eval-clean-searchbar,
+.searchbar.compact-searchbar.score-searchbar {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 72px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.eval-safe-searchbar > *,
+.eval-clean-searchbar > *,
+.searchbar.compact-searchbar.score-searchbar > * {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.eval-safe-searchbar .ticker-field,
+.eval-clean-searchbar .ticker-field,
+.searchbar.compact-searchbar.score-searchbar .ticker-field {
+  width: 285px !important;
+  min-width: 285px !important;
+  max-width: 285px !important;
+  flex-basis: 285px !important;
+}
+
+/* Main stock report bubble now uses the mobile-style stacked layout on desktop */
+.hero-card.eval-stack-report,
+.eval-stack-report {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 620px !important;
+  padding: 56px 38px 40px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas:
+    "company"
+    "score"
+    "stats" !important;
+  align-items: center !important;
+  justify-items: center !important;
+  row-gap: 22px !important;
+  overflow: visible !important;
+}
+
+/* Company is centered at the top */
+.eval-stack-report .company-panel {
+  grid-area: company !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+  justify-self: center !important;
+  display: grid !important;
+  justify-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.eval-stack-report .company-panel h2 {
+  text-align: center !important;
+  margin: 0 auto 10px !important;
+  max-width: 100% !important;
+  font-size: clamp(58px, 5.6vw, 92px) !important;
+  line-height: .92 !important;
+  letter-spacing: -0.06em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.eval-stack-report .company-panel .subline {
+  text-align: center !important;
+  font-size: clamp(18px, 1.25vw, 23px) !important;
+  margin: 0 !important;
+}
+
+.eval-stack-report .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+/* Eval score centered in middle */
+.eval-stack-report .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 6px auto 0 !important;
+  display: grid !important;
+  justify-items: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Metrics button sits under the ? / score helper */
+.score-metrics-jump-btn {
+  margin-top: 10px !important;
+  height: 28px !important;
+  padding: 0 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.86) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 10px 24px rgba(0,0,0,.18) !important;
+}
+
+.score-metrics-jump-btn:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+}
+
+/* Price and Risk go underneath, left/right like mobile */
+.eval-stack-report .snapshot-grid,
+.eval-stack-report .snapshot-grid-refined {
+  grid-area: stats !important;
+  width: min(100%, 640px) !important;
+  max-width: 640px !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  margin: 4px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  z-index: 2 !important;
+}
+
+.eval-stack-report .snapshot-grid > *,
+.eval-stack-report .snapshot-grid-refined > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Corner add button stays small and clean */
+.eval-stack-report .eval-hero-add-btn,
+.eval-stack-report .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  z-index: 10 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+/* Ticker website link */
+.ticker-company-link {
+  color: rgba(255,255,255,.9) !important;
+  font: inherit !important;
+  font-weight: 1000 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 1px !important;
+  cursor: pointer !important;
+}
+
+.ticker-company-link:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(133,255,71,.24) !important;
+}
+
+/* Metrics anchor offset so scroll lands cleanly */
+#score-metrics {
+  scroll-margin-top: 34px !important;
+}
+
+/* Mobile keeps the same layout, just tighter */
+@media (max-width: 680px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report {
+    min-height: auto !important;
+    padding: 58px 18px 24px !important;
+    row-gap: 18px !important;
+  }
+
+  .eval-stack-report .company-panel h2 {
+    font-size: clamp(42px, 11vw, 64px) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .eval-stack-report .eval-hero-add-btn,
+  .eval-stack-report .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    width: clamp(170px, 42vw, 240px) !important;
+    min-width: 0 !important;
+    max-width: 240px !important;
+    flex-basis: clamp(170px, 42vw, 240px) !important;
+  }
+}
+
+
+/* =========================================================
+   STACK SCORE BUTTONS + RESPONSIVE SEARCHBAR MATCH
+========================================================= */
+
+/* Search bubble: desktop order = AI | input | search | add */
+.eval-responsive-searchbar,
+.searchbar.compact-searchbar.score-searchbar {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 72px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.eval-responsive-searchbar > *,
+.searchbar.compact-searchbar.score-searchbar > * {
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.eval-responsive-searchbar .ticker-field,
+.eval-responsive-searchbar .eval-responsive-ticker-field,
+.searchbar.compact-searchbar.score-searchbar .ticker-field {
+  width: 285px !important;
+  min-width: 285px !important;
+  max-width: 285px !important;
+  flex-basis: 285px !important;
+}
+
+.eval-responsive-searchbar input,
+.eval-responsive-searchbar .eval-responsive-ticker-input,
+.searchbar.compact-searchbar.score-searchbar input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Mobile search bar should match desktop order + watchlist button */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-responsive-searchbar .eval-responsive-ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+/* Desktop/mobile report uses stacked layout */
+.hero-card.eval-stack-report,
+.eval-stack-report {
+  position: relative !important;
+  width: 100% !important;
+  min-height: 620px !important;
+  padding: 56px 38px 40px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-areas:
+    "company"
+    "score"
+    "stats" !important;
+  align-items: center !important;
+  justify-items: center !important;
+  row-gap: 22px !important;
+  overflow: visible !important;
+}
+
+.eval-stack-report .company-panel {
+  grid-area: company !important;
+  width: 100% !important;
+  text-align: center !important;
+  justify-self: center !important;
+  display: grid !important;
+  justify-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.eval-stack-report .company-panel h2 {
+  text-align: center !important;
+  margin: 0 auto 10px !important;
+  max-width: 100% !important;
+  font-size: clamp(58px, 5.6vw, 92px) !important;
+  line-height: .92 !important;
+  letter-spacing: -0.06em !important;
+  overflow-wrap: anywhere !important;
+}
+
+.eval-stack-report .company-panel .hero-actions {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+.eval-stack-report .score-panel {
+  grid-area: score !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 6px auto 0 !important;
+  display: grid !important;
+  justify-items: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Perfectly stack ? and Metrics under the pie chart */
+.eval-stack-report .score-button-stack,
+.eval-stack-report .score-insight-wrap {
+  position: static !important;
+  width: fit-content !important;
+  margin: 12px auto 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  justify-items: center !important;
+  align-items: center !important;
+  row-gap: 8px !important;
+  transform: none !important;
+}
+
+.eval-stack-report .score-main-help-btn {
+  position: static !important;
+  margin: 0 auto !important;
+  justify-self: center !important;
+}
+
+.score-metrics-jump-btn {
+  position: static !important;
+  margin: 0 auto !important;
+  justify-self: center !important;
+  height: 28px !important;
+  padding: 0 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.86) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+}
+
+.score-metrics-jump-btn:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+}
+
+/* Keep popup centered below the ? button instead of throwing off button alignment */
+.eval-stack-report .score-insight-popup {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+.eval-stack-report .snapshot-grid,
+.eval-stack-report .snapshot-grid-refined {
+  grid-area: stats !important;
+  width: min(100%, 640px) !important;
+  max-width: 640px !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  margin: 4px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.eval-stack-report .snapshot-grid > *,
+.eval-stack-report .snapshot-grid-refined > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.eval-stack-report .eval-hero-add-btn,
+.eval-stack-report .hero-add-corner-btn {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
+  padding: 0 !important;
+  z-index: 10 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+#score-metrics {
+  scroll-margin-top: 34px !important;
+}
+
+@media (max-width: 680px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report {
+    min-height: auto !important;
+    padding: 58px 18px 24px !important;
+    row-gap: 18px !important;
+  }
+
+  .eval-stack-report .company-panel h2 {
+    font-size: clamp(42px, 11vw, 64px) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 10px !important;
+  }
+
+  .eval-stack-report .eval-hero-add-btn,
+  .eval-stack-report .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+
+/* Remove SoFi/referral button everywhere, including mobile */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+
+/* =========================================================
+   REMOVE SOFI EVERYWHERE + DESKTOP AI BUTTON IN FORMER SOFI SLOT
+========================================================= */
+
+/* Remove SoFi/referral button everywhere, including mobile and desktop */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Desktop: AI button moves to the far-right spot where SoFi used to be.
+   Desktop order becomes: ticker input → search → add → AI */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 72px) !important;
+    min-width: 0 !important;
+    padding: 10px 12px !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    order: 1 !important;
+    width: 285px !important;
+    min-width: 285px !important;
+    max-width: 285px !important;
+    flex: 0 0 285px !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    order: 2 !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    order: 3 !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-former-sofi-btn,
+  .eval-safe-searchbar .desktop-ai-former-sofi-btn,
+  .eval-clean-searchbar .desktop-ai-former-sofi-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-former-sofi-btn,
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    order: 4 !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile: keep current layout exactly, with AI first and watchlist at the end.
+   Mobile order stays: AI → ticker input → search → add → watchlist */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+/* Eval update: mobile price bubble matches desktop price bubble. */
+
+
+/* =========================================================
+   MOBILE PRICE BUBBLE = DESKTOP PRICE BUBBLE
+   Removes mobile-only green/black background and percent-change chip styling.
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Price card uses the same base mini-stat styling as desktop */
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .price-mini-stat,
+  .price-stat,
+  .price-card,
+  .price-box,
+  .price-bubble {
+    background: inherit !important;
+    border-color: inherit !important;
+    box-shadow: inherit !important;
+    backdrop-filter: inherit !important;
+  }
+
+  /* If inherit is too broad, match desktop mini-stat glass instead of mobile green */
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :first-child {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,255,255,.06), transparent 42%),
+      linear-gradient(145deg, rgba(18, 23, 36, .78), rgba(13, 16, 27, .82)) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.07),
+      0 18px 44px rgba(0,0,0,.22) !important;
+  }
+
+  /* Remove the mobile green pill look from daily change */
+  .daily-change-chip,
+  .hero-card .daily-change-chip,
+  .eval-stack-report .daily-change-chip,
+  .snapshot-grid .daily-change-chip,
+  .snapshot-grid-refined .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: rgba(255,255,255,.86) !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+  }
+
+  /* Keep price number and % change visually like desktop */
+  .hero-card .snapshot-grid > :first-child b,
+  .hero-card .snapshot-grid-refined > :first-child b,
+  .eval-stack-report .snapshot-grid > :first-child b,
+  .eval-stack-report .snapshot-grid-refined > :first-child b,
+  .hero-card .snapshot-grid > :first-child strong,
+  .hero-card .snapshot-grid-refined > :first-child strong,
+  .eval-stack-report .snapshot-grid > :first-child strong,
+  .eval-stack-report .snapshot-grid-refined > :first-child strong {
+    color: #ffffff !important;
+  }
+
+  .hero-card .snapshot-grid > :first-child span,
+  .hero-card .snapshot-grid-refined > :first-child span,
+  .eval-stack-report .snapshot-grid > :first-child span,
+  .eval-stack-report .snapshot-grid-refined > :first-child span {
+    color: rgba(255,255,255,.76) !important;
+  }
+
+  /* Remove mobile-only pseudo highlights from price card */
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+
+/* =========================================================
+   GLOBAL COPYRIGHT FOOTER
+========================================================= */
+
+body::after {
+  content: "© 2026–2027 Eval. All rights reserved.";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  z-index: 9999;
+  pointer-events: none;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.34);
+  text-transform: uppercase;
+}
+
+body {
+  padding-bottom: 22px;
+}
+
+@media (max-width: 680px) {
+  body::after {
+    bottom: 6px;
+    font-size: 8px;
+    letter-spacing: .06em;
+  }
+
+  body {
+    padding-bottom: 20px;
+  }
+}
+
+
+/* =========================================================
+   PRICE/RISK TRANSPARENT GLASS + DESKTOP AI LEFT SEARCHBAR
+========================================================= */
+
+/* Price and Risk cards blend into the report bubble green-blue gradient */
+.hero-card .snapshot-grid > *,
+.hero-card .snapshot-grid-refined > *,
+.eval-stack-report .snapshot-grid > *,
+.eval-stack-report .snapshot-grid-refined > *,
+.eval-clean-hero .snapshot-grid > *,
+.eval-clean-hero .snapshot-grid-refined > * {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+    radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+  border: 1px solid rgba(255,255,255,.105) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.075),
+    0 14px 34px rgba(0,0,0,.14) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Remove colored/black overrides on price/risk children */
+.hero-card .snapshot-grid > *::before,
+.hero-card .snapshot-grid-refined > *::before,
+.eval-stack-report .snapshot-grid > *::before,
+.eval-stack-report .snapshot-grid-refined > *::before,
+.eval-clean-hero .snapshot-grid > *::before,
+.eval-clean-hero .snapshot-grid-refined > *::before,
+.hero-card .snapshot-grid > *::after,
+.hero-card .snapshot-grid-refined > *::after,
+.eval-stack-report .snapshot-grid > *::after,
+.eval-stack-report .snapshot-grid-refined > *::after,
+.eval-clean-hero .snapshot-grid > *::after,
+.eval-clean-hero .snapshot-grid-refined > *::after {
+  opacity: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Percent change stays simple text, same treatment on mobile and desktop */
+.daily-change-chip,
+.hero-card .daily-change-chip,
+.eval-stack-report .daily-change-chip,
+.eval-clean-hero .daily-change-chip,
+.snapshot-grid .daily-change-chip,
+.snapshot-grid-refined .daily-change-chip {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: rgba(255,255,255,.82) !important;
+  font-size: inherit !important;
+  font-weight: 900 !important;
+  line-height: inherit !important;
+}
+
+/* Remove SoFi/referral everywhere if stale styles/markup exist */
+.sofi-btn,
+.sofi-button,
+.sofi-link,
+.mobile-sofi-btn,
+.mobile-sofi-button,
+.sofi-mobile-btn,
+.sofi-mobile-button,
+.referral-btn,
+.referral-button,
+.mobile-referral-btn,
+.mobile-referral-button,
+.promo-btn,
+.promo-button,
+a[href*="sofi"], a[href*="SoFi"], a[href*="SOFI"],
+button[aria-label*="sofi"], button[aria-label*="SoFi"], button[aria-label*="SOFI"],
+button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"],
+a[aria-label*="sofi"], a[aria-label*="SoFi"], a[aria-label*="SOFI"],
+a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Desktop only: AI button on left, bubble ends right after Add button.
+   Desktop order: AI | ticker input | search | add */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: fit-content !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 72px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    flex: 0 0 auto !important;
+  }
+
+  .eval-responsive-searchbar > *,
+  .eval-safe-searchbar > *,
+  .eval-clean-searchbar > *,
+  .searchbar.compact-searchbar.score-searchbar > * {
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    order: 1 !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    order: 2 !important;
+    width: 285px !important;
+    min-width: 285px !important;
+    max-width: 285px !important;
+    flex: 0 0 285px !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    order: 3 !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    order: 4 !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile stays: AI | input | search | add | watchlist */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE PRICE/RISK BUBBLES MATCH DESKTOP EXACTLY
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Same transparent green-blue glass card as desktop */
+  .hero-card .snapshot-grid > *,
+  .hero-card .snapshot-grid-refined > *,
+  .eval-stack-report .snapshot-grid > *,
+  .eval-stack-report .snapshot-grid-refined > *,
+  .eval-clean-hero .snapshot-grid > *,
+  .eval-clean-hero .snapshot-grid-refined > * {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+    border: 1px solid rgba(255,255,255,.105) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 14px 34px rgba(0,0,0,.14) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  /* Remove all mobile-only fill/shine/color effects */
+  .hero-card .snapshot-grid > *::before,
+  .hero-card .snapshot-grid-refined > *::before,
+  .eval-stack-report .snapshot-grid > *::before,
+  .eval-stack-report .snapshot-grid-refined > *::before,
+  .eval-clean-hero .snapshot-grid > *::before,
+  .eval-clean-hero .snapshot-grid-refined > *::before,
+  .hero-card .snapshot-grid > *::after,
+  .hero-card .snapshot-grid-refined > *::after,
+  .eval-stack-report .snapshot-grid > *::after,
+  .eval-stack-report .snapshot-grid-refined > *::after,
+  .eval-clean-hero .snapshot-grid > *::after,
+  .eval-clean-hero .snapshot-grid-refined > *::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Same plain percent-change text as desktop */
+  .daily-change-chip,
+  .hero-card .daily-change-chip,
+  .eval-stack-report .daily-change-chip,
+  .eval-clean-hero .daily-change-chip,
+  .snapshot-grid .daily-change-chip,
+  .snapshot-grid-refined .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: rgba(255,255,255,.82) !important;
+    font-size: inherit !important;
+    font-weight: 900 !important;
+    line-height: inherit !important;
+  }
+
+  /* Keep desktop-like text colors */
+  .hero-card .snapshot-grid > * b,
+  .hero-card .snapshot-grid-refined > * b,
+  .eval-stack-report .snapshot-grid > * b,
+  .eval-stack-report .snapshot-grid-refined > * b,
+  .eval-clean-hero .snapshot-grid > * b,
+  .eval-clean-hero .snapshot-grid-refined > * b,
+  .hero-card .snapshot-grid > * strong,
+  .hero-card .snapshot-grid-refined > * strong,
+  .eval-stack-report .snapshot-grid > * strong,
+  .eval-stack-report .snapshot-grid-refined > * strong,
+  .eval-clean-hero .snapshot-grid > * strong,
+  .eval-clean-hero .snapshot-grid-refined > * strong {
+    color: #ffffff !important;
+  }
+
+  .hero-card .snapshot-grid > * span,
+  .hero-card .snapshot-grid-refined > * span,
+  .eval-stack-report .snapshot-grid > * span,
+  .eval-stack-report .snapshot-grid-refined > * span,
+  .eval-clean-hero .snapshot-grid > * span,
+  .eval-clean-hero .snapshot-grid-refined > * span {
+    color: rgba(255,255,255,.76) !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE STOCK REPORT SPACING UPDATE
+   Taller bubble with cleaner spacing between title, score, metrics, price, and risk.
+========================================================= */
+
+@media (max-width: 680px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    min-height: 760px !important;
+    padding-top: 66px !important;
+    padding-right: 18px !important;
+    padding-bottom: 34px !important;
+    padding-left: 18px !important;
+    row-gap: 26px !important;
+    overflow: visible !important;
+  }
+
+  /* More room between company title/subline and the Eval Score ring */
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    margin-bottom: 8px !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    margin-bottom: 12px !important;
+  }
+
+  .eval-stack-report .company-panel .subline,
+  .eval-clean-hero .company-panel .subline,
+  .hero-card .company-panel .subline {
+    margin-bottom: 4px !important;
+  }
+
+  /* Keep score centered and give it breathing room */
+  .eval-stack-report .score-panel,
+  .eval-clean-hero .score-panel,
+  .hero-card .score-panel {
+    margin-top: 8px !important;
+    margin-bottom: 18px !important;
+  }
+
+  /* Stack ? and Metrics cleanly with a little space before price/risk */
+  .eval-stack-report .score-button-stack,
+  .eval-stack-report .score-insight-wrap,
+  .eval-clean-hero .score-button-stack,
+  .eval-clean-hero .score-insight-wrap,
+  .hero-card .score-button-stack,
+  .hero-card .score-insight-wrap {
+    margin-top: 14px !important;
+    row-gap: 9px !important;
+  }
+
+  .score-metrics-jump-btn {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Move Price/Risk bubbles lower from the Metrics button */
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    margin-top: 20px !important;
+    gap: 12px !important;
+  }
+
+  /* Keep corner add button away from content */
+  .eval-stack-report .eval-hero-add-btn,
+  .eval-stack-report .hero-add-corner-btn,
+  .eval-clean-hero .eval-hero-add-btn,
+  .eval-clean-hero .hero-add-corner-btn,
+  .hero-card .eval-hero-add-btn,
+  .hero-card .hero-add-corner-btn {
+    top: 18px !important;
+    right: 18px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    min-height: 790px !important;
+    row-gap: 28px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    margin-top: 24px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE SCORE RING BIGGER + PRICE/RISK EXACT SAME BACKGROUND
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Make the main mobile Eval Score pie/ring a little bigger */
+  .eval-stack-report .score-panel,
+  .eval-clean-hero .score-panel,
+  .hero-card .score-panel {
+    transform: scale(1.08) !important;
+    transform-origin: center center !important;
+    margin-top: 14px !important;
+    margin-bottom: 24px !important;
+  }
+
+  /* Keep the buttons under the larger ring centered and spaced */
+  .eval-stack-report .score-button-stack,
+  .eval-stack-report .score-insight-wrap,
+  .eval-clean-hero .score-button-stack,
+  .eval-clean-hero .score-insight-wrap,
+  .hero-card .score-button-stack,
+  .hero-card .score-insight-wrap {
+    transform: none !important;
+    margin-top: 16px !important;
+    row-gap: 9px !important;
+  }
+
+  /*
+    Price and Risk backgrounds must be EXACTLY the same.
+    Target both first and second stat cards with identical declarations.
+  */
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid > :nth-child(2),
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2),
+  .eval-clean-hero .snapshot-grid > :first-child,
+  .eval-clean-hero .snapshot-grid > :nth-child(2),
+  .eval-clean-hero .snapshot-grid-refined > :first-child,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2),
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :first-child,
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+    border: 1px solid rgba(255,255,255,.105) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 14px 34px rgba(0,0,0,.14) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  /* Remove any price-only or risk-only mobile overlay effects */
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid > :first-child::before,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::before,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::before,
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid > :nth-child(2)::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid > :first-child::after,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::after,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::after,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid > :nth-child(2)::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Percent change remains plain text, no colored pill */
+  .daily-change-chip,
+  .hero-card .daily-change-chip,
+  .eval-stack-report .daily-change-chip,
+  .eval-clean-hero .daily-change-chip,
+  .snapshot-grid .daily-change-chip,
+  .snapshot-grid-refined .daily-change-chip {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: rgba(255,255,255,.82) !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL MOBILE SCORE RING POP
+   Enlarges the actual ring/pie, not just its wrapper.
+========================================================= */
+
+@media (max-width: 680px) {
+  /* Make the stock report bubble taller enough to fit the bigger ring cleanly */
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 835px !important;
+    padding-top: 64px !important;
+    padding-bottom: 34px !important;
+    row-gap: 22px !important;
+    overflow: visible !important;
+  }
+
+  /* Company/title stays near top with a real gap before score ring */
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    margin-bottom: 14px !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    margin-bottom: 10px !important;
+  }
+
+  /* Score section gets its own visual room */
+  .eval-stack-report .score-panel,
+  .eval-clean-hero .score-panel,
+  .hero-card .score-panel {
+    width: 100% !important;
+    min-height: 330px !important;
+    display: grid !important;
+    justify-items: center !important;
+    align-items: center !important;
+    margin-top: 2px !important;
+    margin-bottom: 12px !important;
+    transform: none !important;
+  }
+
+  /*
+    Enlarge the actual main score ring/pie elements.
+    These selectors cover the ring wrapper, SVG, canvas, and nested chart containers.
+  */
+  .eval-stack-report .score-panel .score-ring,
+  .eval-clean-hero .score-panel .score-ring,
+  .hero-card .score-panel .score-ring,
+  .eval-stack-report .score-panel .score-orb,
+  .eval-clean-hero .score-panel .score-orb,
+  .hero-card .score-panel .score-orb,
+  .eval-stack-report .score-panel .pulse-ring,
+  .eval-clean-hero .score-panel .pulse-ring,
+  .hero-card .score-panel .pulse-ring,
+  .eval-stack-report .score-panel [class*="ring"],
+  .eval-clean-hero .score-panel [class*="ring"],
+  .hero-card .score-panel [class*="ring"] {
+    width: 265px !important;
+    height: 265px !important;
+    min-width: 265px !important;
+    min-height: 265px !important;
+    max-width: 265px !important;
+    max-height: 265px !important;
+  }
+
+  .eval-stack-report .score-panel svg,
+  .eval-clean-hero .score-panel svg,
+  .hero-card .score-panel svg,
+  .eval-stack-report .score-panel canvas,
+  .eval-clean-hero .score-panel canvas,
+  .hero-card .score-panel canvas {
+    width: 265px !important;
+    height: 265px !important;
+    min-width: 265px !important;
+    min-height: 265px !important;
+    max-width: 265px !important;
+    max-height: 265px !important;
+  }
+
+  /* Make the number inside the bigger chart pop */
+  .eval-stack-report .score-panel .score-value,
+  .eval-clean-hero .score-panel .score-value,
+  .hero-card .score-panel .score-value,
+  .eval-stack-report .score-panel b,
+  .eval-clean-hero .score-panel b,
+  .hero-card .score-panel b,
+  .eval-stack-report .score-panel strong,
+  .eval-clean-hero .score-panel strong,
+  .hero-card .score-panel strong {
+    font-size: clamp(54px, 15vw, 72px) !important;
+    line-height: .9 !important;
+  }
+
+  /* Keep ? and Metrics centered directly below the larger ring */
+  .eval-stack-report .score-button-stack,
+  .eval-stack-report .score-insight-wrap,
+  .eval-clean-hero .score-button-stack,
+  .eval-clean-hero .score-insight-wrap,
+  .hero-card .score-button-stack,
+  .hero-card .score-insight-wrap {
+    width: fit-content !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    row-gap: 9px !important;
+    margin: 14px auto 0 !important;
+    transform: none !important;
+  }
+
+  .eval-stack-report .score-main-help-btn,
+  .eval-clean-hero .score-main-help-btn,
+  .hero-card .score-main-help-btn,
+  .score-metrics-jump-btn {
+    justify-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Price/Risk row sits below the bigger chart with slight gap */
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    margin-top: 18px !important;
+    gap: 12px !important;
+  }
+
+  /* Price and Risk backgrounds: exact same declarations */
+  .eval-stack-report .snapshot-grid > :first-child,
+  .eval-stack-report .snapshot-grid > :nth-child(2),
+  .eval-stack-report .snapshot-grid-refined > :first-child,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2),
+  .eval-clean-hero .snapshot-grid > :first-child,
+  .eval-clean-hero .snapshot-grid > :nth-child(2),
+  .eval-clean-hero .snapshot-grid-refined > :first-child,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2),
+  .hero-card .snapshot-grid > :first-child,
+  .hero-card .snapshot-grid > :nth-child(2),
+  .hero-card .snapshot-grid-refined > :first-child,
+  .hero-card .snapshot-grid-refined > :nth-child(2) {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(133,255,71,.055), transparent 44%),
+      radial-gradient(circle at 88% 18%, rgba(21,231,255,.045), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+    border: 1px solid rgba(255,255,255,.105) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 14px 34px rgba(0,0,0,.14) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  .eval-stack-report .snapshot-grid > :first-child::before,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid-refined > :first-child::before,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid > :first-child::before,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::before,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::before,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::before,
+  .hero-card .snapshot-grid > :first-child::before,
+  .hero-card .snapshot-grid > :nth-child(2)::before,
+  .hero-card .snapshot-grid-refined > :first-child::before,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::before,
+  .eval-stack-report .snapshot-grid > :first-child::after,
+  .eval-stack-report .snapshot-grid > :nth-child(2)::after,
+  .eval-stack-report .snapshot-grid-refined > :first-child::after,
+  .eval-stack-report .snapshot-grid-refined > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid > :first-child::after,
+  .eval-clean-hero .snapshot-grid > :nth-child(2)::after,
+  .eval-clean-hero .snapshot-grid-refined > :first-child::after,
+  .eval-clean-hero .snapshot-grid-refined > :nth-child(2)::after,
+  .hero-card .snapshot-grid > :first-child::after,
+  .hero-card .snapshot-grid > :nth-child(2)::after,
+  .hero-card .snapshot-grid-refined > :first-child::after,
+  .hero-card .snapshot-grid-refined > :nth-child(2)::after {
+    opacity: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 855px !important;
+  }
+
+  .eval-stack-report .score-panel .score-ring,
+  .eval-clean-hero .score-panel .score-ring,
+  .hero-card .score-panel .score-ring,
+  .eval-stack-report .score-panel .score-orb,
+  .eval-clean-hero .score-panel .score-orb,
+  .hero-card .score-panel .score-orb,
+  .eval-stack-report .score-panel .pulse-ring,
+  .eval-clean-hero .score-panel .pulse-ring,
+  .hero-card .score-panel .pulse-ring,
+  .eval-stack-report .score-panel [class*="ring"],
+  .eval-clean-hero .score-panel [class*="ring"],
+  .hero-card .score-panel [class*="ring"],
+  .eval-stack-report .score-panel svg,
+  .eval-clean-hero .score-panel svg,
+  .hero-card .score-panel svg,
+  .eval-stack-report .score-panel canvas,
+  .eval-clean-hero .score-panel canvas,
+  .hero-card .score-panel canvas {
+    width: 250px !important;
+    height: 250px !important;
+    min-width: 250px !important;
+    min-height: 250px !important;
+    max-width: 250px !important;
+    max-height: 250px !important;
+  }
+}
+
+
+/* =========================================================
+   AI PAGE RULES + POPUP CLOSE + MOBILE POLISH
+========================================================= */
+
+.ai-rules-card {
+  width: min(100%, 880px);
+  margin: 0 auto 18px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.08), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(21,231,255,.07), transparent 42%),
+    rgba(255,255,255,.045);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 20px 55px rgba(0,0,0,.22);
+}
+
+.ai-rules-eyebrow {
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.58);
+  margin-bottom: 8px;
+}
+
+.ai-rules-card h3 {
+  margin: 0 0 14px;
+  color: #fff;
+  font-size: clamp(20px, 2vw, 28px);
+  line-height: 1.05;
+}
+
+.ai-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ai-rules-grid > div {
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.16);
+}
+
+.ai-rules-grid strong {
+  display: block;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.ai-rules-grid p,
+.ai-rules-note {
+  margin: 0;
+  color: rgba(255,255,255,.70);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ai-rules-note {
+  margin-top: 12px;
+}
+
+.score-popup,
+.score-insight-popup,
+.grade-popup,
+.help-popup,
+.tooltip-card,
+.info-popup {
+  position: absolute;
+}
+
+.popup-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  left: 8px !important;
+  z-index: 30 !important;
+  width: 21px !important;
+  height: 21px !important;
+  min-width: 21px !important;
+  min-height: 21px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(0,0,0,.22) !important;
+  color: rgba(255,255,255,.82) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.popup-close-btn:hover {
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+}
+
+.score-popup .score-popup-title,
+.score-insight-popup .score-popup-title,
+.grade-popup .score-popup-title,
+.help-popup .score-popup-title,
+.info-popup .score-popup-title {
+  padding-left: 22px;
+}
+
+@media (max-width: 680px) {
+  .ai-rules-card {
+    padding: 15px;
+    border-radius: 21px;
+    margin-bottom: 14px;
+  }
+
+  .ai-rules-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Remove Strong/Weak details from mobile watchlist only */
+  .watchlist-page [class*="strength"],
+  .watchlist-page [class*="weakness"],
+  .watchlist-page .strong-weak,
+  .watchlist-page .strength-weakness,
+  .watchlist-panel [class*="strength"],
+  .watchlist-panel [class*="weakness"],
+  .watchlist-panel .strong-weak,
+  .watchlist-panel .strength-weakness {
+    display: none !important;
+  }
+
+  /* Show desktop-style descriptions under mobile bar-chart metric cards */
+  .grade-card p,
+  .grade-card .grade-description,
+  .grade-card .score-description,
+  .grade-card .metric-description,
+  .metric-card p,
+  .metric-card .grade-description,
+  .metric-card .score-description,
+  .metric-card .metric-description,
+  .score-card p,
+  .score-card .grade-description,
+  .score-card .score-description,
+  .score-card .metric-description {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-height: none !important;
+    height: auto !important;
+    color: rgba(255,255,255,.68) !important;
+    font-size: 12px !important;
+    line-height: 1.38 !important;
+    margin-top: 8px !important;
+  }
+
+  /* Larger mobile Eval Score text */
+  .eval-stack-report .score-panel .score-value,
+  .eval-clean-hero .score-panel .score-value,
+  .hero-card .score-panel .score-value,
+  .eval-stack-report .score-panel b,
+  .eval-clean-hero .score-panel b,
+  .hero-card .score-panel b,
+  .eval-stack-report .score-panel strong,
+  .eval-clean-hero .score-panel strong,
+  .hero-card .score-panel strong {
+    font-size: clamp(64px, 18vw, 86px) !important;
+    line-height: .88 !important;
+  }
+}
+
+
+/* =========================================================
+   AI CARD ONLY ON ASSISTANT PAGE + IPAD USES MOBILE LAYOUT
+========================================================= */
+
+/* If stale markup ever appears inside watchlist/sidebar, hide it there only */
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+/* iPad/tablet should behave like the mobile report/search layout */
+@media (max-width: 1024px) {
+  /* Search bar: AI | input | search | add | watchlist */
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+
+  /* Report bubble: company top, score middle, price/risk bottom */
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    min-height: auto !important;
+    padding: 64px 20px 30px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(46px, 10vw, 72px) !important;
+    margin-bottom: 10px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 680px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+  }
+}
+
+/* On true mobile, keep the bigger-pop score ring rules */
+@media (max-width: 680px) {
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero,
+  .hero-card {
+    min-height: 835px !important;
+  }
+}
+
+
+/* Clerk resend 60-second guard styling */
+[data-eval-resend-locked="true"] {
+  color: rgba(133, 255, 71, .72) !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
+
+/* =========================================================
+   POPUP CLOSE BUTTONS — TOP RIGHT
+========================================================= */
+
+/* Every help/metric popup needs positioning context */
+.score-popup,
+.score-insight-popup,
+.grade-popup,
+.help-popup,
+.tooltip-card,
+.info-popup,
+[class*="popup"] {
+  position: absolute;
+}
+
+/* X button sits top-right inside every popup */
+.popup-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  z-index: 50 !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.84) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 18px rgba(0,0,0,.22) !important;
+}
+
+.popup-close-btn:hover {
+  background: rgba(255,255,255,.16) !important;
+  color: #ffffff !important;
+}
+
+/* Keep popup title from running into the X */
+.score-popup .score-popup-title,
+.score-insight-popup .score-popup-title,
+.grade-popup .score-popup-title,
+.help-popup .score-popup-title,
+.info-popup .score-popup-title,
+.score-popup h1,
+.score-popup h2,
+.score-popup h3,
+.score-popup h4,
+.score-popup h5,
+.score-popup h6,
+[class*="popup"] h1,
+[class*="popup"] h2,
+[class*="popup"] h3,
+[class*="popup"] h4,
+[class*="popup"] h5,
+[class*="popup"] h6 {
+  padding-right: 28px !important;
+  padding-left: 0 !important;
+}
+
+
+/* =========================================================
+   DEEP AI ASSISTANT RULES + TABLET MATCHES MOBILE
+========================================================= */
+
+/* Never show the AI rules card inside watchlist/sidebar */
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+/* AI page explanation card */
+.ai-rules-card-full,
+.ai-rules-card {
+  width: min(100%, 920px) !important;
+  margin: 0 auto 18px !important;
+  padding: 18px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.08), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(21,231,255,.07), transparent 42%),
+    rgba(255,255,255,.045) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 20px 55px rgba(0,0,0,.22) !important;
+}
+
+.ai-rules-eyebrow {
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.58) !important;
+  margin-bottom: 8px !important;
+}
+
+.ai-rules-card h3 {
+  margin: 0 0 15px !important;
+  color: #fff !important;
+  font-size: clamp(20px, 2vw, 30px) !important;
+  line-height: 1.05 !important;
+  max-width: 820px !important;
+}
+
+.ai-rules-grid-deep,
+.ai-rules-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.ai-rules-grid-deep > div,
+.ai-rules-grid > div {
+  padding: 14px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.16) !important;
+}
+
+.ai-rules-grid-deep strong,
+.ai-rules-grid strong {
+  display: block !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  margin-bottom: 6px !important;
+}
+
+.ai-rules-grid-deep p,
+.ai-rules-grid p,
+.ai-rules-note {
+  margin: 0 !important;
+  color: rgba(255,255,255,.70) !important;
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+}
+
+.ai-rules-grid-deep span {
+  display: block !important;
+  margin-top: 8px !important;
+  color: rgba(133,255,71,.74) !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.ai-rules-note {
+  margin-top: 12px !important;
+  color: rgba(255,255,255,.62) !important;
+}
+
+/* iPad/tablet should be same as mobile, just larger display */
+@media (max-width: 1180px) {
+  /* Search bar mobile order: AI | input | search | add | watchlist */
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+
+  /* Stock report same as mobile */
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    min-height: auto !important;
+    padding: 64px 20px 30px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+  }
+
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-stack-report .company-panel h2,
+  .eval-clean-hero .company-panel h2,
+  .hero-card .company-panel h2 {
+    text-align: center !important;
+    font-size: clamp(46px, 10vw, 72px) !important;
+    margin-bottom: 10px !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 680px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+  }
+}
+
+/* Smaller phones use the exact same order, just smaller buttons */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+
+  .ai-rules-grid-deep,
+  .ai-rules-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ai-rules-card-full,
+  .ai-rules-card {
+    padding: 15px !important;
+    border-radius: 21px !important;
+  }
+}
+
+
+/* =========================================================
+   FRONTEND DEPLOY ERROR FIX
+========================================================= */
+
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+.popup-close-btn {
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+}
+
+
+/* =========================================================
+   POPUP SPACING + BRIEF AI CARD + TABLET MOBILE LAYOUT + PORTRAIT LOCK
+========================================================= */
+
+/* Popup: prevent title/list overlap */
+.score-popup,
+.score-insight-popup,
+.grade-popup,
+.help-popup,
+.tooltip-card,
+.info-popup,
+[class*="popup"] {
+  position: absolute;
+  padding-top: 42px !important;
+  overflow: visible !important;
+}
+
+/* X in top-right */
+.popup-close-btn {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  z-index: 60 !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.84) !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+/* Popup title sits at top, list starts below it */
+.score-popup .score-popup-title,
+.score-insight-popup .score-popup-title,
+.grade-popup .score-popup-title,
+.help-popup .score-popup-title,
+.info-popup .score-popup-title,
+[class*="popup"] .score-popup-title,
+[class*="popup"] h1,
+[class*="popup"] h2,
+[class*="popup"] h3,
+[class*="popup"] h4,
+[class*="popup"] h5,
+[class*="popup"] h6 {
+  display: block !important;
+  position: relative !important;
+  z-index: 2 !important;
+  margin: 0 28px 14px 0 !important;
+  padding: 0 !important;
+  line-height: 1.15 !important;
+}
+
+/* Lists inside popups need their own clear row */
+.score-popup ul,
+.score-insight-popup ul,
+.grade-popup ul,
+.help-popup ul,
+.info-popup ul,
+[class*="popup"] ul {
+  display: grid !important;
+  gap: 8px !important;
+  margin: 12px 0 0 !important;
+  padding-left: 16px !important;
+  clear: both !important;
+}
+
+.score-popup li,
+.score-insight-popup li,
+.grade-popup li,
+.help-popup li,
+.info-popup li,
+[class*="popup"] li {
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  padding-top: 1px !important;
+}
+
+/* Keep the metrics popup readable */
+.score-popup .metric-row,
+.score-popup .metric-item,
+.score-popup [class*="metric"],
+[class*="popup"] .metric-row,
+[class*="popup"] .metric-item {
+  margin-top: 6px !important;
+}
+
+/* AI card: shorter, tighter explanation */
+.watchlist-panel .ai-rules-card,
+.watchlist-page .ai-rules-card,
+.watchlist-card .ai-rules-card,
+aside .ai-rules-card {
+  display: none !important;
+}
+
+.ai-rules-card-full,
+.ai-rules-card {
+  width: min(100%, 860px) !important;
+  margin: 0 auto 16px !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.08), transparent 42%),
+    radial-gradient(circle at 90% 20%, rgba(21,231,255,.07), transparent 42%),
+    rgba(255,255,255,.045) !important;
+}
+
+.ai-rules-eyebrow {
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.58) !important;
+  margin-bottom: 7px !important;
+}
+
+.ai-rules-card h3 {
+  margin: 0 0 12px !important;
+  color: #fff !important;
+  font-size: clamp(18px, 1.7vw, 25px) !important;
+  line-height: 1.08 !important;
+}
+
+.ai-rules-grid,
+.ai-rules-grid-brief {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.ai-rules-grid > div,
+.ai-rules-grid-brief > div {
+  padding: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.15) !important;
+}
+
+.ai-rules-grid strong,
+.ai-rules-grid-brief strong {
+  display: block !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  margin-bottom: 5px !important;
+}
+
+.ai-rules-grid p,
+.ai-rules-grid-brief p,
+.ai-rules-note {
+  margin: 0 !important;
+  color: rgba(255,255,255,.70) !important;
+  font-size: 11px !important;
+  line-height: 1.38 !important;
+}
+
+.ai-rules-note {
+  margin-top: 10px !important;
+}
+
+/* iPad/tablet is a larger mobile layout, not desktop */
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+
+  .hero-card.eval-stack-report,
+  .eval-stack-report,
+  .hero-card.eval-clean-hero,
+  .eval-clean-hero {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "company"
+      "score"
+      "stats" !important;
+    row-gap: 24px !important;
+    justify-items: center !important;
+    padding: 64px 20px 30px !important;
+  }
+
+  .eval-stack-report .company-panel,
+  .eval-clean-hero .company-panel,
+  .hero-card .company-panel {
+    text-align: center !important;
+    justify-self: center !important;
+  }
+
+  .eval-stack-report .snapshot-grid,
+  .eval-stack-report .snapshot-grid-refined,
+  .eval-clean-hero .snapshot-grid,
+  .eval-clean-hero .snapshot-grid-refined,
+  .hero-card .snapshot-grid,
+  .hero-card .snapshot-grid-refined {
+    width: 100% !important;
+    max-width: 680px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px !important;
+    margin-top: 18px !important;
+  }
+}
+
+/* Phone button sizing stays the same as mobile */
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+
+  .ai-rules-grid,
+  .ai-rules-grid-brief {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Portrait-only lock overlay for mobile/tablet landscape */
+.portrait-lock-overlay {
+  display: none;
+}
+
+@media (max-width: 1180px) and (orientation: landscape) {
+  .portrait-lock-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483647 !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 24px !important;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(21,231,255,.18), transparent 38%),
+      radial-gradient(circle at 82% 80%, rgba(133,255,71,.14), transparent 42%),
+      #05080f !important;
+  }
+
+  .portrait-lock-card {
+    width: min(92vw, 430px) !important;
+    padding: 26px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.07) !important;
+    text-align: center !important;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45) !important;
+  }
+
+  .portrait-lock-icon {
+    font-size: 42px !important;
+    color: #85ff47 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .portrait-lock-card h2 {
+    margin: 0 0 8px !important;
+    color: #fff !important;
+    font-size: 28px !important;
+  }
+
+  .portrait-lock-card p {
+    margin: 0 !important;
+    color: rgba(255,255,255,.72) !important;
+    font-size: 14px !important;
+  }
+
+  body {
+    overflow: hidden !important;
+  }
+}
+
+
+/* =========================================================
+   KEEP MOBILE/TABLET WATCHLIST FIXES ONLY
+   Homepage and profile/welcome layout are intentionally unchanged.
+========================================================= */
+
+@media (max-width: 1180px) {
+  /* Remove Strong/Weak rows from mobile/tablet watchlist only */
+  .watch-panel .row-sw,
+  .watch-panel .watch-row-sw,
+  .eval-watchlist-panel .row-sw,
+  .eval-watchlist-panel .watch-row-sw,
+  .mobile-watch-panel .row-sw,
+  .mobile-watch-panel .watch-row-sw,
+  .watchlist-page-panel .row-sw,
+  .watchlist-page-panel .watch-row-sw {
+    display: none !important;
+  }
+
+  /* Taller watchlist bubbles */
+  .watch-panel .watch-row,
+  .eval-watchlist-panel .watch-row,
+  .mobile-watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    min-height: 112px !important;
+    padding: 18px 16px !important;
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) 92px 42px !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+
+  /* Bigger ticker text */
+  .watch-panel .watch-info,
+  .eval-watchlist-panel .watch-info,
+  .mobile-watch-panel .watch-info,
+  .watchlist-page-panel .watch-info {
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 0 !important;
+  }
+
+  .watch-panel .watch-info > strong,
+  .eval-watchlist-panel .watch-info > strong,
+  .mobile-watch-panel .watch-info > strong,
+  .watchlist-page-panel .watch-info > strong {
+    display: block !important;
+    font-size: clamp(24px, 3.4vw, 34px) !important;
+    line-height: 1 !important;
+    letter-spacing: .035em !important;
+  }
+
+  /* Bigger score/pie chart */
+  .watch-panel .watch-score-ring,
+  .eval-watchlist-panel .watch-score-ring,
+  .mobile-watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    width: 86px !important;
+    height: 86px !important;
+    min-width: 86px !important;
+    min-height: 86px !important;
+    max-width: 86px !important;
+    max-height: 86px !important;
+    justify-self: center !important;
+  }
+
+  .watch-panel .watch-score-ring strong,
+  .eval-watchlist-panel .watch-score-ring strong,
+  .mobile-watch-panel .watch-score-ring strong,
+  .watchlist-page-panel .watch-score-ring strong {
+    font-size: clamp(20px, 2.7vw, 28px) !important;
+    line-height: 1 !important;
+  }
+
+  .watch-panel .delete-btn,
+  .eval-watchlist-panel .delete-btn,
+  .mobile-watch-panel .delete-btn,
+  .watchlist-page-panel .delete-btn {
+    justify-self: end !important;
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .watch-panel .watch-row,
+  .eval-watchlist-panel .watch-row,
+  .mobile-watch-panel .watch-row,
+  .watchlist-page-panel .watch-row {
+    min-height: 104px !important;
+    grid-template-columns: 30px minmax(0, 1fr) 80px 40px !important;
+    padding: 16px 14px !important;
+    gap: 12px !important;
+  }
+
+  .watch-panel .watch-score-ring,
+  .eval-watchlist-panel .watch-score-ring,
+  .mobile-watch-panel .watch-score-ring,
+  .watchlist-page-panel .watch-score-ring {
+    width: 78px !important;
+    height: 78px !important;
+    min-width: 78px !important;
+    min-height: 78px !important;
+    max-width: 78px !important;
+    max-height: 78px !important;
+  }
+}
+
+/* Tablet should follow the same interface display as mobile, without custom profile forcing */
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search add watch" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+  }
+
+  .eval-responsive-searchbar .desktop-ai-left-btn,
+  .eval-safe-searchbar .desktop-ai-left-btn,
+  .eval-clean-searchbar .desktop-ai-left-btn,
+  .searchbar.compact-searchbar.score-searchbar .desktop-ai-left-btn {
+    grid-area: ai !important;
+    display: inline-grid !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .ticker-field,
+  .eval-safe-searchbar .ticker-field,
+  .eval-clean-searchbar .ticker-field,
+  .searchbar.compact-searchbar.score-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Search stock"],
+  .eval-safe-searchbar button[aria-label="Search stock"],
+  .eval-clean-searchbar button[aria-label="Search stock"],
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-safe-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .eval-clean-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn),
+  .searchbar.compact-searchbar.score-searchbar button[aria-label="Add to watchlist"]:not(.mobile-only-watchlist-btn) {
+    grid-area: add !important;
+    order: initial !important;
+  }
+
+  .eval-responsive-searchbar .mobile-only-watchlist-btn,
+  .eval-safe-searchbar .mobile-only-watchlist-btn,
+  .eval-clean-searchbar .mobile-only-watchlist-btn,
+  .searchbar.compact-searchbar.score-searchbar .mobile-only-watchlist-btn {
+    grid-area: watch !important;
+    display: inline-grid !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-responsive-searchbar button,
+  .eval-safe-searchbar button,
+  .eval-clean-searchbar button,
+  .searchbar.compact-searchbar.score-searchbar button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+
+/* =========================================================
+   WATCHLIST STOCK COMPARISON PAGE
+========================================================= */
+
+.compare-nav-btn {
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+@media (min-width: 681px) {
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    order: 5 !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px 52px !important;
+    grid-template-areas: "ai input search add compare watch" !important;
+  }
+
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    grid-area: compare !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px 44px !important;
+    grid-template-areas: "ai input search add compare watch" !important;
+  }
+}
+
+.compare-page {
+  width: 100%;
+  min-height: calc(100vh - 140px);
+  display: grid;
+  place-items: start center;
+  padding: 12px 0 40px;
+}
+
+.compare-page-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 34px);
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.10), transparent 34%),
+    radial-gradient(circle at 84% 28%, rgba(133,255,71,.10), transparent 38%),
+    linear-gradient(145deg, rgba(16, 21, 34, .88), rgba(8, 11, 21, .92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 30px 100px rgba(0,0,0,.42);
+}
+
+.compare-page-head {
+  margin: 22px 0 18px;
+}
+
+.compare-page-head h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: .92;
+  letter-spacing: -.055em;
+  color: #fff;
+}
+
+.compare-page-head p,
+.compare-note,
+.compare-explain {
+  margin: 0;
+  color: rgba(255,255,255,.66);
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.compare-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  margin-bottom: 10px;
+}
+
+.compare-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.compare-form label span {
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.54);
+  font-weight: 1000;
+}
+
+.compare-form input {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(0,0,0,.18);
+  color: #fff;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 1000;
+  letter-spacing: .08em;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.compare-vs {
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.72);
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.compare-form button {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(135deg, rgba(133,255,71,.92), rgba(21,231,255,.74));
+  color: #071006;
+  font-weight: 1000;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.compare-error {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 95, 115, .22);
+  color: #ffb4be;
+  background: rgba(255, 95, 115, .08);
+  font-size: 13px;
+}
+
+.compare-results {
+  margin-top: 18px;
+}
+
+.compare-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.compare-score-card {
+  min-height: 132px;
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.08), transparent 40%),
+    rgba(255,255,255,.045);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.compare-score-card span {
+  color: rgba(255,255,255,.70);
+  font-size: 13px;
+  font-weight: 1000;
+  letter-spacing: .12em;
+}
+
+.compare-score-card strong {
+  color: #fff;
+  font-size: clamp(42px, 6vw, 68px);
+  line-height: .9;
+}
+
+.compare-score-card small {
+  color: rgba(255,255,255,.52);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.compare-score-divider {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.70);
+  font-weight: 1000;
+}
+
+.compare-chart-intro,
+.compare-explain,
+.compare-empty {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.compare-chart-intro strong {
+  color: #fff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.compare-chart-intro p {
+  margin: 0;
+  color: rgba(255,255,255,.60);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compare-chart {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.compare-chart-row {
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.085);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(21,231,255,.045), transparent 42%),
+    rgba(255,255,255,.035);
+}
+
+.compare-chart-label {
+  color: #fff;
+  font-weight: 1000;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.compare-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.compare-bar-line {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 46px;
+  gap: 10px;
+  align-items: center;
+}
+
+.compare-bar-line span {
+  color: rgba(255,255,255,.66);
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.compare-bar-line strong {
+  color: #fff;
+  font-size: 13px;
+  text-align: right;
+}
+
+.compare-bar-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.065);
+  border: 1px solid rgba(255,255,255,.06);
+  overflow: hidden;
+}
+
+.compare-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255,255,255,.45);
+}
+
+.compare-bar-track i.green {
+  background: linear-gradient(90deg, rgba(133,255,71,.85), rgba(21,231,255,.72));
+}
+
+.compare-bar-track i.yellow {
+  background: linear-gradient(90deg, rgba(255,214,107,.85), rgba(255,255,255,.40));
+}
+
+.compare-bar-track i.red {
+  background: linear-gradient(90deg, rgba(255,95,115,.85), rgba(255,255,255,.35));
+}
+
+.compare-chart-row small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255,255,255,.50);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.compare-empty {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: rgba(255,255,255,.68);
+}
+
+.compare-empty h3 {
+  color: #fff;
+  margin: 10px 0 4px;
+}
+
+@media (max-width: 680px) {
+  .compare-page-shell {
+    border-radius: 26px;
+    padding: 20px;
+  }
+
+  .compare-form {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-vs {
+    height: 24px;
+  }
+
+  .compare-score-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-score-divider {
+    margin: 0 auto;
+  }
+
+  .compare-bar-line {
+    grid-template-columns: 64px minmax(0, 1fr) 42px;
+  }
+}
+
+
+/* =========================================================
+   COMPARE SCORE RINGS + RADAR CHART
+========================================================= */
+
+.compare-score-card {
+  gap: 12px !important;
+  align-content: center !important;
+  justify-items: center !important;
+  min-height: 210px !important;
+  padding-top: 20px !important;
+  padding-bottom: 22px !important;
+}
+
+.compare-score-card span {
+  display: block !important;
+  margin-bottom: 6px !important;
+  font-size: 14px !important;
+  letter-spacing: .16em !important;
+  color: rgba(255,255,255,.78) !important;
+}
+
+.compare-score-ring {
+  --score-color: rgba(255,255,255,.45);
+  width: 132px;
+  height: 132px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(8, 13, 18, .98) 0 50%, transparent 51%),
+    conic-gradient(from -90deg, var(--score-color) 0 var(--score-a), rgba(255,255,255,.10) var(--score-a) 360deg);
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--score-color) 36%, transparent),
+    inset 0 0 18px rgba(255,255,255,.06);
+}
+
+.compare-score-ring::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.08), transparent 38%),
+    #091014;
+  box-shadow: inset 0 0 28px rgba(0,0,0,.52);
+}
+
+.compare-score-ring strong {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 42px !important;
+  line-height: .9;
+  text-shadow: 0 0 18px rgba(255,255,255,.28);
+}
+
+.compare-score-ring.green {
+  --score-color: #72ff41;
+}
+
+.compare-score-ring.yellow {
+  --score-color: #ffe35f;
+}
+
+.compare-score-ring.red {
+  --score-color: #ff5570;
+}
+
+.compare-radar-card {
+  margin: 14px 0 16px;
+  padding: 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(21,231,255,.055), transparent 42%),
+    radial-gradient(circle at 28% 14%, rgba(133,255,71,.07), transparent 36%),
+    rgba(255,255,255,.035);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 22px 60px rgba(0,0,0,.25);
+}
+
+.compare-radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.compare-radar-legend span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .12em;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.055);
+}
+
+.compare-radar-legend .left {
+  box-shadow: 0 0 18px rgba(133,255,71,.14);
+}
+
+.compare-radar-legend .right {
+  box-shadow: 0 0 18px rgba(21,231,255,.14);
+}
+
+.compare-radar-svg {
+  display: block;
+  width: min(100%, 620px);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.radar-grid {
+  fill: none;
+  stroke: rgba(255,255,255,.10);
+  stroke-width: 1;
+}
+
+.radar-axis {
+  stroke: rgba(255,255,255,.10);
+  stroke-width: 1;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.68);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.radar-poly {
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.08));
+}
+
+.radar-left {
+  fill: rgba(133,255,71,.15);
+  stroke: rgba(133,255,71,.92);
+}
+
+.radar-right {
+  fill: rgba(21,231,255,.13);
+  stroke: rgba(21,231,255,.88);
+}
+
+.radar-dot {
+  stroke: rgba(5,8,14,.95);
+  stroke-width: 2;
+}
+
+.radar-left-dot {
+  fill: #72ff41;
+}
+
+.radar-right-dot {
+  fill: #15e7ff;
+}
+
+.compare-chart-row.compact {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.compare-mini-values {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.compare-mini-values span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.07);
+  color: rgba(255,255,255,.70);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.compare-mini-values strong {
+  color: #fff;
+}
+
+.compare-chart-row.compact small {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .compare-score-card {
+    min-height: 190px !important;
+  }
+
+  .compare-score-ring {
+    width: 118px;
+    height: 118px;
+  }
+
+  .compare-score-ring strong {
+    font-size: 38px !important;
+  }
+
+  .compare-radar-card {
+    padding: 12px;
+  }
+
+  .radar-label {
+    font-size: 8px;
+  }
+
+  .compare-chart-row.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-mini-values {
+    justify-content: flex-start;
+  }
+}
+
+
+/* =========================================================
+   COMPARE RADAR LEGEND + OUTSIDE METRIC LABELS
+========================================================= */
+
+.compare-radar-legend {
+  gap: 14px !important;
+  margin-bottom: 14px !important;
+}
+
+.compare-radar-legend span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 9px 13px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .13em !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.06) !important;
+}
+
+.compare-radar-legend span i {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+  box-shadow: 0 0 16px currentColor !important;
+}
+
+.compare-radar-legend .left {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .left i {
+  background: #72ff41 !important;
+}
+
+.compare-radar-legend .right {
+  color: #15e7ff !important;
+}
+
+.compare-radar-legend .right i {
+  background: #15e7ff !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 700px) !important;
+  overflow: visible !important;
+  padding: 18px !important;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.82) !important;
+  font-size: 10.5px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .02em !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.92) !important;
+  stroke-width: 4px !important;
+  stroke-linejoin: round !important;
+}
+
+@media (max-width: 680px) {
+  .compare-radar-svg {
+    padding: 22px !important;
+  }
+
+  .radar-label {
+    font-size: 8.2px !important;
+    stroke-width: 3px !important;
+  }
+
+  .compare-radar-legend {
+    justify-content: center !important;
+  }
+
+  .compare-radar-legend span {
+    font-size: 10.5px !important;
+    padding: 8px 11px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL COMPARE RADAR + SCORE RING POLISH
+========================================================= */
+
+/* Match the report score-ring look closer: thicker, darker center, stronger glow */
+.compare-score-card {
+  min-height: 232px !important;
+  gap: 14px !important;
+}
+
+.compare-score-card span {
+  margin-bottom: 10px !important;
+  color: rgba(255,255,255,.84) !important;
+}
+
+.compare-score-ring {
+  --score-color: rgba(255,255,255,.45);
+  width: 150px !important;
+  height: 150px !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  position: relative !important;
+  background:
+    conic-gradient(from -90deg, var(--score-color) 0 var(--score-a), rgba(91,109,118,.48) var(--score-a) 360deg) !important;
+  box-shadow:
+    0 0 38px color-mix(in srgb, var(--score-color) 42%, transparent),
+    0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 18px rgba(255,255,255,.06) !important;
+}
+
+.compare-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 18px !important;
+  border-radius: inherit !important;
+  background:
+    radial-gradient(circle at 48% 38%, rgba(255,255,255,.09), transparent 34%),
+    radial-gradient(circle at 50% 50%, rgba(133,255,71,.08), transparent 54%),
+    linear-gradient(145deg, #0b1415, #070b10) !important;
+  box-shadow:
+    inset 0 0 34px rgba(0,0,0,.66),
+    0 0 0 1px rgba(255,255,255,.06) !important;
+}
+
+.compare-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: inherit !important;
+  border: 1px solid color-mix(in srgb, var(--score-color) 32%, transparent) !important;
+  opacity: .72 !important;
+  filter: blur(.1px) !important;
+}
+
+.compare-score-ring strong {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #ffffff !important;
+  font-size: 48px !important;
+  line-height: .9 !important;
+  text-shadow: 0 0 20px rgba(255,255,255,.32) !important;
+}
+
+.compare-score-ring.green {
+  --score-color: #72ff41 !important;
+}
+
+.compare-score-ring.yellow {
+  --score-color: #ffe35f !important;
+}
+
+.compare-score-ring.red {
+  --score-color: #ff5570 !important;
+}
+
+/* More room around radar labels and smaller inner shape so 10 scores do not hit labels */
+.compare-radar-card {
+  padding: 28px 28px 36px !important;
+  overflow: visible !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 760px) !important;
+  padding: 46px !important;
+  overflow: visible !important;
+}
+
+.radar-label {
+  fill: rgba(255,255,255,.90) !important;
+  font-size: 10.5px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .015em !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.96) !important;
+  stroke-width: 5px !important;
+  stroke-linejoin: round !important;
+}
+
+.radar-dot {
+  r: 3.6 !important;
+}
+
+/* Remove/hide the detailed breakdown below the radar if stale markup remains */
+.compare-chart-row.compact,
+.compare-mini-values {
+  display: none !important;
+}
+
+.compare-chart:empty {
+  display: none !important;
+}
+
+.compare-explain {
+  margin-top: 16px !important;
+}
+
+/* Legend color mapping made extra clear */
+.compare-radar-legend span {
+  border-color: currentColor !important;
+  background: rgba(255,255,255,.055) !important;
+}
+
+.compare-radar-legend .left {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .right {
+  color: #15e7ff !important;
+}
+
+@media (max-width: 680px) {
+  .compare-score-ring {
+    width: 132px !important;
+    height: 132px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 16px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 42px !important;
+  }
+
+  .compare-radar-card {
+    padding: 20px 12px 26px !important;
+  }
+
+  .compare-radar-svg {
+    padding: 38px !important;
+  }
+
+  .radar-label {
+    font-size: 8.4px !important;
+    stroke-width: 4px !important;
+  }
+}
+
+
+/* =========================================================
+   COMPARE RADAR FRONT LABELS + TIGHTER SPACE + SAME MOBILE LAYOUT
+========================================================= */
+
+/* Labels stay visually above polygons/dots */
+.radar-label-front,
+.radar-label {
+  position: relative !important;
+  z-index: 20 !important;
+  fill: rgba(255,255,255,.94) !important;
+  font-size: 10.8px !important;
+  font-weight: 1000 !important;
+  paint-order: stroke !important;
+  stroke: rgba(5,8,14,.98) !important;
+  stroke-width: 5.5px !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+.radar-poly {
+  position: relative !important;
+  z-index: 4 !important;
+}
+
+.radar-dot {
+  position: relative !important;
+  z-index: 8 !important;
+}
+
+/* Use space better: shorter vertical gap while still leaving room for labels */
+.compare-radar-card {
+  margin: 8px 0 12px !important;
+  padding: 18px 18px 24px !important;
+  min-height: auto !important;
+}
+
+.compare-radar-legend {
+  margin-bottom: 4px !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 700px) !important;
+  padding: 38px !important;
+  margin-top: -8px !important;
+  margin-bottom: -10px !important;
+}
+
+.compare-chart-intro {
+  margin-top: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Keep the two score cards side by side on tablet and mobile, just scaled down */
+@media (max-width: 680px) {
+  .compare-score-row {
+    grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .compare-score-divider {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+  }
+
+  .compare-score-card {
+    min-height: 164px !important;
+    padding: 12px 8px !important;
+    border-radius: 22px !important;
+  }
+
+  .compare-score-card span {
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .compare-score-ring {
+    width: 112px !important;
+    height: 112px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 14px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 34px !important;
+  }
+
+  .compare-radar-card {
+    padding: 14px 8px 20px !important;
+    margin-top: 8px !important;
+  }
+
+  .compare-radar-svg {
+    width: 100% !important;
+    padding: 34px !important;
+    margin-top: -6px !important;
+  }
+
+  .radar-label-front,
+  .radar-label {
+    font-size: 7.7px !important;
+    stroke-width: 3.6px !important;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1180px) {
+  .compare-score-row {
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) !important;
+  }
+
+  .compare-score-card {
+    min-height: 205px !important;
+  }
+
+  .compare-radar-svg {
+    width: min(100%, 720px) !important;
+    padding: 40px !important;
+  }
+}
+
+
+/* =========================================================
+   LOGO HOME LINK + SEARCHBAR WITHOUT TOP ADD + PRO HOMEPAGE
+========================================================= */
+
+.brand-home-btn,
+.landing-brand-home {
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.brand-home-btn:hover,
+.landing-brand-home:hover {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 24px rgba(21,231,255,.18));
+}
+
+/* Searchbar now has AI | input | search | compare | mobile watchlist */
+@media (min-width: 681px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    width: fit-content !important;
+    display: inline-flex !important;
+    gap: 10px !important;
+  }
+
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    order: 4 !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 52px minmax(0, 1fr) 52px 52px 52px !important;
+    grid-template-areas: "ai input search compare watch" !important;
+  }
+
+  .eval-responsive-searchbar .compare-nav-btn,
+  .eval-safe-searchbar .compare-nav-btn,
+  .eval-clean-searchbar .compare-nav-btn,
+  .searchbar.compact-searchbar.score-searchbar .compare-nav-btn {
+    grid-area: compare !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-responsive-searchbar,
+  .eval-safe-searchbar,
+  .eval-clean-searchbar,
+  .searchbar.compact-searchbar.score-searchbar {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px 44px !important;
+    grid-template-areas: "ai input search compare watch" !important;
+  }
+}
+
+/* New homepage: same composition across desktop/tablet/mobile, scaled down */
+.landing-page-pro {
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: clamp(18px, 3vw, 36px) 0 56px !important;
+}
+
+.landing-scanline {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .14;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,.055) 0,
+    rgba(255,255,255,.055) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+  mix-blend-mode: overlay;
+}
+
+.landing-shell-pro {
+  width: min(1220px, calc(100vw - 32px)) !important;
+  margin: 0 auto !important;
+  padding: clamp(22px, 3vw, 42px) !important;
+  border-radius: clamp(28px, 4vw, 48px) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.13), transparent 32%),
+    radial-gradient(circle at 82% 14%, rgba(133,255,71,.13), transparent 34%),
+    radial-gradient(circle at 66% 86%, rgba(132,94,255,.12), transparent 36%),
+    linear-gradient(135deg, rgba(255,255,255,.074), rgba(255,255,255,.034)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.13),
+    0 34px 120px rgba(0,0,0,.46) !important;
+  backdrop-filter: blur(16px) !important;
+  animation: landingShellIn .75s ease both;
+}
+
+@keyframes landingShellIn {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.landing-brand-row-pro {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin-bottom: clamp(26px, 3.5vw, 46px) !important;
+}
+
+.landing-brand-home {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+
+.landing-brand-home img {
+  width: clamp(56px, 6vw, 78px) !important;
+  height: clamp(56px, 6vw, 78px) !important;
+  filter: drop-shadow(0 0 26px rgba(21,231,255,.20)) !important;
+}
+
+.landing-brand-home h1 {
+  margin: 0 !important;
+  font-size: clamp(58px, 8vw, 104px) !important;
+  line-height: .82 !important;
+  letter-spacing: -.075em !important;
+  color: #fff !important;
+}
+
+.landing-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 10px 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(133,255,71,.20) !important;
+  background: rgba(133,255,71,.07) !important;
+  color: rgba(235,255,224,.78) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .10em !important;
+  text-transform: uppercase !important;
+}
+
+.landing-status-pill span {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  background: #72ff41 !important;
+  box-shadow: 0 0 18px #72ff41 !important;
+}
+
+.landing-hero-pro {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.02fr) minmax(360px, .82fr) !important;
+  gap: clamp(28px, 4.5vw, 60px) !important;
+  align-items: center !important;
+}
+
+.landing-copy-pro h2 {
+  max-width: 780px !important;
+  margin: 18px 0 18px !important;
+  font-size: clamp(52px, 6vw, 96px) !important;
+  line-height: .88 !important;
+  letter-spacing: -.072em !important;
+  color: #fff !important;
+  text-shadow: 0 0 36px rgba(255,255,255,.10) !important;
+}
+
+.landing-copy-pro p {
+  max-width: 720px !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: clamp(15px, 1.35vw, 19px) !important;
+  line-height: 1.56 !important;
+}
+
+.landing-actions-pro {
+  margin-top: 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+}
+
+.landing-flow {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 22px !important;
+  max-width: 740px !important;
+}
+
+.landing-flow-step {
+  min-height: 92px !important;
+  padding: 14px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  background: rgba(0,0,0,.16) !important;
+  display: grid !important;
+  align-content: start !important;
+  gap: 8px !important;
+}
+
+.landing-flow-step div {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 12px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: rgba(21,231,255,.10) !important;
+  color: #15e7ff !important;
+}
+
+.landing-flow-step span {
+  color: rgba(255,255,255,.55) !important;
+  font-size: 10px !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  font-weight: 1000 !important;
+}
+
+.landing-flow-step strong {
+  color: #fff !important;
+  font-size: 14px !important;
+}
+
+.landing-product-stage {
+  position: relative !important;
+  min-height: 560px !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+.landing-product-card {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 50% 5%, rgba(133,255,71,.13), transparent 40%),
+    linear-gradient(145deg, rgba(7,12,24,.78), rgba(34,27,58,.58)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 28px 88px rgba(0,0,0,.38) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.landing-product-card.main {
+  width: min(100%, 440px) !important;
+  padding: 24px !important;
+  border-radius: 34px !important;
+  animation: productFloat 5.5s ease-in-out infinite !important;
+}
+
+@keyframes productFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.preview-score-ring-pro {
+  width: clamp(190px, 19vw, 250px) !important;
+  height: clamp(190px, 19vw, 250px) !important;
+  margin: 24px auto !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(8,13,18,.96) 0 52%, transparent 53%),
+    conic-gradient(from -90deg, #72ff41 0 288deg, rgba(91,109,118,.50) 288deg 360deg) !important;
+  box-shadow: 0 0 44px rgba(114,255,65,.24), inset 0 0 18px rgba(255,255,255,.05) !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+.preview-score-ring-pro strong {
+  color: #fff !important;
+  font-size: clamp(58px, 6vw, 82px) !important;
+  line-height: .9 !important;
+}
+
+.preview-mini-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+}
+
+.preview-mini-grid div {
+  padding: 12px !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.055) !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+}
+
+.preview-mini-grid span {
+  display: block !important;
+  color: rgba(255,255,255,.52) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .09em !important;
+  margin-bottom: 5px !important;
+}
+
+.preview-mini-grid strong {
+  color: #fff !important;
+  font-size: 22px !important;
+}
+
+.landing-product-card.floating {
+  position: absolute !important;
+  width: 176px !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+  animation: miniFloat 6.2s ease-in-out infinite !important;
+}
+
+.landing-product-card.floating.watch {
+  top: 56px !important;
+  right: 8px !important;
+}
+
+.landing-product-card.floating.radar {
+  bottom: 72px !important;
+  left: 0 !important;
+  animation-delay: -2s !important;
+}
+
+@keyframes miniFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+.landing-product-card.floating span {
+  color: rgba(255,255,255,.56) !important;
+  font-size: 10px !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+  font-weight: 1000 !important;
+}
+
+.landing-product-card.floating strong {
+  display: block !important;
+  margin: 6px 0 !important;
+  color: #fff !important;
+  font-size: 18px !important;
+}
+
+.landing-product-card.floating p {
+  margin: 0 !important;
+  color: rgba(255,255,255,.62) !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.landing-feature-strip {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+  margin-top: clamp(30px, 4vw, 52px) !important;
+}
+
+.landing-feature-card {
+  min-height: 194px !important;
+  padding: 18px !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.07), transparent 40%),
+    rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+  transition: transform .22s ease, border-color .22s ease, background .22s ease !important;
+}
+
+.landing-feature-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(133,255,71,.22) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(133,255,71,.10), transparent 40%),
+    rgba(255,255,255,.055) !important;
+}
+
+.landing-feature-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 15px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: rgba(133,255,71,.10) !important;
+  color: #b9ff8a !important;
+  margin-bottom: 14px !important;
+}
+
+.landing-feature-card h3 {
+  color: #fff !important;
+  font-size: 15px !important;
+  margin: 0 0 8px !important;
+}
+
+.landing-feature-card p {
+  color: rgba(255,255,255,.64) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+}
+
+.landing-scroll-story {
+  margin-top: 18px !important;
+  display: grid !important;
+  grid-template-columns: .9fr 1.1fr !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.landing-story-copy,
+.landing-story-grid > div {
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  background: rgba(0,0,0,.14) !important;
+  padding: 18px !important;
+}
+
+.landing-story-copy h2 {
+  color: #fff !important;
+  margin: 12px 0 0 !important;
+  font-size: clamp(28px, 3.6vw, 52px) !important;
+  line-height: .98 !important;
+  letter-spacing: -.05em !important;
+}
+
+.landing-story-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.landing-story-grid b {
+  color: rgba(133,255,71,.80) !important;
+  font-size: 12px !important;
+}
+
+.landing-story-grid span {
+  display: block !important;
+  color: #fff !important;
+  margin: 7px 0 6px !important;
+  font-weight: 1000 !important;
+}
+
+.landing-story-grid p {
+  margin: 0 !important;
+  color: rgba(255,255,255,.62) !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.landing-bottom-strip-pro {
+  margin-top: 18px !important;
+}
+
+@media (max-width: 1024px) {
+  .landing-shell-pro {
+    width: min(860px, calc(100vw - 28px)) !important;
+  }
+
+  .landing-hero-pro {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .landing-product-stage {
+    min-height: 520px !important;
+  }
+
+  .landing-feature-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .landing-scroll-story {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-page-pro {
+    padding: 12px 0 42px !important;
+  }
+
+  .landing-shell-pro {
+    width: calc(100vw - 20px) !important;
+    padding: 18px !important;
+    border-radius: 30px !important;
+  }
+
+  .landing-brand-row-pro {
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .landing-status-pill {
+    font-size: 8.5px !important;
+    padding: 8px 10px !important;
+    max-width: 158px !important;
+  }
+
+  .landing-brand-home {
+    gap: 12px !important;
+  }
+
+  .landing-brand-home img {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .landing-brand-home h1 {
+    font-size: 56px !important;
+  }
+
+  .landing-copy-pro h2 {
+    font-size: clamp(42px, 13vw, 64px) !important;
+  }
+
+  .landing-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .landing-product-stage {
+    min-height: 500px !important;
+  }
+
+  .landing-product-card.main {
+    width: min(100%, 340px) !important;
+  }
+
+  .landing-product-card.floating {
+    width: 150px !important;
+  }
+
+  .landing-product-card.floating.watch {
+    right: -4px !important;
+    top: 38px !important;
+  }
+
+  .landing-product-card.floating.radar {
+    left: -4px !important;
+    bottom: 52px !important;
+  }
+
+  .landing-feature-strip,
+  .landing-story-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-actions-pro {
+    align-items: stretch !important;
+  }
+
+  .landing-continue-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+
+/* =========================================================
+   EXTREME HOMEPAGE VISUAL UPGRADE
+========================================================= */
+
+.landing-page-extreme {
+  position: relative !important;
+  background:
+    radial-gradient(circle at 14% 5%, rgba(0, 232, 255, .20), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(121, 255, 65, .18), transparent 30%),
+    radial-gradient(circle at 72% 86%, rgba(128, 80, 255, .24), transparent 34%),
+    linear-gradient(135deg, #030a0f, #06070d 42%, #0d0718) !important;
+}
+
+.landing-orb-three {
+  position: fixed !important;
+  width: 360px !important;
+  height: 360px !important;
+  right: 12% !important;
+  bottom: 10% !important;
+  border-radius: 999px !important;
+  background: radial-gradient(circle, rgba(133,255,71,.16), transparent 68%) !important;
+  filter: blur(18px) !important;
+  animation: orbDrift 9s ease-in-out infinite alternate !important;
+}
+
+@keyframes orbDrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-28px, 18px, 0) scale(1.08); }
+}
+
+.landing-noise {
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  opacity: .08 !important;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,.28) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,.20) 0 1px, transparent 1px) !important;
+  background-size: 38px 38px, 53px 53px !important;
+  mix-blend-mode: overlay !important;
+}
+
+.landing-shell-extreme {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-shell-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: inherit !important;
+  background:
+    linear-gradient(120deg, transparent, rgba(21,231,255,.25), transparent, rgba(133,255,71,.18), transparent) !important;
+  opacity: .54 !important;
+  filter: blur(18px) !important;
+  z-index: -1 !important;
+  animation: borderSweep 7s linear infinite !important;
+}
+
+@keyframes borderSweep {
+  from { transform: translateX(-25%) rotate(0deg); }
+  to { transform: translateX(25%) rotate(360deg); }
+}
+
+.landing-status-live {
+  box-shadow: 0 0 32px rgba(133,255,71,.11), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.landing-kicker-glow {
+  box-shadow: 0 0 30px rgba(133,255,71,.08) !important;
+}
+
+.landing-copy-pro h2 {
+  background: linear-gradient(90deg, #fff 0%, #eafff4 38%, #9aff73 58%, #15e7ff 82%, #fff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+.landing-continue-mega {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-continue-mega::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(110deg, transparent 0 34%, rgba(255,255,255,.55) 45%, transparent 58% 100%) !important;
+  transform: translateX(-140%) !important;
+  animation: buttonShine 2.8s ease-in-out infinite !important;
+}
+
+@keyframes buttonShine {
+  0%, 35% { transform: translateX(-140%); }
+  60%, 100% { transform: translateX(140%); }
+}
+
+.landing-flow-extreme .landing-flow-step {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-flow-extreme .landing-flow-step::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #72ff41, #15e7ff) !important;
+  transform: scaleX(.35) !important;
+  transform-origin: left !important;
+  opacity: .72 !important;
+}
+
+.landing-product-stage-extreme {
+  perspective: 1000px !important;
+}
+
+.landing-holo-ring {
+  position: absolute !important;
+  width: 410px !important;
+  height: 410px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(133,255,71,.22) !important;
+  box-shadow:
+    0 0 34px rgba(133,255,71,.13),
+    inset 0 0 34px rgba(21,231,255,.08) !important;
+  animation: holoSpin 16s linear infinite !important;
+}
+
+.landing-holo-ring::before,
+.landing-holo-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 42px !important;
+  border-radius: 999px !important;
+  border: 1px dashed rgba(21,231,255,.24) !important;
+}
+
+.landing-holo-ring::after {
+  inset: 92px !important;
+  border-color: rgba(255,255,255,.13) !important;
+  animation: holoSpin 10s linear infinite reverse !important;
+}
+
+@keyframes holoSpin {
+  to { transform: rotate(360deg); }
+}
+
+.landing-orbit {
+  position: absolute !important;
+  width: 420px !important;
+  height: 420px !important;
+  border-radius: 999px !important;
+  animation: holoSpin 24s linear infinite !important;
+}
+
+.landing-orbit span {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 74px !important;
+  margin-left: -37px !important;
+  margin-top: -14px !important;
+  padding: 7px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(0,0,0,.28) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.68) !important;
+  font-size: 9px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+  transform:
+    rotate(calc(var(--orbit-i) * 60deg))
+    translateX(218px)
+    rotate(calc(var(--orbit-i) * -60deg)) !important;
+}
+
+.landing-main-terminal {
+  transform-style: preserve-3d !important;
+  animation: productFloat 5.5s ease-in-out infinite, cardTilt 7s ease-in-out infinite !important;
+}
+
+@keyframes cardTilt {
+  0%, 100% { rotate: 0deg; }
+  50% { rotate: .8deg; }
+}
+
+.landing-terminal-lines {
+  margin-top: 14px !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.landing-terminal-lines span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: rgba(255,255,255,.66) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.landing-terminal-lines i {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 999px !important;
+  background: #72ff41 !important;
+  box-shadow: 0 0 14px #72ff41 !important;
+}
+
+.landing-float-card-three {
+  top: 228px !important;
+  right: -18px !important;
+  animation-delay: -4s !important;
+}
+
+.landing-feature-strip-extreme {
+  scroll-snap-type: x proximity !important;
+}
+
+.landing-feature-card-extreme {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-feature-card-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(120deg, transparent 0 40%, rgba(255,255,255,.07) 48%, transparent 58% 100%) !important;
+  transform: translateX(-120%) !important;
+  transition: transform .55s ease !important;
+}
+
+.landing-feature-card-extreme:hover::before {
+  transform: translateX(120%) !important;
+}
+
+.landing-story-grid-extreme > div {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.landing-story-grid-extreme > div::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: auto 0 0 0 !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, rgba(133,255,71,.85), rgba(21,231,255,.75)) !important;
+  opacity: .64 !important;
+}
+
+/* Keep the same visual structure on mobile/tablet, only scaled */
+@media (max-width: 1024px) {
+  .landing-hero-extreme {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-product-stage-extreme {
+    min-height: 560px !important;
+  }
+
+  .landing-holo-ring,
+  .landing-orbit {
+    width: 390px !important;
+    height: 390px !important;
+  }
+
+  .landing-orbit span {
+    transform:
+      rotate(calc(var(--orbit-i) * 60deg))
+      translateX(202px)
+      rotate(calc(var(--orbit-i) * -60deg)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-shell-extreme {
+    padding: 16px !important;
+  }
+
+  .landing-product-stage-extreme {
+    min-height: 520px !important;
+  }
+
+  .landing-holo-ring,
+  .landing-orbit {
+    width: 320px !important;
+    height: 320px !important;
+  }
+
+  .landing-orbit span {
+    width: 60px !important;
+    margin-left: -30px !important;
+    font-size: 7.5px !important;
+    transform:
+      rotate(calc(var(--orbit-i) * 60deg))
+      translateX(166px)
+      rotate(calc(var(--orbit-i) * -60deg)) !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 214px !important;
+    right: -2px !important;
+  }
+
+  .landing-copy-pro p {
+    font-size: 13px !important;
+  }
+
+  .landing-feature-card-extreme {
+    min-height: 176px !important;
+  }
+}
+
+
+/* =========================================================
+   HOMEPAGE CLEANUP: REMOVE FLOW BUBBLES + ROTATING ORBIT
+========================================================= */
+
+.landing-flow,
+.landing-flow-extreme,
+.landing-holo-ring,
+.landing-orbit {
+  display: none !important;
+}
+
+.landing-product-stage-extreme {
+  min-height: 500px !important;
+}
+
+.landing-product-card.main {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .landing-product-stage-extreme {
+    min-height: 500px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-product-stage-extreme {
+    min-height: 470px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE HOMEPAGE SCROLL FIX + SAME DESKTOP STRUCTURE
+========================================================= */
+
+/* Allow the homepage to scroll fully on mobile/tablet */
+html,
+body,
+#root {
+  min-height: 100% !important;
+}
+
+body {
+  overflow-x: hidden !important;
+}
+
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme {
+  min-height: 100dvh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  padding-bottom: max(96px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Do not let fixed/absolute visual layers block scroll/touch */
+.landing-orb,
+.landing-orb-one,
+.landing-orb-two,
+.landing-orb-three,
+.landing-grid-glow,
+.landing-scanline,
+.landing-noise {
+  pointer-events: none !important;
+}
+
+/* Tablet/mobile keep desktop composition: hero text left, preview right, only scaled down */
+@media (max-width: 1024px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: min(1220px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: clamp(18px, 3vw, 34px) !important;
+  }
+
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    grid-template-columns: minmax(0, 1.02fr) minmax(300px, .82fr) !important;
+    gap: clamp(18px, 3vw, 38px) !important;
+    align-items: center !important;
+  }
+
+  .landing-copy,
+  .landing-copy-pro {
+    min-width: 0 !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(42px, 7.6vw, 78px) !important;
+    line-height: .88 !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: clamp(12px, 1.7vw, 16px) !important;
+    line-height: 1.45 !important;
+    max-width: 610px !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 470px !important;
+    transform: scale(.92) !important;
+    transform-origin: center center !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: min(100%, 390px) !important;
+  }
+
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: .9fr 1.1fr !important;
+    gap: 14px !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Phone: same desktop layout, scaled to fit horizontally */
+@media (max-width: 680px) {
+  .landing-page,
+  .landing-page-pro,
+  .landing-page-extreme {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 10px 0 max(120px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    padding: 14px !important;
+    border-radius: 26px !important;
+    overflow: visible !important;
+  }
+
+  .landing-brand-row,
+  .landing-brand-row-pro {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .landing-brand-home img {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .landing-brand-home h1 {
+    font-size: 46px !important;
+  }
+
+  .landing-status-pill,
+  .landing-status-live {
+    max-width: 132px !important;
+    font-size: 7.5px !important;
+    padding: 7px 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Keep the desktop split: text left, preview right */
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(148px, .95fr) !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  .landing-kicker {
+    font-size: 8px !important;
+    padding: 6px 8px !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(29px, 10vw, 44px) !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+    margin: 10px 0 10px !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    max-width: 100% !important;
+  }
+
+  .landing-actions,
+  .landing-actions-pro {
+    margin-top: 14px !important;
+    gap: 8px !important;
+  }
+
+  .landing-continue-btn,
+  .landing-continue-mega {
+    width: auto !important;
+    min-height: 42px !important;
+    padding: 0 13px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+  }
+
+  .landing-actions span {
+    font-size: 8.5px !important;
+    max-width: 130px !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 360px !important;
+    transform: scale(.72) !important;
+    transform-origin: center center !important;
+    margin: -34px -44px -34px -28px !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: 300px !important;
+    padding: 18px !important;
+  }
+
+  .preview-score-ring-pro,
+  .preview-score-ring-extreme {
+    width: 168px !important;
+    height: 168px !important;
+    margin: 16px auto !important;
+  }
+
+  .preview-score-ring-pro strong,
+  .preview-score-ring-extreme strong {
+    font-size: 56px !important;
+  }
+
+  .preview-mini-grid {
+    gap: 7px !important;
+  }
+
+  .preview-mini-grid div {
+    padding: 9px !important;
+  }
+
+  .preview-mini-grid strong {
+    font-size: 17px !important;
+  }
+
+  .landing-product-card.floating {
+    width: 138px !important;
+    padding: 13px !important;
+  }
+
+  .landing-product-card.floating.watch {
+    top: 36px !important;
+    right: -10px !important;
+  }
+
+  .landing-product-card.floating.radar {
+    bottom: 48px !important;
+    left: -8px !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 190px !important;
+    right: -12px !important;
+  }
+
+  /* Keep same feature/story layout as desktop, but scaled into smaller cards */
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+  }
+
+  .landing-feature-card,
+  .landing-feature-card-extreme {
+    min-height: 150px !important;
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .landing-feature-icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .landing-feature-card h3 {
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .landing-feature-card p {
+    font-size: 8px !important;
+    line-height: 1.28 !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: .9fr 1.1fr !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .landing-story-copy,
+  .landing-story-grid > div {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .landing-story-copy h2 {
+    font-size: 18px !important;
+    line-height: .98 !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .landing-story-grid b {
+    font-size: 8px !important;
+  }
+
+  .landing-story-grid span {
+    font-size: 9px !important;
+    margin: 4px 0 !important;
+  }
+
+  .landing-story-grid p {
+    font-size: 7.8px !important;
+    line-height: 1.25 !important;
+  }
+
+  .landing-bottom-strip,
+  .landing-bottom-strip-pro {
+    gap: 6px !important;
+    margin-top: 10px !important;
+  }
+
+  .landing-bottom-strip span {
+    font-size: 7.5px !important;
+    padding: 6px 8px !important;
+  }
+
+  .landing-footnote {
+    font-size: 7.5px !important;
+    margin-top: 10px !important;
+    padding-bottom: 30px !important;
+  }
+}
+
+/* Very narrow phones can scroll horizontally a tiny amount if needed, but never cut off vertical content */
+@media (max-width: 390px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: 390px !important;
+    max-width: none !important;
+    transform: scale(calc((100vw - 10px) / 390)) !important;
+    transform-origin: top left !important;
+    margin-left: 5px !important;
+    margin-bottom: calc(-1 * (390px - 100vw)) !important;
+  }
+}
+
+
+/* =========================================================
+   COMPARE PAGE BOTTOM NOTE UPDATE
+========================================================= */
+
+.compare-explain {
+  border-color: rgba(133,255,71,.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(133,255,71,.075), transparent 34%),
+    rgba(0,0,0,.18) !important;
+  color: rgba(255,255,255,.70) !important;
+}
+
+
+/* =========================================================
+   DASHBOARD DROPDOWN MENU + SIMPLIFIED SEARCHBAR
+========================================================= */
+
+.eval-menu-searchbar {
+  position: relative !important;
+  width: fit-content !important;
+  display: inline-grid !important;
+  grid-template-columns: 54px minmax(230px, 320px) 54px !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding: 10px !important;
+}
+
+.menu-wrap {
+  position: relative !important;
+  z-index: 120 !important;
+}
+
+.menu-trigger {
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,.12), transparent 36%),
+    rgba(255,255,255,.075) !important;
+  color: #fff !important;
+  display: grid !important;
+  place-items: center !important;
+  cursor: pointer !important;
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease !important;
+}
+
+.menu-trigger:hover,
+.menu-trigger.open {
+  transform: translateY(-1px) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(133,255,71,.18), transparent 36%),
+    rgba(255,255,255,.10) !important;
+  box-shadow: 0 0 24px rgba(133,255,71,.10) !important;
+}
+
+.dashboard-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  left: 0 !important;
+  width: 248px !important;
+  padding: 10px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.10), transparent 36%),
+    radial-gradient(circle at 84% 18%, rgba(133,255,71,.10), transparent 34%),
+    rgba(8, 12, 22, .96) !important;
+  backdrop-filter: blur(18px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 24px 70px rgba(0,0,0,.46) !important;
+  display: grid !important;
+  gap: 6px !important;
+  animation: dropdownPop .18s ease both !important;
+  z-index: 9999 !important;
+}
+
+@keyframes dropdownPop {
+  from { opacity: 0; transform: translateY(-7px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-height: 42px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  color: rgba(255,255,255,.82) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 11px !important;
+  font: inherit !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  transition: background .15s ease, color .15s ease, transform .15s ease !important;
+}
+
+.dashboard-dropdown-menu button:hover {
+  background: rgba(255,255,255,.075) !important;
+  color: #fff !important;
+  transform: translateX(2px) !important;
+}
+
+.dashboard-dropdown-menu button svg {
+  color: rgba(133,255,71,.84) !important;
+}
+
+.dropdown-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent) !important;
+  margin: 5px 2px !important;
+}
+
+.dropdown-mobile-only {
+  display: none !important;
+}
+
+/* Remove any old topbar buttons from old layout if stale CSS/markup exists */
+.eval-menu-searchbar .desktop-ai-left-btn,
+.eval-menu-searchbar .compare-nav-btn,
+.eval-menu-searchbar .mobile-only-watchlist-btn,
+.eval-menu-searchbar .watchlist-nav-btn,
+.eval-menu-searchbar button[aria-label="Add to watchlist"] {
+  display: none !important;
+}
+
+.eval-menu-searchbar > button[aria-label="Search stock"] {
+  display: grid !important;
+  width: 54px !important;
+  height: 54px !important;
+  min-width: 54px !important;
+}
+
+/* Tablet/mobile: same compact searchbar, menu includes Watchlist */
+@media (max-width: 1180px) {
+  .eval-menu-searchbar {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+  }
+
+  .eval-menu-searchbar .menu-wrap {
+    grid-area: menu !important;
+  }
+
+  .eval-menu-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    grid-area: search !important;
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+  }
+
+  .menu-trigger {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+  }
+
+  .dropdown-mobile-only {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-menu-searchbar {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .menu-trigger,
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .dashboard-dropdown-menu {
+    width: min(248px, calc(100vw - 34px)) !important;
+  }
+}
+
+
+/* =========================================================
+   DROPDOWN MENU FRONT LAYER + CLEAN BUTTON ROWS
+========================================================= */
+
+/* Nothing around the searchbar should clip or cover the dropdown */
+.layout,
+.content,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+.content,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  position: relative !important;
+  z-index: 50000 !important;
+}
+
+/* Report cards and watchlist stay below menu */
+.empty-report,
+.report-card,
+.hero-card,
+.watch-panel,
+.watchlist-panel {
+  z-index: 1 !important;
+}
+
+/* Dropdown is always on top */
+.dashboard-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  left: 0 !important;
+  z-index: 2147483000 !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  padding: 10px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.12), transparent 36%),
+    radial-gradient(circle at 84% 18%, rgba(133,255,71,.10), transparent 34%),
+    rgba(8, 12, 22, .98) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 26px 80px rgba(0,0,0,.62) !important;
+  display: grid !important;
+  gap: 7px !important;
+}
+
+/* Each menu item is a real full-width button */
+.dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border: 1px solid rgba(255,255,255,.075) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.045) !important;
+  color: rgba(255,255,255,.88) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+
+.dashboard-dropdown-menu button:hover {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(133,255,71,.14), transparent 38%),
+    rgba(255,255,255,.075) !important;
+  border-color: rgba(133,255,71,.20) !important;
+  color: #ffffff !important;
+  transform: translateX(2px) !important;
+}
+
+.dashboard-dropdown-menu button svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  color: rgba(133,255,71,.92) !important;
+  flex: 0 0 auto !important;
+}
+
+.dropdown-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent) !important;
+  margin: 4px 2px !important;
+  border: 0 !important;
+}
+
+/* Remove any inherited underline/link styling from all children */
+.dashboard-dropdown-menu *,
+.dashboard-dropdown-menu button *,
+.dashboard-dropdown-menu button::before,
+.dashboard-dropdown-menu button::after {
+  text-decoration: none !important;
+  border-bottom: 0 !important;
+}
+
+/* Keep desktop menu text readable */
+@media (min-width: 681px) {
+  .dashboard-dropdown-menu {
+    transform-origin: top left !important;
+  }
+}
+
+/* Mobile/tablet dropdown still full clickable rows and one-line labels */
+@media (max-width: 680px) {
+  .dashboard-dropdown-menu {
+    width: min(260px, calc(100vw - 28px)) !important;
+    min-width: min(260px, calc(100vw - 28px)) !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    height: 43px !important;
+    min-height: 43px !important;
+    font-size: 12.5px !important;
+  }
+}
+
+
+/* =========================================================
+   CLEAN TEXT DROPDOWN + CLICK-AWAY CLOSE
+========================================================= */
+
+/* Invisible full-screen button closes the dropdown when user clicks outside */
+.dropdown-click-away {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482500 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: default !important;
+}
+
+/* Clean regular dropdown list */
+.menu-wrap .dashboard-dropdown-menu {
+  z-index: 2147483000 !important;
+  width: 220px !important;
+  min-width: 220px !important;
+  max-width: 220px !important;
+  padding: 8px !important;
+  gap: 3px !important;
+  overflow: visible !important;
+}
+
+/* Override every searchbar button sizing rule for dropdown rows */
+.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.searchbar.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-responsive-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-safe-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.eval-clean-searchbar .menu-wrap .dashboard-dropdown-menu button,
+.searchbar.compact-searchbar.score-searchbar .menu-wrap .dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: rgba(255,255,255,.84) !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  letter-spacing: .01em !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.searchbar.eval-menu-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-responsive-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-safe-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.eval-clean-searchbar .menu-wrap .dashboard-dropdown-menu button:hover,
+.searchbar.compact-searchbar.score-searchbar .menu-wrap .dashboard-dropdown-menu button:hover {
+  background: rgba(255,255,255,.075) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+
+/* No icons in the dropdown menu */
+.dashboard-dropdown-menu button svg {
+  display: none !important;
+}
+
+/* Divider stays subtle and not like underlined item */
+.dashboard-dropdown-menu .dropdown-divider {
+  width: 100% !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  background: rgba(255,255,255,.10) !important;
+  margin: 5px 0 !important;
+  border: 0 !important;
+}
+
+/* Keep only the hamburger/search as square buttons */
+.eval-menu-searchbar > button[aria-label="Search stock"],
+.eval-menu-searchbar .menu-trigger {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+}
+
+@media (max-width: 1180px) {
+  .menu-wrap .dashboard-dropdown-menu {
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-menu-searchbar .menu-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .menu-wrap .dashboard-dropdown-menu {
+    width: 210px !important;
+    min-width: 210px !important;
+    max-width: 210px !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-menu-searchbar .menu-trigger {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL MOBILE HOMEPAGE + DROPDOWN CLICKAWAY + FOOTER CLEANUP
+========================================================= */
+
+/* Click-away layer must sit below dropdown but above everything else */
+.dropdown-click-away {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482000 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 100vw !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+}
+
+.dashboard-dropdown-menu {
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
+/* Mobile/tablet top ticker bar must be: dropdown | input | search */
+@media (max-width: 1180px) {
+  .eval-menu-searchbar {
+    display: grid !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+    align-items: center !important;
+  }
+
+  .eval-menu-searchbar .menu-wrap {
+    grid-area: menu !important;
+  }
+
+  .eval-menu-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    grid-area: search !important;
+  }
+
+  .eval-menu-searchbar .menu-trigger,
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+  }
+
+  .eval-menu-searchbar .eval-clean-ticker-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .eval-menu-searchbar {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .eval-menu-searchbar .menu-trigger,
+  .eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+/* Homepage mobile scroll fix: no clipping, no transformed shell causing cutoffs */
+html,
+body,
+#root {
+  min-height: 100% !important;
+  height: auto !important;
+}
+
+body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme {
+  min-height: 100dvh !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  padding-bottom: max(130px, env(safe-area-inset-bottom)) !important;
+}
+
+.landing-shell,
+.landing-shell-pro,
+.landing-shell-extreme {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Mobile homepage: same design idea as desktop, but not clipped */
+@media (max-width: 680px) {
+  .landing-page,
+  .landing-page-pro,
+  .landing-page-extreme {
+    padding: 10px 0 max(150px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    padding: 14px !important;
+    border-radius: 26px !important;
+    transform: none !important;
+    margin: 0 auto 90px !important;
+  }
+
+  .landing-hero,
+  .landing-hero-pro,
+  .landing-hero-extreme {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: center !important;
+  }
+
+  .landing-copy-pro h2,
+  .landing-copy h2 {
+    font-size: clamp(42px, 13vw, 62px) !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+    margin: 12px 0 12px !important;
+  }
+
+  .landing-copy-pro p,
+  .landing-copy p {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    max-width: 100% !important;
+  }
+
+  .landing-product-stage,
+  .landing-product-stage-extreme {
+    min-height: 530px !important;
+    transform: none !important;
+    transform-origin: center center !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .landing-product-card.main,
+  .landing-main-terminal {
+    width: min(100%, 340px) !important;
+    margin: 0 auto !important;
+    padding: 18px !important;
+  }
+
+  .preview-score-ring-pro,
+  .preview-score-ring-extreme {
+    width: 190px !important;
+    height: 190px !important;
+    margin: 18px auto !important;
+  }
+
+  .preview-score-ring-pro strong,
+  .preview-score-ring-extreme strong {
+    font-size: 64px !important;
+  }
+
+  .landing-product-card.floating {
+    width: 145px !important;
+    padding: 13px !important;
+  }
+
+  .landing-product-card.floating.watch {
+    top: 28px !important;
+    right: 4px !important;
+  }
+
+  .landing-product-card.floating.radar {
+    bottom: 52px !important;
+    left: 2px !important;
+  }
+
+  .landing-product-card.floating.ai,
+  .landing-float-card-three {
+    top: 205px !important;
+    right: 2px !important;
+  }
+
+  .landing-feature-strip,
+  .landing-feature-strip-extreme {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 18px !important;
+  }
+
+  .landing-feature-card,
+  .landing-feature-card-extreme {
+    min-height: auto !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .landing-feature-card h3 {
+    font-size: 13px !important;
+  }
+
+  .landing-feature-card p {
+    font-size: 11px !important;
+    line-height: 1.38 !important;
+  }
+
+  .landing-scroll-story,
+  .landing-scroll-story-extreme {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .landing-story-grid,
+  .landing-story-grid-extreme {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-footnote {
+    padding-bottom: 70px !important;
+  }
+}
+
+/* Kill the older narrow-phone transform hack that caused cutoffs */
+@media (max-width: 390px) {
+  .landing-shell,
+  .landing-shell-pro,
+  .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+    transform: none !important;
+    margin: 0 auto 90px !important;
+  }
+}
+
+/* Footer buttons: text only, no icons/symbols */
+.dashboard-links svg,
+.dashboard-link-row svg,
+.footer-links svg,
+.bottom-links svg,
+.links-row svg {
+  display: none !important;
+}
+
+.dashboard-links button,
+.dashboard-link-row button,
+.footer-links button,
+.bottom-links button,
+.links-row button {
+  gap: 0 !important;
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+
+/* =========================================================
+   HARD FIX: MOBILE DROPDOWN IN OLD AI BUTTON SLOT
+========================================================= */
+
+/* Top ticker bar is always: menu | input | search */
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar {
+  display: grid !important;
+  align-items: center !important;
+  justify-content: start !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  grid-template-columns: 54px minmax(230px, 320px) 54px !important;
+  grid-template-areas: "menu input search" !important;
+  gap: 10px !important;
+  padding: 10px !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-wrap {
+  grid-area: menu !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 2147483000 !important;
+  order: 0 !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .ticker-field {
+  grid-area: input !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  order: 1 !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+  grid-area: search !important;
+  order: 2 !important;
+  display: grid !important;
+}
+
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger {
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Hide any stale buttons in the top search bar */
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .desktop-ai-left-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .compare-nav-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .mobile-only-watchlist-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .watchlist-nav-btn,
+.searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar button[aria-label="Add to watchlist"] {
+  display: none !important;
+}
+
+/* Mobile/tablet: exact old button slot on left, then input, then search */
+@media (max-width: 1180px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar,
+  .eval-responsive-searchbar.eval-menu-searchbar,
+  .eval-safe-searchbar.eval-menu-searchbar,
+  .eval-clean-searchbar.eval-menu-searchbar {
+    display: grid !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 9px !important;
+    padding: 10px !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-safe-searchbar.eval-menu-searchbar .menu-wrap,
+  .eval-clean-searchbar.eval-menu-searchbar .menu-wrap {
+    grid-area: menu !important;
+    display: block !important;
+    order: 0 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-responsive-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-safe-searchbar.eval-menu-searchbar .ticker-field,
+  .eval-clean-searchbar.eval-menu-searchbar .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    order: 1 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-safe-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-clean-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: 2 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger,
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-trigger,
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar,
+  .eval-responsive-searchbar.eval-menu-searchbar,
+  .eval-safe-searchbar.eval-menu-searchbar,
+  .eval-clean-searchbar.eval-menu-searchbar {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+    grid-template-areas: "menu input search" !important;
+    gap: 8px !important;
+    padding: 9px !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar .menu-trigger,
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar > button[aria-label="Search stock"],
+  .eval-responsive-searchbar.eval-menu-searchbar .menu-trigger,
+  .eval-responsive-searchbar.eval-menu-searchbar > button[aria-label="Search stock"] {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
+
+/* =========================================================
+   CLERK PROFILE POPUP FRONT LAYER FIX
+========================================================= */
+
+/* Clerk profile/user popover must appear above Eval cards, dropdowns, and overlays */
+.cl-rootBox,
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverRootBox,
+.cl-popoverBox,
+.cl-popoverContent,
+.cl-modalBackdrop,
+.cl-modalContent,
+.cl-cardBox,
+.cl-card,
+[data-clerk-portal],
+[data-radix-popper-content-wrapper] {
+  z-index: 2147483647 !important;
+}
+
+/* Profile area itself should stay clickable and above dashboard cards */
+.profile-welcome-wrap,
+.profile-bubble,
+.topbar-actions-stack,
+.cl-userButtonBox,
+.cl-userButtonTrigger,
+.cl-avatarBox {
+  position: relative !important;
+  z-index: 2147483600 !important;
+}
+
+/* Make sure Eval report/watchlist layers do not cover Clerk */
+.hero-card,
+.empty-report,
+.watch-panel,
+.watchlist-panel,
+.report-card,
+.news-card,
+.metrics-grid,
+.content,
+.layout {
+  z-index: auto;
+}
+
+/* Dropdown click-away should not beat Clerk's popover if both exist */
+.dropdown-click-away {
+  z-index: 2147482000 !important;
+}
+
+.dashboard-dropdown-menu {
+  z-index: 2147482500 !important;
+}
+
+/* Clerk popover text/buttons should not inherit weird Eval button sizing */
+.cl-userButtonPopoverCard button,
+.cl-popoverBox button,
+.cl-cardBox button,
+.cl-card button {
+  width: auto !important;
+  min-width: initial !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: initial !important;
+  max-height: none !important;
+  text-align: initial !important;
+  white-space: normal !important;
+}
+
+
+/* =========================================================
+   COMPARE SELECTION FLOW + 3 STOCK RADAR SUPPORT
+========================================================= */
+
+.compare-select-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(255,255,255,.04);
+  margin-bottom: 14px;
+}
+
+.compare-select-count strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.compare-select-count span {
+  color: rgba(255,255,255,.62);
+  font-size: 12px;
+}
+
+.compare-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compare-select-card {
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 26px 34px minmax(0, 1fr) 64px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.09);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,231,255,.055), transparent 40%),
+    rgba(255,255,255,.035);
+  cursor: pointer;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.compare-select-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(133,255,71,.22);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(133,255,71,.07), transparent 40%),
+    rgba(255,255,255,.05);
+}
+
+.compare-select-card.selected {
+  border-color: rgba(133,255,71,.34);
+  box-shadow: 0 0 26px rgba(133,255,71,.09);
+}
+
+.compare-select-card input {
+  width: 18px;
+  height: 18px;
+  accent-color: #85ff47;
+}
+
+.compare-select-rank {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: rgba(255,255,255,.72);
+  background: rgba(255,255,255,.07);
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.compare-select-copy {
+  min-width: 0;
+}
+
+.compare-select-copy strong {
+  display: block;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: .04em;
+}
+
+.compare-select-copy small {
+  display: block;
+  color: rgba(255,255,255,.54);
+  font-size: 11px;
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-select-score {
+  justify-self: end;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 1000;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.compare-select-score.green {
+  box-shadow: 0 0 24px rgba(133,255,71,.10);
+}
+
+.compare-select-score.yellow {
+  box-shadow: 0 0 24px rgba(255,214,107,.10);
+}
+
+.compare-select-score.red {
+  box-shadow: 0 0 24px rgba(255,95,115,.10);
+}
+
+.compare-select-actions {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.16);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.compare-save-btn {
+  height: 46px;
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(135deg, rgba(133,255,71,.92), rgba(21,231,255,.74));
+  color: #071006;
+  font-weight: 1000;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.compare-save-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.compare-select-actions span {
+  color: rgba(255,255,255,.58);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compare-score-row.compare-score-count-2 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+.compare-score-row.compare-score-count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.compare-score-row .compare-score-divider {
+  display: none !important;
+}
+
+.compare-radar-legend .legend-1 {
+  color: #72ff41 !important;
+}
+
+.compare-radar-legend .legend-1 i {
+  background: #72ff41 !important;
+}
+
+.compare-radar-legend .legend-2 {
+  color: #15e7ff !important;
+}
+
+.compare-radar-legend .legend-2 i {
+  background: #15e7ff !important;
+}
+
+.compare-radar-legend .legend-3 {
+  color: #c98cff !important;
+}
+
+.compare-radar-legend .legend-3 i {
+  background: #c98cff !important;
+}
+
+.radar-third {
+  fill: rgba(201,140,255,.12);
+  stroke: rgba(201,140,255,.86);
+}
+
+.radar-third-dot {
+  fill: #c98cff;
+}
+
+@media (max-width: 780px) {
+  .compare-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-score-row.compare-score-count-2,
+  .compare-score-row.compare-score-count-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .compare-score-row.compare-score-count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .compare-score-card {
+    min-height: 150px !important;
+    padding: 10px 6px !important;
+  }
+
+  .compare-score-ring {
+    width: 98px !important;
+    height: 98px !important;
+  }
+
+  .compare-score-ring::before {
+    inset: 12px !important;
+  }
+
+  .compare-score-ring strong {
+    font-size: 30px !important;
+  }
+
+  .compare-score-card span {
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .compare-select-card {
+    grid-template-columns: 24px 28px minmax(0, 1fr) 52px;
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .compare-select-copy strong {
+    font-size: 19px;
+  }
+
+  .compare-select-score {
+    width: 50px;
+    height: 50px;
+    font-size: 14px;
+  }
+
+  .compare-select-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .compare-save-btn {
+    justify-content: center;
+  }
+}
+
+
+/* =========================================================
+   BIGGER COMPARE RADAR CHART
+========================================================= */
+
+/* Desktop: make radar the main visual, much larger and easier to read */
+.compare-radar-card {
+  width: 100% !important;
+  padding: 18px 20px 26px !important;
+  margin: 12px 0 18px !important;
+  overflow: visible !important;
+}
+
+.compare-radar-svg {
+  width: min(100%, 900px) !important;
+  max-width: 900px !important;
+  padding: 28px !important;
+  margin: -4px auto -8px !important;
+  display: block !important;
+  overflow: visible !important;
+}
+
+.radar-label-front,
+.radar-label {
+  font-size: 11.8px !important;
+  stroke-width: 5px !important;
+}
+
+.radar-grid {
+  stroke-width: 1.2px !important;
+}
+
+.radar-axis {
+  stroke-width: 1.1px !important;
+}
+
+.radar-poly {
+  stroke-width: 3.4px !important;
+}
+
+.radar-dot {
+  r: 4.8 !important;
+}
+
+/* Tablet: keep it large, not squeezed */
+@media (min-width: 681px) and (max-width: 1180px) {
+  .compare-radar-card {
+    padding: 16px 14px 24px !important;
+  }
+
+  .compare-radar-svg {
+    width: min(100%, 820px) !important;
+    max-width: 820px !important;
+    padding: 26px !important;
+  }
+
+  .radar-label-front,
+  .radar-label {
+    font-size: 10.8px !important;
+    stroke-width: 4.6px !important;
+  }
+}
+
+/* Mobile: make the radar fill the available width and stay readable */
+@media (max-width: 680px) {
+  .compare-radar-card {
+    padding: 12px 4px 18px !important;
+    margin: 10px -8px 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .compare-radar-svg {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 20px !important;
+    margin: -2px auto -6px !important;
+  }
+
+  .radar-label-front,
+  .radar-label {
+    font-size: 8.8px !important;
+    stroke-width: 3.8px !important;
+  }
+
+  .radar-poly {
+    stroke-width: 3px !important;
+  }
+
+  .radar-dot {
+    r: 4.2 !important;
+  }
+
+  .compare-radar-legend {
+    margin-bottom: 6px !important;
+    gap: 8px !important;
+  }
+
+  .compare-radar-legend span {
+    font-size: 10px !important;
+    padding: 7px 9px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .compare-radar-card {
+    margin-left: -10px !important;
+    margin-right: -10px !important;
+  }
+
+  .compare-radar-svg {
+    padding: 18px !important;
+  }
+
+  .radar-label-front,
+  .radar-label {
+    font-size: 7.9px !important;
+    stroke-width: 3.4px !important;
+  }
+}
+
+
+/* =========================================================
+   GLOBAL SCORE RING STYLE — MATCH COMPARE PIE CHARTS
+========================================================= */
+
+/* One shared visual system for every score/pie ring in the app */
+.score-ring,
+.watch-score-ring,
+.preview-score-ring,
+.compare-score-ring {
+  --global-ring-color: #72ff41;
+  --global-ring-angle: var(--score-a, var(--score-angle, var(--watch-score-angle, 288deg)));
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  background:
+    conic-gradient(from -90deg, var(--global-ring-color) 0 var(--global-ring-angle), rgba(91,109,118,.48) var(--global-ring-angle) 360deg) !important;
+  box-shadow:
+    0 0 38px color-mix(in srgb, var(--global-ring-color) 42%, transparent),
+    0 0 0 1px rgba(255,255,255,.08),
+    inset 0 0 18px rgba(255,255,255,.06) !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before,
+.preview-score-ring::before,
+.compare-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 12% !important;
+  border-radius: inherit !important;
+  background:
+    radial-gradient(circle at 48% 38%, rgba(255,255,255,.09), transparent 34%),
+    radial-gradient(circle at 50% 50%, rgba(133,255,71,.08), transparent 54%),
+    linear-gradient(145deg, #0b1415, #070b10) !important;
+  box-shadow:
+    inset 0 0 34px rgba(0,0,0,.66),
+    0 0 0 1px rgba(255,255,255,.06) !important;
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.score-ring::after,
+.watch-score-ring::after,
+.preview-score-ring::after,
+.compare-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -6% !important;
+  border-radius: inherit !important;
+  border: 1px solid color-mix(in srgb, var(--global-ring-color) 32%, transparent) !important;
+  opacity: .72 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/* Color mapping */
+.score-ring.green,
+.watch-score-ring.green,
+.compare-score-ring.green {
+  --global-ring-color: #72ff41 !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.compare-score-ring.yellow {
+  --global-ring-color: #ffe35f !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.compare-score-ring.red {
+  --global-ring-color: #ff5570 !important;
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.compare-score-ring.neutral {
+  --global-ring-color: #15e7ff !important;
+}
+
+/* Homepage preview is always the example green ring */
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --global-ring-color: #72ff41 !important;
+  --global-ring-angle: 288deg !important;
+}
+
+/* Keep existing sizes, just fix the inner number/content layer */
+.score-core,
+.watch-score-ring strong,
+.preview-score-ring strong,
+.compare-score-ring strong {
+  position: relative !important;
+  z-index: 2 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  line-height: .9 !important;
+  text-shadow: 0 0 20px rgba(255,255,255,.32) !important;
+}
+
+.score-core {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit !important;
+}
+
+.score-core span {
+  display: none !important;
+}
+
+.score-core strong {
+  position: relative !important;
+  z-index: 2 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Size-specific number scaling */
+.watch-score-ring strong {
+  font-size: clamp(16px, 28%, 26px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  font-size: clamp(56px, 33%, 86px) !important;
+  letter-spacing: -.05em !important;
+}
+
+.compare-score-ring strong {
+  font-size: clamp(30px, 32%, 50px) !important;
+  letter-spacing: -.04em !important;
+}
+
+/* Main report ring keeps its bigger number */
+.score-ring .score-core strong {
+  font-size: clamp(62px, 30%, 92px) !important;
+  letter-spacing: -.055em !important;
+}
+
+/* Remove old blurred duplicate ring behavior that caused visual errors */
+.watch-score-ring::before,
+.preview-score-ring::before {
+  filter: none !important;
+}
+
+
+/* =========================================================
+   CLEAN GLOBAL RINGS + DROPDOWN FRONT FIX
+========================================================= */
+
+/* Clean, single-layer ring system. This removes old blurred/double-ring artifacts. */
+.score-ring,
+.watch-score-ring,
+.preview-score-ring,
+.compare-score-ring {
+  --clean-ring-color: #72ff41;
+  --clean-ring-angle: var(--score-a, var(--score-angle, var(--watch-score-angle, 288deg)));
+  padding: 0 !important;
+  border-radius: 999px !important;
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  background:
+    conic-gradient(from -90deg, var(--clean-ring-color) 0deg var(--clean-ring-angle), rgba(255,255,255,.105) var(--clean-ring-angle) 360deg) !important;
+  box-shadow:
+    0 0 26px rgba(255,255,255,.035),
+    0 0 34px var(--clean-ring-glow, rgba(114,255,65,.20)),
+    inset 0 0 0 1px rgba(255,255,255,.085) !important;
+}
+
+/* Perfectly round dark center; no blurred duplicate arc. */
+.score-ring::before,
+.watch-score-ring::before,
+.preview-score-ring::before,
+.compare-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 14% !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 50% 36%, rgba(255,255,255,.10), transparent 31%),
+    linear-gradient(145deg, #0c1516 0%, #060a10 100%) !important;
+  box-shadow:
+    inset 0 0 28px rgba(0,0,0,.74),
+    inset 0 0 0 1px rgba(255,255,255,.06) !important;
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Thin clean outside rim only. */
+.score-ring::after,
+.watch-score-ring::after,
+.preview-score-ring::after,
+.compare-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -3px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Tone mapping */
+.score-ring.green,
+.watch-score-ring.green,
+.compare-score-ring.green {
+  --clean-ring-color: #72ff41 !important;
+  --clean-ring-glow: rgba(114,255,65,.24) !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.compare-score-ring.yellow {
+  --clean-ring-color: #ffe35f !important;
+  --clean-ring-glow: rgba(255,227,95,.24) !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.compare-score-ring.red {
+  --clean-ring-color: #ff5570 !important;
+  --clean-ring-glow: rgba(255,85,112,.24) !important;
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.compare-score-ring.neutral {
+  --clean-ring-color: #15e7ff !important;
+  --clean-ring-glow: rgba(21,231,255,.22) !important;
+}
+
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --clean-ring-color: #72ff41 !important;
+  --clean-ring-angle: 288deg !important;
+  --clean-ring-glow: rgba(114,255,65,.26) !important;
+}
+
+/* Number layer: always above the center, never covering the ring. */
+.score-core,
+.watch-score-ring strong,
+.preview-score-ring strong,
+.compare-score-ring strong {
+  position: relative !important;
+  z-index: 3 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  line-height: .9 !important;
+  text-shadow: 0 0 18px rgba(255,255,255,.26) !important;
+}
+
+.score-core {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.score-core span {
+  display: none !important;
+}
+
+.score-core strong {
+  position: relative !important;
+  z-index: 4 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Keep current sizes but clean the text scale. */
+.score-ring .score-core strong {
+  font-size: clamp(60px, 30%, 92px) !important;
+  letter-spacing: -.055em !important;
+}
+
+.watch-score-ring strong {
+  font-size: clamp(16px, 30%, 26px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.compare-score-ring strong {
+  font-size: clamp(30px, 34%, 50px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  font-size: clamp(56px, 34%, 86px) !important;
+  letter-spacing: -.05em !important;
+}
+
+/* Dropdown must sit over every card on desktop/mobile and never cut off Contact. */
+.layout,
+.content,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+.menu-wrap,
+.eval-menu-searchbar {
+  position: relative !important;
+  z-index: 2147483000 !important;
+}
+
+.dashboard-dropdown-menu {
+  z-index: 2147483646 !important;
+  width: 270px !important;
+  min-width: 270px !important;
+  max-width: 270px !important;
+  overflow: visible !important;
+}
+
+.dashboard-dropdown-menu button {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Mobile uses fixed dropdown placement so it cannot hide behind or get clipped by report cards. */
+@media (max-width: 680px) {
+  .dashboard-dropdown-menu {
+    position: fixed !important;
+    top: 118px !important;
+    left: 16px !important;
+    width: min(286px, calc(100vw - 32px)) !important;
+    min-width: min(286px, calc(100vw - 32px)) !important;
+    max-width: min(286px, calc(100vw - 32px)) !important;
+    max-height: calc(100dvh - 146px) !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    font-size: 12.5px !important;
+  }
+}
+
+/* Tablet also gets a larger menu to keep Terms & Conditions on one line. */
+@media (min-width: 681px) and (max-width: 1180px) {
+  .dashboard-dropdown-menu {
+    width: 286px !important;
+    min-width: 286px !important;
+    max-width: 286px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL DROPDOWN FRONT FIX + FULL TERMS LABEL
+========================================================= */
+
+/* Prevent parent cards/containers from clipping the dropdown. */
+.app-shell,
+.layout,
+.content,
+.topbar,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+/* Keep report cards and dashboard content below navigation overlays. */
+.hero-card,
+.empty-report,
+.report-card,
+.watch-panel,
+.watchlist-panel,
+.news-card,
+.metrics-grid,
+.industry-panel,
+.mag7-panel {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Top search/menu area gets a very high layer. */
+.topbar,
+.topbar-actions-stack,
+.eval-menu-searchbar,
+.menu-wrap {
+  position: relative !important;
+  z-index: 2147483000 !important;
+}
+
+/* Click-away layer is behind the menu but above the app. */
+.dropdown-click-away {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147482500 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 100vw !important;
+  min-height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  opacity: 0 !important;
+  pointer-events: auto !important;
+}
+
+/* Dropdown always wins the z-index battle. */
+.dashboard-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  left: 0 !important;
+  z-index: 2147483646 !important;
+  width: 286px !important;
+  min-width: 286px !important;
+  max-width: 286px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 10px !important;
+}
+
+/* Clean text menu rows; one line, no icons, no cramped button behavior. */
+.dashboard-dropdown-menu button {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+/* Mobile: fixed placement keeps Contact visible and above every card. */
+@media (max-width: 680px) {
+  .dashboard-dropdown-menu {
+    position: fixed !important;
+    top: 108px !important;
+    left: 14px !important;
+    z-index: 2147483646 !important;
+    width: min(292px, calc(100vw - 28px)) !important;
+    min-width: min(292px, calc(100vw - 28px)) !important;
+    max-width: min(292px, calc(100vw - 28px)) !important;
+    max-height: calc(100dvh - 124px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    font-size: 12.5px !important;
+  }
+}
+
+/* Tablet: wide enough for Terms & Conditions on one line. */
+@media (min-width: 681px) and (max-width: 1180px) {
+  .dashboard-dropdown-menu {
+    width: 292px !important;
+    min-width: 292px !important;
+    max-width: 292px !important;
+  }
+}
+
+
+/* =========================================================
+   ABSOLUTE FINAL DROPDOWN FIX
+   - Mobile Contact always visible
+   - Desktop Watchlist hidden
+   - Terms & Conditions full label
+========================================================= */
+
+/* The dropdown needs to escape all dashboard cards/empty graphics. */
+.app-shell,
+.layout,
+.content,
+.topbar,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+/* Dashboard visuals stay behind the menu. */
+.empty-report,
+.empty-state,
+.empty-report-card,
+.hero-card,
+.report-card,
+.watch-panel,
+.watchlist-panel,
+.mag7-panel,
+.metrics-grid,
+.news-card,
+.industry-panel,
+.company-panel,
+.score-panel {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Search/menu stack must beat everything in the dashboard. */
+.topbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  position: relative !important;
+  z-index: 2147483000 !important;
+}
+
+/* Keep dropdown rows plain text menu items. */
+.dashboard-dropdown-menu {
+  z-index: 2147483646 !important;
+  width: 292px !important;
+  min-width: 292px !important;
+  max-width: 292px !important;
+  overflow: visible !important;
+}
+
+.dashboard-dropdown-menu button {
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+/* Desktop only: remove Watchlist from dropdown because watchlist is already on dashboard. */
+@media (min-width: 1181px) {
+  .dashboard-dropdown-menu .dropdown-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Mobile/tablet: show Watchlist inside dropdown. */
+@media (max-width: 1180px) {
+  .dashboard-dropdown-menu .dropdown-mobile-only {
+    display: flex !important;
+  }
+}
 
 /*
-  HARD-CODED RENDER BACKEND URL
-  This avoids Vercel environment variable problems.
+  Mobile fix: turn the dropdown into a fixed top-layer overlay.
+  This prevents Contact from being hidden under the empty dashboard graphic
+  before the user searches a ticker.
 */
-const API = "https://edge-1-6dtw.onrender.com";
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+@media (max-width: 680px) {
+  .menu-wrap {
+    position: static !important;
+  }
 
-const STORAGE_KEY = "edge-watchlist-v8";
-const TERMS_VERSION = "2026-05-30";
-const MAX_WATCHLIST_ITEMS = 15;
+  .dashboard-dropdown-menu {
+    position: fixed !important;
+    top: 96px !important;
+    left: 14px !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 2147483646 !important;
+    width: calc(100vw - 28px) !important;
+    min-width: calc(100vw - 28px) !important;
+    max-width: calc(100vw - 28px) !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 10px !important;
+    display: grid !important;
+    gap: 4px !important;
+  }
 
-function rawScore(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
-  const n = Number(v);
-  return n <= 10 ? n : n / 10;
-}
+  .dashboard-dropdown-menu button {
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 13px !important;
+    font-size: 12.5px !important;
+    line-height: 1 !important;
+  }
 
-function score10(v) {
-  const n = rawScore(v);
-  return n === null ? null : Number(n.toFixed(1));
-}
+  .dashboard-dropdown-menu .dropdown-divider {
+    margin: 4px 0 !important;
+  }
 
-function scoreText(v) {
-  const n = score10(v);
-  return n === null ? "N/A" : n.toFixed(1);
-}
-
-function scoreTone(v) {
-  const n = score10(v);
-  if (n === null) return "neutral";
-  if (n <= 5) return "red";
-  if (n <= 7) return "yellow";
-  return "green";
-}
-
-function scoreDegrees(v) {
-  const n = score10(v);
-  if (n === null) return 0;
-  return Math.max(0, Math.min(360, n * 36));
-}
-
-function gradeFrom10(v) {
-  const n = score10(v);
-  if (n === null) return "N/A";
-  if (n >= 9.3) return "A";
-  if (n >= 8.5) return "B+";
-  if (n >= 7.5) return "B";
-  if (n >= 6.5) return "C+";
-  if (n >= 5.5) return "C";
-  if (n >= 4.5) return "D";
-  return "F";
-}
-
-function fmt(v, suffix = "") {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  return `${Number(v).toLocaleString(undefined, {
-    maximumFractionDigits: 1,
-  })}${suffix}`;
-}
-
-
-function dailyChangeClass(value) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "neutral";
-  if (num > 0) return "up";
-  if (num < 0) return "down";
-  return "neutral";
-}
-
-function signedPercent(value) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "N/A";
-  const sign = num > 0 ? "+" : "";
-  return `${sign}${num.toFixed(2)}%`;
-}
-
-function money(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  return Number(v).toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
-}
-
-function compactMoney(v) {
-  if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
-  const n = Number(v);
-
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}T`;
-  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(1)}B`;
-  return `$${n.toFixed(0)}M`;
-}
-
-const DEFAULT_WATCHLIST = ["NVDA", "GOOGL", "AAPL", "MSFT", "AMZN"];
-
-function readWatchlist() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-    return DEFAULT_WATCHLIST.map((symbol) => ({ symbol, score: null }));
-  } catch {
-    return DEFAULT_WATCHLIST.map((symbol) => ({ symbol, score: null }));
+  /* The invisible click-away stays below the menu but above all app content. */
+  .dropdown-click-away {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147482500 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background: transparent !important;
+    opacity: 0 !important;
+    pointer-events: auto !important;
   }
 }
 
-function saveWatchlist(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
-
-function categoryLabel(key) {
-  return (
-    {
-      growth: "Growth",
-      profitability: "Profitability",
-      financialHealth: "Financial Health",
-      valuation: "Valuation",
-      momentum: "Momentum",
-      reversal: "Pullback",
-      newsSentiment: "News Sentiment",
-    }[key] || key
-  );
-}
-
-function getScoreInsight(score) {
-  const n = score10(score);
-
-  if (n === null) {
-    return {
-      label: "Unavailable Evaluation",
-      text: "There is not enough reliable company data available to explain this score yet.",
-    };
+/* Very small phones: move menu slightly higher and keep all rows visible. */
+@media (max-width: 390px) {
+  .dashboard-dropdown-menu {
+    top: 88px !important;
   }
 
-  if (n <= 5) {
-    return {
-      label: "Red Evaluation",
-      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
-    };
+  .dashboard-dropdown-menu button {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    font-size: 12px !important;
   }
-
-  if (n <= 7) {
-    return {
-      label: "Yellow Evaluation",
-      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
-    };
-  }
-
-  return {
-    label: "Green Evaluation",
-    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
-  };
 }
 
 
-function getSafeProfileAccent(user) {
-  const fallbackColors = [
-    "159,92,255",
-    "21,231,255",
-    "133,255,71",
-    "255,214,107",
-    "255,95,115",
-  ];
+/* =========================================================
+   DROPDOWN DESKTOP/MOBILE SPLIT
+   Desktop: no Watchlist
+   Mobile/tablet: includes Watchlist
+========================================================= */
 
-  const seed = String(user?.id || user?.primaryEmailAddress?.emailAddress || "eval");
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  return fallbackColors[Math.abs(hash) % fallbackColors.length];
+.dashboard-dropdown-desktop {
+  display: grid !important;
 }
 
-function ProfileButton() {
-  const { user } = useUser();
-  const [accent, setAccent] = useState(() => getSafeProfileAccent(user));
-
-  useEffect(() => {
-    let cancelled = false;
-    const imageUrl = user?.imageUrl;
-
-    if (!imageUrl) {
-      setAccent(getSafeProfileAccent(user));
-      return;
-    }
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.referrerPolicy = "no-referrer";
-
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const size = 36;
-        canvas.width = size;
-        canvas.height = size;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) throw new Error("Canvas unavailable");
-
-        ctx.drawImage(img, 0, 0, size, size);
-        const pixels = ctx.getImageData(0, 0, size, size).data;
-
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let count = 0;
-
-        for (let i = 0; i < pixels.length; i += 16) {
-          const alpha = pixels[i + 3];
-          if (alpha < 180) continue;
-
-          const pr = pixels[i];
-          const pg = pixels[i + 1];
-          const pb = pixels[i + 2];
-          const brightness = (pr + pg + pb) / 3;
-
-          if (brightness < 24 || brightness > 236) continue;
-
-          r += pr;
-          g += pg;
-          b += pb;
-          count += 1;
-        }
-
-        if (!count) throw new Error("No usable avatar color");
-
-        const color = `${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)}`;
-        if (!cancelled) setAccent(color);
-      } catch {
-        if (!cancelled) setAccent(getSafeProfileAccent(user));
-      }
-    };
-
-    img.onerror = () => {
-      if (!cancelled) setAccent(getSafeProfileAccent(user));
-    };
-
-    img.src = imageUrl;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, user?.imageUrl]);
-
-  const firstName =
-    user?.firstName ||
-    user?.fullName?.split(" ")?.[0] ||
-    user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
-    "there";
-
-  return (
-    <div className="profile-welcome-wrap">
-      <div className="profile-welcome-text">
-        <span>Welcome,</span>
-        <strong>{firstName}</strong>
-      </div>
-
-      <div
-        className="topbar-user"
-        style={{ "--profile-accent": accent }}
-        title="Account settings"
-      >
-        <UserButton />
-      </div>
-    </div>
-  );
+.dashboard-dropdown-mobile {
+  display: none !important;
 }
 
-function App() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [symbol, setSymbol] = useState("");
-  const [data, setData] = useState(null);
-  const [watchlist, setWatchlist] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [watchLoading, setWatchLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [view, setView] = useState("landing");
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [industryPage, setIndustryPage] = useState(null);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [industryError, setIndustryError] = useState("");
-  const [compareLeft, setCompareLeft] = useState("");
-  const [compareRight, setCompareRight] = useState("");
-  const [compareData, setCompareData] = useState(null);
-  const [compareLoading, setCompareLoading] = useState(false);
-  const [compareError, setCompareError] = useState("");
-  const [compareSelected, setCompareSelected] = useState([]);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  function goMenu(nextView) {
-    setMenuOpen(false);
-    setView(nextView);
+@media (max-width: 1180px) {
+  .dashboard-dropdown-desktop {
+    display: none !important;
   }
 
-  async function analyze(e, overrideSymbol, options = {}) {
-    e?.preventDefault();
+  .dashboard-dropdown-mobile {
+    display: grid !important;
+  }
+}
 
-    const clean = (overrideSymbol || symbol).trim().toUpperCase();
-    if (!clean) return null;
-
-    const silent = Boolean(options?.silent);
-    const skipState = Boolean(options?.skipState);
-
-    if (!skipState) {
-      setSymbol(clean);
-    }
-
-    if (!silent) {
-      setLoading(true);
-      setError("");
-    }
-
-    try {
-      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
-
-      const res = await fetch(url, {
-        method: "GET",
-        mode: "cors",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          json?.error ||
-            json?.message ||
-            `Could not analyze ${clean}. Backend returned ${res.status}.`
-        );
-      }
-
-      if (!skipState) {
-        setData(json);
-      }
-      return json;
-    } catch (err) {
-      if (!silent) {
-        setError(
-          err.message ||
-            "Failed to fetch from Render. Check Render logs and browser console."
-        );
-      }
-      return null;
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
+@media (min-width: 1181px) {
+  .dashboard-dropdown-mobile {
+    display: none !important;
   }
 
-
-  function buildStockListItem(analyzed, fallbackSymbol) {
-    const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
-    const cats = analyzed?.grades?.categories || {};
-    const orderedCats = Object.entries(cats)
-      .filter(([, value]) => value !== null && value !== undefined && Number.isFinite(Number(score10(value))))
-      .sort((a, b) => Number(score10(b[1])) - Number(score10(a[1])));
-
-    const strongest = orderedCats[0];
-    const weakest = orderedCats[orderedCats.length - 1];
-
-    return {
-      symbol: clean,
-      name: analyzed?.profile?.name || clean,
-      score: score10(analyzed?.grades?.edgeScore),
-      rawScore: analyzed?.grades?.edgeScore ?? null,
-      grade: gradeFrom10(analyzed?.grades?.edgeScore),
-      risk: analyzed?.grades?.riskLabel || "N/A",
-      price: analyzed?.quote?.c ?? null,
-      strongest: strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A",
-      weakest: weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A",
-      updatedAt: new Date().toISOString(),
-    };
+  .dashboard-dropdown-desktop {
+    display: grid !important;
   }
-
-
-  async function addTicker(ticker = symbol) {
-    const clean = ticker.trim().toUpperCase();
-    if (!clean) return;
-
-    const alreadySaved = watchlist.some((item) => item.symbol === clean);
-    if (!alreadySaved && watchlist.length >= MAX_WATCHLIST_ITEMS) {
-      setError(`Watchlist limit reached. Remove a stock before adding another. Max ${MAX_WATCHLIST_ITEMS} stocks.`);
-      return;
-    }
-
-    const analyzed = data?.symbol === clean ? data : await analyze(null, clean);
-    if (!analyzed) return;
-
-    const item = buildStockListItem(analyzed, clean);
-
-    const next = [item, ...watchlist.filter((x) => x.symbol !== clean)].sort(
-      (a, b) => (b.score || 0) - (a.score || 0)
-    );
-
-    setWatchlist(next);
-    saveWatchlist(next);
-  }
-
-
-  function openComparePage() {
-    setCompareError("");
-    setCompareData(null);
-    setCompareSelected((prev) => {
-      const saved = watchlist.map((item) => item.symbol);
-      const valid = prev.filter((ticker) => saved.includes(ticker));
-      return valid.length ? valid.slice(0, 3) : saved.slice(0, Math.min(2, saved.length));
-    });
-    setView("compareSelect");
-  }
-
-  function toggleCompareSelection(ticker) {
-    setCompareError("");
-    setCompareSelected((prev) => {
-      if (prev.includes(ticker)) {
-        return prev.filter((item) => item !== ticker);
-      }
-
-      if (prev.length >= 3) {
-        setCompareError("You can compare up to 3 stocks at once.");
-        return prev;
-      }
-
-      return [...prev, ticker];
-    });
-  }
-
-  async function loadSelectedComparison(selected = compareSelected) {
-    const tickers = selected.map((ticker) => String(ticker || "").trim().toUpperCase()).filter(Boolean);
-
-    if (tickers.length < 2) {
-      setCompareError("Select at least 2 stocks to compare.");
-      return;
-    }
-
-    if (tickers.length > 3) {
-      setCompareError("You can compare up to 3 stocks at once.");
-      return;
-    }
-
-    const savedSymbols = watchlist.map((item) => item.symbol);
-    const missing = tickers.filter((ticker) => !savedSymbols.includes(ticker));
-
-    if (missing.length) {
-      setCompareError(`${missing.join(" and ")} must be saved in your watchlist before comparing.`);
-      return;
-    }
-
-    setCompareLoading(true);
-    setCompareError("");
-
-    try {
-      const reports = await Promise.all(
-        tickers.map((ticker) => (data?.symbol === ticker ? Promise.resolve(data) : analyze(null, ticker)))
-      );
-
-      if (reports.some((report) => !report)) {
-        throw new Error("Could not load every selected stock report.");
-      }
-
-      setCompareData({ reports });
-      setCompareLeft(tickers[0] || "");
-      setCompareRight(tickers[1] || "");
-      setView("compare");
-    } catch (err) {
-      setCompareError(err?.message || "Comparison failed. Try again.");
-    } finally {
-      setCompareLoading(false);
-    }
-  }
-
-  async function openIndustryPage(industry, sourceSymbol = data?.symbol || symbol) {
-    const cleanIndustry = String(industry || "").trim();
-    if (!cleanIndustry || cleanIndustry === "Public company") return;
-
-    setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
-    setIndustryLoading(true);
-    setIndustryError("");
-    setView("industry");
-
-    try {
-      const res = await fetch(
-        `${API}/api/industry-top/${encodeURIComponent(cleanIndustry)}?symbol=${encodeURIComponent(sourceSymbol || "")}`,
-        {
-          method: "GET",
-          mode: "cors",
-          headers: { Accept: "application/json" },
-        }
-      );
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(json?.error || "Could not load industry leaders.");
-      }
-
-      const rawLeaders = Array.isArray(json?.leaders) ? json.leaders.slice(0, 5) : [];
-
-      const enrichedLeaders = await Promise.all(
-        rawLeaders.map(async (leader) => {
-          try {
-            const report = await analyze(null, leader.symbol, { silent: true, skipState: true });
-            return {
-              ...leader,
-              score: Number(report?.grades?.edgeScore ?? leader.score),
-              categories: report?.grades?.categories || leader.categories || {},
-              riskLabel: report?.grades?.riskLabel || leader.riskLabel || "",
-              name: report?.profile?.name || leader.name || leader.symbol,
-              industry: report?.profile?.finnhubIndustry || leader.industry || cleanIndustry,
-            };
-          } catch {
-            return leader;
-          }
-        })
-      );
-
-      setIndustryPage({
-        industry: json?.industry || cleanIndustry,
-        leaders: enrichedLeaders,
-        sourceSymbol,
-        cachedForHours: json?.cachedForHours || 24,
-      });
-    } catch (err) {
-      setIndustryError(err?.message || "Could not load industry leaders.");
-      setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
-    } finally {
-      setIndustryLoading(false);
-    }
-  }
-
-  async function analyzeFromIndustry(ticker) {
-    await analyze(null, ticker);
-    setView("dashboard");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function removeTicker(ticker) {
-    const next = watchlist.filter((x) => x.symbol !== ticker);
-    setWatchlist(next);
-    saveWatchlist(next);
-  }
-
-  async function refreshWatchlistItems(items) {
-    if (!items.length) return;
-
-    setWatchLoading(true);
-
-    const refreshed = [];
-
-    for (const item of items) {
-      try {
-        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
-          method: "GET",
-          mode: "cors",
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        const json = await res.json().catch(() => null);
-
-        if (res.ok && json) {
-          refreshed.push({ ...item, ...buildStockListItem(json, item.symbol) });
-        } else {
-          refreshed.push(item);
-        }
-      } catch {
-        refreshed.push(item);
-      }
-    }
-
-    const next = refreshed.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    setWatchlist(next);
-    saveWatchlist(next);
-    setWatchLoading(false);
-  }
-
-  async function refreshWatchlist() {
-    return refreshWatchlistItems(watchlist);
-  }
-
-  useEffect(() => {
-    const saved = readWatchlist().sort(
-      (a, b) => (b.score || 0) - (a.score || 0)
-    );
-
-    setWatchlist(saved);
-    // Default stock preload removed; ticker input starts empty.
-    refreshWatchlistItems(saved);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !user?.id) {
-      setTermsAccepted(false);
-      return;
-    }
-
-    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
-    setTermsAccepted(localStorage.getItem(key) === "true");
-  }, [isLoaded, isSignedIn, user?.id]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const publicViews = ["landing", "account"];
-    if (!isSignedIn && !publicViews.includes(view)) {
-      setView("account");
-      return;
-    }
-
-    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
-      setView("terms");
-    }
-  }, [isLoaded, isSignedIn, termsAccepted, view]);
-
-  function acceptTerms() {
-    if (user?.id) {
-      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
-      localStorage.setItem(key, "true");
-    }
-
-    setTermsAccepted(true);
-    setView("dashboard");
-  }
-
-  if (!isLoaded) {
-    return <LoadingScreen />;
-  }
-
-  if (view === "landing") {
-    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
-  }
-
-  if (view === "account") {
-    return (
-      <ClerkAccessPage
-        onBack={() => setView("landing")}
-        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
-      />
-    );
-  }
-
-  if (view === "terms") {
-    return (
-      <TermsPage
-        onAgree={acceptTerms}
-        onBack={() => setView("dashboard")}
-        requireAgreement={!termsAccepted}
-      />
-    );
-  }
-
-  if (view === "support") {
-    return (
-      <SupportContactPage
-        onBack={() => setView("dashboard")}
-        onHome={() => setView("landing")}
-        onTerms={() => setView("terms")}
-      />
-    );
-  }
-
-  return (
-    <main className="app-shell">
-
-      <div className="portrait-lock-overlay" aria-hidden="true">
-        <div className="portrait-lock-card">
-          <div className="portrait-lock-icon">↻</div>
-          <h2>Rotate your device</h2>
-          <p>Eval is designed for portrait mode on mobile and tablet.</p>
-        </div>
-      </div>
-
-      <header className="topbar">
-        <button
-          type="button"
-          className="brand brand-home-btn"
-          onClick={() => setView("landing")}
-          aria-label="Go to homepage"
-          title="Go to homepage"
-        >
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
-          <div>
-            <h1>Eval</h1>
-          </div>
-        </button>
-
-        <div className="topbar-actions-stack">
-          <SignedIn>
-            <div className="profile-bubble" aria-label="Profile">
-              <ProfileButton />
-            </div>
-          </SignedIn>
-        </div>
-      </header>
-
-      {error && (
-        <div className="error-banner">
-          <AlertTriangle size={18} /> {error}
-        </div>
-      )}
-
-      {view === "assistant" ? (
-        <AssistantPage
-          current={data}
-          watchlist={watchlist}
-          onBack={() => setView("dashboard")}
-        />
-      ) : view === "plans" ? (
-        <PlansPage onBack={() => setView("dashboard")} />
-      ) : view === "industry" ? (
-        <IndustryPage
-          industryPage={industryPage}
-          loading={industryLoading}
-          error={industryError}
-          onBack={() => setView("dashboard")}
-          onAnalyze={analyzeFromIndustry}
-        />
-      ) : view === "compareSelect" ? (
-        <CompareSelectPage
-          watchlist={watchlist}
-          selected={compareSelected}
-          error={compareError}
-          loading={compareLoading}
-          onToggle={toggleCompareSelection}
-          onSave={() => loadSelectedComparison(compareSelected)}
-          onBack={() => setView("dashboard")}
-        />
-      ) : view === "compare" ? (
-        <ComparePage
-          data={compareData}
-          error={compareError}
-          onBack={() => setView("compareSelect")}
-        />
-      ) : view === "watchlist" ? (
-        <main className="watchlist-page mobile-watchlist-clean">
-          <button type="button" className="back-btn watchlist-page-back" onClick={() => setView("dashboard")}>
-            <ArrowLeft size={18} /> Back to dashboard
-          </button>
-
-          <Watchlist
-            items={watchlist}
-            symbol={symbol}
-            onAdd={addTicker}
-            onRemove={removeTicker}
-            onAnalyze={(ticker) => {
-              analyze(null, ticker);
-              setView("dashboard");
-            }}
-            onRefresh={refreshWatchlist}
-            loading={watchLoading}
-            pageMode
-          />
-        </main>
-      ) : (
-        <section className="layout">
-          <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
-              <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  className={`menu-trigger ${menuOpen ? "open" : ""}`}
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Open navigation menu"
-                  title="Menu"
-                >
-                  <Menu size={22} />
-                </button>
-
-                {menuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      className="dropdown-click-away"
-                      onMouseDown={() => setMenuOpen(false)}
-                      onTouchStart={() => setMenuOpen(false)}
-                      onClick={() => setMenuOpen(false)}
-                      aria-label="Close menu"
-                    />
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop">
-                      <button type="button" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
-                        Compare
-                      </button>
-
-                      <div className="dropdown-divider" />
-
-                      <button type="button" onClick={() => goMenu("landing")}>
-                        Homepage
-                      </button>
-                      <button type="button" onClick={() => goMenu("terms")}>
-                        Terms & Conditions
-                      </button>
-                      <button type="button" onClick={() => goMenu("support")}>
-                        Contact
-                      </button>
-                    </div>
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile">
-                      <button type="button" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
-                        Compare
-                      </button>
-                      <button type="button" onClick={() => goMenu("watchlist")}>
-                        Watchlist
-                      </button>
-
-                      <div className="dropdown-divider" />
-
-                      <button type="button" onClick={() => goMenu("landing")}>
-                        Homepage
-                      </button>
-                      <button type="button" onClick={() => goMenu("terms")}>
-                        Terms & Conditions
-                      </button>
-                      <button type="button" onClick={() => goMenu("support")}>
-                        Contact
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="ticker-field eval-safe-ticker-field">
-                <input
-                  className="eval-clean-ticker-input"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  placeholder="Add ticker"
-                  maxLength={8}
-                />
-              </div>
-
-              <button disabled={loading} aria-label="Search stock" title="Search stock">
-                {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-              </button>
-            </form>
-
-            {data ? (
-              <>
-                <Report data={data} onAdd={() => addTicker(data.symbol)} onOpenIndustry={openIndustryPage} />
-                <DashboardLinkRow
-                  onHome={() => setView("landing")}
-                  onTerms={() => setView("terms")}
-                  onSupport={() => setView("support")}
-                />
-              </>
-            ) : (
-              <EmptyReport />
-            )}
-          </div>
-
-          <Watchlist
-            items={watchlist}
-            symbol={symbol}
-            onAdd={addTicker}
-            onRemove={removeTicker}
-            onAnalyze={(ticker) => analyze(null, ticker)}
-            onRefresh={refreshWatchlist}
-            loading={watchLoading}
-          />
-        </section>
-      )}
-    </main>
-  );
 }
 
 
+/* =========================================================
+   INDUSTRY TOP 5 RADAR + RANK NUMBER FIX
+========================================================= */
 
-
-
-
-function ScoreRingSvg({ value, className = "", label = null }) {
-  const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
-  const tone = scoreTone(score);
-  const radius = 46;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (score / 10) * circumference;
-
-  return (
-    <div className={`svg-score-ring ${tone} ${className}`}>
-      <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
-        <defs>
-          <filter id="svgRingGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <circle className="svg-ring-track" cx="60" cy="60" r={radius} />
-        <circle
-          className="svg-ring-progress"
-          cx="60"
-          cy="60"
-          r={radius}
-          pathLength={circumference}
-          strokeDasharray={`${dash} ${circumference - dash}`}
-        />
-        <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
-      </svg>
-
-      <strong>{label || scoreText(score)}</strong>
-    </div>
-  );
+.industry-radar-card {
+  margin: 18px 0 18px;
+  padding: 18px 18px 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 86% 14%, rgba(133,255,71,.08), transparent 34%),
+    rgba(0,0,0,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: visible;
 }
 
-
-function CompareRadar({ categories, stocks }) {
-  const center = 180;
-  const maxRadius = 125;
-  const levels = [0.25, 0.5, 0.75, 1];
-  const toneClasses = ["radar-left", "radar-right", "radar-third"];
-  const dotClasses = ["radar-left-dot", "radar-right-dot", "radar-third-dot"];
-
-  const pointFor = (index, value = 10) => {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / categories.length;
-    const radius = (Math.max(0, Math.min(10, Number(value) || 0)) / 10) * maxRadius;
-    return {
-      x: center + radius * Math.cos(angle),
-      y: center + radius * Math.sin(angle),
-    };
-  };
-
-  const polygonPoints = (source) =>
-    categories
-      .map((key, index) => {
-        const score = score10(source?.[key]) || 0;
-        const point = pointFor(index, score);
-        return `${point.x},${point.y}`;
-      })
-      .join(" ");
-
-  const gridPoints = (level) =>
-    categories
-      .map((_, index) => {
-        const point = pointFor(index, level * 10);
-        return `${point.x},${point.y}`;
-      })
-      .join(" ");
-
-  return (
-    <div className="compare-radar-card">
-      <div className="compare-radar-legend">
-        {stocks.map((stock, index) => (
-          <span className={`legend-${index + 1}`} key={stock.symbol}>
-            <i aria-hidden="true" /> {stock.symbol}
-          </span>
-        ))}
-      </div>
-
-      <svg className="compare-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Radar chart comparing stock category scores">
-        {levels.map((level) => (
-          <polygon key={level} points={gridPoints(level)} className="radar-grid" />
-        ))}
-
-        {categories.map((key, index) => {
-          const edge = pointFor(index, 10);
-          return (
-            <line
-              key={`${key}-axis`}
-              x1={center}
-              y1={center}
-              x2={edge.x}
-              y2={edge.y}
-              className="radar-axis"
-            />
-          );
-        })}
-
-        {stocks.map((stock, index) => (
-          <polygon
-            key={`${stock.symbol}-poly`}
-            points={polygonPoints(stock.categories)}
-            className={`radar-poly ${toneClasses[index] || "radar-third"}`}
-          />
-        ))}
-
-        {categories.map((key, index) => (
-          <g key={`${key}-dots`}>
-            {stocks.map((stock, stockIndex) => {
-              const point = pointFor(index, score10(stock.categories?.[key]) || 0);
-              return (
-                <circle
-                  key={`${stock.symbol}-${key}-dot`}
-                  cx={point.x}
-                  cy={point.y}
-                  r="4.2"
-                  className={`radar-dot ${dotClasses[stockIndex] || "radar-third-dot"}`}
-                />
-              );
-            })}
-          </g>
-        ))}
-
-        {categories.map((key, index) => {
-          const label = pointFor(index, 12.85);
-          return (
-            <text
-              key={`${key}-label`}
-              x={label.x}
-              y={label.y}
-              textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
-              dominantBaseline="middle"
-              className="radar-label radar-label-front"
-            >
-              {categoryLabel(key)}
-            </text>
-          );
-        })}
-      </svg>
-    </div>
-  );
+.industry-radar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
-
-
-function CompareSelectPage({
-  watchlist,
-  selected,
-  error,
-  loading,
-  onToggle,
-  onSave,
-  onBack,
-}) {
-  const activeStocks = [...watchlist].sort((a, b) => (b.score || 0) - (a.score || 0));
-
-  return (
-    <section className="compare-page compare-select-page">
-      <div className="compare-page-shell">
-        <button type="button" className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Back to dashboard
-        </button>
-
-        <div className="compare-page-head">
-          <div className="section-title">
-            <Scale size={17} /> Compare
-          </div>
-          <h2>Select stocks to compare</h2>
-          <p>
-            Choose 2–3 active watchlist stocks. After saving, Eval loads the comparison radar with your selected tickers preloaded.
-          </p>
-        </div>
-
-        <div className="compare-select-count">
-          <strong>{selected.length}/3 selected</strong>
-          <span>Minimum 2 stocks, maximum 3 stocks.</span>
-        </div>
-
-        {error && <div className="compare-error">{error}</div>}
-
-        {activeStocks.length ? (
-          <div className="compare-select-grid">
-            {activeStocks.map((item, index) => {
-              const checked = selected.includes(item.symbol);
-              return (
-                <label className={`compare-select-card ${checked ? "selected" : ""}`} key={item.symbol}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => onToggle(item.symbol)}
-                  />
-                  <span className="compare-select-rank">{index + 1}</span>
-                  <div className="compare-select-copy">
-                    <strong>{item.symbol}</strong>
-                    <small>{item.name || item.symbol}</small>
-                  </div>
-                  <div className={`compare-select-score ${scoreTone(item.score)}`}>
-                    {scoreText(item.score)}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="compare-empty">
-            <Scale size={28} />
-            <h3>No watchlist stocks yet</h3>
-            <p>Add at least two stocks to your watchlist before comparing.</p>
-          </div>
-        )}
-
-        <div className="compare-select-actions">
-          <button
-            type="button"
-            className="compare-save-btn"
-            onClick={onSave}
-            disabled={loading || selected.length < 2 || selected.length > 3}
-          >
-            {loading ? <RefreshCw className="spin" size={17} /> : <CheckCircle2 size={17} />}
-            Save selected
-          </button>
-          <span>Compare stocks within an industry or use industry rankings to find strong peers.</span>
-        </div>
-      </div>
-    </section>
-  );
+.industry-radar-head strong {
+  color: #fff;
+  font-size: 17px;
 }
 
-function ComparePage({
-  data,
-  error,
-  onBack,
-}) {
-  const categories = [
-    "growth",
-    "profitability",
-    "financialHealth",
-    "valuation",
-    "momentum",
-    "reversal",
-    "newsSentiment",
-  ];
-
-  const reports = data?.reports || [];
-  const stocks = reports.map((report) => ({
-    symbol: report?.symbol || "Stock",
-    score: score10(report?.grades?.edgeScore),
-    categories: report?.grades?.categories || {},
-  }));
-
-  return (
-    <section className="compare-page">
-      <div className="compare-page-shell">
-        <button type="button" className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Change selected stocks
-        </button>
-
-        <div className="compare-page-head">
-          <div className="section-title">
-            <Scale size={17} /> Compare
-          </div>
-          <h2>Compare watchlist stocks</h2>
-          <p>
-            Your selected watchlist stocks are preloaded below. Eval compares their Power Scores and all seven category ratings side by side.
-          </p>
-        </div>
-
-        {error && <div className="compare-error">{error}</div>}
-
-        {stocks.length >= 2 ? (
-          <div className="compare-results">
-            <div className={`compare-score-row compare-score-count-${stocks.length}`}>
-              {stocks.map((stock, index) => (
-                <div className={`compare-score-card ${scoreTone(stock.score)}`} key={stock.symbol}>
-                  <span>{stock.symbol}</span>
-                  <ScoreRingSvg
-                    value={stock.score}
-                    className="compare-score-ring"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="compare-chart-intro">
-              <strong>Seven-metric radar comparison</strong>
-              <p>The radar chart shows each selected stock across the same seven Eval categories. A wider shape means stronger scores across more areas.</p>
-            </div>
-
-            <CompareRadar
-              categories={categories}
-              stocks={stocks}
-            />
-
-            <p className="compare-explain">
-              This comparison is based on Eval's current scoring data. You can compare stocks within the same industry, compare up to 3 stocks at once, and use industry rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
-            </p>
-          </div>
-        ) : (
-          <div className="compare-empty">
-            <Scale size={28} />
-            <h3>No comparison loaded yet</h3>
-            <p>Go back and select 2–3 watchlist stocks to compare.</p>
-          </div>
-        )}
-      </div>
-    </section>
-  );
+.industry-radar-head p {
+  margin: 4px 0 0;
+  color: rgba(255,255,255,.58);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
+.industry-radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  max-width: 430px;
+}
 
+.industry-radar-legend span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.86);
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
 
-function industryDescription(industry = "") {
-  const text = String(industry || "").toLowerCase();
+.industry-radar-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+}
 
-  if (text.includes("technology") || text.includes("software") || text.includes("semiconductor")) {
-    return "This industry is built around software, devices, chips, cloud platforms, and digital infrastructure. Strong companies here usually score well when they grow revenue, protect margins, and keep demand strong.";
+.industry-radar-svg {
+  width: min(100%, 760px);
+  max-width: 760px;
+  display: block;
+  margin: -6px auto -10px;
+  padding: 30px;
+  overflow: visible;
+}
+
+.industry-radar-poly {
+  stroke-width: 2.8px;
+  fill-opacity: .075;
+}
+
+.industry-radar-poly-1 {
+  stroke: #72ff41;
+  fill: rgba(114,255,65,.13);
+}
+
+.industry-radar-poly-2 {
+  stroke: #15e7ff;
+  fill: rgba(21,231,255,.12);
+}
+
+.industry-radar-poly-3 {
+  stroke: #c98cff;
+  fill: rgba(201,140,255,.11);
+}
+
+.industry-radar-poly-4 {
+  stroke: #ffe35f;
+  fill: rgba(255,227,95,.10);
+}
+
+.industry-radar-poly-5 {
+  stroke: #ffffff;
+  fill: rgba(255,255,255,.08);
+}
+
+.industry-radar-dot {
+  stroke: rgba(4,8,12,.98);
+  stroke-width: 2.2px;
+}
+
+.industry-radar-dot-1,
+.industry-radar-legend-1 i {
+  fill: #72ff41;
+  background: #72ff41;
+}
+
+.industry-radar-dot-2,
+.industry-radar-legend-2 i {
+  fill: #15e7ff;
+  background: #15e7ff;
+}
+
+.industry-radar-dot-3,
+.industry-radar-legend-3 i {
+  fill: #c98cff;
+  background: #c98cff;
+}
+
+.industry-radar-dot-4,
+.industry-radar-legend-4 i {
+  fill: #ffe35f;
+  background: #ffe35f;
+}
+
+.industry-radar-dot-5,
+.industry-radar-legend-5 i {
+  fill: #ffffff;
+  background: #ffffff;
+}
+
+.industry-medal {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  color: #071006 !important;
+}
+
+/* If category data is unavailable, keep the radar card from visually breaking. */
+.industry-radar-card .radar-label {
+  font-size: 10.6px !important;
+  stroke-width: 4.8px !important;
+}
+
+@media (max-width: 760px) {
+  .industry-radar-card {
+    padding: 14px 8px 18px;
+    border-radius: 22px;
   }
 
-  if (text.includes("health") || text.includes("pharma") || text.includes("biotech") || text.includes("medical")) {
-    return "This industry focuses on medicine, treatments, health services, and medical technology. Strong companies here usually have steady demand, strong profitability, and durable products or services.";
+  .industry-radar-head {
+    display: grid;
+    gap: 10px;
   }
 
-  if (text.includes("financial") || text.includes("bank") || text.includes("insurance")) {
-    return "This industry includes banks, payment networks, lenders, asset managers, and insurers. Strong companies usually score well when they have stable earnings, strong balance sheets, and controlled risk.";
+  .industry-radar-legend {
+    justify-content: flex-start;
+    max-width: none;
   }
 
-  if (text.includes("energy") || text.includes("oil") || text.includes("gas")) {
-    return "This industry is tied to oil, natural gas, energy production, and energy services. Scores can move with commodity prices, cash flow strength, debt levels, and profitability.";
+  .industry-radar-svg {
+    width: 100%;
+    padding: 20px;
+    margin: -2px auto -6px;
   }
 
-  if (text.includes("consumer")) {
-    return "This industry depends on consumer spending. Strong companies usually have recognizable brands, steady demand, pricing power, and healthy margins.";
+  .industry-radar-card .radar-label {
+    font-size: 8px !important;
+    stroke-width: 3.6px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL UNIVERSAL CLEAN SCORE RINGS
+   This block intentionally sits last and overrides every older ring style.
+========================================================= */
+
+/* Main classes used across app:
+   .score-ring = main Eval score
+   .watch-score-ring = watchlist / mini rings
+   .industry-score-pie = industry cards
+   .compare-score-ring = compare page
+   .preview-score-ring = homepage preview
+*/
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.compare-score-ring,
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --ring-value: var(--score-a, var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 288deg))));
+  --ring-color: #72ff41;
+  --ring-track: rgba(255,255,255,.14);
+  --ring-glow: rgba(114,255,65,.30);
+
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--ring-color) 0deg,
+      var(--ring-color) var(--ring-value),
+      var(--ring-track) var(--ring-value),
+      var(--ring-track) 360deg
+    ) !important;
+
+  box-shadow:
+    0 0 22px var(--ring-glow),
+    0 0 1px rgba(255,255,255,.35) !important;
+
+  filter: none !important;
+  transform: none;
+}
+
+/* Perfect clean inner circle. No blur, no duplicate shadows, no extra arc. */
+.score-ring::before,
+.watch-score-ring::before,
+.industry-score-pie::before,
+.compare-score-ring::before,
+.preview-score-ring::before,
+.preview-score-ring-pro::before,
+.preview-score-ring-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 14% !important;
+  border-radius: 50% !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.09), transparent 28%),
+    linear-gradient(145deg, #0b1415 0%, #05090e 100%) !important;
+  box-shadow:
+    inset 0 0 22px rgba(0,0,0,.75),
+    inset 0 0 0 1px rgba(255,255,255,.055) !important;
+  z-index: 1 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Clean outer rim only, not another pie layer. */
+.score-ring::after,
+.watch-score-ring::after,
+.industry-score-pie::after,
+.compare-score-ring::after,
+.preview-score-ring::after,
+.preview-score-ring-pro::after,
+.preview-score-ring-extreme::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* App score colors */
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green,
+.compare-score-ring.green {
+  --ring-color: #72ff41 !important;
+  --ring-glow: rgba(114,255,65,.32) !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow,
+.compare-score-ring.yellow {
+  --ring-color: #ffe35f !important;
+  --ring-glow: rgba(255,227,95,.30) !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red,
+.compare-score-ring.red {
+  --ring-color: #ff5570 !important;
+  --ring-glow: rgba(255,85,112,.30) !important;
+}
+
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --ring-color: #72ff41 !important;
+  --ring-value: 288deg !important;
+  --ring-glow: rgba(114,255,65,.32) !important;
+}
+
+/* Remove any old inner graphics from previous styles. */
+.score-ring .score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.compare-score-ring strong,
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  place-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  line-height: .9 !important;
+  text-align: center !important;
+  text-shadow: 0 0 16px rgba(255,255,255,.25) !important;
+  filter: none !important;
+}
+
+/* Main score core wraps the number, but it should not create a second circle. */
+.score-ring .score-core {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+.score-ring .score-core span {
+  display: none !important;
+}
+
+.score-ring .score-core strong {
+  position: relative !important;
+  z-index: 4 !important;
+  background: transparent !important;
+}
+
+/* Size-specific number scaling */
+.score-ring .score-core strong {
+  font-size: clamp(56px, 30%, 96px) !important;
+  letter-spacing: -.055em !important;
+}
+
+.watch-score-ring strong {
+  font-size: clamp(16px, 30%, 26px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.industry-score-pie strong {
+  font-size: clamp(24px, 28%, 34px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.compare-score-ring strong {
+  font-size: clamp(30px, 34%, 50px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  font-size: clamp(56px, 34%, 86px) !important;
+  letter-spacing: -.05em !important;
+}
+
+/* Prevent inherited old pseudo elements on child elements from causing glitches */
+.score-core::before,
+.score-core::after,
+.watch-score-ring strong::before,
+.watch-score-ring strong::after,
+.industry-score-pie strong::before,
+.industry-score-pie strong::after,
+.compare-score-ring strong::before,
+.compare-score-ring strong::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Mobile ring clarity */
+@media (max-width: 680px) {
+  .score-ring,
+  .watch-score-ring,
+  .industry-score-pie,
+  .compare-score-ring,
+  .preview-score-ring {
+    filter: none !important;
   }
 
-  if (text.includes("industrial")) {
-    return "This industry includes machinery, transportation, aerospace, defense, and manufacturing. Strong companies usually benefit from stable demand, efficient operations, and solid balance sheets.";
+  .score-ring::before,
+  .watch-score-ring::before,
+  .industry-score-pie::before,
+  .compare-score-ring::before,
+  .preview-score-ring::before {
+    inset: 14% !important;
+  }
+}
+
+
+/* =========================================================
+   INDUSTRY RADAR BELOW TOP 5 + REAL CATEGORY DATA
+========================================================= */
+
+.industry-radar-card {
+  margin: 22px 0 0 !important;
+  padding: 18px 18px 24px !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 86% 14%, rgba(133,255,71,.08), transparent 34%),
+    rgba(0,0,0,.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+  overflow: visible !important;
+}
+
+.industry-radar-head {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 8px !important;
+}
+
+.industry-radar-head strong {
+  color: #fff !important;
+  font-size: 17px !important;
+}
+
+.industry-radar-head p {
+  margin: 4px 0 0 !important;
+  color: rgba(255,255,255,.58) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.industry-radar-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  gap: 7px !important;
+  max-width: 430px !important;
+}
+
+.industry-radar-legend span {
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(255,255,255,.055) !important;
+  color: rgba(255,255,255,.86) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+}
+
+.industry-radar-legend i {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+}
+
+.industry-radar-svg {
+  width: min(100%, 820px) !important;
+  max-width: 820px !important;
+  display: block !important;
+  margin: -6px auto -10px !important;
+  padding: 30px !important;
+  overflow: visible !important;
+}
+
+.industry-radar-poly {
+  stroke-width: 3px !important;
+  fill-opacity: .12 !important;
+}
+
+.industry-radar-poly-1 { stroke: #72ff41 !important; fill: rgba(114,255,65,.13) !important; }
+.industry-radar-poly-2 { stroke: #15e7ff !important; fill: rgba(21,231,255,.12) !important; }
+.industry-radar-poly-3 { stroke: #c98cff !important; fill: rgba(201,140,255,.11) !important; }
+.industry-radar-poly-4 { stroke: #ffe35f !important; fill: rgba(255,227,95,.10) !important; }
+.industry-radar-poly-5 { stroke: #ffffff !important; fill: rgba(255,255,255,.08) !important; }
+
+.industry-radar-dot {
+  stroke: rgba(4,8,12,.98) !important;
+  stroke-width: 2.2px !important;
+}
+
+.industry-radar-dot-1,
+.industry-radar-legend-1 i { fill: #72ff41 !important; background: #72ff41 !important; }
+
+.industry-radar-dot-2,
+.industry-radar-legend-2 i { fill: #15e7ff !important; background: #15e7ff !important; }
+
+.industry-radar-dot-3,
+.industry-radar-legend-3 i { fill: #c98cff !important; background: #c98cff !important; }
+
+.industry-radar-dot-4,
+.industry-radar-legend-4 i { fill: #ffe35f !important; background: #ffe35f !important; }
+
+.industry-radar-dot-5,
+.industry-radar-legend-5 i { fill: #ffffff !important; background: #ffffff !important; }
+
+.industry-radar-card .radar-label {
+  font-size: 10.6px !important;
+  stroke-width: 4.8px !important;
+}
+
+.industry-medal {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+}
+
+@media (max-width: 760px) {
+  .industry-radar-card {
+    padding: 14px 8px 18px !important;
+    border-radius: 22px !important;
   }
 
-  return "This industry groups companies with similar business models. Comparing Eval Scores inside the same industry can make the ranking more useful because the stocks face similar risks and opportunities.";
-}
-
-
-function IndustryRadar({ leaders }) {
-  const categories = [
-    "growth",
-    "profitability",
-    "financialHealth",
-    "valuation",
-    "momentum",
-    "reversal",
-    "newsSentiment",
-  ];
-
-  const categoryValues = (item) => {
-    const raw = item.categories || item.grades?.categories || item.categoryScores || {};
-
-    return categories.reduce((acc, key) => {
-      const n = score10(raw?.[key]);
-      acc[key] = Number.isFinite(n) ? n : null;
-      return acc;
-    }, {});
-  };
-
-  const stocks = leaders.slice(0, 5).map((item) => ({
-    symbol: item.symbol,
-    categories: categoryValues(item),
-  }));
-
-  const hasRealCategoryData = stocks.some((stock) =>
-    categories.some((key) => Number.isFinite(stock.categories?.[key]))
-  );
-
-  const center = 180;
-  const maxRadius = 122;
-  const levels = [0.25, 0.5, 0.75, 1];
-
-  const pointFor = (index, value = 10) => {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / categories.length;
-    const radius = (Math.max(0, Math.min(10, Number(value) || 0)) / 10) * maxRadius;
-
-    return {
-      x: center + radius * Math.cos(angle),
-      y: center + radius * Math.sin(angle),
-    };
-  };
-
-  const gridPoints = (level) =>
-    categories
-      .map((_, index) => {
-        const point = pointFor(index, level * 10);
-        return `${point.x},${point.y}`;
-      })
-      .join(" ");
-
-  const polygonPoints = (source) =>
-    categories
-      .map((key, index) => {
-        const score = Number.isFinite(source?.[key]) ? source[key] : 0;
-        const point = pointFor(index, score);
-        return `${point.x},${point.y}`;
-      })
-      .join(" ");
-
-  return (
-    <section className="industry-radar-card">
-      <div className="industry-radar-head">
-        <div>
-          <strong>Top 5 radar comparison</strong>
-          <p>Each point uses that stock's real score for the matching Eval category.</p>
-        </div>
-
-        <div className="industry-radar-legend">
-          {stocks.map((stock, index) => (
-            <span className={`industry-radar-legend-${index + 1}`} key={stock.symbol}>
-              <i aria-hidden="true" /> {stock.symbol}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {!hasRealCategoryData ? (
-        <div className="industry-radar-empty">
-          Category data is still loading. Refresh this industry page after the Top 5 reports finish caching.
-        </div>
-      ) : (
-        <svg className="industry-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five industry stock radar chart">
-          {levels.map((level) => (
-            <polygon key={level} points={gridPoints(level)} className="radar-grid" />
-          ))}
-
-          {categories.map((key, index) => {
-            const edge = pointFor(index, 10);
-            return (
-              <line
-                key={`${key}-axis`}
-                x1={center}
-                y1={center}
-                x2={edge.x}
-                y2={edge.y}
-                className="radar-axis"
-              />
-            );
-          })}
-
-          {stocks.map((stock, index) => (
-            <polygon
-              key={`${stock.symbol}-poly`}
-              points={polygonPoints(stock.categories)}
-              className={`industry-radar-poly industry-radar-poly-${index + 1}`}
-            />
-          ))}
-
-          {categories.map((key, index) => (
-            <g key={`${key}-dots`}>
-              {stocks.map((stock, stockIndex) => {
-                const score = stock.categories?.[key];
-                if (!Number.isFinite(score)) return null;
-                const point = pointFor(index, score);
-                return (
-                  <circle
-                    key={`${stock.symbol}-${key}-dot`}
-                    cx={point.x}
-                    cy={point.y}
-                    r="4.2"
-                    className={`industry-radar-dot industry-radar-dot-${stockIndex + 1}`}
-                  />
-                );
-              })}
-            </g>
-          ))}
-
-          {categories.map((key, index) => {
-            const label = pointFor(index, 12.75);
-            return (
-              <text
-                key={`${key}-label`}
-                x={label.x}
-                y={label.y}
-                textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
-                dominantBaseline="middle"
-                className="radar-label radar-label-front"
-              >
-                {categoryLabel(key)}
-              </text>
-            );
-          })}
-        </svg>
-      )}
-    </section>
-  );
-}
-
-function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
-  const industry = industryPage?.industry || "Industry";
-  const leaders = Array.isArray(industryPage?.leaders) ? industryPage.leaders : [];
-
-  return (
-    <section className="industry-page">
-      <div className="industry-page-shell">
-        <div className="industry-page-head">
-          <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={17} /> Dashboard
-          </button>
-
-          <div>
-            <div className="section-title">
-              <BarChart3 size={17} /> Industry ranking
-            </div>
-            <h2>{industry}</h2>
-            <p>{industryDescription(industry)}</p>
-          </div>
-        </div>
-
-        <div className="industry-explain-card">
-          <strong>How to use this page</strong>
-          <p>
-            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="industry-loading-page">
-            <RefreshCw className="spin" size={22} /> Ranking industry stocks from cached Eval data...
-          </div>
-        ) : error ? (
-          <div className="industry-error-page">{error}</div>
-        ) : leaders.length ? (
-          <>
-            <div className="industry-leader-grid">
-              {leaders.slice(0, 5).map((item, index) => {
-              const score = score10(item.score);
-              const tone = scoreTone(score);
-              const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
-
-              return (
-                <button
-                  type="button"
-                  className={`industry-leader-card ${rankClass}`}
-                  key={item.symbol}
-                  onClick={() => onAnalyze(item.symbol)}
-                  title={`Open full Eval report for ${item.symbol}`}
-                >
-                  <div className="industry-medal">{index + 1}</div>
-                  <ScoreRingSvg
-                    value={score}
-                    className="industry-score-pie"
-                  />
-                  <div className="industry-leader-copy">
-                    <h3>{item.symbol}</h3>
-                    <p>{item.name || item.symbol}</p>
-                    <span>Tap to open full dashboard overview</span>
-                  </div>
-                </button>
-              );
-            })}
-            </div>
-
-            <IndustryRadar leaders={leaders} />
-          </>
-        ) : (
-          <div className="industry-error-page">No same-industry rankings are available yet.</div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function LandingPage({ onContinue }) {
-  const featureCards = [
-    {
-      icon: <Gauge size={22} />,
-      title: "One score that makes the stock readable",
-      text: "Eval compresses fundamentals, valuation, risk, momentum, pullback, and news into one clean 0–10 Power Score.",
-    },
-    {
-      icon: <Newspaper size={22} />,
-      title: "AI-powered news sentiment",
-      text: "Recent headlines are summarized, rated, weighted by impact, and turned into an easy bullish, neutral, or bearish read.",
-    },
-    {
-      icon: <Star size={22} />,
-      title: "Ranked watchlist",
-      text: "Save up to 15 tickers and instantly rank them by score with glowing rings and fast delete/refresh controls.",
-    },
-    {
-      icon: <Scale size={22} />,
-      title: "Radar comparisons",
-      text: "Compare two watchlist stocks across seven categories with a tech-style radar chart and side-by-side score rings.",
-    },
-    {
-      icon: <BrainCircuit size={22} />,
-      title: "Eval AI Assistant",
-      text: "Ask questions about the dashboard, metric popups, news sentiment, watchlist stocks, and how to use the interface.",
-    },
-    {
-      icon: <ShieldCheck size={22} />,
-      title: "Risk without the headache",
-      text: "Eval converts volatility, debt, financial stability, and valuation pressure into a fast Low, Medium, or High risk label.",
-    },
-  ];
-return (
-    <main className="landing-page landing-page-pro landing-page-extreme">
-      <div className="landing-orb landing-orb-one" />
-      <div className="landing-orb landing-orb-two" />
-      <div className="landing-orb landing-orb-three" />
-      <div className="landing-grid-glow" />
-      <div className="landing-scanline" />
-      <div className="landing-noise" />
-
-      <section className="landing-shell landing-shell-pro landing-shell-extreme">
-        <header className="landing-brand-row landing-brand-row-pro">
-          <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
-            <h1>Eval</h1>
-          </button>
-
-          <div className="landing-status-pill landing-status-live">
-            <span /> Live-style stock evaluation engine
-          </div>
-        </header>
-
-        <section className="landing-hero landing-hero-pro landing-hero-extreme">
-          <div className="landing-copy landing-copy-pro">
-            <div className="landing-kicker landing-kicker-glow">
-              <Sparkles size={16} /> AI-powered stock reports in plain English
-            </div>
-
-            <h2>
-              The fastest way to understand a stock before you waste time digging.
-            </h2>
-
-            <p>
-              Eval turns ticker data into a cinematic stock dashboard: Power Score, category
-              ratings, risk, AI news sentiment, watchlist rankings, comparisons, and an assistant
-              that explains the whole report without finance jargon.
-            </p>
-
-            <div className="landing-actions landing-actions-pro">
-              <button type="button" className="landing-continue-btn landing-continue-mega" onClick={onContinue}>
-                Launch Dashboard <ArrowRight size={20} />
-              </button>
-              <span>Search. Score. Rank. Compare. Ask AI.</span>
-            </div>
-
-          </div>
-
-          <div className="landing-product-stage landing-product-stage-extreme" aria-label="Eval product preview">
-
-            <div className="landing-product-card main landing-main-terminal">
-              <div className="preview-topline">
-                <span>Eval stock report</span>
-                <b>NVDA</b>
-              </div>
-
-              <ScoreRingSvg
-                value={8}
-                label="8.0"
-                className="preview-score-ring preview-score-ring-pro preview-score-ring-extreme"
-              />
-
-              <div className="preview-mini-grid">
-                <div>
-                  <span>Growth</span>
-                  <strong>10.0</strong>
-                </div>
-                <div>
-                  <span>Momentum</span>
-                  <strong>8.1</strong>
-                </div>
-                <div>
-                  <span>News</span>
-                  <strong>7.2</strong>
-                </div>
-              </div>
-
-              <div className="landing-terminal-lines">
-                <span><i /> News sentiment: bullish</span>
-                <span><i /> Watchlist rank: #1</span>
-                <span><i /> Risk: medium</span>
-              </div>
-            </div>
-
-            <div className="landing-product-card floating watch landing-float-card-one">
-              <span>Watchlist</span>
-              <strong>#1 NVDA</strong>
-              <p>Score-ranked instantly</p>
-            </div>
-
-            <div className="landing-product-card floating radar landing-float-card-two">
-              <span>Compare</span>
-              <strong>Radar chart</strong>
-              <p>7-metric matchup</p>
-            </div>
-
-            <div className="landing-product-card floating ai landing-float-card-three">
-              <span>Eval AI</span>
-              <strong>Ask anything</strong>
-              <p>About the report</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-feature-strip landing-feature-strip-extreme">
-          {featureCards.map((item) => (
-            <article className="landing-feature-card landing-feature-card-extreme" key={item.title}>
-              <div className="landing-feature-icon">{item.icon}</div>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="landing-scroll-story landing-scroll-story-extreme">
-          <div className="landing-story-copy">
-            <div className="landing-kicker">
-              <LineChart size={16} /> What users get
-            </div>
-            <h2>Built to feel like a premium Bloomberg-style dashboard, but simple enough for anyone.</h2>
-          </div>
-
-          <div className="landing-story-grid landing-story-grid-extreme">
-            <div><b>01</b><span>Power Score</span><p>A clean 0.0–10.0 rating users can understand immediately.</p></div>
-            <div><b>02</b><span>Metric Cards</span><p>Growth, profitability, health, valuation, momentum, pullback, and news.</p></div>
-            <div><b>03</b><span>News Sentiment</span><p>Top articles are summarized, linked, scored, and weighted by impact.</p></div>
-            <div><b>04</b><span>Compare Page</span><p>Two stocks, two rings, one radar chart, seven categories.</p></div>
-          </div>
-        </section>
-
-        <div className="landing-bottom-strip landing-bottom-strip-pro">
-          <span>Eval Score</span>
-          <span>AI News</span>
-          <span>Risk</span>
-          <span>Watchlist</span>
-          <span>Compare</span>
-          <span>Eval AI</span>
-        </div>
-
-        <p className="landing-footnote">
-          Eval is for educational stock evaluation only and is not financial advice.
-        </p>
-      </section>
-    </main>
-  );
-}
-
-function ClerkAccessPage({ onBack, onSuccess }) {
-  const [mode, setMode] = useState("signIn");
-
-  useEffect(() => {
-    function syncModeFromHash() {
-      const hash = window.location.hash.toLowerCase();
-      if (hash.includes("sign-up") || hash.includes("signup")) {
-        setMode("signUp");
-      } else if (hash.includes("sign-in") || hash.includes("signin")) {
-        setMode("signIn");
-      }
-    }
-
-    syncModeFromHash();
-    window.addEventListener("hashchange", syncModeFromHash);
-    return () => window.removeEventListener("hashchange", syncModeFromHash);
-  }, []);
-
-  function switchMode(nextMode) {
-    setMode(nextMode);
-    window.location.hash = nextMode === "signUp" ? "sign-up" : "sign-in";
+  .industry-radar-head {
+    display: grid !important;
+    gap: 10px !important;
   }
 
-  const clerkAppearance = {
-    variables: {
-      fontFamily: "Oxanium, sans-serif",
-      colorPrimary: "#85d713",
-      colorText: "#f8fbff",
-      colorTextSecondary: "rgba(248,251,255,.66)",
-      colorBackground: "rgba(1,7,16,.88)",
-      colorInputBackground: "rgba(0,0,0,.28)",
-      colorInputText: "#f8fbff",
-      borderRadius: "18px",
-    },
-    elements: {
-      rootBox: "clerk-root-box",
-      card: "clerk-card-shell",
-      headerTitle: "clerk-title",
-      headerSubtitle: "clerk-subtitle",
-      socialButtonsBlock: "clerk-social-hidden",
-      socialButtonsBlockButton: "clerk-social-btn",
-      dividerRow: "clerk-auth-divider-hidden",
-      formButtonPrimary: "clerk-primary-btn",
-      footerActionLink: "clerk-link",
-    },
-  };
-
-  return (
-    <main className="clerk-access-page">
-      <div className="clerk-access-orb clerk-access-orb-one" />
-      <div className="clerk-access-orb clerk-access-orb-two" />
-      <div className="clerk-access-grid-glow" />
-
-      <section className="clerk-access-shell">
-        <div className="clerk-access-head">
-          <button type="button" className="back-btn clerk-access-back" onClick={onBack}>
-            <ArrowLeft size={18} /> Cover page
-          </button>
-
-          <div className="clerk-access-brand">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
-            <div>
-              <h1>Eval</h1>
-              <p>Secure account access</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="clerk-access-layout">
-          <aside className="clerk-access-copy">
-            <div className="clerk-access-kicker">
-              <ShieldCheck size={16} /> Protected by Clerk
-            </div>
-            <h2>Sign in before entering the dashboard.</h2>
-            <p>
-              Clerk handles email verification, secure passwords, forgot-password recovery,
-              active sessions, and bot sign-up protection from your Clerk dashboard.
-            </p>
-
-            <div className="clerk-access-list">
-              <span><CheckCircle2 size={16} /> Real sign-up and sign-in</span>
-              <span><CheckCircle2 size={16} /> Email verification and password reset</span>
-              <span><CheckCircle2 size={16} /> Bot protection enabled through Clerk</span>
-            </div>
-          </aside>
-
-          <section className="clerk-access-card">
-            <SignedOut>
-              <div className="clerk-access-topline">
-                <span>{mode === "signIn" ? "Welcome back" : "Create your Eval account"}</span>
-                <h3>{mode === "signIn" ? "Sign in to continue." : "Sign up to get started."}</h3>
-              </div>
-
-              <div className="clerk-access-tabs">
-                <button
-                  type="button"
-                  className={mode === "signIn" ? "active" : ""}
-                  onClick={() => switchMode("signIn")}
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  className={mode === "signUp" ? "active" : ""}
-                  onClick={() => switchMode("signUp")}
-                >
-                  Sign up
-                </button>
-              </div>
-
-              <div className="clerk-access-panel">
-                {mode === "signIn" ? (
-                  <SignIn
-                    appearance={clerkAppearance}
-                    routing="hash"
-                    signUpUrl="#sign-up"
-                  />
-                ) : (
-                  <SignUp
-                    appearance={clerkAppearance}
-                    routing="hash"
-                    signInUrl="#sign-in"
-                  />
-                )}
-              </div>
-            </SignedOut>
-
-            <SignedIn>
-              <div className="clerk-access-ready">
-                <div className="clerk-access-user">
-                  <UserButton />
-                </div>
-                <span>Signed in</span>
-                <h3>Your account is ready.</h3>
-                <p>Continue to Eval and start analyzing stocks.</p>
-                <button type="button" className="auth-submit-btn" onClick={onSuccess}>
-                  Continue to dashboard <ArrowRight size={18} />
-                </button>
-              </div>
-            </SignedIn>
-          </section>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-
-function DashboardLinkRow({ onHome, onTerms, onSupport }) {
-  return (
-    <nav className="dashboard-link-row" aria-label="Dashboard navigation">
-      <button type="button" className="dashboard-link-btn" onClick={onHome}> Homepage
-      </button>
-      <button type="button" className="dashboard-link-btn" onClick={onTerms}>
-        <Scale size={16} /> Terms & Conditions
-      </button>
-      <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}> Support & Contact
-      </button>
-    </nav>
-  );
-}
-
-function SupportContactPage({ onBack, onHome, onTerms }) {
-  return (
-    <main className="support-page">
-      <div className="support-orb support-orb-one" />
-      <div className="support-orb support-orb-two" />
-
-      <section className="support-shell">
-        <div className="support-topbar">
-          <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div className="support-mini-nav">
-            <button type="button" onClick={onHome}>
-              <Home size={15} /> Homepage
-            </button>
-            <button type="button" onClick={onTerms}>
-              <Scale size={15} /> Terms & Conditions
-            </button>
-          </div>
-        </div>
-
-        <div className="support-hero">
-          <div>
-            <div className="support-kicker">
-              <MessageCircle size={16} /> Support & Contact
-            </div>
-            <h1>Need help with Eval?</h1>
-            <p>
-              Reach out with account questions, login issues, dashboard problems, billing
-              questions, feature requests, or general feedback. Emails and direct messages are
-              the fastest way to get a response because they are easier to track and answer clearly.
-            </p>
-          </div>
-
-          <div className="support-contact-card">
-            <span>Primary contact</span>
-            <h2>Eval Support Team</h2>
-            <a href="mailto:getstockeval@gmail.com">
-              <Mail size={18} /> getstockeval@gmail.com
-            </a>
-          </div>
-        </div>
-
-        <div className="support-grid">
-          <article className="support-card">
-            <Mail size={22} />
-            <h3>Best option: email</h3>
-            <p>
-              Email is the best way to explain what happened, include screenshots, and get a
-              direct answer. Include your account email, ticker if relevant, and a short
-              description of the issue.
-            </p>
-          </article>
-
-          <article className="support-card">
-            <MessageCircle size={22} />
-            <h3>Direct messages are fastest</h3>
-            <p>
-              Direct messages are usually the quickest route for simple questions or urgent
-              issues. If the problem needs more detail, you may be asked to follow up by email.
-            </p>
-          </article>
-
-          <article className="support-card">
-            <ShieldCheck size={22} />
-            <h3>What to include</h3>
-            <p>
-              Send the email used for your Eval account, what page you were on, what button or
-              ticker caused the issue, and any error message you saw. Do not send passwords.
-            </p>
-          </article>
-        </div>
-
-        <div className="support-note">
-          Eval is an educational stock-analysis tool. Support can help with product access,
-          account issues, and app problems, but cannot provide personalized financial advice.
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function TermsPage({ onAgree, onBack, requireAgreement = true }) {
-  const [checked, setChecked] = useState(false);
-  const [confirmName, setConfirmName] = useState("");
-  const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
-
-  const sections = [
-    {
-      title: "1. Acceptance of these Terms",
-      text: [
-        "These Terms and Conditions govern your access to and use of Eval, including the website, dashboard, Eval Score, risk rating, watchlist, AI assistant, company summaries, key metrics, charts, explanations, paid plan pages, and any related content or features. By creating an account, signing in, clicking I Agree, or using Eval, you agree to these Terms.",
-        "If you do not agree, do not use Eval. If you use Eval on behalf of a company, club, organization, partnership, or other entity, you represent that you have authority to bind that entity to these Terms."
-      ],
-    },
-    {
-      title: "2. Educational information only — no investment advice",
-      text: [
-        "Eval is an educational stock research and data-organization tool. Eval is not a registered investment adviser, financial adviser, broker-dealer, securities dealer, tax adviser, legal adviser, accountant, investment bank, portfolio manager, fiduciary, or trading platform.",
-        "Nothing on Eval is personalized investment advice, financial advice, trading advice, tax advice, legal advice, accounting advice, a recommendation, an offer, a solicitation, or a promise to buy, sell, hold, short, trade, or otherwise transact in any security, ETF, option, cryptocurrency, futures contract, index, fund, financial product, or investment strategy.",
-        "Eval does not consider your investment objectives, net worth, risk tolerance, income, debts, taxes, time horizon, portfolio, personal circumstances, or suitability. You are solely responsible for your own investment decisions and should consult a qualified licensed professional before making financial decisions."
-      ],
-    },
-    {
-      title: "3. No guarantees, no reliance, and market risk",
-      text: [
-        "Investing and trading involve risk, including loss of principal. Securities and markets can move quickly and unpredictably. Past performance, historical data, backtests, analyst opinions, valuation models, ratings, grades, metrics, scores, or AI-generated explanations do not guarantee future results.",
-        "Eval Scores, risk ratings, grades, company summaries, pullback readings, momentum readings, valuation readings, and AI answers are simplified educational outputs. They may be incomplete, delayed, inaccurate, misinterpreted, unavailable, or inappropriate for your situation. Do not rely on Eval as the only basis for an investment decision.",
-        "You agree that your use of Eval is at your own risk and that you are responsible for independently verifying all information before acting on it."
-      ],
-    },
-    {
-      title: "4. Data sources, calculations, and third-party information",
-      text: [
-        "Eval may use market data, company data, financial statements, ratios, profile information, news information, AI responses, and other data from third-party providers, public sources, APIs, company websites, and user inputs. Eval does not guarantee that data is accurate, complete, current, uninterrupted, or error-free.",
-        "Financial metrics may be missing, stale, restated, estimated, calculated differently by different providers, or affected by stock splits, corporate actions, accounting methods, API limits, provider outages, caching, formatting issues, or data-entry errors.",
-        "Eval may modify, remove, reorder, or change metrics, score weights, formulas, plans, features, explanations, provider integrations, or availability at any time without notice."
-      ],
-    },
-    {
-      title: "5. AI assistant and automated explanations",
-      text: [
-        "Eval may include AI-generated summaries, explanations, comparisons, interpretations, and answers. AI can be wrong, outdated, incomplete, overly confident, or misleading. AI responses are for educational use only and are not professional advice.",
-        "You agree not to treat any AI output as a command, recommendation, guarantee, or substitute for your own research or a licensed professional. You should verify AI output with reliable independent sources before using it."
-      ],
-    },
-    {
-      title: "6. Accounts, security, and acceptable use",
-      text: [
-        "You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to provide accurate account information and to keep it updated.",
-        "You may not scrape, copy, resell, overload, attack, reverse engineer, bypass authentication, bypass rate limits, interfere with security, use bots, create fake accounts, share accounts to avoid payment, or use Eval for unlawful, abusive, fraudulent, or harmful purposes.",
-        "Eval may suspend, restrict, or terminate access at any time if misuse, suspicious activity, payment issues, legal risk, security risk, API abuse, or violation of these Terms is suspected."
-      ],
-    },
-    {
-      title: "7. Subscriptions, payments, and plan changes",
-      text: [
-        "Paid plans, pricing, features, limits, trials, and billing terms may change over time. Unless otherwise stated at checkout, subscription fees are billed in advance and may be recurring. You are responsible for reviewing the price, renewal period, and cancellation terms before purchasing.",
-        "Eval may add, remove, or modify features included in free or paid plans. A feature described on a plan page may depend on third-party APIs, market data providers, AI providers, payment providers, or backend availability."
-      ],
-    },
-    {
-      title: "8. Intellectual property and license",
-      text: [
-        "Eval, including its design, interface, branding, scoring structure, explanations, code, layout, text, graphics, and features, is owned by Eval or its licensors and is protected by intellectual-property laws. You receive a limited, revocable, non-exclusive, non-transferable license to use Eval for personal, non-commercial educational research unless a separate written agreement says otherwise.",
-        "You may not copy, modify, distribute, sell, sublicense, frame, mirror, or create derivative works from Eval without written permission."
-      ],
-    },
-    {
-      title: "9. User content and feedback",
-      text: [
-        "If you submit questions, ticker lists, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
-        "Do not submit confidential, regulated, illegal, harmful, or sensitive information that you do not want processed by the service."
-      ],
-    },
-    {
-      title: "10. Privacy and communications",
-      text: [
-        "Eval may process account information, usage information, device information, authentication information, and submitted content to operate the service, improve features, prevent abuse, communicate with users, and comply with legal obligations. Third-party services such as authentication, hosting, analytics, payment, email, AI, market-data, and security providers may process information as needed to provide the service.",
-        "By using Eval, you consent to receiving service-related emails such as account verification, password reset, security notices, plan notices, legal notices, and important product updates."
-      ],
-    },
-    {
-      title: "11. Third-party services and links",
-      text: [
-        "Eval may link to or integrate with third-party websites, APIs, data providers, payment providers, authentication providers, AI providers, company websites, brokers, or news sources. Eval does not control third-party services and is not responsible for their content, availability, accuracy, policies, fees, outages, or actions.",
-        "Your use of third-party services may be governed by their own terms and privacy policies."
-      ],
-    },
-    {
-      title: "12. Disclaimers of warranties",
-      text: [
-        "Eval is provided on an AS IS and AS AVAILABLE basis. To the maximum extent permitted by law, Eval disclaims all warranties, express, implied, statutory, or otherwise, including warranties of accuracy, completeness, timeliness, merchantability, fitness for a particular purpose, title, non-infringement, availability, security, and uninterrupted operation.",
-        "Eval does not warrant that the service will be error-free, secure, uninterrupted, profitable, accurate, compatible with your needs, or free from harmful components."
-      ],
-    },
-    {
-      title: "13. Limitation of liability",
-      text: [
-        "To the maximum extent permitted by law, Eval and its owners, operators, affiliates, contractors, providers, and licensors will not be liable for indirect, incidental, consequential, special, exemplary, punitive, lost-profit, lost-revenue, lost-data, trading-loss, investment-loss, business-interruption, reputational, or reliance damages, even if advised of the possibility of such damages.",
-        "To the maximum extent permitted by law, Eval’s total liability for any claim arising out of or relating to the service or these Terms will not exceed the greater of the amount you paid to Eval for the service during the three months before the claim arose or one hundred U.S. dollars. Some jurisdictions do not allow certain limitations, so some limitations may not apply to you."
-      ],
-    },
-    {
-      title: "14. Indemnification",
-      text: [
-        "You agree to defend, indemnify, and hold harmless Eval and its owners, operators, affiliates, contractors, providers, and licensors from and against claims, damages, losses, liabilities, costs, and expenses, including reasonable attorneys’ fees, arising out of or related to your use of Eval, your investment decisions, your violation of these Terms, your violation of law, your user content, your misuse of data, or your infringement of rights."
-      ],
-    },
-    {
-      title: "15. Arbitration agreement and class-action waiver",
-      text: [
-        "PLEASE READ THIS SECTION CAREFULLY. To the maximum extent permitted by law, you and Eval agree that any dispute, claim, or controversy arising out of or relating to these Terms, Eval, your account, your subscription, your use of the service, data, scores, AI outputs, or any relationship between you and Eval will be resolved by binding individual arbitration rather than in court, except that either party may bring an individual claim in small-claims court if eligible.",
-        "The arbitration will be conducted on an individual basis. You and Eval waive the right to a jury trial and waive the right to participate in a class action, class arbitration, consolidated action, representative action, private attorney general action, or any proceeding brought on behalf of other users or the general public. The arbitrator may award relief only to the individual party seeking relief and only to the extent necessary to resolve that individual party’s claim.",
-        "Before starting arbitration, the party seeking relief must send written notice describing the dispute and requested relief. The parties will try in good faith to resolve the dispute informally for at least 30 days. If the dispute is not resolved, either party may start arbitration under the rules of a recognized arbitration provider selected by Eval unless applicable law requires otherwise.",
-        "If any part of this arbitration or class-action waiver section is found unenforceable, the unenforceable part will be severed to the extent permitted by law, and the remaining terms will continue in effect. If the class-action waiver is found unenforceable for a claim, that claim must proceed in court and not in arbitration."
-      ],
-      important: true,
-    },
-    {
-      title: "16. Governing law and venue",
-      text: [
-        "These Terms are governed by the laws of the State of Delaware, without regard to conflict-of-law principles, except to the extent federal law or mandatory local law applies. Subject to the arbitration section, any permitted court proceeding will be brought in state or federal courts located in Delaware, and you consent to personal jurisdiction and venue there."
-      ],
-    },
-    {
-      title: "17. Changes to Eval and these Terms",
-      text: [
-        "Eval may update these Terms from time to time. Material changes may be shown in the app, emailed, or posted on the website. Continued use of Eval after changes become effective means you accept the updated Terms. If you do not agree to the updated Terms, stop using Eval."
-      ],
-    },
-    {
-      title: "18. Contact and legal notices",
-      text: [
-        "Questions, support requests, or legal notices should be sent through the contact method provided by Eval. If no separate contact method is available, use the account email or support channel associated with the service."
-      ],
-    },
-  ];
-
-  return (
-    <main className="terms-page">
-      <div className="terms-orb terms-orb-one" />
-      <div className="terms-orb terms-orb-two" />
-
-      <section className="terms-shell">
-        <div className="terms-hero">
-          <div>
-            <div className="terms-kicker">
-              <Scale size={16} /> Required before entering Eval
-            </div>
-            <h1>Terms and Conditions</h1>
-            <p>
-              {requireAgreement
-                ? "Review and accept these terms before using the dashboard. This page is designed for a stock-analysis education product, with extra focus on market-risk disclaimers, no-advice language, liability limits, and arbitration."
-                : "Review the current Eval Terms and Conditions at any time from your dashboard."}
-            </p>
-          </div>
-
-          <div className="terms-mini-card">
-            <FileText size={23} />
-            <span>Version</span>
-            <strong>{TERMS_VERSION}</strong>
-            <small>Educational use only. Not financial advice.</small>
-          </div>
-        </div>
-
-        <div className="terms-alert">
-          <AlertTriangle size={18} />
-          <p>
-            This template is not legal advice. Have an attorney review it before launch,
-            especially the arbitration, privacy, subscription, and liability sections.
-          </p>
-        </div>
-
-        <div className="terms-body">
-          {sections.map((section) => (
-            <article className={section.important ? "terms-section important" : "terms-section"} key={section.title}>
-              <h2>{section.title}</h2>
-              {section.text.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </article>
-          ))}
-        </div>
-
-        {requireAgreement ? (
-          <div className="terms-accept-panel">
-            <div>
-              <div className="terms-accept-title">
-                <LockKeyhole size={17} /> Agreement required
-              </div>
-              <p>
-                Check the box and type <b>I AGREE</b> to unlock the dashboard for this account.
-                After this account accepts the current version, this step will not appear again
-                unless the terms version changes or the browser data is cleared.
-              </p>
-            </div>
-
-            <label className="terms-check-row">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-              />
-              <span>
-                I have read and agree to the Eval Terms and Conditions, including the
-                no-investment-advice disclaimer, limitation of liability, arbitration agreement,
-                and class-action waiver.
-              </span>
-            </label>
-
-            <input
-              className="terms-confirm-input"
-              value={confirmName}
-              onChange={(e) => setConfirmName(e.target.value)}
-              placeholder="Type I AGREE"
-            />
-
-            <button type="button" className="terms-agree-btn" disabled={!canAgree} onClick={onAgree}>
-              Agree and enter dashboard <ArrowRight size={18} />
-            </button>
-          </div>
-        ) : (
-          <div className="terms-accept-panel terms-read-panel">
-            <div>
-              <div className="terms-accept-title">
-                <CheckCircle2 size={17} /> Terms already accepted
-              </div>
-              <p>
-                This account has already accepted the current terms version. You can review the
-                terms here anytime and return to the dashboard when finished.
-              </p>
-            </div>
-
-            <button type="button" className="terms-agree-btn" onClick={onBack}>
-              Back to dashboard <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
-      </section>
-    </main>
-  );
-}
-
-
-function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
-  const ranked = [...items].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
-  const leader = ranked[0];
-
-  return (
-    <aside className="mag7-panel">
-      <div className="panel-head">
-        <div>
-          <h2>
-            <Sparkles size={18} /> Mag 7
-            <button
-              type="button"
-              className="mag7-help-btn"
-              title="Mag 7 info"
-              aria-label="Mag 7 info"
-            >
-              <HelpCircle size={14} />
-              <span className="mag7-help-pop">
-                The Mag 7 are Apple, Microsoft, Alphabet, Amazon, Nvidia, Meta, and Tesla. They are large mega-cap tech leaders and this panel ranks them by current Eval Score.
-              </span>
-            </button>
-          </h2>
-          <p>Magnificent 7 prebuilt Eval Score list</p>
-        </div>
-
-        <button
-          className="icon-btn"
-          onClick={onRefresh}
-          disabled={loading}
-          title="Refresh Mag 7 scores"
-        >
-          <RefreshCw size={16} className={loading ? "spin" : ""} />
-        </button>
-      </div>
-
-      <div className="mag7-list">
-        {ranked.map((item, index) => (
-          <button
-            className={`mag7-row rank-$`}
-            key={item.symbol}
-            type="button"
-            onClick={() => onAnalyze(item.symbol)}
-          >
-            <span className="mag7-rank"></span>
-            <div className="mag7-main">
-              <strong>{item.symbol}</strong>
-              <div className="row-sw">
-                <span>Strong: {item.strongest || "N/A"}</span>
-                <span>Weak: {item.weakest || "N/A"}</span>
-              </div>
-            </div>
-
-            <ScoreRingSvg
-              value={item.score}
-              className="watch-score-ring"
-            />
-          </button>
-        ))}
-      </div>
-
-      <div className="mag7-summary">
-        <span>Top stock read</span>
-        <div>
-          <b>Strongest</b>
-          <strong>{leader?.strongest || "Refresh to load"}</strong>
-        </div>
-        <div>
-          <b>Weakest</b>
-          <strong>{leader?.weakest || "Refresh to load"}</strong>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-
-function Watchlist({
-  items,
-  symbol,
-  onAdd,
-  onRemove,
-  onAnalyze,
-  onRefresh,
-  loading,
-  mobilePage = false,
-  pageMode = false,
-}) {
-  const [manual, setManual] = useState("");
-
-  return (
-    <aside className={`watch-panel eval-watchlist-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
-      <div className="panel-head">
-        <div>
-          <h2>
-            <Star size={18} /> Watchlist
-          </h2>
-          <p>Max 15 stocks</p>
-        </div>
-
-        <button
-          className="icon-btn"
-          onClick={onRefresh}
-          disabled={loading}
-          title="Refresh scores"
-        >
-          <RefreshCw size={16} className={loading ? "spin" : ""} />
-        </button>
-      </div>
-<form
-        className="watch-add"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onAdd(manual || symbol);
-          setManual("");
-        }}
-      >
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value.toUpperCase())}
-          placeholder="Add ticker"
-        />
-        <button
-          disabled={items.length >= MAX_WATCHLIST_ITEMS && !items.some((item) => item.symbol === (manual || symbol).trim().toUpperCase())}
-          title={items.length >= MAX_WATCHLIST_ITEMS ? "Watchlist limit reached" : "Add to watchlist"}
-        >
-          <Plus size={16} />
-        </button>
-      </form>
-
-      <div className="watch-list">
-        {items.length === 0 ? (
-          <div className="watch-empty">
-            Your watchlist is empty. Add a ticker above to start building your own list.
-          </div>
-        ) : (
-          items.map((item) => (
-            <div className="watch-row" key={item.symbol}>
-              <span className="watch-rank-number" aria-hidden="true" />
-              <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
-                <strong>{item.symbol}</strong>
-                <div className="row-sw watch-row-sw">
-                  <span>Strong: {item.strongest || "N/A"}</span>
-                  <span>Weak: {item.weakest || "N/A"}</span>
-                </div>
-              </button>
-
-              <ScoreRingSvg
-              value={item.score}
-              className="watch-score-ring"
-            />
-
-              <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </aside>
-  );
-}
-
-
-function PlansPage({ onBack }) {
-  const plan = {
-    name: "Eval Pro",
-    price: "$9.99/mo",
-    yearly: "$99.99/yr",
-    description:
-      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
-    features: [
-      "Expanded Eval Score with more quality fundamentals",
-      "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
-      "Intrinsic value, WACC, and DCF-style valuation support",
-      "Margin of safety and percent difference from intrinsic value",
-      "News sentiment score from recent company headlines",
-      "AI summaries that explain what the news means",
-      "More detailed metric explanations in plain English",
-      "Expanded Eval AI Assistant access for stock questions",
-    ],
-  };
-
-  return (
-    <section className="plans-page">
-      <div className="plans-shell pro-only-shell">
-        <div className="plans-page-head">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div>
-            <div className="plans-kicker">
-              <Crown size={16} /> Eval Pro
-            </div>
-            <h2>One plan. Deeper stock research.</h2>
-            <p>
-              Eval Pro keeps the upgrade simple: stronger scoring, more company
-              metrics, valuation tools, news sentiment, and cleaner AI-powered
-              explanations for one price.
-            </p>
-          </div>
-        </div>
-
-        <div className="plans-grid pro-only-grid">
-          <article className="plan-card pro pro-only-card">
-            <div className="plan-glow" />
-
-            <div className="plan-top pro-only-top">
-              <div>
-                <span>{plan.name}</span>
-                <h3>{plan.price}</h3>
-                <p>{plan.yearly}</p>
-              </div>
-
-              <div className="plan-icon">
-                <Crown size={28} />
-              </div>
-            </div>
-
-            <p className="plan-description">{plan.description}</p>
-
-            <div className="plan-features pro-only-features">
-              {plan.features.map((feature) => (
-                <div className="plan-feature" key={feature}>
-                  <CheckCircle2 size={16} />
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="plan-select-btn"
-              onClick={() => {}}
-              title="Eval Pro website coming soon"
-            >
-              Upgrade to Eval Pro
-            </button>
-          </article>
-        </div>
-
-        <p className="fineprint center">
-          Plan button is a placeholder for now. Connect it later to the live Pro
-          checkout page when it is ready.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function AssistantPage({ current, watchlist, onBack }) {
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Ask about the Eval interface, dashboard, metrics, news sentiment, compare, or watchlist. Specific stock questions must use tickers already saved in your watchlist.",
-    },
-  ]);
-  const [loading, setLoading] = useState(false);
-
-  async function ask(e) {
-    e.preventDefault();
-
-    const clean = question.trim().slice(0, 75);
-    if (!clean) return;
-
-    const userMessage = { role: "user", content: clean };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setQuestion("");
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API}/api/assistant`, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          question: clean,
-          current,
-          watchlist,
-        }),
-      });
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          json?.error ||
-            json?.message ||
-            `Assistant error. Backend returned ${res.status}.`
-        );
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: json?.answer || "I could not create a response.",
-        },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            err.message ||
-            "Could not connect to the Render assistant endpoint.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  .industry-radar-legend {
+    justify-content: flex-start !important;
+    max-width: none !important;
   }
 
-  return (
-    <section className="assistant-page">
-      <div className="assistant-shell">
-        <div className="assistant-page-head">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <div>
-            <div className="assistant-kicker">
-              <BrainCircuit size={16} /> Eval AI Assistant
-            </div>
-            <h2>Ask about this Eval report.</h2>
-            <p>
-              Compare stocks, understand metrics, ask about risk, or get a
-              beginner-friendly breakdown before making a decision.
-            </p>
-
-        <section className="ai-rules-card ai-rules-card-full">
-          <div className="ai-rules-eyebrow">What Eval AI can answer</div>
-          <h3>Ask about the app, your watchlist stocks, and the report metrics.</h3>
-
-          <div className="ai-rules-grid ai-rules-grid-brief">
-            <div>
-              <strong>Watchlist stocks only</strong>
-              <p>Specific stock questions must be about a ticker saved in your watchlist so Eval can pull the right report data.</p>
-            </div>
-
-            <div>
-              <strong>Score and metric help</strong>
-              <p>Ask why a score is high or low, what a category means, or how to read the metric popups and news sentiment.</p>
-            </div>
-
-            <div>
-              <strong>Using the website</strong>
-              <p>Ask how to navigate, add stocks, open the watchlist, use the Metrics button, or understand each dashboard section.</p>
-            </div>
-          </div>
-
-          <p className="ai-rules-note">Eval AI stays focused on the Eval website and stock-evaluation workflow. It will not answer unrelated questions.</p>
-        </section>
-
-</div>
-        </div>
-
-        <div
-className="chat-panel">
-          <div className="chat-messages">
-            {messages.map((msg, index) => (
-              <div className={`chat-bubble ${msg.role}`} key={`${msg.role}-${index}`}>
-                <span>{msg.role === "user" ? "You" : "Eval AI"}</span>
-                <p>{msg.content}</p>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="chat-bubble assistant">
-                <span>Eval AI</span>
-                <p>Thinking through that question...</p>
-              </div>
-            )}
-          </div>
-
-          <form className="chat-input" onSubmit={ask}>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
-              maxLength={150}
-              placeholder="Ask about the Eval interface, dashboard, metrics, news sentiment, compare, or watchlist. Stock-specific questions must use watchlist tickers."
-              rows="3"
-            />
-            <button disabled={loading}>
-              {loading ? <RefreshCw className="spin" size={17} /> : <Send size={17} />}
-              Ask
-            </button>
-          </form>
-        </div>
-
-        <p className="fineprint center">
-          Educational only. Eval AI Assistant helps explain investing ideas, but it
-          is not a licensed financial advisor.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function Report({ data, onAdd, onOpenIndustry }) {
-  const cats = data?.grades?.categories || {};
-  const metrics = data?.metrics || {};
-  const edge = score10(data.grades?.edgeScore);
-  const tone = scoreTone(edge);
-  const scoreInsight = getScoreInsight(edge);
-  const [openScoreHelp, setOpenScoreHelp] = useState(null);
-
-  const scrollToScoreMetrics = () => {
-    const target = document.getElementById("score-metrics");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-  const [industryOpen, setIndustryOpen] = useState(false);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [industryError, setIndustryError] = useState("");
-  const [industryLeaders, setIndustryLeaders] = useState([]);
-
-  const industryName = data.profile?.finnhubIndustry || "Public company";
-  const newsTopics = Array.isArray(data.newsSentiment?.topics)
-    ? data.newsSentiment.topics.slice(0, 3)
-    : [];
-
-  async function openIndustryPopup() {
-    if (!industryName || industryName === "Public company") return;
-    onOpenIndustry?.(industryName, data.symbol);
+  .industry-radar-svg {
+    width: 100% !important;
+    padding: 20px !important;
+    margin: -2px auto -6px !important;
   }
 
-
-  const strongest = useMemo(
-    () =>
-      Object.entries(cats)
-        .filter(([, v]) => v != null)
-        .sort((a, b) => score10(b[1]) - score10(a[1]))[0],
-    [cats]
-  );
-
-  const weakest = useMemo(
-    () =>
-      Object.entries(cats)
-        .filter(([, v]) => v != null)
-        .sort((a, b) => score10(a[1]) - score10(b[1]))[0],
-    [cats]
-  );
-
-  const gradeDescriptions = {
-    growth: "Shows how fast the company is expanding sales and earnings. Higher means the business is growing stronger over time.",
-    profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
-    financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
-    valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
-    momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
-    reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-    newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
-  };
-
-  const categoryMetrics = {
-    growth: usableMetricLines([
-      metricLine("Revenue Growth", metrics.revenueGrowth),
-      metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
-      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
-      metricLine("5-Year Revenue Growth", metrics.revenueGrowth5Y),
-      metricLine("EPS Growth", metrics.epsGrowth),
-      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
-      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
-    ]),
-    profitability: usableMetricLines([
-      metricLine("ROE", metrics.roe),
-      metricLine("ROA", metrics.roa),
-      metricLine("ROI / ROIC", metrics.roi),
-      metricLine("Gross Margin", metrics.grossMargin),
-      metricLine("Operating Margin", metrics.operatingMargin),
-      metricLine("Pretax Margin", metrics.pretaxMargin),
-      metricLine("Net Margin", metrics.netMargin),
-    ]),
-    financialHealth: usableMetricLines([
-      metricLine("Debt-to-Equity", metrics.debtToEquity),
-      metricLine("Long-Term Debt-to-Equity", metrics.longTermDebtToEquity),
-      metricLine("Current Ratio", metrics.currentRatio),
-      metricLine("Quick Ratio", metrics.quickRatio),
-      metricLine("Cash Ratio", metrics.cashRatio),
-      metricLine("Asset Turnover", metrics.assetTurnover),
-      metricLine("Market Cap Stability", metrics.marketCapM),
-    ]),
-    valuation: usableMetricLines([
-      metricLine("P/E Ratio", metrics.peRatio),
-      metricLine("Forward P/E", metrics.forwardPe),
-      metricLine("PEG Ratio", metrics.pegRatio),
-      metricLine("Price-to-Sales", metrics.priceToSales),
-      metricLine("Price-to-Book", metrics.priceToBook),
-      metricLine("Price-to-Cash-Flow", metrics.priceToCashFlow),
-      metricLine("Price-to-Free-Cash-Flow", metrics.priceToFreeCashFlow),
-      metricLine("Enterprise Value", metrics.enterpriseValue),
-      metricLine("EBITDA", metrics.ebitda),
-      metricLine("EV/EBITDA", metrics.evToEbitda),
-      metricLine("WACC", metrics.wacc),
-      metricLine("Cost of Equity", metrics.costOfEquity),
-      metricLine("After-Tax Cost of Debt", metrics.afterTaxCostOfDebt),
-      metricLine("Tax Rate", metrics.taxRate),
-      metricLine("DCF Enterprise Value", metrics.dcfEnterpriseValue),
-      metricLine("Intrinsic Value", metrics.intrinsicValue),
-      metricLine("Intrinsic Value Gap", metrics.intrinsicValueGap),
-      metricLine("News Sentiment", metrics.newsSentiment),
-      metricLine("Dividend Yield", metrics.dividendYield),
-    ]),
-    momentum: usableMetricLines([
-      metricLine("Beta", metrics.beta),
-      metricLine("Day Change", metrics.dayChangePercent),
-      metricLine("4-Week Return", metrics.priceReturn4Week),
-      metricLine("13-Week Return", metrics.priceReturn13Week),
-      metricLine("26-Week Return", metrics.priceReturn26Week),
-      metricLine("52-Week Return", metrics.priceReturn52Week),
-      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-    ]),
-    reversal: usableMetricLines([
-      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
-      metricLine("4-Week Return", metrics.priceReturn4Week),
-      metricLine("13-Week Return", metrics.priceReturn13Week),
-      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-      metricLine("Day Change", metrics.dayChangePercent),
-    ]),
-    newsSentiment: usableMetricLines([
-      metricLine("Weighted News Score", metrics.newsSentiment),
-    ]),
-  };
-
-  const rows = [
-    [
-      "Market Cap",
-      metrics.marketCapM || {
-        value: data.grades?.context?.marketCapM,
-        suffix: "M",
-        source: "Finnhub / calculated",
-      },
-      "Shows the total market value of the company. Bigger companies are usually more established, while smaller companies may have more growth potential but higher risk.",
-    ],
-    [
-      "P/E Ratio",
-      metrics.peRatio,
-      "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
-    ],
-    [
-      "Revenue Growth",
-      metrics.revenueGrowth,
-      "Shows whether the company is increasing sales over time.",
-    ],
-    [
-      "EPS Growth",
-      metrics.epsGrowth,
-      "Tracks whether earnings per share are improving.",
-    ],
-    [
-      "ROE",
-      metrics.roe,
-      "Shows how efficiently the company turns shareholder equity into profit.",
-    ],
-    ["Net Margin", metrics.netMargin, "Shows how much revenue becomes profit after costs."],
-    [
-      "Operating Margin",
-      metrics.operatingMargin,
-      "Shows how profitable the core business is before interest and taxes.",
-    ],
-    [
-      "Debt-to-Equity",
-      metrics.debtToEquity,
-      "Compares company debt with shareholder equity.",
-    ],
-    [
-      "Current Ratio",
-      metrics.currentRatio,
-      "Measures short-term balance-sheet strength.",
-    ],
-    [
-      "Price-to-Sales",
-      metrics.priceToSales,
-      "Compares market value with annual sales.",
-    ],
-    [
-      "Enterprise Value",
-      metrics.enterpriseValue,
-      "Company value estimate calculated as market cap plus total debt minus cash.",
-    ],
-    [
-      "WACC",
-      metrics.wacc,
-      "Estimated discount rate from cost of equity and after-tax cost of debt.",
-    ],
-    [
-      "Intrinsic Value",
-      metrics.intrinsicValue,
-      "DCF equity value per share using projected free cash flow.",
-    ],
-    [
-      "Intrinsic Value Gap",
-      metrics.intrinsicValueGap,
-      "Percent difference between intrinsic value and current stock price.",
-    ],
-    [
-      "News Sentiment",
-      metrics.newsSentiment,
-      data.newsSentiment?.summary || "AI score from recent company news.",
-    ],
-    [
-      "EBITDA",
-      metrics.ebitda,
-      "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
-    ],
-    [
-      "EV/EBITDA",
-      metrics.evToEbitda,
-      "Compares enterprise value with EBITDA. Lower can point to a more reasonable valuation, but quality and growth still matter.",
-    ],
-    [
-      "52-Week Return",
-      metrics.priceReturn52Week,
-      "Shows longer-term price momentum over the last year.",
-    ],
-    [
-      "Beta",
-      metrics.beta,
-      "Shows how volatile the stock is compared with the overall market.",
-    ],
-  ];
-
-  return (
-    <>
-      <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel">
-          <ScoreRingSvg
-            value={edge}
-            className="score-ring"
-          />
-
-          <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
-            <button
-              type="button"
-              className="score-help-btn score-main-help-btn"
-              onClick={() => setOpenScoreHelp(openScoreHelp === "score" ? null : "score")}
-              aria-label="Explain Eval Score color"
-              title="Explain Eval Score color"
-            >
-              <span className="info-letter">?</span>
-            </button>
-
-            {openScoreHelp === "score" && (
-              <div className={`score-popup score-insight-popup ${tone}`}>
-                <button type="button" className="popup-close-btn" onClick={() => setOpenScoreHelp(null)} aria-label="Close popup" title="Close">×</button>
-                <div className="score-popup-title">{scoreInsight.label}</div>
-                <p>{scoreInsight.text}</p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="score-metrics-jump-btn"
-              onClick={scrollToScoreMetrics}
-              title="Jump to score metrics"
-              aria-label="Jump to score metrics"
-            >
-              Metrics
-            </button>
-          </div>
-        </div>
-
-        <div className="company-panel">
-<h2>{data.profile?.name || data.symbol}</h2>
-          <p className="subline">
-            {(data.profile?.weburl || data.profile?.website || data.profile?.site) ? (
-              <a
-                href={data.profile?.weburl || data.profile?.website || data.profile?.site}
-                target="_blank"
-                rel="noreferrer"
-                className="ticker-company-link"
-                title={`Open ${data.symbol} company website`}
-              >
-                {data.symbol}
-              </a>
-            ) : (
-              <span className="ticker-company-link is-disabled">{data.symbol}</span>
-            )}
-            <span> · </span>
-            <button
-              type="button"
-              className="industry-link"
-              onClick={openIndustryPopup}
-              disabled={!industryName || industryName === "Public company"}
-              title={`View top Eval stocks in ${industryName}`}
-            >
-              {industryName}
-            </button>
-          </p>
-
-          <div className="hero-actions">
-            <button className="eval-hero-add-btn hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
-              <Plus size={17} />
-            </button>
-          </div>
-        </div>
-
-        <div className="snapshot-grid snapshot-grid-refined">
-          <MiniStat
-            icon={<Activity size={17} />}
-            label="Price"
-            value={money(data.quote?.c)}
-            className="price-mini-stat"
-            extra={
-              <span className={`daily-change-chip ${dailyChangeClass(data.quote?.dp)}`}>
-                {signedPercent(data.quote?.dp)}
-              </span>
-            }
-          />
-          <MiniStat
-            icon={<ShieldCheck size={17} />}
-            label="Risk"
-            value={data.grades.riskLabel}
-          />
-        </div>
-
-      </section>
-
-      {newsTopics.length > 0 && (
-        <section className="news-sentiment-card">
-          <div className="section-title news-section-title">
-            <Newspaper size={17} />
-            News Sentiment
-            <span className={`news-score-pill ${scoreTone(data.newsSentiment?.score)}`}>
-              {scoreText(data.newsSentiment?.score)}
-            </span>
-            <small>{data.newsSentiment?.label || "Recent news"}</small>
-          </div>
-
-          {data.newsSentiment?.summary && (
-            <p className="news-overall-summary">{data.newsSentiment.summary}</p>
-          )}
-
-          <div className="news-topic-list">
-            {newsTopics.map((topic, index) => (
-              <article className="news-topic-card" key={`${topic.title}-${index}`}>
-                <div className="news-topic-head">
-                  <div>
-                    <span>Topic  · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
-                    <h3>{topic.title}</h3>
-                  </div>
-                  <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
-                </div>
-
-                <p>{topic.summary}</p>
-
-                {topic.url && (
-                  <a href={topic.url} target="_blank" rel="noreferrer">
-                    Read article
-                  </a>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-<section id="score-metrics" className="grade-grid">
-        <Grade
-          id="growth"
-          name="Growth"
-          value={cats.growth}
-          icon={<TrendingUp size={18} />}
-          description={gradeDescriptions.growth}
-          metricsUsed={categoryMetrics.growth}
-          isOpen={openScoreHelp === "growth"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
-          }
-        />
-        <Grade
-          id="profitability"
-          name="Profitability"
-          value={cats.profitability}
-          icon={<BarChart3 size={18} />}
-          description={gradeDescriptions.profitability}
-          metricsUsed={categoryMetrics.profitability}
-          isOpen={openScoreHelp === "profitability"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "profitability" ? null : "profitability"
-            )
-          }
-        />
-        <Grade
-          id="financialHealth"
-          name="Financial Health"
-          value={cats.financialHealth}
-          icon={<ShieldCheck size={18} />}
-          description={gradeDescriptions.financialHealth}
-          metricsUsed={categoryMetrics.financialHealth}
-          isOpen={openScoreHelp === "financialHealth"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "financialHealth" ? null : "financialHealth"
-            )
-          }
-        />
-        <Grade
-          id="valuation"
-          name="Valuation"
-          value={cats.valuation}
-          icon={<Target size={18} />}
-          description={gradeDescriptions.valuation}
-          metricsUsed={categoryMetrics.valuation}
-          isOpen={openScoreHelp === "valuation"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
-          }
-        />
-        <Grade
-          id="momentum"
-          name="Momentum"
-          value={cats.momentum}
-          icon={<LineChart size={18} />}
-          description={gradeDescriptions.momentum}
-          metricsUsed={categoryMetrics.momentum}
-          isOpen={openScoreHelp === "momentum"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
-          }
-        />
-        <Grade
-          id="reversal"
-          name="Pullback"
-          value={cats.reversal}
-          icon={<Zap size={18} />}
-          description={gradeDescriptions.reversal}
-          metricsUsed={categoryMetrics.reversal}
-          isOpen={openScoreHelp === "reversal"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
-          }
-        />
-
-        <Grade
-          id="newsSentiment"
-          name="News Sentiment"
-          value={cats.newsSentiment}
-          icon={<Newspaper size={18} />}
-          description={gradeDescriptions.newsSentiment}
-          metricsUsed={categoryMetrics.newsSentiment}
-          isOpen={openScoreHelp === "newsSentiment"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "newsSentiment" ? null : "newsSentiment"
-            )
-          }
-        />
-      </section>
-
-    </>
-  );
+  .industry-radar-card .radar-label {
+    font-size: 8px !important;
+    stroke-width: 3.6px !important;
+  }
 }
 
-function metricLine(label, item) {
-  if (!item) return null;
 
-  if (typeof item === "object" && "value" in item) {
-    const value = Number(item.value);
-    if (!Number.isFinite(value) || value === 0) return null;
+/* =========================================================
+   SVG SCORE RINGS — CLEAN FUTURISTIC STANDARD CHARTS
+   This replaces all CSS/conic-gradient pie charts with SVG circles.
+========================================================= */
 
-    return {
-      label,
-      value: fmt(item.value, item.suffix || ""),
-      source: item.formula ? `${item.source || "Score model"} · ${item.formula}` : item.source || "Score model",
-    };
+.svg-score-ring {
+  --svg-ring-color: #72ff41;
+  --svg-ring-glow: rgba(114,255,65,.34);
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.svg-score-ring.green {
+  --svg-ring-color: #72ff41;
+  --svg-ring-glow: rgba(114,255,65,.34);
+}
+
+.svg-score-ring.yellow {
+  --svg-ring-color: #ffe35f;
+  --svg-ring-glow: rgba(255,227,95,.32);
+}
+
+.svg-score-ring.red {
+  --svg-ring-color: #ff5570;
+  --svg-ring-glow: rgba(255,85,112,.32);
+}
+
+.svg-score-ring svg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+.svg-ring-track {
+  fill: none !important;
+  stroke: rgba(255,255,255,.14) !important;
+  stroke-width: 13 !important;
+  stroke-linecap: round !important;
+}
+
+.svg-ring-progress {
+  fill: none !important;
+  stroke: var(--svg-ring-color) !important;
+  stroke-width: 13 !important;
+  stroke-linecap: round !important;
+  transform: rotate(-90deg) !important;
+  transform-origin: 60px 60px !important;
+  filter: drop-shadow(0 0 5px var(--svg-ring-glow)) !important;
+}
+
+.svg-ring-inner {
+  fill: url(#none) !important;
+  stroke: rgba(255,255,255,.06) !important;
+  stroke-width: 1 !important;
+}
+
+/* Dark center made with real element behind the number */
+.svg-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 22% !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.08), transparent 30%),
+    linear-gradient(145deg, #0b1415 0%, #05090e 100%) !important;
+  box-shadow: inset 0 0 22px rgba(0,0,0,.72) !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.svg-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.svg-score-ring strong {
+  position: relative !important;
+  z-index: 3 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  line-height: .9 !important;
+  text-align: center !important;
+  text-shadow: 0 0 16px rgba(255,255,255,.28) !important;
+}
+
+/* Size mapping for each area */
+.score-ring.svg-score-ring {
+  width: clamp(210px, 24vw, 300px) !important;
+  height: clamp(210px, 24vw, 300px) !important;
+}
+
+.score-ring.svg-score-ring strong {
+  font-size: clamp(58px, 7vw, 92px) !important;
+  letter-spacing: -.055em !important;
+}
+
+.watch-score-ring.svg-score-ring {
+  width: 76px !important;
+  height: 76px !important;
+  min-width: 76px !important;
+}
+
+.watch-score-ring.svg-score-ring strong {
+  font-size: 21px !important;
+  letter-spacing: -.04em !important;
+}
+
+.industry-score-pie.svg-score-ring {
+  width: 124px !important;
+  height: 124px !important;
+}
+
+.industry-score-pie.svg-score-ring strong {
+  font-size: 28px !important;
+  letter-spacing: -.04em !important;
+}
+
+.compare-score-ring.svg-score-ring {
+  width: 132px !important;
+  height: 132px !important;
+}
+
+.compare-score-ring.svg-score-ring strong {
+  font-size: 42px !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring.svg-score-ring,
+.preview-score-ring-pro.svg-score-ring,
+.preview-score-ring-extreme.svg-score-ring {
+  width: 220px !important;
+  height: 220px !important;
+}
+
+.preview-score-ring.svg-score-ring strong {
+  font-size: 72px !important;
+  letter-spacing: -.05em !important;
+}
+
+/* Completely disable old conic/pseudo ring behavior on these classes */
+.score-ring:not(.svg-score-ring),
+.watch-score-ring:not(.svg-score-ring),
+.industry-score-pie:not(.svg-score-ring),
+.compare-score-ring:not(.svg-score-ring),
+.preview-score-ring:not(.svg-score-ring) {
+  background: transparent !important;
+}
+
+.score-ring.svg-score-ring .score-core,
+.score-ring.svg-score-ring .score-core::before,
+.score-ring.svg-score-ring .score-core::after,
+.watch-score-ring.svg-score-ring::before,
+.industry-score-pie.svg-score-ring::before,
+.compare-score-ring.svg-score-ring::before,
+.preview-score-ring.svg-score-ring::before {
+  filter: none !important;
+}
+
+/* Mobile sizing */
+@media (max-width: 680px) {
+  .score-ring.svg-score-ring {
+    width: min(78vw, 270px) !important;
+    height: min(78vw, 270px) !important;
   }
 
-  if (item === null || item === undefined || item === "N/A" || item === 0 || item === "0") return null;
-
-  return {
-    label,
-    value: String(item),
-    source: "Score model",
-  };
-}
-
-function usableMetricLines(lines = []) {
-  return lines.filter((line) => {
-    if (!line) return false;
-    const value = String(line.value ?? "").trim();
-    return value && value !== "0" && value !== "0.0" && value !== "N/A";
-  });
-}
-
-function MiniStat({
-  icon,
-  label,
-  value,
-  helpTitle,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-  extra = null,
-  className = "",
-}) {
-  return (
-    <div className={`mini-stat ${className} ${isOpen ? "popup-active" : ""}`}>
-      <span>
-        {icon}
-        {label}
-      </span>
-
-      <div className="mini-stat-value-row">
-        <b>{value}</b>
-        {metricsUsed.length > 0 && (
-          <button
-            type="button"
-            className="score-help-btn mini-risk-help-btn"
-            onClick={onToggle}
-            aria-label={helpTitle || `${label} metrics used`}
-            title={helpTitle || `${label} metrics used`}
-          >
-            <span className="info-letter">?</span>
-          </button>
-        )}
-      </div>
-
-      {extra}
-
-      {isOpen && (
-        <div className="score-popup mini-stat-popup">
-          <div className="score-popup-title">{helpTitle || "Metrics used"}</div>
-          <ul>
-            {metricsUsed.map((metric) => (
-              <li key={metric}>
-                <span>{metric}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Grade({
-  name,
-  value,
-  icon,
-  description,
-  metricsUsed = [],
-  isOpen = false,
-  onToggle,
-}) {
-  const s = score10(value);
-  const tone = scoreTone(s);
-
-  return (
-    <div className={`grade-card ${isOpen ? "popup-active" : ""}`}>
-      <div className="grade-head">
-        <span>{icon}</span>
-        <h3>{name}</h3>
-      </div>
-
-      <div className="grade-line">
-        <span className={tone} style={{ width: `${(s || 0) * 10}%` }} />
-      </div>
-
-      <div className="grade-score-row">
-        <strong className={tone}>{scoreText(s)}</strong>
-        <button
-          type="button"
-          className="score-help-btn"
-          onClick={onToggle}
-          aria-label={`${name} metrics used`}
-          title={`${name} metrics used`}
-        >
-          <span className="info-letter">?</span>
-        </button>
-      </div>
-
-      {isOpen && (
-        <div className="score-popup">
-          <button type="button" className="popup-close-btn" onClick={onToggle} aria-label="Close popup" title="Close">×</button>
-        <div className="score-popup-title">Metrics used</div>
-          <ul>
-            {metricsUsed.length ? (
-              metricsUsed.map((metric) => (
-                <li key={metric.label}>
-                  <span>{metric.label}: {metric.value}</span>
-                  {metric.source && <small>{metric.source}</small>}
-                </li>
-              ))
-            ) : (
-              <li>
-                <span>No usable metrics available yet.</span>
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
-
-      <p className="grade-description">{description}</p>
-    </div>
-  );
-}
-
-function Metric({ label, item, help }) {
-  return (
-    <div className="metric-tile">
-      <div>
-        <h3>{label}</h3>
-        <span>{item?.source || "Unavailable"}</span>
-      </div>
-
-      <strong>{fmt(item?.value, item?.suffix || "")}</strong>
-      <p>{help}</p>
-
-      {item?.formula && <small>{item.formula}</small>}
-    </div>
-  );
-}
-
-
-function EmptyReport() {
-  return (
-    <div className="empty-report">
-      <div className="center">
-        <Activity size={26} />
-        <h2>No stock report loaded yet</h2>
-        <p>Search a ticker above to generate an Eval report.</p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <main className="loading-screen">
-      <div className="loading-card">
-        <RefreshCw className="spin" size={22} />
-        <span>Loading Eval...</span>
-      </div>
-    </main>
-  );
-}
-
-function MissingClerkConfig() {
-  return (
-    <main className="loading-screen">
-      <div className="loading-card missing-clerk-card">
-        <AlertTriangle size={24} />
-        <h2>Missing Clerk publishable key</h2>
-        <p>
-          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
-          then redeploy the frontend.
-        </p>
-      </div>
-    </main>
-  );
-}
-
-function Root() {
-  if (!CLERK_PUBLISHABLE_KEY) {
-    return <MissingClerkConfig />;
+  .score-ring.svg-score-ring strong {
+    font-size: clamp(64px, 20vw, 92px) !important;
   }
 
-  return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <App />
-    </ClerkProvider>
-  );
+  .watch-score-ring.svg-score-ring {
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px !important;
+  }
+
+  .industry-score-pie.svg-score-ring {
+    width: 118px !important;
+    height: 118px !important;
+  }
+
+  .compare-score-ring.svg-score-ring {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .compare-score-ring.svg-score-ring strong {
+    font-size: 31px !important;
+  }
 }
 
-createRoot(document.getElementById("root")).render(<Root />);
+
+/* =========================================================
+   MATCH BAR CHARTS TO NEW SVG RING STYLE
+========================================================= */
+
+.grade-line {
+  height: 11px !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.045)) !important;
+  border: 1px solid rgba(255,255,255,.095) !important;
+  box-shadow:
+    inset 0 0 10px rgba(0,0,0,.38),
+    0 0 0 1px rgba(0,0,0,.14) !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.grade-line::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, rgba(255,255,255,.045), transparent 55%) !important;
+  pointer-events: none !important;
+}
+
+.grade-line span {
+  height: 100% !important;
+  border-radius: 999px !important;
+  display: block !important;
+  position: relative !important;
+  box-shadow:
+    0 0 14px currentColor,
+    inset 0 0 8px rgba(255,255,255,.26) !important;
+}
+
+.grade-line span.green {
+  background: linear-gradient(90deg, #72ff41, #15e7ff) !important;
+  color: rgba(114,255,65,.55) !important;
+}
+
+.grade-line span.yellow {
+  background: linear-gradient(90deg, #ffe35f, #f7c74d) !important;
+  color: rgba(255,227,95,.55) !important;
+}
+
+.grade-line span.red {
+  background: linear-gradient(90deg, #ff5570, #ff7c8f) !important;
+  color: rgba(255,85,112,.50) !important;
+}
+
+.grade-card {
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 46px rgba(0,0,0,.22) !important;
+}
+
+.grade-card .grade-score-row strong.green {
+  color: #72ff41 !important;
+  text-shadow: 0 0 14px rgba(114,255,65,.30) !important;
+}
+
+.grade-card .grade-score-row strong.yellow {
+  color: #ffe35f !important;
+  text-shadow: 0 0 14px rgba(255,227,95,.28) !important;
+}
+
+.grade-card .grade-score-row strong.red {
+  color: #ff5570 !important;
+  text-shadow: 0 0 14px rgba(255,85,112,.28) !important;
+}
+
+/* Industry radar loading state */
+.industry-radar-empty {
+  min-height: 310px !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  color: rgba(255,255,255,.64) !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.14) !important;
+  font-size: 13px !important;
+  padding: 22px !important;
+}
+
+
+/* =========================================================
+   BAR CHART COLOR FIX
+   Green bars stay green. All metric score numbers stay white.
+========================================================= */
+
+/* Green should not fade into blue/cyan. Keep it in the same tone family as the SVG rings. */
+.grade-line span.green,
+.metric-bar-fill.green,
+.category-bar-fill.green,
+.grade-fill.green,
+.bar-fill.green {
+  background: linear-gradient(90deg, #72ff41 0%, #86ff5f 55%, #72ff41 100%) !important;
+  color: rgba(114, 255, 65, .58) !important;
+  box-shadow:
+    0 0 14px rgba(114,255,65,.32),
+    inset 0 0 8px rgba(255,255,255,.24) !important;
+}
+
+/* Keep yellow/red matching the ring family too. */
+.grade-line span.yellow,
+.metric-bar-fill.yellow,
+.category-bar-fill.yellow,
+.grade-fill.yellow,
+.bar-fill.yellow {
+  background: linear-gradient(90deg, #ffe35f 0%, #ffd54f 55%, #ffe35f 100%) !important;
+  color: rgba(255,227,95,.56) !important;
+  box-shadow:
+    0 0 14px rgba(255,227,95,.30),
+    inset 0 0 8px rgba(255,255,255,.22) !important;
+}
+
+.grade-line span.red,
+.metric-bar-fill.red,
+.category-bar-fill.red,
+.grade-fill.red,
+.bar-fill.red {
+  background: linear-gradient(90deg, #ff5570 0%, #ff7085 55%, #ff5570 100%) !important;
+  color: rgba(255,85,112,.52) !important;
+  box-shadow:
+    0 0 14px rgba(255,85,112,.28),
+    inset 0 0 8px rgba(255,255,255,.20) !important;
+}
+
+/* Every metric/category score number is white, no color-coding. */
+.grade-score-row strong,
+.grade-score-row strong.green,
+.grade-score-row strong.yellow,
+.grade-score-row strong.red,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.metric-score,
+.metric-score.green,
+.metric-score.yellow,
+.metric-score.red,
+.category-score,
+.category-score.green,
+.category-score.yellow,
+.category-score.red {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
+}
+
+/* If the number is directly inside a grade card header, force it white too. */
+.grade-card h3 + strong,
+.grade-card .score-value,
+.grade-card .score-value.green,
+.grade-card .score-value.yellow,
+.grade-card .score-value.red {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
+}
+
+
+/* =========================================================
+   EVAL AI ASSISTANT RESPONSE + INPUT COPY STYLE
+========================================================= */
+
+/* Make AI/chat response cards match the cool gradient explanation card instead of the old green box. */
+.ai-message,
+.assistant-message,
+.chat-message,
+.chat-bubble,
+.assistant-bubble,
+.ai-response,
+.eval-ai-message,
+.eval-ai-response,
+.assistant-chat-message,
+.assistant-output,
+.ai-chat-bubble {
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.13), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.09), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .94), rgba(38, 32, 58, .92)) !important;
+  color: rgba(255,255,255,.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 22px 55px rgba(0,0,0,.24) !important;
+}
+
+/* User bubbles can stay distinct but should still feel premium/dark. */
+.user-message,
+.chat-message.user,
+.ai-message.user,
+.assistant-user-message {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,255,255,.08), transparent 36%),
+    linear-gradient(135deg, rgba(50,55,72,.92), rgba(35,31,55,.92)) !important;
+  color: #fff !important;
+}
+
+/* Specific Eval AI intro card / first response bubble styling. */
+.ai-panel .chat-bubble,
+.assistant-page .chat-bubble,
+.ai-chat-panel .chat-bubble,
+.assistant-thread .chat-bubble,
+.ai-panel .ai-response,
+.assistant-page .ai-response,
+.ai-chat-panel .ai-response,
+.assistant-thread .ai-response {
+  border-radius: 18px !important;
+}
+
+/* Kill old green answer styling if any class applied it. */
+.ai-message.green,
+.assistant-message.green,
+.chat-bubble.green,
+.ai-response.green,
+.eval-ai-response.green,
+.assistant-output.green {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.13), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.09), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .94), rgba(38, 32, 58, .92)) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+
+/* Textarea placeholder should be readable and clear. */
+.assistant-input textarea::placeholder,
+.ai-input textarea::placeholder,
+.assistant-page textarea::placeholder,
+textarea[placeholder*="Eval interface"]::placeholder {
+  color: rgba(255,255,255,.48) !important;
+  opacity: 1 !important;
+}
+
+/* Make the input area visually match the page a little better. */
+.assistant-input textarea,
+.ai-input textarea,
+.assistant-page textarea {
+  background:
+    linear-gradient(135deg, rgba(7,13,20,.82), rgba(20,18,34,.84)) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: #fff !important;
+}
+
+/* Keep the AI limitation card compact and polished. */
+.ai-help-card,
+.ai-capabilities-card,
+.assistant-rules-card {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.11), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.08), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .92), rgba(38, 32, 58, .90)) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
