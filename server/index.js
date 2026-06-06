@@ -1,3 +1,4 @@
+// Eval update: AI assistant expanded as support agent.
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -265,6 +266,7 @@ app.post("/api/assistant", async (req, res) => {
       "price",
       "risk",
       "industry",
+      "industries",
       "news",
       "sentiment",
       "growth",
@@ -274,9 +276,10 @@ app.post("/api/assistant", async (req, res) => {
       "momentum",
       "pullback",
       "company",
-      "report",
       "metric",
+      "metrics",
       "category",
+      "categories",
       "strong",
       "weak",
       "strongest",
@@ -284,40 +287,125 @@ app.post("/api/assistant", async (req, res) => {
       "dashboard",
       "website",
       "app",
+      "page",
+      "button",
+      "menu",
+      "dropdown",
+      "navigate",
+      "navigation",
+      "how do i",
+      "how to",
+      "where is",
+      "what is",
+      "explain",
+      "use",
+      "using",
       "add",
+      "remove",
       "delete",
       "refresh",
+      "search",
+      "open",
+      "click",
       "chart",
+      "bar chart",
+      "radar",
+      "compare",
+      "comparison",
       "article",
+      "read article",
       "bubble",
+      "color",
       "green",
       "yellow",
       "red",
       "rank",
       "ranking",
+      "industry ranking",
+      "homepage",
+      "home",
+      "terms",
+      "conditions",
+      "contact",
+      "support",
+      "profile",
+      "sign in",
+      "log in",
+      "login",
+      "dashboard",
+      "clerk",
+    ];
+
+    const supportIntentTerms = [
+      "how",
+      "help",
+      "use",
+      "navigate",
+      "where",
+      "what does",
+      "what is",
+      "explain",
+      "show",
+      "find",
+      "open",
+      "click",
+      "button",
+      "page",
+      "menu",
+      "dropdown",
+      "dashboard",
+      "watchlist",
+      "compare",
+      "metrics",
+      "score",
+      "industry",
+      "news sentiment",
+      "risk",
+      "price",
+      "contact",
+      "terms",
+      "homepage",
+      "profile",
     ];
 
     const normalizedQuestion = question.toLowerCase();
     const hasWebsiteTerm = allowedWebsiteTerms.some((term) => normalizedQuestion.includes(term));
+    const hasSupportIntent = supportIntentTerms.some((term) => normalizedQuestion.includes(term));
+
     const currentSymbol = String(current?.symbol || current?.profile?.ticker || "").toLowerCase();
     const currentName = String(current?.profile?.name || "").toLowerCase();
     const watchlistSymbols = watchlist
       .map((item) => String(item?.symbol || item?.ticker || "").toLowerCase())
       .filter(Boolean);
 
+    const stockLikeTokens = [...question.toUpperCase().matchAll(/\b[A-Z]{1,5}(?:\.[A-Z])?\b/g)].map((match) => match[0]);
+    const allAllowedStockSymbols = [...new Set([currentSymbol, ...watchlistSymbols].filter(Boolean))];
+    const mentionedAllowedTicker = stockLikeTokens.some((token) => allAllowedStockSymbols.includes(token.toLowerCase()));
+
     const mentionsKnownTicker =
       (currentSymbol && normalizedQuestion.includes(currentSymbol)) ||
-      watchlistSymbols.some((symbol) => normalizedQuestion.includes(symbol));
+      watchlistSymbols.some((symbol) => normalizedQuestion.includes(symbol)) ||
+      mentionedAllowedTicker;
+
+    const stockAnalysisWords = /\b(should i|buy|sell|hold|invest|investment|target|price target|undervalued|overvalued|better stock|compare|valuation|risk|sentiment|earnings|revenue|profit|growth|momentum|pullback|financial health|metrics?|score|news)\b/i.test(question);
+    const asksAboutSpecificStock = stockLikeTokens.length > 0 && stockAnalysisWords;
 
     const asksGeneralUnrelated =
-      /\b(weather|sports|homework|essay|recipe|movie|music|dating|politics|history|math|science|coding|code|html|css|javascript|render|vercel|clerk|api key|openai|joke|story|song|lyrics|college|fraternity|hockey|travel)\b/i.test(question) &&
+      /\b(weather|sports score|recipe|movie|music|dating|politics|history homework|essay|song|lyrics|fraternity|hockey|travel|write my|homework answer)\b/i.test(question) &&
       !hasWebsiteTerm &&
       !mentionsKnownTicker;
 
-    if ((!hasWebsiteTerm && !mentionsKnownTicker && !currentName.includes(normalizedQuestion)) || asksGeneralUnrelated) {
+    if (asksGeneralUnrelated || (!hasWebsiteTerm && !hasSupportIntent && !mentionsKnownTicker && !currentName.includes(normalizedQuestion))) {
       return res.json({
         answer:
-          "I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.",
+          "I can help with Eval support, including navigation, dashboard features, watchlist, compare, metrics, news sentiment, risk, industry rankings, and stocks saved in your watchlist.",
+      });
+    }
+
+    if (asksAboutSpecificStock && !mentionsKnownTicker) {
+      return res.json({
+        answer:
+          "I can help with specific stock questions only when that ticker is loaded on the dashboard or saved in your watchlist. Add the ticker to your watchlist first, then ask again.",
       });
     }
 
@@ -371,7 +459,7 @@ app.post("/api/assistant", async (req, res) => {
           {
             role: "system",
             content:
-              "You are Eval AI, the assistant inside the Eval stock website. You may ONLY answer questions about information available in the Eval website/app: the currently loaded stock report, Eval Score, category scores, metrics, price, risk, news sentiment, industry, watchlist, rankings, and how to use these website features. Do NOT answer unrelated questions, general finance questions not tied to the shown Eval data, technical/code/deployment questions, school questions, personal questions, or anything outside the website. If the user asks something unrelated, reply exactly: 'I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.' Keep valid answers under 75 words. Do not give buy/sell commands or financial advice.",
+              "You are Eval AI, the support assistant inside the Eval stock-evaluation website. Your main job is to help users navigate and understand the app. You CAN answer questions about how to use the dashboard, search ticker bar, dropdown menu, AI Assistant page, Compare page, Watchlist, industry ranking pages, metric cards, bar charts, radar charts, Eval Score rings, score colors, price/risk cards, news sentiment, article cards, Terms & Conditions, Contact/Support page, profile/sign-in basics, and how to add, remove, refresh, or compare stocks. You CAN explain what the metrics mean in simple language. You CAN answer stock-specific questions only using the current loaded stock or tickers saved in the user's watchlist context. If a stock is not loaded or in the watchlist, tell the user to add it to the watchlist first. Do NOT answer unrelated questions outside Eval. Do NOT give buy/sell commands or financial advice. Be helpful like a website support agent. Keep answers clear and under 110 words.",
           },
           {
             role: "user",
@@ -396,7 +484,7 @@ app.post("/api/assistant", async (req, res) => {
     return res.json({
       answer:
         answer ||
-        "I can only help with information shown in this Eval website, like the current stock report, Eval Score, categories, news sentiment, risk, industry, price, and watchlist.",
+        "I can help with Eval support, including navigation, dashboard features, watchlist, compare, metrics, news sentiment, risk, industry rankings, and stocks saved in your watchlist.",
     });
   } catch (error) {
     console.error("Assistant route failed:", error?.stack || error?.message || error);
