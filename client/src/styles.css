@@ -20305,3 +20305,148 @@ body {
     max-width: 292px !important;
   }
 }
+
+
+/* =========================================================
+   ABSOLUTE FINAL DROPDOWN FIX
+   - Mobile Contact always visible
+   - Desktop Watchlist hidden
+   - Terms & Conditions full label
+========================================================= */
+
+/* The dropdown needs to escape all dashboard cards/empty graphics. */
+.app-shell,
+.layout,
+.content,
+.topbar,
+.searchbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  overflow: visible !important;
+}
+
+/* Dashboard visuals stay behind the menu. */
+.empty-report,
+.empty-state,
+.empty-report-card,
+.hero-card,
+.report-card,
+.watch-panel,
+.watchlist-panel,
+.mag7-panel,
+.metrics-grid,
+.news-card,
+.industry-panel,
+.company-panel,
+.score-panel {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Search/menu stack must beat everything in the dashboard. */
+.topbar,
+.eval-menu-searchbar,
+.menu-wrap {
+  position: relative !important;
+  z-index: 2147483000 !important;
+}
+
+/* Keep dropdown rows plain text menu items. */
+.dashboard-dropdown-menu {
+  z-index: 2147483646 !important;
+  width: 292px !important;
+  min-width: 292px !important;
+  max-width: 292px !important;
+  overflow: visible !important;
+}
+
+.dashboard-dropdown-menu button {
+  white-space: nowrap !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+/* Desktop only: remove Watchlist from dropdown because watchlist is already on dashboard. */
+@media (min-width: 1181px) {
+  .dashboard-dropdown-menu .dropdown-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Mobile/tablet: show Watchlist inside dropdown. */
+@media (max-width: 1180px) {
+  .dashboard-dropdown-menu .dropdown-mobile-only {
+    display: flex !important;
+  }
+}
+
+/*
+  Mobile fix: turn the dropdown into a fixed top-layer overlay.
+  This prevents Contact from being hidden under the empty dashboard graphic
+  before the user searches a ticker.
+*/
+@media (max-width: 680px) {
+  .menu-wrap {
+    position: static !important;
+  }
+
+  .dashboard-dropdown-menu {
+    position: fixed !important;
+    top: 96px !important;
+    left: 14px !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 2147483646 !important;
+    width: calc(100vw - 28px) !important;
+    min-width: calc(100vw - 28px) !important;
+    max-width: calc(100vw - 28px) !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 10px !important;
+    display: grid !important;
+    gap: 4px !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 13px !important;
+    font-size: 12.5px !important;
+    line-height: 1 !important;
+  }
+
+  .dashboard-dropdown-menu .dropdown-divider {
+    margin: 4px 0 !important;
+  }
+
+  /* The invisible click-away stays below the menu but above all app content. */
+  .dropdown-click-away {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147482500 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    background: transparent !important;
+    opacity: 0 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* Very small phones: move menu slightly higher and keep all rows visible. */
+@media (max-width: 390px) {
+  .dashboard-dropdown-menu {
+    top: 88px !important;
+  }
+
+  .dashboard-dropdown-menu button {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    font-size: 12px !important;
+  }
+}
