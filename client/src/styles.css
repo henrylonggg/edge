@@ -20900,3 +20900,357 @@ body {
     inset: 14% !important;
   }
 }
+
+
+/* =========================================================
+   INDUSTRY RADAR BELOW TOP 5 + REAL CATEGORY DATA
+========================================================= */
+
+.industry-radar-card {
+  margin: 22px 0 0 !important;
+  padding: 18px 18px 24px !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 86% 14%, rgba(133,255,71,.08), transparent 34%),
+    rgba(0,0,0,.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06) !important;
+  overflow: visible !important;
+}
+
+.industry-radar-head {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 8px !important;
+}
+
+.industry-radar-head strong {
+  color: #fff !important;
+  font-size: 17px !important;
+}
+
+.industry-radar-head p {
+  margin: 4px 0 0 !important;
+  color: rgba(255,255,255,.58) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+.industry-radar-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  gap: 7px !important;
+  max-width: 430px !important;
+}
+
+.industry-radar-legend span {
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(255,255,255,.055) !important;
+  color: rgba(255,255,255,.86) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+}
+
+.industry-radar-legend i {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+}
+
+.industry-radar-svg {
+  width: min(100%, 820px) !important;
+  max-width: 820px !important;
+  display: block !important;
+  margin: -6px auto -10px !important;
+  padding: 30px !important;
+  overflow: visible !important;
+}
+
+.industry-radar-poly {
+  stroke-width: 3px !important;
+  fill-opacity: .12 !important;
+}
+
+.industry-radar-poly-1 { stroke: #72ff41 !important; fill: rgba(114,255,65,.13) !important; }
+.industry-radar-poly-2 { stroke: #15e7ff !important; fill: rgba(21,231,255,.12) !important; }
+.industry-radar-poly-3 { stroke: #c98cff !important; fill: rgba(201,140,255,.11) !important; }
+.industry-radar-poly-4 { stroke: #ffe35f !important; fill: rgba(255,227,95,.10) !important; }
+.industry-radar-poly-5 { stroke: #ffffff !important; fill: rgba(255,255,255,.08) !important; }
+
+.industry-radar-dot {
+  stroke: rgba(4,8,12,.98) !important;
+  stroke-width: 2.2px !important;
+}
+
+.industry-radar-dot-1,
+.industry-radar-legend-1 i { fill: #72ff41 !important; background: #72ff41 !important; }
+
+.industry-radar-dot-2,
+.industry-radar-legend-2 i { fill: #15e7ff !important; background: #15e7ff !important; }
+
+.industry-radar-dot-3,
+.industry-radar-legend-3 i { fill: #c98cff !important; background: #c98cff !important; }
+
+.industry-radar-dot-4,
+.industry-radar-legend-4 i { fill: #ffe35f !important; background: #ffe35f !important; }
+
+.industry-radar-dot-5,
+.industry-radar-legend-5 i { fill: #ffffff !important; background: #ffffff !important; }
+
+.industry-radar-card .radar-label {
+  font-size: 10.6px !important;
+  stroke-width: 4.8px !important;
+}
+
+.industry-medal {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+}
+
+@media (max-width: 760px) {
+  .industry-radar-card {
+    padding: 14px 8px 18px !important;
+    border-radius: 22px !important;
+  }
+
+  .industry-radar-head {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .industry-radar-legend {
+    justify-content: flex-start !important;
+    max-width: none !important;
+  }
+
+  .industry-radar-svg {
+    width: 100% !important;
+    padding: 20px !important;
+    margin: -2px auto -6px !important;
+  }
+
+  .industry-radar-card .radar-label {
+    font-size: 8px !important;
+    stroke-width: 3.6px !important;
+  }
+}
+
+
+/* =========================================================
+   SVG SCORE RINGS — CLEAN FUTURISTIC STANDARD CHARTS
+   This replaces all CSS/conic-gradient pie charts with SVG circles.
+========================================================= */
+
+.svg-score-ring {
+  --svg-ring-color: #72ff41;
+  --svg-ring-glow: rgba(114,255,65,.34);
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 999px !important;
+  isolation: isolate !important;
+  overflow: visible !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.svg-score-ring.green {
+  --svg-ring-color: #72ff41;
+  --svg-ring-glow: rgba(114,255,65,.34);
+}
+
+.svg-score-ring.yellow {
+  --svg-ring-color: #ffe35f;
+  --svg-ring-glow: rgba(255,227,95,.32);
+}
+
+.svg-score-ring.red {
+  --svg-ring-color: #ff5570;
+  --svg-ring-glow: rgba(255,85,112,.32);
+}
+
+.svg-score-ring svg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+.svg-ring-track {
+  fill: none !important;
+  stroke: rgba(255,255,255,.14) !important;
+  stroke-width: 13 !important;
+  stroke-linecap: round !important;
+}
+
+.svg-ring-progress {
+  fill: none !important;
+  stroke: var(--svg-ring-color) !important;
+  stroke-width: 13 !important;
+  stroke-linecap: round !important;
+  transform: rotate(-90deg) !important;
+  transform-origin: 60px 60px !important;
+  filter: drop-shadow(0 0 5px var(--svg-ring-glow)) !important;
+}
+
+.svg-ring-inner {
+  fill: url(#none) !important;
+  stroke: rgba(255,255,255,.06) !important;
+  stroke-width: 1 !important;
+}
+
+/* Dark center made with real element behind the number */
+.svg-score-ring::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 22% !important;
+  border-radius: 999px !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.08), transparent 30%),
+    linear-gradient(145deg, #0b1415 0%, #05090e 100%) !important;
+  box-shadow: inset 0 0 22px rgba(0,0,0,.72) !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.svg-score-ring::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.svg-score-ring strong {
+  position: relative !important;
+  z-index: 3 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  line-height: .9 !important;
+  text-align: center !important;
+  text-shadow: 0 0 16px rgba(255,255,255,.28) !important;
+}
+
+/* Size mapping for each area */
+.score-ring.svg-score-ring {
+  width: clamp(210px, 24vw, 300px) !important;
+  height: clamp(210px, 24vw, 300px) !important;
+}
+
+.score-ring.svg-score-ring strong {
+  font-size: clamp(58px, 7vw, 92px) !important;
+  letter-spacing: -.055em !important;
+}
+
+.watch-score-ring.svg-score-ring {
+  width: 76px !important;
+  height: 76px !important;
+  min-width: 76px !important;
+}
+
+.watch-score-ring.svg-score-ring strong {
+  font-size: 21px !important;
+  letter-spacing: -.04em !important;
+}
+
+.industry-score-pie.svg-score-ring {
+  width: 124px !important;
+  height: 124px !important;
+}
+
+.industry-score-pie.svg-score-ring strong {
+  font-size: 28px !important;
+  letter-spacing: -.04em !important;
+}
+
+.compare-score-ring.svg-score-ring {
+  width: 132px !important;
+  height: 132px !important;
+}
+
+.compare-score-ring.svg-score-ring strong {
+  font-size: 42px !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring.svg-score-ring,
+.preview-score-ring-pro.svg-score-ring,
+.preview-score-ring-extreme.svg-score-ring {
+  width: 220px !important;
+  height: 220px !important;
+}
+
+.preview-score-ring.svg-score-ring strong {
+  font-size: 72px !important;
+  letter-spacing: -.05em !important;
+}
+
+/* Completely disable old conic/pseudo ring behavior on these classes */
+.score-ring:not(.svg-score-ring),
+.watch-score-ring:not(.svg-score-ring),
+.industry-score-pie:not(.svg-score-ring),
+.compare-score-ring:not(.svg-score-ring),
+.preview-score-ring:not(.svg-score-ring) {
+  background: transparent !important;
+}
+
+.score-ring.svg-score-ring .score-core,
+.score-ring.svg-score-ring .score-core::before,
+.score-ring.svg-score-ring .score-core::after,
+.watch-score-ring.svg-score-ring::before,
+.industry-score-pie.svg-score-ring::before,
+.compare-score-ring.svg-score-ring::before,
+.preview-score-ring.svg-score-ring::before {
+  filter: none !important;
+}
+
+/* Mobile sizing */
+@media (max-width: 680px) {
+  .score-ring.svg-score-ring {
+    width: min(78vw, 270px) !important;
+    height: min(78vw, 270px) !important;
+  }
+
+  .score-ring.svg-score-ring strong {
+    font-size: clamp(64px, 20vw, 92px) !important;
+  }
+
+  .watch-score-ring.svg-score-ring {
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px !important;
+  }
+
+  .industry-score-pie.svg-score-ring {
+    width: 118px !important;
+    height: 118px !important;
+  }
+
+  .compare-score-ring.svg-score-ring {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .compare-score-ring.svg-score-ring strong {
+    font-size: 31px !important;
+  }
+}
