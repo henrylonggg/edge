@@ -1,3 +1,4 @@
+// Eval update: industry radar real category scores and matching bars.
 // Eval update: SVG score rings replace CSS pie charts.
 // Eval update: industry radar uses category data and sits below Top 5.
 // Eval update: final clean universal score rings.
@@ -528,15 +529,23 @@ function App() {
     setView(nextView);
   }
 
-  async function analyze(e, overrideSymbol) {
+  async function analyze(e, overrideSymbol, options = {}) {
     e?.preventDefault();
 
     const clean = (overrideSymbol || symbol).trim().toUpperCase();
     if (!clean) return null;
 
-    setSymbol(clean);
-    setLoading(true);
-    setError("");
+    const silent = Boolean(options?.silent);
+    const skipState = Boolean(options?.skipState);
+
+    if (!skipState) {
+      setSymbol(clean);
+    }
+
+    if (!silent) {
+      setLoading(true);
+      setError("");
+    }
 
     try {
       const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
@@ -559,16 +568,22 @@ function App() {
         );
       }
 
-      setData(json);
+      if (!skipState) {
+        setData(json);
+      }
       return json;
     } catch (err) {
-      setError(
-        err.message ||
-          "Failed to fetch from Render. Check Render logs and browser console."
-      );
+      if (!silent) {
+        setError(
+          err.message ||
+            "Failed to fetch from Render. Check Render logs and browser console."
+        );
+      }
       return null;
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -718,9 +733,29 @@ function App() {
         throw new Error(json?.error || "Could not load industry leaders.");
       }
 
+      const rawLeaders = Array.isArray(json?.leaders) ? json.leaders.slice(0, 5) : [];
+
+      const enrichedLeaders = await Promise.all(
+        rawLeaders.map(async (leader) => {
+          try {
+            const report = await analyze(null, leader.symbol, { silent: true, skipState: true });
+            return {
+              ...leader,
+              score: Number(report?.grades?.edgeScore ?? leader.score),
+              categories: report?.grades?.categories || leader.categories || {},
+              riskLabel: report?.grades?.riskLabel || leader.riskLabel || "",
+              name: report?.profile?.name || leader.name || leader.symbol,
+              industry: report?.profile?.finnhubIndustry || leader.industry || cleanIndustry,
+            };
+          } catch {
+            return leader;
+          }
+        })
+      );
+
       setIndustryPage({
         industry: json?.industry || cleanIndustry,
-        leaders: Array.isArray(json?.leaders) ? json.leaders : [],
+        leaders: enrichedLeaders,
         sourceSymbol,
         cachedForHours: json?.cachedForHours || 24,
       });
@@ -1435,21 +1470,24 @@ function IndustryRadar({ leaders }) {
     "newsSentiment",
   ];
 
-  const safeCategories = (item) => {
+  const categoryValues = (item) => {
     const raw = item.categories || item.grades?.categories || item.categoryScores || {};
-    const base = score10(item.score) || 5;
 
     return categories.reduce((acc, key) => {
       const n = score10(raw?.[key]);
-      acc[key] = n ?? base;
+      acc[key] = Number.isFinite(n) ? n : null;
       return acc;
     }, {});
   };
 
   const stocks = leaders.slice(0, 5).map((item) => ({
     symbol: item.symbol,
-    categories: safeCategories(item),
+    categories: categoryValues(item),
   }));
+
+  const hasRealCategoryData = stocks.some((stock) =>
+    categories.some((key) => Number.isFinite(stock.categories?.[key]))
+  );
 
   const center = 180;
   const maxRadius = 122;
@@ -1476,7 +1514,7 @@ function IndustryRadar({ leaders }) {
   const polygonPoints = (source) =>
     categories
       .map((key, index) => {
-        const score = score10(source?.[key]) || 0;
+        const score = Number.isFinite(source?.[key]) ? source[key] : 0;
         const point = pointFor(index, score);
         return `${point.x},${point.y}`;
       })
@@ -1487,7 +1525,7 @@ function IndustryRadar({ leaders }) {
       <div className="industry-radar-head">
         <div>
           <strong>Top 5 radar comparison</strong>
-          <p>Plots all seven Eval category scores for the five highest-ranked stocks in this industry.</p>
+          <p>Each point uses that stock's real score for the matching Eval category.</p>
         </div>
 
         <div className="industry-radar-legend">
@@ -1499,66 +1537,74 @@ function IndustryRadar({ leaders }) {
         </div>
       </div>
 
-      <svg className="industry-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five industry stock radar chart">
-        {levels.map((level) => (
-          <polygon key={level} points={gridPoints(level)} className="radar-grid" />
-        ))}
+      {!hasRealCategoryData ? (
+        <div className="industry-radar-empty">
+          Category data is still loading. Refresh this industry page after the Top 5 reports finish caching.
+        </div>
+      ) : (
+        <svg className="industry-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five industry stock radar chart">
+          {levels.map((level) => (
+            <polygon key={level} points={gridPoints(level)} className="radar-grid" />
+          ))}
 
-        {categories.map((key, index) => {
-          const edge = pointFor(index, 10);
-          return (
-            <line
-              key={`${key}-axis`}
-              x1={center}
-              y1={center}
-              x2={edge.x}
-              y2={edge.y}
-              className="radar-axis"
+          {categories.map((key, index) => {
+            const edge = pointFor(index, 10);
+            return (
+              <line
+                key={`${key}-axis`}
+                x1={center}
+                y1={center}
+                x2={edge.x}
+                y2={edge.y}
+                className="radar-axis"
+              />
+            );
+          })}
+
+          {stocks.map((stock, index) => (
+            <polygon
+              key={`${stock.symbol}-poly`}
+              points={polygonPoints(stock.categories)}
+              className={`industry-radar-poly industry-radar-poly-${index + 1}`}
             />
-          );
-        })}
+          ))}
 
-        {stocks.map((stock, index) => (
-          <polygon
-            key={`${stock.symbol}-poly`}
-            points={polygonPoints(stock.categories)}
-            className={`industry-radar-poly industry-radar-poly-${index + 1}`}
-          />
-        ))}
+          {categories.map((key, index) => (
+            <g key={`${key}-dots`}>
+              {stocks.map((stock, stockIndex) => {
+                const score = stock.categories?.[key];
+                if (!Number.isFinite(score)) return null;
+                const point = pointFor(index, score);
+                return (
+                  <circle
+                    key={`${stock.symbol}-${key}-dot`}
+                    cx={point.x}
+                    cy={point.y}
+                    r="4.2"
+                    className={`industry-radar-dot industry-radar-dot-${stockIndex + 1}`}
+                  />
+                );
+              })}
+            </g>
+          ))}
 
-        {categories.map((key, index) => (
-          <g key={`${key}-dots`}>
-            {stocks.map((stock, stockIndex) => {
-              const point = pointFor(index, score10(stock.categories?.[key]) || 0);
-              return (
-                <circle
-                  key={`${stock.symbol}-${key}-dot`}
-                  cx={point.x}
-                  cy={point.y}
-                  r="4.2"
-                  className={`industry-radar-dot industry-radar-dot-${stockIndex + 1}`}
-                />
-              );
-            })}
-          </g>
-        ))}
-
-        {categories.map((key, index) => {
-          const label = pointFor(index, 12.75);
-          return (
-            <text
-              key={`${key}-label`}
-              x={label.x}
-              y={label.y}
-              textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
-              dominantBaseline="middle"
-              className="radar-label radar-label-front"
-            >
-              {categoryLabel(key)}
-            </text>
-          );
-        })}
-      </svg>
+          {categories.map((key, index) => {
+            const label = pointFor(index, 12.75);
+            return (
+              <text
+                key={`${key}-label`}
+                x={label.x}
+                y={label.y}
+                textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
+                dominantBaseline="middle"
+                className="radar-label radar-label-front"
+              >
+                {categoryLabel(key)}
+              </text>
+            );
+          })}
+        </svg>
+      )}
     </section>
   );
 }
