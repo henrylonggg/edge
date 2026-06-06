@@ -1,3 +1,4 @@
+// Eval update: metric bars pure green and white score numbers.
 // Eval update: industry radar real category scores and matching bars.
 // Eval update: SVG score rings replace CSS pie charts.
 // Eval update: industry radar uses category data and sits below Top 5.
