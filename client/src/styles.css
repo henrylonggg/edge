@@ -20450,3 +20450,453 @@ body {
     font-size: 12px !important;
   }
 }
+
+
+/* =========================================================
+   DROPDOWN DESKTOP/MOBILE SPLIT
+   Desktop: no Watchlist
+   Mobile/tablet: includes Watchlist
+========================================================= */
+
+.dashboard-dropdown-desktop {
+  display: grid !important;
+}
+
+.dashboard-dropdown-mobile {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-dropdown-desktop {
+    display: none !important;
+  }
+
+  .dashboard-dropdown-mobile {
+    display: grid !important;
+  }
+}
+
+@media (min-width: 1181px) {
+  .dashboard-dropdown-mobile {
+    display: none !important;
+  }
+
+  .dashboard-dropdown-desktop {
+    display: grid !important;
+  }
+}
+
+
+/* =========================================================
+   INDUSTRY TOP 5 RADAR + RANK NUMBER FIX
+========================================================= */
+
+.industry-radar-card {
+  margin: 18px 0 18px;
+  padding: 18px 18px 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.10);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(21,231,255,.08), transparent 36%),
+    radial-gradient(circle at 86% 14%, rgba(133,255,71,.08), transparent 34%),
+    rgba(0,0,0,.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  overflow: visible;
+}
+
+.industry-radar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.industry-radar-head strong {
+  color: #fff;
+  font-size: 17px;
+}
+
+.industry-radar-head p {
+  margin: 4px 0 0;
+  color: rgba(255,255,255,.58);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.industry-radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  max-width: 430px;
+}
+
+.industry-radar-legend span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.86);
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.industry-radar-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.industry-radar-svg {
+  width: min(100%, 760px);
+  max-width: 760px;
+  display: block;
+  margin: -6px auto -10px;
+  padding: 30px;
+  overflow: visible;
+}
+
+.industry-radar-poly {
+  stroke-width: 2.8px;
+  fill-opacity: .075;
+}
+
+.industry-radar-poly-1 {
+  stroke: #72ff41;
+  fill: rgba(114,255,65,.13);
+}
+
+.industry-radar-poly-2 {
+  stroke: #15e7ff;
+  fill: rgba(21,231,255,.12);
+}
+
+.industry-radar-poly-3 {
+  stroke: #c98cff;
+  fill: rgba(201,140,255,.11);
+}
+
+.industry-radar-poly-4 {
+  stroke: #ffe35f;
+  fill: rgba(255,227,95,.10);
+}
+
+.industry-radar-poly-5 {
+  stroke: #ffffff;
+  fill: rgba(255,255,255,.08);
+}
+
+.industry-radar-dot {
+  stroke: rgba(4,8,12,.98);
+  stroke-width: 2.2px;
+}
+
+.industry-radar-dot-1,
+.industry-radar-legend-1 i {
+  fill: #72ff41;
+  background: #72ff41;
+}
+
+.industry-radar-dot-2,
+.industry-radar-legend-2 i {
+  fill: #15e7ff;
+  background: #15e7ff;
+}
+
+.industry-radar-dot-3,
+.industry-radar-legend-3 i {
+  fill: #c98cff;
+  background: #c98cff;
+}
+
+.industry-radar-dot-4,
+.industry-radar-legend-4 i {
+  fill: #ffe35f;
+  background: #ffe35f;
+}
+
+.industry-radar-dot-5,
+.industry-radar-legend-5 i {
+  fill: #ffffff;
+  background: #ffffff;
+}
+
+.industry-medal {
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  color: #071006 !important;
+}
+
+/* If category data is unavailable, keep the radar card from visually breaking. */
+.industry-radar-card .radar-label {
+  font-size: 10.6px !important;
+  stroke-width: 4.8px !important;
+}
+
+@media (max-width: 760px) {
+  .industry-radar-card {
+    padding: 14px 8px 18px;
+    border-radius: 22px;
+  }
+
+  .industry-radar-head {
+    display: grid;
+    gap: 10px;
+  }
+
+  .industry-radar-legend {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .industry-radar-svg {
+    width: 100%;
+    padding: 20px;
+    margin: -2px auto -6px;
+  }
+
+  .industry-radar-card .radar-label {
+    font-size: 8px !important;
+    stroke-width: 3.6px !important;
+  }
+}
+
+
+/* =========================================================
+   FINAL UNIVERSAL CLEAN SCORE RINGS
+   This block intentionally sits last and overrides every older ring style.
+========================================================= */
+
+/* Main classes used across app:
+   .score-ring = main Eval score
+   .watch-score-ring = watchlist / mini rings
+   .industry-score-pie = industry cards
+   .compare-score-ring = compare page
+   .preview-score-ring = homepage preview
+*/
+.score-ring,
+.watch-score-ring,
+.industry-score-pie,
+.compare-score-ring,
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --ring-value: var(--score-a, var(--score-angle, var(--watch-score-angle, var(--industry-score-angle, 288deg))));
+  --ring-color: #72ff41;
+  --ring-track: rgba(255,255,255,.14);
+  --ring-glow: rgba(114,255,65,.30);
+
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+
+  background:
+    conic-gradient(
+      from -90deg,
+      var(--ring-color) 0deg,
+      var(--ring-color) var(--ring-value),
+      var(--ring-track) var(--ring-value),
+      var(--ring-track) 360deg
+    ) !important;
+
+  box-shadow:
+    0 0 22px var(--ring-glow),
+    0 0 1px rgba(255,255,255,.35) !important;
+
+  filter: none !important;
+  transform: none;
+}
+
+/* Perfect clean inner circle. No blur, no duplicate shadows, no extra arc. */
+.score-ring::before,
+.watch-score-ring::before,
+.industry-score-pie::before,
+.compare-score-ring::before,
+.preview-score-ring::before,
+.preview-score-ring-pro::before,
+.preview-score-ring-extreme::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 14% !important;
+  border-radius: 50% !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.09), transparent 28%),
+    linear-gradient(145deg, #0b1415 0%, #05090e 100%) !important;
+  box-shadow:
+    inset 0 0 22px rgba(0,0,0,.75),
+    inset 0 0 0 1px rgba(255,255,255,.055) !important;
+  z-index: 1 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Clean outer rim only, not another pie layer. */
+.score-ring::after,
+.watch-score-ring::after,
+.industry-score-pie::after,
+.compare-score-ring::after,
+.preview-score-ring::after,
+.preview-score-ring-pro::after,
+.preview-score-ring-extreme::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -2px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  filter: none !important;
+  opacity: 1 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* App score colors */
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green,
+.compare-score-ring.green {
+  --ring-color: #72ff41 !important;
+  --ring-glow: rgba(114,255,65,.32) !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow,
+.compare-score-ring.yellow {
+  --ring-color: #ffe35f !important;
+  --ring-glow: rgba(255,227,95,.30) !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red,
+.compare-score-ring.red {
+  --ring-color: #ff5570 !important;
+  --ring-glow: rgba(255,85,112,.30) !important;
+}
+
+.preview-score-ring,
+.preview-score-ring-pro,
+.preview-score-ring-extreme {
+  --ring-color: #72ff41 !important;
+  --ring-value: 288deg !important;
+  --ring-glow: rgba(114,255,65,.32) !important;
+}
+
+/* Remove any old inner graphics from previous styles. */
+.score-ring .score-core,
+.watch-score-ring strong,
+.industry-score-pie strong,
+.compare-score-ring strong,
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  position: relative !important;
+  z-index: 3 !important;
+  display: grid !important;
+  place-items: center !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  line-height: .9 !important;
+  text-align: center !important;
+  text-shadow: 0 0 16px rgba(255,255,255,.25) !important;
+  filter: none !important;
+}
+
+/* Main score core wraps the number, but it should not create a second circle. */
+.score-ring .score-core {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+.score-ring .score-core span {
+  display: none !important;
+}
+
+.score-ring .score-core strong {
+  position: relative !important;
+  z-index: 4 !important;
+  background: transparent !important;
+}
+
+/* Size-specific number scaling */
+.score-ring .score-core strong {
+  font-size: clamp(56px, 30%, 96px) !important;
+  letter-spacing: -.055em !important;
+}
+
+.watch-score-ring strong {
+  font-size: clamp(16px, 30%, 26px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.industry-score-pie strong {
+  font-size: clamp(24px, 28%, 34px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.compare-score-ring strong {
+  font-size: clamp(30px, 34%, 50px) !important;
+  letter-spacing: -.04em !important;
+}
+
+.preview-score-ring strong,
+.preview-score-ring-pro strong,
+.preview-score-ring-extreme strong {
+  font-size: clamp(56px, 34%, 86px) !important;
+  letter-spacing: -.05em !important;
+}
+
+/* Prevent inherited old pseudo elements on child elements from causing glitches */
+.score-core::before,
+.score-core::after,
+.watch-score-ring strong::before,
+.watch-score-ring strong::after,
+.industry-score-pie strong::before,
+.industry-score-pie strong::after,
+.compare-score-ring strong::before,
+.compare-score-ring strong::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Mobile ring clarity */
+@media (max-width: 680px) {
+  .score-ring,
+  .watch-score-ring,
+  .industry-score-pie,
+  .compare-score-ring,
+  .preview-score-ring {
+    filter: none !important;
+  }
+
+  .score-ring::before,
+  .watch-score-ring::before,
+  .industry-score-pie::before,
+  .compare-score-ring::before,
+  .preview-score-ring::before {
+    inset: 14% !important;
+  }
+}
