@@ -21415,3 +21415,100 @@ body {
   color: #ffffff !important;
   text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
 }
+
+
+/* =========================================================
+   EVAL AI ASSISTANT RESPONSE + INPUT COPY STYLE
+========================================================= */
+
+/* Make AI/chat response cards match the cool gradient explanation card instead of the old green box. */
+.ai-message,
+.assistant-message,
+.chat-message,
+.chat-bubble,
+.assistant-bubble,
+.ai-response,
+.eval-ai-message,
+.eval-ai-response,
+.assistant-chat-message,
+.assistant-output,
+.ai-chat-bubble {
+  border: 1px solid rgba(255,255,255,.14) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.13), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.09), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .94), rgba(38, 32, 58, .92)) !important;
+  color: rgba(255,255,255,.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 22px 55px rgba(0,0,0,.24) !important;
+}
+
+/* User bubbles can stay distinct but should still feel premium/dark. */
+.user-message,
+.chat-message.user,
+.ai-message.user,
+.assistant-user-message {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,255,255,.08), transparent 36%),
+    linear-gradient(135deg, rgba(50,55,72,.92), rgba(35,31,55,.92)) !important;
+  color: #fff !important;
+}
+
+/* Specific Eval AI intro card / first response bubble styling. */
+.ai-panel .chat-bubble,
+.assistant-page .chat-bubble,
+.ai-chat-panel .chat-bubble,
+.assistant-thread .chat-bubble,
+.ai-panel .ai-response,
+.assistant-page .ai-response,
+.ai-chat-panel .ai-response,
+.assistant-thread .ai-response {
+  border-radius: 18px !important;
+}
+
+/* Kill old green answer styling if any class applied it. */
+.ai-message.green,
+.assistant-message.green,
+.chat-bubble.green,
+.ai-response.green,
+.eval-ai-response.green,
+.assistant-output.green {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.13), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.09), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .94), rgba(38, 32, 58, .92)) !important;
+  color: rgba(255,255,255,.92) !important;
+}
+
+/* Textarea placeholder should be readable and clear. */
+.assistant-input textarea::placeholder,
+.ai-input textarea::placeholder,
+.assistant-page textarea::placeholder,
+textarea[placeholder*="Eval interface"]::placeholder {
+  color: rgba(255,255,255,.48) !important;
+  opacity: 1 !important;
+}
+
+/* Make the input area visually match the page a little better. */
+.assistant-input textarea,
+.ai-input textarea,
+.assistant-page textarea {
+  background:
+    linear-gradient(135deg, rgba(7,13,20,.82), rgba(20,18,34,.84)) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: #fff !important;
+}
+
+/* Keep the AI limitation card compact and polished. */
+.ai-help-card,
+.ai-capabilities-card,
+.assistant-rules-card {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.11), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(133,255,71,.08), transparent 34%),
+    linear-gradient(135deg, rgba(16, 34, 40, .92), rgba(38, 32, 58, .90)) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
