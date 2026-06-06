@@ -1,3 +1,4 @@
+// Eval update: mobile dropdown contact visible, terms full label, desktop watchlist hidden.
 // Eval update: dropdown forced front and Terms & Conditions label.
 // Eval update: clean global rings and dropdown front fix.
 // Eval update: bigger compare radar chart.
@@ -994,7 +995,7 @@ function App() {
                         Homepage
                       </button>
                       <button type="button" onClick={() => goMenu("terms")}>
-                        Terms
+                        Terms & Conditions
                       </button>
                       <button type="button" onClick={() => goMenu("support")}>
                         Contact
@@ -1784,7 +1785,7 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
               <Home size={15} /> Homepage
             </button>
             <button type="button" onClick={onTerms}>
-              <Scale size={15} /> Terms
+              <Scale size={15} /> Terms & Conditions
             </button>
           </div>
         </div>
