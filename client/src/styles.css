@@ -21341,3 +21341,77 @@ body {
   font-size: 13px !important;
   padding: 22px !important;
 }
+
+
+/* =========================================================
+   BAR CHART COLOR FIX
+   Green bars stay green. All metric score numbers stay white.
+========================================================= */
+
+/* Green should not fade into blue/cyan. Keep it in the same tone family as the SVG rings. */
+.grade-line span.green,
+.metric-bar-fill.green,
+.category-bar-fill.green,
+.grade-fill.green,
+.bar-fill.green {
+  background: linear-gradient(90deg, #72ff41 0%, #86ff5f 55%, #72ff41 100%) !important;
+  color: rgba(114, 255, 65, .58) !important;
+  box-shadow:
+    0 0 14px rgba(114,255,65,.32),
+    inset 0 0 8px rgba(255,255,255,.24) !important;
+}
+
+/* Keep yellow/red matching the ring family too. */
+.grade-line span.yellow,
+.metric-bar-fill.yellow,
+.category-bar-fill.yellow,
+.grade-fill.yellow,
+.bar-fill.yellow {
+  background: linear-gradient(90deg, #ffe35f 0%, #ffd54f 55%, #ffe35f 100%) !important;
+  color: rgba(255,227,95,.56) !important;
+  box-shadow:
+    0 0 14px rgba(255,227,95,.30),
+    inset 0 0 8px rgba(255,255,255,.22) !important;
+}
+
+.grade-line span.red,
+.metric-bar-fill.red,
+.category-bar-fill.red,
+.grade-fill.red,
+.bar-fill.red {
+  background: linear-gradient(90deg, #ff5570 0%, #ff7085 55%, #ff5570 100%) !important;
+  color: rgba(255,85,112,.52) !important;
+  box-shadow:
+    0 0 14px rgba(255,85,112,.28),
+    inset 0 0 8px rgba(255,255,255,.20) !important;
+}
+
+/* Every metric/category score number is white, no color-coding. */
+.grade-score-row strong,
+.grade-score-row strong.green,
+.grade-score-row strong.yellow,
+.grade-score-row strong.red,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.metric-score,
+.metric-score.green,
+.metric-score.yellow,
+.metric-score.red,
+.category-score,
+.category-score.green,
+.category-score.yellow,
+.category-score.red {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
+}
+
+/* If the number is directly inside a grade card header, force it white too. */
+.grade-card h3 + strong,
+.grade-card .score-value,
+.grade-card .score-value.green,
+.grade-card .score-value.yellow,
+.grade-card .score-value.red {
+  color: #ffffff !important;
+  text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
+}
