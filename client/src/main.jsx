@@ -1,3 +1,6 @@
+// Eval update: final clean universal score rings.
+// Eval update: industry top 5 radar and rank numbers.
+// Eval update: desktop dropdown removes watchlist via separate menus.
 // Eval update: mobile dropdown contact visible, terms full label, desktop watchlist hidden.
 // Eval update: dropdown forced front and Terms & Conditions label.
 // Eval update: clean global rings and dropdown front fix.
@@ -978,14 +981,35 @@ function App() {
                       aria-label="Close menu"
                     />
 
-                    <div className="dashboard-dropdown-menu">
+                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop">
                       <button type="button" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
                       <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
-                      <button type="button" className="dropdown-mobile-only" onClick={() => goMenu("watchlist")}>
+
+                      <div className="dropdown-divider" />
+
+                      <button type="button" onClick={() => goMenu("landing")}>
+                        Homepage
+                      </button>
+                      <button type="button" onClick={() => goMenu("terms")}>
+                        Terms & Conditions
+                      </button>
+                      <button type="button" onClick={() => goMenu("support")}>
+                        Contact
+                      </button>
+                    </div>
+
+                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile">
+                      <button type="button" onClick={() => goMenu("assistant")}>
+                        AI Assistant
+                      </button>
+                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
+                        Compare
+                      </button>
+                      <button type="button" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
 
@@ -1360,6 +1384,136 @@ function industryDescription(industry = "") {
   return "This industry groups companies with similar business models. Comparing Eval Scores inside the same industry can make the ranking more useful because the stocks face similar risks and opportunities.";
 }
 
+
+function IndustryRadar({ leaders }) {
+  const categories = [
+    "growth",
+    "profitability",
+    "financialHealth",
+    "valuation",
+    "momentum",
+    "reversal",
+    "newsSentiment",
+  ];
+
+  const stocks = leaders.slice(0, 5).map((item) => ({
+    symbol: item.symbol,
+    categories: item.categories || item.grades?.categories || item.categoryScores || {},
+  }));
+
+  const center = 180;
+  const maxRadius = 120;
+  const levels = [0.25, 0.5, 0.75, 1];
+
+  const pointFor = (index, value = 10) => {
+    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / categories.length;
+    const radius = (Math.max(0, Math.min(10, Number(value) || 0)) / 10) * maxRadius;
+
+    return {
+      x: center + radius * Math.cos(angle),
+      y: center + radius * Math.sin(angle),
+    };
+  };
+
+  const gridPoints = (level) =>
+    categories
+      .map((_, index) => {
+        const point = pointFor(index, level * 10);
+        return `${point.x},${point.y}`;
+      })
+      .join(" ");
+
+  const polygonPoints = (source) =>
+    categories
+      .map((key, index) => {
+        const score = score10(source?.[key]) || 0;
+        const point = pointFor(index, score);
+        return `${point.x},${point.y}`;
+      })
+      .join(" ");
+
+  return (
+    <section className="industry-radar-card">
+      <div className="industry-radar-head">
+        <div>
+          <strong>Top 5 radar comparison</strong>
+          <p>Compares the five leading industry stocks across the same seven Eval categories.</p>
+        </div>
+
+        <div className="industry-radar-legend">
+          {stocks.map((stock, index) => (
+            <span className={`industry-radar-legend-${index + 1}`} key={stock.symbol}>
+              <i aria-hidden="true" /> {stock.symbol}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <svg className="industry-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five industry stock radar chart">
+        {levels.map((level) => (
+          <polygon key={level} points={gridPoints(level)} className="radar-grid" />
+        ))}
+
+        {categories.map((key, index) => {
+          const edge = pointFor(index, 10);
+          return (
+            <line
+              key={`${key}-axis`}
+              x1={center}
+              y1={center}
+              x2={edge.x}
+              y2={edge.y}
+              className="radar-axis"
+            />
+          );
+        })}
+
+        {stocks.map((stock, index) => (
+          <polygon
+            key={`${stock.symbol}-poly`}
+            points={polygonPoints(stock.categories)}
+            className={`industry-radar-poly industry-radar-poly-${index + 1}`}
+          />
+        ))}
+
+        {categories.map((key, index) => (
+          <g key={`${key}-dots`}>
+            {stocks.map((stock, stockIndex) => {
+              const point = pointFor(index, score10(stock.categories?.[key]) || 0);
+              return (
+                <circle
+                  key={`${stock.symbol}-${key}-dot`}
+                  cx={point.x}
+                  cy={point.y}
+                  r="3.8"
+                  className={`industry-radar-dot industry-radar-dot-${stockIndex + 1}`}
+                />
+              );
+            })}
+          </g>
+        ))}
+
+        {categories.map((key, index) => {
+          const label = pointFor(index, 12.8);
+          return (
+            <text
+              key={`${key}-label`}
+              x={label.x}
+              y={label.y}
+              textAnchor={label.x < center - 10 ? "end" : label.x > center + 10 ? "start" : "middle"}
+              dominantBaseline="middle"
+              className="radar-label radar-label-front"
+            >
+              {categoryLabel(key)}
+            </text>
+          );
+        })}
+      </svg>
+    </section>
+  );
+}
+
+
 function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
   const industry = industryPage?.industry || "Industry";
   const leaders = Array.isArray(industryPage?.leaders) ? industryPage.leaders : [];
@@ -1395,8 +1549,11 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
         ) : error ? (
           <div className="industry-error-page">{error}</div>
         ) : leaders.length ? (
-          <div className="industry-leader-grid">
-            {leaders.slice(0, 5).map((item, index) => {
+          <>
+            <IndustryRadar leaders={leaders} />
+
+            <div className="industry-leader-grid">
+              {leaders.slice(0, 5).map((item, index) => {
               const score = score10(item.score);
               const tone = scoreTone(score);
               const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
@@ -1409,7 +1566,7 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
                   onClick={() => onAnalyze(item.symbol)}
                   title={`Open full Eval report for ${item.symbol}`}
                 >
-                  <div className="industry-medal">#</div>
+                  <div className="industry-medal">{index + 1}</div>
                   <div className={`industry-score-pie ${tone}`} style={{ "--industry-score-angle": `${(score || 0) * 36}deg` }}>
                     <strong>{scoreText(score)}</strong>
                   </div>
@@ -1421,7 +1578,8 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
                 </button>
               );
             })}
-          </div>
+            </div>
+          </>
         ) : (
           <div className="industry-error-page">No same-industry rankings are available yet.</div>
         )}
