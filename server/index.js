@@ -1,3 +1,4 @@
+// Eval update: FMP 6000 stock ticker lookup route.
 // Eval update: AI assistant expanded as support agent.
 import express from "express";
 import cors from "cors";
@@ -41,9 +42,12 @@ app.use(
   })
 );
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const analysisCache = new Map();
+const lastValidAnalysisCache = new Map();
 const industryCache = new Map();
+const tickerLookupCache = { savedAt: 0, data: [] };
+const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for FMP stock list
 
 const INDUSTRY_UNIVERSES = {
   Technology: ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
@@ -100,6 +104,80 @@ function cleanTicker(symbol) {
   return String(symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
 }
 
+
+function isCommonStockLike(item = {}) {
+  const symbol = cleanTicker(item.symbol || item.ticker);
+  const name = String(item.name || item.companyName || "").trim();
+  const exchange = String(item.exchangeShortName || item.exchange || "").toUpperCase();
+  const type = String(item.type || item.securityType || "").toLowerCase();
+
+  if (!symbol || !name) return false;
+  if (symbol.length > 8) return false;
+  if (/[=/^]/.test(symbol)) return false;
+  if (["ETF", "MUTUAL_FUND", "INDEX", "CRYPTO", "FOREX"].includes(exchange)) return false;
+  if (type && /(etf|fund|trust|warrant|unit|note|preferred|bond|crypto|forex|index)/i.test(type)) return false;
+
+  return true;
+}
+
+async function fetchFmpTickerList() {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing FMP_API_KEY in Render environment variables.");
+  }
+
+  const candidates = [
+    `https://financialmodelingprep.com/stable/stock-list?apikey=${encodeURIComponent(apiKey)}`,
+    `https://financialmodelingprep.com/api/v3/stock/list?apikey=${encodeURIComponent(apiKey)}`,
+  ];
+
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url);
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !Array.isArray(data)) {
+        console.warn("FMP ticker list failed:", response.status, url);
+        continue;
+      }
+
+      const seen = new Set();
+      const normalized = data
+        .map((item) => ({
+          symbol: cleanTicker(item.symbol || item.ticker),
+          name: String(item.name || item.companyName || "").trim(),
+          exchange: String(item.exchangeShortName || item.exchange || "").trim(),
+          type: String(item.type || item.securityType || "").trim(),
+        }))
+        .filter((item) => isCommonStockLike(item))
+        .filter((item) => {
+          if (seen.has(item.symbol)) return false;
+          seen.add(item.symbol);
+          return true;
+        })
+        .sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+      if (normalized.length) return normalized;
+    } catch (error) {
+      console.warn("FMP ticker list fetch failed:", error?.message || error);
+    }
+  }
+
+  throw new Error("Could not load FMP ticker list.");
+}
+
+async function getFmpTickerLookupList() {
+  if (tickerLookupCache.data.length && Date.now() - tickerLookupCache.savedAt < TICKER_LOOKUP_TTL_MS) {
+    return tickerLookupCache.data;
+  }
+
+  const data = await fetchFmpTickerList();
+  tickerLookupCache.savedAt = Date.now();
+  tickerLookupCache.data = data;
+  return data;
+}
+
+
 function normalizeIndustryName(value = "") {
   return String(value || "")
     .toLowerCase()
@@ -121,37 +199,94 @@ function getIndustryKey(industry = "") {
   return Object.keys(INDUSTRY_UNIVERSES).find((key) => normalizeIndustryName(key) === clean) || "Technology";
 }
 
+function isValidAnalysisPayload(data) {
+  const score = Number(data?.grades?.edgeScore);
+  const validCategories = Number(data?.grades?.dataQuality?.validCategoryCount || 0);
+  const inputCounts = data?.grades?.dataQuality?.validInputCounts || {};
+
+  const hasEnoughFundamentals =
+    Number(inputCounts.growth || 0) >= 2 ||
+    Number(inputCounts.profitability || 0) >= 2 ||
+    Number(inputCounts.financialHealth || 0) >= 2 ||
+    Number(inputCounts.valuation || 0) >= 2;
+
+  const hasMarketData = Number(inputCounts.marketData || 0) >= 2 || Boolean(data?.quote?.c);
+
+  return Number.isFinite(score) && score >= 2 && validCategories >= 5 && hasMarketData && hasEnoughFundamentals;
+}
+
+function withCacheInfo(data, cacheInfo) {
+  return {
+    ...data,
+    cache: {
+      ...(data?.cache || {}),
+      ...cacheInfo,
+      ttlHours: 4,
+    },
+  };
+}
+
 async function getCachedAnalysis(symbol) {
   const clean = cleanTicker(symbol);
   if (!clean) throw new Error("Missing ticker symbol.");
 
   const cached = analysisCache.get(clean);
   if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) {
-    return {
-      ...cached.data,
-      cache: { hit: true, ttlHours: 1 },
-    };
+    return withCacheInfo(cached.data, { hit: true });
   }
 
-  const data = await buildStockAnalysis(clean);
-  const payload = {
-    ...data,
-    cache: { hit: false, ttlHours: 1 },
-  };
+  const lastValid = lastValidAnalysisCache.get(clean);
 
-  analysisCache.set(clean, {
-    savedAt: Date.now(),
-    data: payload,
-  });
+  try {
+    const data = await buildStockAnalysis(clean);
+    const payload = withCacheInfo(data, { hit: false });
 
-  return payload;
+    if (!isValidAnalysisPayload(payload)) {
+      if (lastValid?.data) {
+        return withCacheInfo(lastValid.data, {
+          hit: true,
+          fallback: "lastValid",
+          reason: "New report had incomplete provider data or rate-limited source response.",
+        });
+      }
+
+      return {
+        ...payload,
+        warning: "Partial provider data. Score may be unavailable until data sources recover.",
+      };
+    }
+
+    analysisCache.set(clean, {
+      savedAt: Date.now(),
+      data: payload,
+    });
+
+    lastValidAnalysisCache.set(clean, {
+      savedAt: Date.now(),
+      data: payload,
+    });
+
+    return payload;
+  } catch (error) {
+    if (lastValid?.data) {
+      return withCacheInfo(lastValid.data, {
+        hit: true,
+        fallback: "lastValid",
+        reason: error?.message || "Provider fetch failed.",
+      });
+    }
+
+    throw error;
+  }
 }
 
 app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/analyze/:symbol", "/api/industry-top/:industry"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/analyze/:symbol", "/api/industry-top/:industry"],
+    cacheTtlHours: 4,
+    dataProviderPlan: "Massive + FMP + Finnhub with last-valid fallback",
   });
 });
 
@@ -159,9 +294,70 @@ app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    hasFinnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+    dataProviders: {
+      finnhub: Boolean(process.env.FINNHUB_API_KEY),
+      massive: Boolean(process.env.MASSIVE_API_KEY),
+      fmp: Boolean(process.env.FMP_API_KEY),
+      openai: Boolean(process.env.OPENAI_API_KEY),
+    },
+    cacheTtlHours: 4,
     cacheSize: analysisCache.size,
+    lastValidCacheSize: lastValidAnalysisCache.size,
+    tickerLookupCacheSize: tickerLookupCache.data.length,
+    fallbackPolicy: "Massive for price/history, FMP for fundamentals, Finnhub for profile/news, lastValid cache as final safety net.",
   });
+});
+
+
+app.get("/api/ticker-lookup", async (req, res) => {
+  try {
+    const q = String(req.query.q || "").trim().toLowerCase();
+    const limit = Math.min(Math.max(Number(req.query.limit) || 150, 1), 300);
+    const list = await getFmpTickerLookupList();
+
+    const results = (!q
+      ? list.slice(0, limit)
+      : list
+          .filter((item) => {
+            const symbol = item.symbol.toLowerCase();
+            const name = item.name.toLowerCase();
+            return symbol.includes(q) || name.includes(q);
+          })
+          .sort((a, b) => {
+            const aSymbol = a.symbol.toLowerCase();
+            const bSymbol = b.symbol.toLowerCase();
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+
+            const score = (symbol, name) =>
+              (symbol === q ? -60 : 0) +
+              (name === q ? -50 : 0) +
+              (symbol.startsWith(q) ? -40 : 0) +
+              (name.startsWith(q) ? -30 : 0) +
+              (symbol.includes(q) ? -10 : 0) +
+              (name.includes(q) ? -5 : 0);
+
+            return score(aSymbol, aName) - score(bSymbol, bName) || a.symbol.localeCompare(b.symbol);
+          })
+          .slice(0, limit)
+    );
+
+    res.json({
+      query: q,
+      count: results.length,
+      totalAvailable: list.length,
+      cached: tickerLookupCache.savedAt > 0,
+      source: "FMP stock list",
+      results,
+    });
+  } catch (error) {
+    console.error("Ticker lookup route failed:", error?.stack || error?.message || error);
+    res.status(500).json({
+      error: error?.message || "Could not load ticker lookup list.",
+      source: "FMP stock list",
+      results: [],
+    });
+  }
 });
 
 app.get("/api/analyze/:symbol", async (req, res) => {
@@ -189,7 +385,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) {
       return res.json({
         ...cached.data,
-        cache: { hit: true, ttlHours: 1 },
+        cache: { hit: true, ttlHours: 4 },
       });
     }
 
@@ -225,8 +421,8 @@ app.get("/api/industry-top/:industry", async (req, res) => {
       candidates: universe,
       leaders,
       limit: 5,
-      cachedForHours: 1,
-      cache: { hit: false, ttlHours: 1 },
+      cachedForHours: 4,
+      cache: { hit: false, ttlHours: 4 },
     };
 
     industryCache.set(cacheKey, {
