@@ -1,3 +1,5 @@
+// Eval update: FMP 6000 stock ticker lookup page.
+// Eval update: static Top 1000 ticker lookup page.
 // Eval update: native-style dropdown menu.
 // Eval update: mobile dropdown always front with reliable click-away.
 // Eval update: expanded FAQ library with at least 20 per category.
@@ -908,6 +910,19 @@ function App() {
     );
   }
 
+  if (view === "lookup") {
+    return (
+      <TickerLookupPage
+        onBack={() => setView("dashboard")}
+        onFaqs={() => setView("faqs")}
+        onAnalyze={async (ticker) => {
+          setView("dashboard");
+          await analyze(null, ticker);
+        }}
+      />
+    );
+  }
+
   if (view === "faqs") {
     return (
       <FaqPage
@@ -1039,6 +1054,9 @@ function App() {
                     />
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-desktop eval-select-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => goMenu("lookup")}>
+                        Ticker Lookup
+                      </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
@@ -1063,6 +1081,9 @@ function App() {
                     </div>
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => goMenu("lookup")}>
+                        Ticker Lookup
+                      </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
@@ -2104,6 +2125,128 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
   );
 }
 
+
+
+function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
+  const [query, setQuery] = useState("");
+  const [matches, setMatches] = useState([]);
+  const [totalAvailable, setTotalAvailable] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+
+  const normalized = query.trim();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLookupLoading(true);
+      setLookupError("");
+
+      try {
+        const params = new URLSearchParams({
+          q: normalized,
+          limit: "160",
+        });
+
+        const response = await fetch(`${API}/api/ticker-lookup?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        const json = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(json?.error || "Ticker lookup failed.");
+        }
+
+        setMatches(Array.isArray(json?.results) ? json.results : []);
+        setTotalAvailable(Number(json?.totalAvailable) || null);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          setLookupError(error?.message || "Ticker lookup failed.");
+          setMatches([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLookupLoading(false);
+        }
+      }
+    }, normalized ? 180 : 0);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [normalized]);
+
+  return (
+    <main className="lookup-page">
+      <section className="lookup-shell">
+        <div className="lookup-topbar">
+          <button className="back-btn" type="button" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
+          <button className="lookup-help-btn" type="button" onClick={onFaqs}>
+            <HelpCircle size={16} /> FAQs
+          </button>
+        </div>
+
+        <div className="lookup-hero">
+          <div className="section-title">
+            <Search size={17} /> Ticker Lookup
+          </div>
+          <h1>Find a ticker by company name.</h1>
+          <p>
+            Start typing a company name and Eval filters FMP's stock list. The ticker on the right is clickable
+            and opens the Analyze dashboard with that company loaded.
+          </p>
+        </div>
+
+        <div className="lookup-search-card">
+          <Search size={20} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Type Apple, Nvidia, JPMorgan, Tesla..."
+            autoComplete="off"
+            autoFocus
+          />
+          <span>
+            {lookupLoading ? "Searching..." : `${matches.length} shown${totalAvailable ? ` / ${totalAvailable}+` : ""}`}
+          </span>
+        </div>
+
+        {lookupError && (
+          <div className="lookup-error">
+            {lookupError}
+          </div>
+        )}
+
+        <div className="lookup-results lookup-results-table">
+          {matches.map((item) => (
+            <button
+              type="button"
+              className="lookup-result-row"
+              key={item.symbol}
+              onClick={() => onAnalyze(item.symbol)}
+            >
+              <strong>{item.name}</strong>
+              <span>{item.symbol}</span>
+            </button>
+          ))}
+        </div>
+
+        {!lookupLoading && !matches.length && !lookupError && (
+          <div className="lookup-empty">
+            <Search size={30} />
+            <h3>No FMP match found</h3>
+            <p>Try a shorter company name or search directly by ticker symbol.</p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
 
 const EVAL_FAQS = [
   {
