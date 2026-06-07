@@ -22264,3 +22264,310 @@ button[aria-label="Open Eval menu"]::after {
     font-size: 12.5px !important;
   }
 }
+
+
+/* =========================================================
+   TICKER LOOKUP PAGE - STATIC 1000+ LOCAL LIST
+========================================================= */
+
+.lookup-page {
+  min-height: 100vh;
+  padding: 18px 0 72px;
+}
+
+.lookup-shell {
+  width: min(1120px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 34px);
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.12), transparent 38%),
+    radial-gradient(circle at 88% 10%, rgba(133,255,71,.09), transparent 34%),
+    linear-gradient(145deg, rgba(18, 30, 38, .91), rgba(23, 20, 38, .93));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 32px 100px rgba(0,0,0,.40);
+}
+
+.lookup-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.lookup-help-btn {
+  height: 42px;
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.86);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.lookup-hero h1 {
+  margin: 8px 0 10px;
+  color: #fff;
+  font-size: clamp(38px, 6vw, 74px);
+  line-height: .92;
+  letter-spacing: -.06em;
+}
+
+.lookup-hero p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(255,255,255,.66);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.lookup-search-card {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.10), transparent 34%),
+    rgba(0,0,0,.18);
+}
+
+.lookup-search-card svg {
+  color: rgba(255,255,255,.70);
+}
+
+.lookup-search-card input {
+  height: 52px;
+  border-radius: 17px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: linear-gradient(135deg, rgba(7,13,20,.86), rgba(20,18,34,.88));
+  color: #fff;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 900;
+  outline: none;
+}
+
+.lookup-search-card input::placeholder {
+  color: rgba(255,255,255,.42);
+}
+
+.lookup-search-card span {
+  color: rgba(255,255,255,.58);
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.lookup-results {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.lookup-result-card {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(133,255,71,.07), transparent 36%),
+    rgba(255,255,255,.045);
+  min-height: 94px;
+  padding: 14px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+.lookup-result-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(133,255,71,.22);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(133,255,71,.10), transparent 36%),
+    rgba(255,255,255,.065);
+}
+
+.lookup-result-card span {
+  color: #72ff41;
+  font-size: 20px;
+  font-weight: 1000;
+  letter-spacing: .04em;
+}
+
+.lookup-result-card strong {
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.lookup-result-card small {
+  color: rgba(255,255,255,.48);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.lookup-empty {
+  min-height: 240px;
+  margin-top: 18px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(0,0,0,.16);
+  color: rgba(255,255,255,.64);
+  padding: 24px;
+}
+
+.lookup-empty h3 {
+  margin: 8px 0 4px;
+  color: #fff;
+}
+
+@media (max-width: 780px) {
+  .lookup-shell {
+    width: calc(100vw - 20px);
+    border-radius: 26px;
+    padding: 18px;
+  }
+
+  .lookup-topbar {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .lookup-help-btn {
+    justify-content: center;
+  }
+
+  .lookup-search-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .lookup-search-card span {
+    grid-column: 1 / -1;
+  }
+
+  .lookup-results {
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .lookup-hero h1 {
+    font-size: clamp(38px, 11vw, 56px);
+  }
+}
+
+
+/* =========================================================
+   FMP 6000+ TICKER LOOKUP TABLE
+========================================================= */
+
+.lookup-results-table {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 7px !important;
+  max-height: 62vh !important;
+  overflow-y: auto !important;
+  padding-right: 4px !important;
+}
+
+.lookup-result-row {
+  width: 100% !important;
+  min-height: 54px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 16px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 16px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(133,255,71,.06), transparent 36%),
+    rgba(255,255,255,.042) !important;
+  padding: 10px 12px 10px 15px !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease !important;
+}
+
+.lookup-result-row:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(133,255,71,.24) !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(133,255,71,.10), transparent 36%),
+    rgba(255,255,255,.065) !important;
+}
+
+.lookup-result-row strong {
+  color: #fff !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.lookup-result-row span {
+  min-width: 78px !important;
+  justify-self: end !important;
+  text-align: center !important;
+  border-radius: 999px !important;
+  padding: 8px 10px !important;
+  color: #071006 !important;
+  background: linear-gradient(135deg, rgba(133,255,71,.98), rgba(21,231,255,.82)) !important;
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .06em !important;
+  box-shadow: 0 0 16px rgba(133,255,71,.16) !important;
+}
+
+.lookup-error {
+  margin-top: 12px !important;
+  padding: 12px 14px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(255,85,112,.24) !important;
+  background: rgba(255,85,112,.08) !important;
+  color: rgba(255,255,255,.86) !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+@media (max-width: 780px) {
+  .lookup-results-table {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .lookup-result-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    min-height: 58px !important;
+  }
+
+  .lookup-result-row strong {
+    white-space: normal !important;
+    font-size: 13px !important;
+  }
+
+  .lookup-result-row span {
+    min-width: 72px !important;
+    font-size: 12px !important;
+  }
+}
