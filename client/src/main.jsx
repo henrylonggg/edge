@@ -1,3 +1,4 @@
+// Eval update: expanded FAQ library with at least 20 per category.
 // Eval update: FAQs dropdown tab with live search.
 // Eval update: compare 2-5 stocks and clickable radar legends.
 // Eval update: AI assistant expanded as support agent.
@@ -2103,289 +2104,1304 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
 
 const EVAL_FAQS = [
   {
-    category: "Getting started",
-    question: "What is Eval?",
-    answer: "Eval is a stock-evaluation dashboard that turns company data, price movement, risk, news sentiment, and category metrics into one easy-to-read Eval Score."
+    "category": "Getting started",
+    "question": "What is Eval?",
+    "answer": "Eval is a stock-evaluation dashboard that turns company data, price movement, risk, news sentiment, and category metrics into one easy-to-read Eval Score."
   },
   {
-    category: "Getting started",
-    question: "How do I search for a stock?",
-    answer: "Type a ticker into the search bar, then click the search icon. Eval loads the company report, price card, risk card, news sentiment, category metrics, and available industry data."
+    "category": "Getting started",
+    "question": "How do I search for a stock?",
+    "answer": "Type a ticker into the search bar, then click the search icon. Eval loads the company report, price card, risk card, news sentiment, category metrics, and available industry data."
   },
   {
-    category: "Getting started",
-    question: "Why does the dashboard say no stock report loaded yet?",
-    answer: "That means no ticker is currently selected. Search a ticker in the top bar to generate the first Eval report."
+    "category": "Getting started",
+    "question": "Why does the dashboard say no stock report loaded yet?",
+    "answer": "That means no ticker is currently selected. Search a ticker in the top bar to generate the first Eval report."
   },
   {
-    category: "Getting started",
-    question: "Can I click the Eval logo?",
-    answer: "Yes. Clicking the Eval logo or Eval wordmark takes you back to the homepage."
+    "category": "Getting started",
+    "question": "Can I click the Eval logo?",
+    "answer": "Yes. Clicking the Eval logo or Eval wordmark takes you back to the homepage."
   },
   {
-    category: "Navigation",
-    question: "What is inside the dropdown menu?",
-    answer: "The dropdown menu opens key pages like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact. On mobile and tablet, it also includes Watchlist."
+    "category": "Getting started",
+    "question": "What should I do first after signing in?",
+    "answer": "Start by searching a ticker you know, then review the Eval Score, category bars, news sentiment, and watchlist options."
   },
   {
-    category: "Navigation",
-    question: "Why is Watchlist not in the desktop dropdown?",
-    answer: "On desktop, the Watchlist is already visible on the dashboard, so the dropdown keeps it removed to avoid duplicate navigation. On mobile and tablet, Watchlist appears in the dropdown."
+    "category": "Getting started",
+    "question": "Do I need finance knowledge to use Eval?",
+    "answer": "No. Eval is designed to simplify stock data into readable scores, summaries, and visual cards."
   },
   {
-    category: "Navigation",
-    question: "How do I contact support?",
-    answer: "Open the dropdown menu and click Contact. The support page shows the Eval support contact information."
+    "category": "Getting started",
+    "question": "What is the main dashboard for?",
+    "answer": "The dashboard is where you search stocks, view Eval reports, manage your watchlist, open Compare, and access support pages."
   },
   {
-    category: "Navigation",
-    question: "Where are Terms & Conditions?",
-    answer: "Open the dropdown menu and click Terms & Conditions. That page explains the app terms, limitations, and user agreement."
+    "category": "Getting started",
+    "question": "What is the fastest way to understand a stock?",
+    "answer": "Look at the Eval Score first, then check the strongest and weakest metric categories, news sentiment, price change, and risk label."
   },
   {
-    category: "Eval Score",
-    question: "What is the Eval Score?",
-    answer: "The Eval Score is a 0.0 to 10.0 rating that summarizes the company’s overall dashboard strength based on categories like growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
+    "category": "Getting started",
+    "question": "What ticker format should I type?",
+    "answer": "Use the stock ticker symbol, like AAPL, NVDA, MSFT, TSLA, or JPM. Keep it short and avoid full company names in the ticker input."
   },
   {
-    category: "Eval Score",
-    question: "Is the Eval Score a buy or sell rating?",
-    answer: "No. The Eval Score is an educational company-evaluation score, not a buy, sell, or hold recommendation."
+    "category": "Getting started",
+    "question": "Why does Eval use ticker symbols?",
+    "answer": "Ticker symbols are the cleanest way to identify stocks and retrieve the correct market data."
   },
   {
-    category: "Eval Score",
-    question: "What do the score colors mean?",
-    answer: "Green means stronger, yellow means mixed or average, and red means weaker. The colors help users quickly understand whether a score looks strong, moderate, or low."
+    "category": "Getting started",
+    "question": "What does the plus button do?",
+    "answer": "The plus button adds the currently loaded stock to your watchlist when that option is available."
   },
   {
-    category: "Eval Score",
-    question: "Why does a stock have a high Eval Score?",
-    answer: "A high score usually means the company has stronger category ratings across several areas such as growth, profitability, momentum, financial health, and news sentiment."
+    "category": "Getting started",
+    "question": "What does the search icon do?",
+    "answer": "The search icon runs the stock lookup for the ticker currently typed in the search bar."
   },
   {
-    category: "Eval Score",
-    question: "Why does a stock have a low Eval Score?",
-    answer: "A lower score usually means the company has weaker category ratings, valuation pressure, risk issues, poor momentum, weak profitability, or negative news sentiment."
+    "category": "Getting started",
+    "question": "What does the dropdown button do?",
+    "answer": "The dropdown button opens navigation options like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact."
   },
   {
-    category: "Metric cards",
-    question: "What does Growth mean?",
-    answer: "Growth shows how quickly the company is expanding sales and earnings. Higher growth scores usually mean the business is increasing revenue or earnings more strongly."
+    "category": "Getting started",
+    "question": "Can I use Eval on mobile?",
+    "answer": "Yes. The mobile layout is designed for portrait mode and includes dropdown navigation for pages that are always visible on desktop."
   },
   {
-    category: "Metric cards",
-    question: "What does Profitability mean?",
-    answer: "Profitability shows how efficiently the company turns revenue into profit. Strong margins and return metrics usually improve this score."
+    "category": "Getting started",
+    "question": "Why does Eval prefer portrait mode on phones?",
+    "answer": "Portrait mode keeps the score rings, watchlist, metrics, and chart sections readable without horizontal layout issues."
   },
   {
-    category: "Metric cards",
-    question: "What does Financial Health mean?",
-    answer: "Financial Health shows balance-sheet strength, debt risk, and stability. Higher scores usually mean the company looks easier to handle financially."
+    "category": "Getting started",
+    "question": "Does Eval replace financial research?",
+    "answer": "No. Eval helps organize and explain stock information, but users should still do their own research before making decisions."
   },
   {
-    category: "Metric cards",
-    question: "What does Valuation mean?",
-    answer: "Valuation shows whether the stock price looks reasonable compared with company fundamentals. A higher score generally means valuation looks more attractive."
+    "category": "Getting started",
+    "question": "What does the homepage explain?",
+    "answer": "The homepage gives a visual introduction to Eval, showing how the app turns ticker data into scores, rankings, comparisons, and AI explanations."
   },
   {
-    category: "Metric cards",
-    question: "What does Momentum mean?",
-    answer: "Momentum shows recent stock strength and trend direction. Higher scores usually mean the market has been rewarding the stock lately."
+    "category": "Getting started",
+    "question": "How often should I refresh a stock?",
+    "answer": "Refresh when you want the latest available score, watchlist ranking, or report data. Some data may also be cached to reduce API calls."
   },
   {
-    category: "Metric cards",
-    question: "What does Pullback mean?",
-    answer: "Pullback shows whether the stock has cooled off enough to look more attractive from a recent-price perspective. It is not a buy signal by itself."
+    "category": "Getting started",
+    "question": "Why do some stocks load better than others?",
+    "answer": "Some companies have more complete financial, price, and news data available than others."
   },
   {
-    category: "Metric cards",
-    question: "What does News Sentiment mean?",
-    answer: "News Sentiment summarizes recent headlines and article impact into a score. A higher number means the recent news looks more positive for the stock."
+    "category": "Getting started",
+    "question": "What is the best way to learn the app?",
+    "answer": "Use the FAQ page, ask Eval AI navigation questions, and open the metric popups to see what each section means."
   },
   {
-    category: "Metric cards",
-    question: "What are the bar charts?",
-    answer: "The bar charts show each category score from 0 to 10. Longer bars mean stronger category scores."
+    "category": "Navigation",
+    "question": "What is inside the dropdown menu?",
+    "answer": "The dropdown menu opens key pages like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact. On mobile and tablet, it also includes Watchlist."
   },
   {
-    category: "Metric cards",
-    question: "Why are the score numbers white?",
-    answer: "The numbers are kept white for readability. The bar color and ring color show the strength range instead."
+    "category": "Navigation",
+    "question": "Why is Watchlist not in the desktop dropdown?",
+    "answer": "On desktop, the Watchlist is already visible on the dashboard, so the dropdown keeps it removed to avoid duplicate navigation. On mobile and tablet, Watchlist appears in the dropdown."
   },
   {
-    category: "Metric popups",
-    question: "What does the question mark button do?",
-    answer: "The question mark button opens a popup explaining what data or calculations were used for that score."
+    "category": "Navigation",
+    "question": "How do I contact support?",
+    "answer": "Open the dropdown menu and click Contact. The support page shows the Eval support contact information."
   },
   {
-    category: "Metric popups",
-    question: "How do I close a metric popup?",
-    answer: "Click the small X button in the popup or click the question mark again if that popup supports toggling."
+    "category": "Navigation",
+    "question": "Where are Terms & Conditions?",
+    "answer": "Open the dropdown menu and click Terms & Conditions. That page explains the app terms, limitations, and user agreement."
   },
   {
-    category: "Price and risk",
-    question: "What does the Price card show?",
-    answer: "The Price card shows the latest available stock price and the daily percent change when available."
+    "category": "Navigation",
+    "question": "How do I get back to the dashboard?",
+    "answer": "Use the Dashboard or Back to dashboard button shown on pages like Compare, FAQs, Contact, and AI Assistant."
   },
   {
-    category: "Price and risk",
-    question: "What does the Risk card mean?",
-    answer: "Risk summarizes balance-sheet and market-risk signals into a simple Low, Medium, or High label."
+    "category": "Navigation",
+    "question": "How do I go to the homepage?",
+    "answer": "Click the Eval logo or open the dropdown menu and select Homepage."
   },
   {
-    category: "Price and risk",
-    question: "Why can risk be high even if the Eval Score is good?",
-    answer: "A company can have strong growth or momentum but still carry risk from volatility, leverage, valuation, or financial-stability concerns."
+    "category": "Navigation",
+    "question": "How do I open Compare?",
+    "answer": "Open the dropdown menu and click Compare. You will be taken to the compare-selection page."
   },
   {
-    category: "Watchlist",
-    question: "How do I add a stock to my watchlist?",
-    answer: "Search a ticker, then click the plus button on the report card or add the ticker directly from the Watchlist panel."
+    "category": "Navigation",
+    "question": "How do I open FAQs?",
+    "answer": "Open the dropdown menu and click FAQs. The FAQ page includes search and category filters."
   },
   {
-    category: "Watchlist",
-    question: "How many stocks can I save in the watchlist?",
-    answer: "The dashboard watchlist currently supports up to 15 stocks."
+    "category": "Navigation",
+    "question": "How do I open AI Assistant?",
+    "answer": "Open the dropdown menu and click AI Assistant. The assistant page answers app support and watchlist-stock questions."
   },
   {
-    category: "Watchlist",
-    question: "What does the watchlist ranking mean?",
-    answer: "The watchlist sorts saved stocks by Eval Score so users can quickly see which saved companies currently rank higher."
+    "category": "Navigation",
+    "question": "How do I open Watchlist on mobile?",
+    "answer": "Open the dropdown menu and tap Watchlist. The mobile layout uses dropdown navigation because the watchlist is not always shown beside the dashboard."
   },
   {
-    category: "Watchlist",
-    question: "How do I remove a stock from the watchlist?",
-    answer: "Click the trash/delete button next to the ticker in the Watchlist panel."
+    "category": "Navigation",
+    "question": "Why does mobile navigation look different?",
+    "answer": "Mobile has less horizontal room, so navigation moves into the dropdown while keeping the dashboard focused on the report."
   },
   {
-    category: "Watchlist",
-    question: "What does the refresh button do on the watchlist?",
-    answer: "The refresh button reloads the saved watchlist stocks and updates their scores when new data is available."
+    "category": "Navigation",
+    "question": "What does the Contact tab do?",
+    "answer": "The Contact tab opens the support page where users can find the Eval support email."
   },
   {
-    category: "Compare",
-    question: "What does Compare do?",
-    answer: "Compare lets users choose 2 to 5 watchlist stocks and view their Eval Scores and category ratings side by side."
+    "category": "Navigation",
+    "question": "What does the Homepage tab do?",
+    "answer": "The Homepage tab returns to the landing page that explains what Eval does."
   },
   {
-    category: "Compare",
-    question: "How many stocks can I compare?",
-    answer: "You can compare a minimum of 2 stocks and a maximum of 5 stocks at a time."
+    "category": "Navigation",
+    "question": "What does the Terms & Conditions tab do?",
+    "answer": "It opens the legal and usage terms page for the app."
   },
   {
-    category: "Compare",
-    question: "Why do stocks need to be in my watchlist before comparing?",
-    answer: "Compare uses saved dashboard data, so tickers must be in the watchlist before Eval can compare them."
+    "category": "Navigation",
+    "question": "Can I use the browser back button?",
+    "answer": "Yes, but the app\u2019s own navigation buttons are safer because they keep the dashboard state organized."
   },
   {
-    category: "Compare",
-    question: "What does the Compare radar chart show?",
-    answer: "The radar chart shows the selected stocks across the seven Eval categories. Wider shapes generally mean stronger scores across more areas."
+    "category": "Navigation",
+    "question": "Why is the menu button on the left of the search bar?",
+    "answer": "It keeps navigation close to the ticker search flow and works cleanly on both desktop and mobile."
   },
   {
-    category: "Compare",
-    question: "Can I hide a stock on the radar chart?",
-    answer: "Yes. Click a ticker label above the radar chart to hide that stock. Click it again to show it."
+    "category": "Navigation",
+    "question": "What happens if I click outside the dropdown?",
+    "answer": "The dropdown should close when you click outside of it."
   },
   {
-    category: "Industry rankings",
-    question: "What is an industry ranking page?",
-    answer: "The industry ranking page compares stocks inside a similar industry group and shows the highest-scoring companies Eval found for that industry."
+    "category": "Navigation",
+    "question": "How do I move from an industry page back to the dashboard?",
+    "answer": "Click the Dashboard button at the top of the industry ranking page."
   },
   {
-    category: "Industry rankings",
-    question: "How do I open an industry page?",
-    answer: "Click the industry name under the company ticker inside the main stock report card."
+    "category": "Navigation",
+    "question": "How do I move from Compare back to selected stocks?",
+    "answer": "Use the Change selected stocks button at the top of the Compare results page."
   },
   {
-    category: "Industry rankings",
-    question: "What does the industry Top 5 mean?",
-    answer: "The Top 5 are the highest-ranked stocks Eval found in that industry based on current Eval Score calculations."
+    "category": "Navigation",
+    "question": "Where do I find help inside the app?",
+    "answer": "Use the FAQs page or Eval AI Assistant. FAQs are searchable, and Eval AI can answer navigation questions directly."
   },
   {
-    category: "Industry rankings",
-    question: "What does the industry radar chart show?",
-    answer: "The industry radar chart plots the Top 5 stocks across the seven Eval categories so users can compare strengths and weaknesses visually."
+    "category": "Eval Score",
+    "question": "What is the Eval Score?",
+    "answer": "The Eval Score is a 0.0 to 10.0 rating that summarizes the company\u2019s overall dashboard strength based on categories like growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
   },
   {
-    category: "Industry rankings",
-    question: "Can I hide a stock on the industry radar chart?",
-    answer: "Yes. Click the ticker label above the radar chart to hide or show that company."
+    "category": "Eval Score",
+    "question": "Is the Eval Score a buy or sell rating?",
+    "answer": "No. The Eval Score is an educational company-evaluation score, not a buy, sell, or hold recommendation."
   },
   {
-    category: "News sentiment",
-    question: "What is News Sentiment?",
-    answer: "News Sentiment uses recent stock-related articles to estimate whether the latest news appears positive, neutral, or negative for the company."
+    "category": "Eval Score",
+    "question": "What do the score colors mean?",
+    "answer": "Green means stronger, yellow means mixed or average, and red means weaker. The colors help users quickly understand whether a score looks strong, moderate, or low."
   },
   {
-    category: "News sentiment",
-    question: "What do the news cards show?",
-    answer: "News cards show recent article topics, impact weighting, sentiment score, and a short explanation of why the article matters."
+    "category": "Eval Score",
+    "question": "Why does a stock have a high Eval Score?",
+    "answer": "A high score usually means the company has stronger category ratings across several areas such as growth, profitability, momentum, financial health, and news sentiment."
   },
   {
-    category: "News sentiment",
-    question: "What does Read article do?",
-    answer: "Read article opens the original article source when a valid article link is available."
+    "category": "Eval Score",
+    "question": "Why does a stock have a low Eval Score?",
+    "answer": "A lower score usually means the company has weaker category ratings, valuation pressure, risk issues, poor momentum, weak profitability, or negative news sentiment."
   },
   {
-    category: "News sentiment",
-    question: "Why can news sentiment change?",
-    answer: "News sentiment can change when newer headlines replace older ones or when the latest articles are more positive or negative."
+    "category": "Eval Score",
+    "question": "What does 10.0 mean?",
+    "answer": "A 10.0 means the stock currently scores extremely well in the Eval system. It does not mean the stock is guaranteed to rise."
   },
   {
-    category: "Eval AI",
-    question: "What can Eval AI answer?",
-    answer: "Eval AI can answer support questions about the app, navigation, dashboard features, metrics, compare, watchlist, industry pages, news sentiment, and loaded or watchlist-saved stocks."
+    "category": "Eval Score",
+    "question": "What does 5.0 mean?",
+    "answer": "A 5.0 is a middle-area score that suggests mixed signals. Some categories may be solid while others may be weak."
   },
   {
-    category: "Eval AI",
-    question: "Can Eval AI answer anything?",
-    answer: "No. Eval AI is limited to Eval app support and stock questions tied to the current dashboard or the user’s watchlist."
+    "category": "Eval Score",
+    "question": "What does a red score mean?",
+    "answer": "A red score means the stock is currently showing weaker signals in the Eval framework."
   },
   {
-    category: "Eval AI",
-    question: "Why will Eval AI not answer a specific stock question?",
-    answer: "Specific stock questions require that ticker to be loaded on the dashboard or saved in the watchlist first."
+    "category": "Eval Score",
+    "question": "What does a yellow score mean?",
+    "answer": "A yellow score means the stock looks mixed, moderate, or uncertain across the Eval categories."
   },
   {
-    category: "Eval AI",
-    question: "Can Eval AI help users navigate?",
-    answer: "Yes. Eval AI is meant to act like a support agent and explain where features are, what buttons do, and how to use the app."
+    "category": "Eval Score",
+    "question": "What does a green score mean?",
+    "answer": "A green score means the stock currently looks stronger across the Eval category system."
   },
   {
-    category: "Account",
-    question: "Why do I need to sign in?",
-    answer: "Signing in protects user access and allows features like profile, watchlist, and saved dashboard experience to work properly."
+    "category": "Eval Score",
+    "question": "Can the Eval Score change?",
+    "answer": "Yes. It can change as price, financial data, news sentiment, and category scores update."
   },
   {
-    category: "Account",
-    question: "Who handles sign-in?",
-    answer: "Eval uses Clerk for secure sign-in, verification, session handling, and account access."
+    "category": "Eval Score",
+    "question": "Why did a score change after refresh?",
+    "answer": "Refreshing may pull newer data or updated cached calculations, which can change one or more category scores."
   },
   {
-    category: "Account",
-    question: "What if the verification code does not arrive?",
-    answer: "Wait for the resend timer, then request another code. Also check that the email or phone method shown by Clerk is correct."
+    "category": "Eval Score",
+    "question": "Does Eval compare stocks fairly across industries?",
+    "answer": "Eval is most useful when comparing stocks inside the same or similar industry because different industries naturally behave differently."
   },
   {
-    category: "Troubleshooting",
-    question: "Why is a metric N/A?",
-    answer: "A metric can show N/A when the required data is missing, unavailable, delayed, or not returned by the data provider for that ticker."
+    "category": "Eval Score",
+    "question": "Why might a strong company have a mediocre score?",
+    "answer": "A company can be strong but still look expensive, have weak momentum, carry higher risk, or face negative news sentiment."
   },
   {
-    category: "Troubleshooting",
-    question: "Why does a stock take time to load?",
-    answer: "Eval may be pulling market data, company data, news, rankings, and AI summaries. Some requests can take longer depending on the provider."
+    "category": "Eval Score",
+    "question": "Why might a risky stock still score well?",
+    "answer": "A stock can have strong growth, momentum, or profitability while still carrying risk from volatility, debt, or valuation."
   },
   {
-    category: "Troubleshooting",
-    question: "Why does the radar chart say data is loading?",
-    answer: "That usually means the full category data for the selected stocks has not finished loading or caching yet."
+    "category": "Eval Score",
+    "question": "Is the Eval Score based only on news?",
+    "answer": "No. News Sentiment is one category, but the total score also considers growth, profitability, financial health, valuation, momentum, and pullback."
   },
   {
-    category: "Troubleshooting",
-    question: "Why is the app educational only?",
-    answer: "Eval explains company data and scores, but it does not provide licensed financial advice or guaranteed investment recommendations."
+    "category": "Eval Score",
+    "question": "Is the Eval Score based only on price?",
+    "answer": "No. Price movement affects some parts, but the score also uses company fundamentals and recent news."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Should I only buy green stocks?",
+    "answer": "No. Green means stronger in the Eval framework, but it is not financial advice or a buy recommendation."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can a low score become high later?",
+    "answer": "Yes. Scores can improve if company fundamentals, momentum, valuation, or sentiment improve."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can a high score become low later?",
+    "answer": "Yes. Scores can fall if fundamentals weaken, valuation worsens, momentum fades, risk rises, or news sentiment turns negative."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Growth mean?",
+    "answer": "Growth shows how quickly the company is expanding sales and earnings. Higher growth scores usually mean the business is increasing revenue or earnings more strongly."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Profitability mean?",
+    "answer": "Profitability shows how efficiently the company turns revenue into profit. Strong margins and return metrics usually improve this score."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Financial Health mean?",
+    "answer": "Financial Health shows balance-sheet strength, debt risk, and stability. Higher scores usually mean the company looks easier to handle financially."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Valuation mean?",
+    "answer": "Valuation shows whether the stock price looks reasonable compared with company fundamentals. A higher score generally means valuation looks more attractive."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Momentum mean?",
+    "answer": "Momentum shows recent stock strength and trend direction. Higher scores usually mean the market has been rewarding the stock lately."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does Pullback mean?",
+    "answer": "Pullback shows whether the stock has cooled off enough to look more attractive from a recent-price perspective. It is not a buy signal by itself."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does News Sentiment mean?",
+    "answer": "News Sentiment summarizes recent headlines and article impact into a score. A higher number means the recent news looks more positive for the stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What are the bar charts?",
+    "answer": "The bar charts show each category score from 0 to 10. Longer bars mean stronger category scores."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why are the score numbers white?",
+    "answer": "The numbers are kept white for readability. The bar color and ring color show the strength range instead."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why are there seven category metrics?",
+    "answer": "The seven categories give a wider view of the company instead of relying on only one number or one data point."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Which metric matters most?",
+    "answer": "No single metric always matters most. Growth, profitability, financial health, valuation, momentum, pullback, and news sentiment each show a different angle."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Growth be high but Valuation low?",
+    "answer": "A company may be growing quickly but also trading at an expensive price compared with fundamentals."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Valuation be high but Momentum low?",
+    "answer": "A stock may look attractively priced but still have weak recent price movement."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can News Sentiment be high but the total score lower?",
+    "answer": "Good news can help, but weak valuation, risk, or financial metrics can still drag down the total score."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Financial Health be low?",
+    "answer": "Financial Health may be lower when debt, balance-sheet risk, liquidity, or stability looks weaker."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Profitability be low?",
+    "answer": "Profitability may be low if margins, earnings quality, or returns are weak or negative."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Pullback be high?",
+    "answer": "Pullback can be high when the stock has cooled from recent levels in a way that looks more attractive inside the model."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why can Pullback be low?",
+    "answer": "Pullback can be low when the stock has not cooled enough or recent price action looks less attractive."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why do some bars show N/A?",
+    "answer": "A bar can show N/A if the required data is missing or unavailable for that stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How should I read the metric cards?",
+    "answer": "Start with the highest and lowest bars. The strongest bars show what is helping the Eval Score, and the weakest bars show what is dragging it down."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does the question mark button do?",
+    "answer": "The question mark button opens a popup explaining what data or calculations were used for that score."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I close a metric popup?",
+    "answer": "Click the small X button in the popup or click the question mark again if that popup supports toggling."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why are metric popups useful?",
+    "answer": "They show what went into the category score so users can understand the number instead of just seeing a rating."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does Metrics button under the main ring do?",
+    "answer": "The Metrics button scrolls down to the category metric cards so users can jump straight to the bar charts."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does the Eval Score question mark explain?",
+    "answer": "It explains the main score system and what the score range means."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can metric popups show data sources?",
+    "answer": "Yes. Popups can show which data points or calculations helped form the category score."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why does a popup list multiple items?",
+    "answer": "Many scores are built from several inputs, so the popup breaks down the pieces that affected the rating."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why does a popup sometimes show N/A?",
+    "answer": "N/A appears when the app could not retrieve or calculate that specific input."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Are popup metrics the exact full formula?",
+    "answer": "They are meant to explain the major inputs in a simple way, not expose every backend detail."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can I use popups for learning?",
+    "answer": "Yes. Popups are built to help users understand what financial terms and score inputs mean."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is the popup text short?",
+    "answer": "The app keeps popups short so users can quickly understand the score without reading a long report."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Do popups work on mobile?",
+    "answer": "Yes. Mobile popups should appear above the dashboard content and include a close button."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What if a popup overlaps content?",
+    "answer": "Use the X button to close it. The popup is designed to appear above the dashboard interface."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can multiple popups be open at once?",
+    "answer": "The app is designed so users can focus on one explanation at a time."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Do popups affect the Eval Score?",
+    "answer": "No. Popups only explain the score; they do not change any calculation."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why does the risk popup matter?",
+    "answer": "Risk explanations help users see why a stock may be labeled Low, Medium, or High risk."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why does the news popup matter?",
+    "answer": "News explanations show how recent headlines are affecting the sentiment score."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can I ask Eval AI about a popup?",
+    "answer": "Yes. Eval AI can explain what popups mean and how to interpret them."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Do popups update after refresh?",
+    "answer": "Yes. If the underlying report updates, the popup explanations can update too."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Should I read every popup?",
+    "answer": "You do not have to, but reading the weakest category popup is a good way to understand what is hurting the score."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does the Price card show?",
+    "answer": "The Price card shows the latest available stock price and the daily percent change when available."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does the Risk card mean?",
+    "answer": "Risk summarizes balance-sheet and market-risk signals into a simple Low, Medium, or High label."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why can risk be high even if the Eval Score is good?",
+    "answer": "A company can have strong growth or momentum but still carry risk from volatility, leverage, valuation, or financial-stability concerns."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does daily change percent mean?",
+    "answer": "Daily change percent shows how much the stock price moved during the latest available trading period."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is the price sometimes delayed?",
+    "answer": "Market data can be delayed depending on the data provider and plan being used."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does Low risk mean?",
+    "answer": "Low risk means the app currently sees fewer risk signals in the available data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does Medium risk mean?",
+    "answer": "Medium risk means the app sees some risk signals but not enough to classify the stock as high risk."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does High risk mean?",
+    "answer": "High risk means the app sees stronger risk signals such as volatility, leverage, valuation pressure, or weaker stability."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Is High risk always bad?",
+    "answer": "Not always. High-risk stocks can still have strong upside potential, but they may be more volatile or uncertain."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Risk change over time?",
+    "answer": "Yes. Risk can change as market volatility, balance-sheet data, and company conditions change."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why does the Risk card not give a number?",
+    "answer": "The Risk card is simplified into a label so users can quickly understand the current risk profile."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can price change affect risk?",
+    "answer": "Yes. Large or volatile price movement can affect risk signals."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can financial health affect risk?",
+    "answer": "Yes. Debt, liquidity, and balance-sheet stability can influence the risk label."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does risk mean bankruptcy risk?",
+    "answer": "Not necessarily. Risk is broader and can include volatility, financial leverage, uncertainty, and valuation pressure."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Should I avoid all high-risk stocks?",
+    "answer": "Eval does not provide buy or sell advice. High risk simply means users should understand the risk before making decisions."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why can a stable company still have risk?",
+    "answer": "Even stable companies can face valuation risk, market volatility, weak momentum, or industry pressure."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Where do I see price on mobile?",
+    "answer": "The price card appears inside the stock report layout beneath the score and company title area."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Where do I see risk on mobile?",
+    "answer": "The risk card appears near the price card inside the mobile stock report layout."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why does price say N/A?",
+    "answer": "Price can show N/A if the data provider does not return a valid current quote."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain risk?",
+    "answer": "Yes. Ask Eval AI to explain the risk card or why a loaded/watchlist stock has a specific risk label."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add a stock to my watchlist?",
+    "answer": "Search a ticker, then click the plus button on the report card or add the ticker directly from the Watchlist panel."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How many stocks can I save in the watchlist?",
+    "answer": "The dashboard watchlist currently supports up to 15 stocks."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does the watchlist ranking mean?",
+    "answer": "The watchlist sorts saved stocks by Eval Score so users can quickly see which saved companies currently rank higher."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I remove a stock from the watchlist?",
+    "answer": "Click the trash/delete button next to the ticker in the Watchlist panel."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does the refresh button do on the watchlist?",
+    "answer": "The refresh button reloads the saved watchlist stocks and updates their scores when new data is available."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why should I use the watchlist?",
+    "answer": "The watchlist lets you track stocks you care about and makes Compare and Eval AI stock questions work better."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can I compare stocks without saving them?",
+    "answer": "No. Stocks need to be in your watchlist before they can be selected on the Compare page."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why does Eval AI need watchlist stocks?",
+    "answer": "Eval AI uses the watchlist context to answer stock-specific questions with the right data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How is the watchlist sorted?",
+    "answer": "The watchlist is generally ranked by Eval Score from strongest to weakest."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why does my watchlist score change?",
+    "answer": "Scores can update when data, news sentiment, or cached reports refresh."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can I add the same ticker twice?",
+    "answer": "No. The app should avoid duplicate watchlist tickers."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What happens when the watchlist is full?",
+    "answer": "You need to remove a ticker before adding another one if the list reaches its limit."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why do some watchlist rows show yellow or red rings?",
+    "answer": "The ring color reflects that stock\u2019s current Eval Score range."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does the trash icon do?",
+    "answer": "The trash icon removes that stock from your watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can I open a stock from the watchlist?",
+    "answer": "Yes. Clicking or selecting a watchlist stock can open its full dashboard report depending on the current layout."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is Watchlist visible on desktop?",
+    "answer": "Desktop has enough space to keep Watchlist beside the main dashboard for quick access."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is Watchlist in the dropdown on mobile?",
+    "answer": "Mobile has less screen width, so Watchlist is moved into the dropdown for cleaner layout."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can watchlist stocks be used in radar charts?",
+    "answer": "Yes. Watchlist stocks can be selected for Compare, which includes radar charts."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can I ask Eval AI about my watchlist?",
+    "answer": "Yes. Eval AI can explain saved watchlist stocks and help compare their strengths and weaknesses."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What if the watchlist does not update?",
+    "answer": "Try refreshing the watchlist or reloading the page. Data may also be cached briefly to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "What does Compare do?",
+    "answer": "Compare lets users choose 2 to 5 watchlist stocks and view their Eval Scores and category ratings side by side."
+  },
+  {
+    "category": "Compare",
+    "question": "How many stocks can I compare?",
+    "answer": "You can compare a minimum of 2 stocks and a maximum of 5 stocks at a time."
+  },
+  {
+    "category": "Compare",
+    "question": "Why do stocks need to be in my watchlist before comparing?",
+    "answer": "Compare uses saved dashboard data, so tickers must be in the watchlist before Eval can compare them."
+  },
+  {
+    "category": "Compare",
+    "question": "What does the Compare radar chart show?",
+    "answer": "The radar chart shows the selected stocks across the seven Eval categories. Wider shapes generally mean stronger scores across more areas."
+  },
+  {
+    "category": "Compare",
+    "question": "Can I hide a stock on the radar chart?",
+    "answer": "Yes. Click a ticker label above the radar chart to hide that stock. Click it again to show it."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I select stocks to compare?",
+    "answer": "Open Compare from the dropdown, check 2 to 5 watchlist stocks, then save the selected stocks."
+  },
+  {
+    "category": "Compare",
+    "question": "Why can I not select more than 5 stocks?",
+    "answer": "The radar chart becomes hard to read with too many overlays, so Compare is limited to 5 stocks."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is the minimum 2 stocks?",
+    "answer": "Compare needs at least two stocks to show a meaningful side-by-side comparison."
+  },
+  {
+    "category": "Compare",
+    "question": "What are the score rings at the top of Compare?",
+    "answer": "They show each selected stock\u2019s overall Eval Score before the radar chart shows category-level differences."
+  },
+  {
+    "category": "Compare",
+    "question": "What does a wider radar shape mean?",
+    "answer": "A wider shape usually means the stock has stronger category scores across more areas."
+  },
+  {
+    "category": "Compare",
+    "question": "What does a narrow radar shape mean?",
+    "answer": "A narrow shape usually means weaker category scores or more uneven performance."
+  },
+  {
+    "category": "Compare",
+    "question": "Why do two stocks overlap on the radar?",
+    "answer": "They may have similar category scores, causing their shapes to land near each other."
+  },
+  {
+    "category": "Compare",
+    "question": "Can I compare stocks in the same industry?",
+    "answer": "Yes. Comparing within the same industry is often more useful because the companies face similar business conditions."
+  },
+  {
+    "category": "Compare",
+    "question": "Can I compare different industries?",
+    "answer": "Yes, but the comparison may be less direct because industries naturally have different financial profiles."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I change selected stocks?",
+    "answer": "Click Change selected stocks at the top of the Compare results page."
+  },
+  {
+    "category": "Compare",
+    "question": "What if a stock is missing category data?",
+    "answer": "The chart may skip missing points or show a loading state until the report data is available."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain a comparison?",
+    "answer": "Yes. Ask Eval AI about Compare, the radar chart, or differences between watchlist stocks."
+  },
+  {
+    "category": "Compare",
+    "question": "Does Compare choose the better stock for me?",
+    "answer": "No. Compare visualizes the data, but it does not make a buy or sell decision."
+  },
+  {
+    "category": "Compare",
+    "question": "Why are there different colors in the radar chart?",
+    "answer": "Each selected stock receives a different radar color so users can tell the shapes apart."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I look at first in Compare?",
+    "answer": "Look at the Eval Score rings, then check which stock has the strongest and weakest radar areas."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What is an industry ranking page?",
+    "answer": "The industry ranking page compares stocks inside a similar industry group and shows the highest-scoring companies Eval found for that industry."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open an industry page?",
+    "answer": "Click the industry name under the company ticker inside the main stock report card."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does the industry Top 5 mean?",
+    "answer": "The Top 5 are the highest-ranked stocks Eval found in that industry based on current Eval Score calculations."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does the industry radar chart show?",
+    "answer": "The industry radar chart plots the Top 5 stocks across the seven Eval categories so users can compare strengths and weaknesses visually."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can I hide a stock on the industry radar chart?",
+    "answer": "Yes. Click the ticker label above the radar chart to hide or show that company."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why compare stocks by industry?",
+    "answer": "Industry comparisons are useful because companies in the same industry often face similar risks, margins, growth patterns, and investor expectations."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does the rank badge mean?",
+    "answer": "The rank badge shows the stock\u2019s position in the industry list, such as 1, 2, 3, 4, or 5."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why might a famous stock not be number one?",
+    "answer": "A well-known company may still rank lower if its current Eval Score is weaker than peers in that industry."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can industry rankings change?",
+    "answer": "Yes. Rankings can change when scores, data, market conditions, or news sentiment update."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why does the industry page have a description?",
+    "answer": "The description helps explain what the industry is and what usually matters for companies in that group."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why does the industry radar chart use five stocks?",
+    "answer": "The chart uses the Top 5 to give a broader peer comparison without becoming unreadable."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can I click a company on the industry page?",
+    "answer": "Yes. Industry cards can open the full dashboard overview for that company."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What if the industry is wrong?",
+    "answer": "Industry classification depends on provider data and app mapping. Some companies may need custom classification fixes."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why does one industry have stronger scores than another?",
+    "answer": "Different industries have different growth, profitability, risk, and valuation profiles, so score patterns can vary."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does a strong industry radar shape mean?",
+    "answer": "It means the stock scores well across multiple category areas compared with peers."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What if the radar chart says loading?",
+    "answer": "That means category data for the Top 5 stocks is still being fetched or cached."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can I use industry rankings to find peers?",
+    "answer": "Yes. Industry rankings help identify stocks that may be useful for comparison."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Are industry rankings investment advice?",
+    "answer": "No. They are educational rankings based on Eval scoring data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why are only some stocks shown?",
+    "answer": "The page focuses on a limited Top 5 so the ranking and radar chart remain readable."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain industry rankings?",
+    "answer": "Yes. Ask Eval AI how industry pages work or what the ranking/radar chart means."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What is News Sentiment?",
+    "answer": "News Sentiment uses recent stock-related articles to estimate whether the latest news appears positive, neutral, or negative for the company."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What do the news cards show?",
+    "answer": "News cards show recent article topics, impact weighting, sentiment score, and a short explanation of why the article matters."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does Read article do?",
+    "answer": "Read article opens the original article source when a valid article link is available."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why can news sentiment change?",
+    "answer": "News sentiment can change when newer headlines replace older ones or when the latest articles are more positive or negative."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How many articles does Eval use?",
+    "answer": "Eval focuses on recent relevant articles and summarizes the most important news signals when available."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does bullish mean?",
+    "answer": "Bullish means the recent news appears more positive for the stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does bearish mean?",
+    "answer": "Bearish means the recent news appears more negative for the stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does neutral mean?",
+    "answer": "Neutral means the news is mixed or not clearly positive or negative."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why can a news article score low?",
+    "answer": "An article may score low if it highlights risk, weakness, uncertainty, poor performance, or negative market reaction."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why can a news article score high?",
+    "answer": "An article may score high if it highlights growth, strong demand, positive earnings, partnerships, or favorable business developments."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What is impact weight?",
+    "answer": "Impact weight estimates how much a specific news item matters relative to the other recent articles."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can unrelated articles affect sentiment?",
+    "answer": "The app tries to focus on relevant articles, but some news sources may still return broader market or sector stories."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is a competitor mentioned in news sentiment?",
+    "answer": "Sometimes articles mention competitors or the broader sector. Eval attempts to judge how relevant that is to the selected stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can news sentiment move the total Eval Score?",
+    "answer": "Yes. News Sentiment is one category and can affect the overall score, but it is not the only factor."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why does news sentiment not match price movement?",
+    "answer": "News and price can disagree. The market may react to other factors, or price may have already reflected the news."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can I use news sentiment alone?",
+    "answer": "It is better to use it alongside growth, profitability, valuation, financial health, momentum, and risk."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does Eval write the news articles?",
+    "answer": "No. Eval summarizes and scores articles from external news sources when links are available."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why do some stocks have no news sentiment?",
+    "answer": "Some tickers may have limited recent news or missing article data from the provider."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain news sentiment?",
+    "answer": "Yes. Eval AI can explain the News Sentiment section for a loaded or watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How should I read the news section?",
+    "answer": "Start with the overall sentiment score, then scan the individual article cards and impact weights."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What can Eval AI answer?",
+    "answer": "Eval AI can answer support questions about the app, navigation, dashboard features, metrics, compare, watchlist, industry pages, news sentiment, and loaded or watchlist-saved stocks."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI answer anything?",
+    "answer": "No. Eval AI is limited to Eval app support and stock questions tied to the current dashboard or the user\u2019s watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why will Eval AI not answer a specific stock question?",
+    "answer": "Specific stock questions require that ticker to be loaded on the dashboard or saved in the watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI help users navigate?",
+    "answer": "Yes. Eval AI is meant to act like a support agent and explain where features are, what buttons do, and how to use the app."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain the dashboard?",
+    "answer": "Yes. Ask it what each dashboard section means or how to use the ticker search, score card, news section, or watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain metrics?",
+    "answer": "Yes. It can explain Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain Compare?",
+    "answer": "Yes. It can explain how to select stocks, read score rings, and interpret the radar chart."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain Watchlist?",
+    "answer": "Yes. It can explain how to add, remove, refresh, rank, and use watchlist stocks."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain industry pages?",
+    "answer": "Yes. It can explain industry rankings, Top 5 cards, and the industry radar chart."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI answer support questions?",
+    "answer": "Yes. It should behave like a support agent for the Eval web app."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI give financial advice?",
+    "answer": "No. Eval AI can explain data and app features, but it should not give buy, sell, or hold commands."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI answer coding questions?",
+    "answer": "No. It is limited to Eval app support and Eval stock dashboard questions."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain why a stock has a score?",
+    "answer": "Yes, if the stock is loaded on the dashboard or saved in the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI compare two watchlist stocks?",
+    "answer": "Yes. It can explain differences using watchlist context, but the Compare page is better for visual analysis."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI answer questions about a stock not in my watchlist?",
+    "answer": "Only if that stock is currently loaded on the dashboard. Otherwise, add it to the watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is Eval AI short with answers?",
+    "answer": "It is designed to give quick, clear answers inside the dashboard instead of long essays."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I ask Eval AI first?",
+    "answer": "Try asking: \u201cHow do I use Compare?\u201d or \u201cWhy is this stock\u2019s valuation score low?\u201d"
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain colors?",
+    "answer": "Yes. It can explain what green, yellow, and red mean across score rings and metric bars."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI help with FAQs?",
+    "answer": "Yes. It can answer similar support questions, while the FAQs page provides searchable prewritten answers."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI open pages for me?",
+    "answer": "It can explain where to click, but users still need to click the app navigation buttons themselves."
+  },
+  {
+    "category": "Account",
+    "question": "Why do I need to sign in?",
+    "answer": "Signing in protects user access and allows features like profile, watchlist, and saved dashboard experience to work properly."
+  },
+  {
+    "category": "Account",
+    "question": "Who handles sign-in?",
+    "answer": "Eval uses Clerk for secure sign-in, verification, session handling, and account access."
+  },
+  {
+    "category": "Account",
+    "question": "What if the verification code does not arrive?",
+    "answer": "Wait for the resend timer, then request another code. Also check that the email or phone method shown by Clerk is correct."
+  },
+  {
+    "category": "Account",
+    "question": "What is Clerk?",
+    "answer": "Clerk is the authentication system used to manage secure sign-in and account sessions."
+  },
+  {
+    "category": "Account",
+    "question": "Why is there a verification code?",
+    "answer": "Verification helps confirm that the account belongs to the user and protects access."
+  },
+  {
+    "category": "Account",
+    "question": "Why is there a resend timer?",
+    "answer": "The resend timer prevents repeated code requests too quickly and helps protect account security."
+  },
+  {
+    "category": "Account",
+    "question": "Can I change my profile picture?",
+    "answer": "Profile options are handled through the Clerk profile popup when available."
+  },
+  {
+    "category": "Account",
+    "question": "Why does the profile popup appear?",
+    "answer": "The profile popup lets users view or manage account-related information through Clerk."
+  },
+  {
+    "category": "Account",
+    "question": "What happens if I sign out?",
+    "answer": "You will need to sign back in before using protected dashboard features again."
+  },
+  {
+    "category": "Account",
+    "question": "Does Eval store my password?",
+    "answer": "Authentication is handled by Clerk, so Eval does not directly manage user passwords in the app interface."
+  },
+  {
+    "category": "Account",
+    "question": "Why does Eval have Terms & Conditions?",
+    "answer": "Terms explain the rules, limitations, and educational nature of the app."
+  },
+  {
+    "category": "Account",
+    "question": "Do I need to accept terms?",
+    "answer": "The app can require terms acceptance before allowing full dashboard access."
+  },
+  {
+    "category": "Account",
+    "question": "Why does the dashboard show my name?",
+    "answer": "The dashboard uses account information from the signed-in user profile."
+  },
+  {
+    "category": "Account",
+    "question": "Can I use Eval without signing in?",
+    "answer": "Some public pages may be viewable, but dashboard functionality generally requires signing in."
+  },
+  {
+    "category": "Account",
+    "question": "What if sign-in fails?",
+    "answer": "Check your code, internet connection, and Clerk prompts. Then try again or use the Contact page if issues continue."
+  },
+  {
+    "category": "Account",
+    "question": "What if I forgot my password?",
+    "answer": "Use Clerk\u2019s recovery or reset flow if it is available on the sign-in screen."
+  },
+  {
+    "category": "Account",
+    "question": "Why does the profile glow appear?",
+    "answer": "The profile display is part of the app\u2019s visual design around the user account area."
+  },
+  {
+    "category": "Account",
+    "question": "Is my watchlist tied to my account?",
+    "answer": "The app is designed so watchlist and user-specific dashboard behavior can be connected to the signed-in user."
+  },
+  {
+    "category": "Account",
+    "question": "Can multiple users have different watchlists?",
+    "answer": "Yes. Each signed-in user can have their own dashboard state and saved tickers when connected properly."
+  },
+  {
+    "category": "Account",
+    "question": "Where do I find account support?",
+    "answer": "Use the Contact page or ask Eval AI where account and support options are located."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is a metric N/A?",
+    "answer": "A metric can show N/A when the required data is missing, unavailable, delayed, or not returned by the data provider for that ticker."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does a stock take time to load?",
+    "answer": "Eval may be pulling market data, company data, news, rankings, and AI summaries. Some requests can take longer depending on the provider."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does the radar chart say data is loading?",
+    "answer": "That usually means the full category data for the selected stocks has not finished loading or caching yet."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is the app educational only?",
+    "answer": "Eval explains company data and scores, but it does not provide licensed financial advice or guaranteed investment recommendations."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why did the app not find my ticker?",
+    "answer": "The ticker may be invalid, unsupported, delisted, misspelled, or unavailable from the data provider."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does the page look different on mobile?",
+    "answer": "The mobile layout is optimized for portrait screens, so some sections stack vertically or move into the dropdown."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why can I not scroll enough on mobile?",
+    "answer": "If a section feels cut off, refresh the page and keep the device in portrait mode. The layout is built for vertical scrolling."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why are scores different after refresh?",
+    "answer": "Refreshing can pull updated data or use a newer cached report."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is news sentiment missing?",
+    "answer": "News sentiment may be missing if no recent relevant articles are returned for that ticker."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is industry ranking missing?",
+    "answer": "Industry ranking may be unavailable if the app cannot classify the ticker or load enough peer companies."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does the chart look empty?",
+    "answer": "A chart can look empty when the underlying category scores are not loaded yet."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does Compare not let me save?",
+    "answer": "You need to select at least 2 and no more than 5 watchlist stocks."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is Contact hidden on mobile?",
+    "answer": "The dropdown is designed to appear above dashboard content. If it still hides, refresh after applying the latest styles."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does the website cache scores?",
+    "answer": "Caching reduces API calls, improves speed, and helps prevent provider rate-limit issues."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why might Finnhub data be limited?",
+    "answer": "Free or lower-tier data plans can have limits, delays, missing fields, or rate limits."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if the app is blank?",
+    "answer": "Refresh the page, check deployment status, and make sure the latest frontend and backend files were uploaded."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does AI not answer?",
+    "answer": "Eval AI may need the OpenAI key connected, or the question may be outside the allowed Eval support/watchlist scope."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why does a button do nothing?",
+    "answer": "The feature may need data first. For example, Compare needs watchlist stocks before it can compare."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is the score ring color wrong?",
+    "answer": "Score colors come from the app\u2019s thresholds and CSS. Refresh after deploying updated style files."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I report to support?",
+    "answer": "Send the page, ticker, what you clicked, what you expected, and what actually happened."
   }
 ];
 
@@ -2404,7 +3420,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
     return matchesCategory && matchesQuery;
   });
 
-  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 18);
+  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 24);
 
   return (
     <main className="faq-page">
