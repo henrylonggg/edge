@@ -21512,3 +21512,149 @@ textarea[placeholder*="Eval interface"]::placeholder {
   border: 1px solid rgba(255,255,255,.13) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
 }
+
+
+/* =========================================================
+   COMPARE 2–5 + CLICKABLE RADAR LEGENDS
+========================================================= */
+
+.clickable-radar-legend button,
+.compare-radar-legend button,
+.industry-radar-legend button {
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 6px 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.055) !important;
+  color: rgba(255,255,255,.88) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+  cursor: pointer !important;
+  transition: opacity .15s ease, transform .15s ease, border-color .15s ease, background .15s ease !important;
+}
+
+.clickable-radar-legend button:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.075) !important;
+}
+
+.clickable-radar-legend button.radar-hidden {
+  opacity: .34 !important;
+  filter: grayscale(1) !important;
+  text-decoration: line-through !important;
+}
+
+.clickable-radar-legend button i {
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 999px !important;
+  display: inline-block !important;
+}
+
+/* 4th and 5th colors for Compare radar */
+.radar-fourth {
+  fill: rgba(255,227,95,.10) !important;
+  stroke: rgba(255,227,95,.90) !important;
+}
+
+.radar-fifth {
+  fill: rgba(255,255,255,.08) !important;
+  stroke: rgba(255,255,255,.88) !important;
+}
+
+.radar-fourth-dot {
+  fill: #ffe35f !important;
+}
+
+.radar-fifth-dot {
+  fill: #ffffff !important;
+}
+
+.compare-radar-legend .legend-4,
+.compare-radar-legend .legend-4 i {
+  color: #ffe35f !important;
+}
+
+.compare-radar-legend .legend-4 i {
+  background: #ffe35f !important;
+}
+
+.compare-radar-legend .legend-5,
+.compare-radar-legend .legend-5 i {
+  color: #ffffff !important;
+}
+
+.compare-radar-legend .legend-5 i {
+  background: #ffffff !important;
+}
+
+/* Better score card layout when comparing 4 or 5 */
+.compare-score-row.compare-score-count-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.compare-score-row.compare-score-count-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+.compare-score-row.compare-score-count-4 .compare-score-card,
+.compare-score-row.compare-score-count-5 .compare-score-card {
+  min-height: 150px !important;
+  padding: 12px 8px !important;
+}
+
+.compare-score-row.compare-score-count-4 .compare-score-ring,
+.compare-score-row.compare-score-count-5 .compare-score-ring {
+  width: 104px !important;
+  height: 104px !important;
+}
+
+.compare-score-row.compare-score-count-4 .compare-score-ring strong,
+.compare-score-row.compare-score-count-5 .compare-score-ring strong {
+  font-size: 32px !important;
+}
+
+/* Note under radar */
+.radar-toggle-note {
+  margin: 6px 0 0 !important;
+  text-align: center !important;
+  color: rgba(255,255,255,.52) !important;
+  font-size: 11px !important;
+}
+
+/* Compare selection UI now supports 5 */
+.compare-select-count strong::after {
+  content: "" !important;
+}
+
+/* Mobile: keep side-by-side but scale down for 4/5 */
+@media (max-width: 780px) {
+  .compare-score-row.compare-score-count-4,
+  .compare-score-row.compare-score-count-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .compare-score-row.compare-score-count-4 .compare-score-card,
+  .compare-score-row.compare-score-count-5 .compare-score-card {
+    min-height: 134px !important;
+  }
+
+  .compare-score-row.compare-score-count-4 .compare-score-ring,
+  .compare-score-row.compare-score-count-5 .compare-score-ring {
+    width: 92px !important;
+    height: 92px !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .compare-score-row.compare-score-count-4,
+  .compare-score-row.compare-score-count-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
