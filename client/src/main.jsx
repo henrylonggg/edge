@@ -1,3 +1,4 @@
+// Eval update: FAQs dropdown tab with live search.
 // Eval update: compare 2-5 stocks and clickable radar legends.
 // Eval update: AI assistant expanded as support agent.
 // Eval update: AI assistant gradient response and limited prompt text.
@@ -904,6 +905,17 @@ function App() {
     );
   }
 
+  if (view === "faqs") {
+    return (
+      <FaqPage
+        onBack={() => setView("dashboard")}
+        onHome={() => setView("landing")}
+        onTerms={() => setView("terms")}
+        onSupport={() => setView("support")}
+      />
+    );
+  }
+
   return (
     <main className="app-shell">
 
@@ -1038,6 +1050,9 @@ function App() {
                       <button type="button" onClick={() => goMenu("terms")}>
                         Terms & Conditions
                       </button>
+                      <button type="button" onClick={() => goMenu("faqs")}>
+                        FAQs
+                      </button>
                       <button type="button" onClick={() => goMenu("support")}>
                         Contact
                       </button>
@@ -1061,6 +1076,9 @@ function App() {
                       </button>
                       <button type="button" onClick={() => goMenu("terms")}>
                         Terms & Conditions
+                      </button>
+                      <button type="button" onClick={() => goMenu("faqs")}>
+                        FAQs
                       </button>
                       <button type="button" onClick={() => goMenu("support")}>
                         Contact
@@ -2081,6 +2099,400 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
     </nav>
   );
 }
+
+
+const EVAL_FAQS = [
+  {
+    category: "Getting started",
+    question: "What is Eval?",
+    answer: "Eval is a stock-evaluation dashboard that turns company data, price movement, risk, news sentiment, and category metrics into one easy-to-read Eval Score."
+  },
+  {
+    category: "Getting started",
+    question: "How do I search for a stock?",
+    answer: "Type a ticker into the search bar, then click the search icon. Eval loads the company report, price card, risk card, news sentiment, category metrics, and available industry data."
+  },
+  {
+    category: "Getting started",
+    question: "Why does the dashboard say no stock report loaded yet?",
+    answer: "That means no ticker is currently selected. Search a ticker in the top bar to generate the first Eval report."
+  },
+  {
+    category: "Getting started",
+    question: "Can I click the Eval logo?",
+    answer: "Yes. Clicking the Eval logo or Eval wordmark takes you back to the homepage."
+  },
+  {
+    category: "Navigation",
+    question: "What is inside the dropdown menu?",
+    answer: "The dropdown menu opens key pages like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact. On mobile and tablet, it also includes Watchlist."
+  },
+  {
+    category: "Navigation",
+    question: "Why is Watchlist not in the desktop dropdown?",
+    answer: "On desktop, the Watchlist is already visible on the dashboard, so the dropdown keeps it removed to avoid duplicate navigation. On mobile and tablet, Watchlist appears in the dropdown."
+  },
+  {
+    category: "Navigation",
+    question: "How do I contact support?",
+    answer: "Open the dropdown menu and click Contact. The support page shows the Eval support contact information."
+  },
+  {
+    category: "Navigation",
+    question: "Where are Terms & Conditions?",
+    answer: "Open the dropdown menu and click Terms & Conditions. That page explains the app terms, limitations, and user agreement."
+  },
+  {
+    category: "Eval Score",
+    question: "What is the Eval Score?",
+    answer: "The Eval Score is a 0.0 to 10.0 rating that summarizes the company’s overall dashboard strength based on categories like growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
+  },
+  {
+    category: "Eval Score",
+    question: "Is the Eval Score a buy or sell rating?",
+    answer: "No. The Eval Score is an educational company-evaluation score, not a buy, sell, or hold recommendation."
+  },
+  {
+    category: "Eval Score",
+    question: "What do the score colors mean?",
+    answer: "Green means stronger, yellow means mixed or average, and red means weaker. The colors help users quickly understand whether a score looks strong, moderate, or low."
+  },
+  {
+    category: "Eval Score",
+    question: "Why does a stock have a high Eval Score?",
+    answer: "A high score usually means the company has stronger category ratings across several areas such as growth, profitability, momentum, financial health, and news sentiment."
+  },
+  {
+    category: "Eval Score",
+    question: "Why does a stock have a low Eval Score?",
+    answer: "A lower score usually means the company has weaker category ratings, valuation pressure, risk issues, poor momentum, weak profitability, or negative news sentiment."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Growth mean?",
+    answer: "Growth shows how quickly the company is expanding sales and earnings. Higher growth scores usually mean the business is increasing revenue or earnings more strongly."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Profitability mean?",
+    answer: "Profitability shows how efficiently the company turns revenue into profit. Strong margins and return metrics usually improve this score."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Financial Health mean?",
+    answer: "Financial Health shows balance-sheet strength, debt risk, and stability. Higher scores usually mean the company looks easier to handle financially."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Valuation mean?",
+    answer: "Valuation shows whether the stock price looks reasonable compared with company fundamentals. A higher score generally means valuation looks more attractive."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Momentum mean?",
+    answer: "Momentum shows recent stock strength and trend direction. Higher scores usually mean the market has been rewarding the stock lately."
+  },
+  {
+    category: "Metric cards",
+    question: "What does Pullback mean?",
+    answer: "Pullback shows whether the stock has cooled off enough to look more attractive from a recent-price perspective. It is not a buy signal by itself."
+  },
+  {
+    category: "Metric cards",
+    question: "What does News Sentiment mean?",
+    answer: "News Sentiment summarizes recent headlines and article impact into a score. A higher number means the recent news looks more positive for the stock."
+  },
+  {
+    category: "Metric cards",
+    question: "What are the bar charts?",
+    answer: "The bar charts show each category score from 0 to 10. Longer bars mean stronger category scores."
+  },
+  {
+    category: "Metric cards",
+    question: "Why are the score numbers white?",
+    answer: "The numbers are kept white for readability. The bar color and ring color show the strength range instead."
+  },
+  {
+    category: "Metric popups",
+    question: "What does the question mark button do?",
+    answer: "The question mark button opens a popup explaining what data or calculations were used for that score."
+  },
+  {
+    category: "Metric popups",
+    question: "How do I close a metric popup?",
+    answer: "Click the small X button in the popup or click the question mark again if that popup supports toggling."
+  },
+  {
+    category: "Price and risk",
+    question: "What does the Price card show?",
+    answer: "The Price card shows the latest available stock price and the daily percent change when available."
+  },
+  {
+    category: "Price and risk",
+    question: "What does the Risk card mean?",
+    answer: "Risk summarizes balance-sheet and market-risk signals into a simple Low, Medium, or High label."
+  },
+  {
+    category: "Price and risk",
+    question: "Why can risk be high even if the Eval Score is good?",
+    answer: "A company can have strong growth or momentum but still carry risk from volatility, leverage, valuation, or financial-stability concerns."
+  },
+  {
+    category: "Watchlist",
+    question: "How do I add a stock to my watchlist?",
+    answer: "Search a ticker, then click the plus button on the report card or add the ticker directly from the Watchlist panel."
+  },
+  {
+    category: "Watchlist",
+    question: "How many stocks can I save in the watchlist?",
+    answer: "The dashboard watchlist currently supports up to 15 stocks."
+  },
+  {
+    category: "Watchlist",
+    question: "What does the watchlist ranking mean?",
+    answer: "The watchlist sorts saved stocks by Eval Score so users can quickly see which saved companies currently rank higher."
+  },
+  {
+    category: "Watchlist",
+    question: "How do I remove a stock from the watchlist?",
+    answer: "Click the trash/delete button next to the ticker in the Watchlist panel."
+  },
+  {
+    category: "Watchlist",
+    question: "What does the refresh button do on the watchlist?",
+    answer: "The refresh button reloads the saved watchlist stocks and updates their scores when new data is available."
+  },
+  {
+    category: "Compare",
+    question: "What does Compare do?",
+    answer: "Compare lets users choose 2 to 5 watchlist stocks and view their Eval Scores and category ratings side by side."
+  },
+  {
+    category: "Compare",
+    question: "How many stocks can I compare?",
+    answer: "You can compare a minimum of 2 stocks and a maximum of 5 stocks at a time."
+  },
+  {
+    category: "Compare",
+    question: "Why do stocks need to be in my watchlist before comparing?",
+    answer: "Compare uses saved dashboard data, so tickers must be in the watchlist before Eval can compare them."
+  },
+  {
+    category: "Compare",
+    question: "What does the Compare radar chart show?",
+    answer: "The radar chart shows the selected stocks across the seven Eval categories. Wider shapes generally mean stronger scores across more areas."
+  },
+  {
+    category: "Compare",
+    question: "Can I hide a stock on the radar chart?",
+    answer: "Yes. Click a ticker label above the radar chart to hide that stock. Click it again to show it."
+  },
+  {
+    category: "Industry rankings",
+    question: "What is an industry ranking page?",
+    answer: "The industry ranking page compares stocks inside a similar industry group and shows the highest-scoring companies Eval found for that industry."
+  },
+  {
+    category: "Industry rankings",
+    question: "How do I open an industry page?",
+    answer: "Click the industry name under the company ticker inside the main stock report card."
+  },
+  {
+    category: "Industry rankings",
+    question: "What does the industry Top 5 mean?",
+    answer: "The Top 5 are the highest-ranked stocks Eval found in that industry based on current Eval Score calculations."
+  },
+  {
+    category: "Industry rankings",
+    question: "What does the industry radar chart show?",
+    answer: "The industry radar chart plots the Top 5 stocks across the seven Eval categories so users can compare strengths and weaknesses visually."
+  },
+  {
+    category: "Industry rankings",
+    question: "Can I hide a stock on the industry radar chart?",
+    answer: "Yes. Click the ticker label above the radar chart to hide or show that company."
+  },
+  {
+    category: "News sentiment",
+    question: "What is News Sentiment?",
+    answer: "News Sentiment uses recent stock-related articles to estimate whether the latest news appears positive, neutral, or negative for the company."
+  },
+  {
+    category: "News sentiment",
+    question: "What do the news cards show?",
+    answer: "News cards show recent article topics, impact weighting, sentiment score, and a short explanation of why the article matters."
+  },
+  {
+    category: "News sentiment",
+    question: "What does Read article do?",
+    answer: "Read article opens the original article source when a valid article link is available."
+  },
+  {
+    category: "News sentiment",
+    question: "Why can news sentiment change?",
+    answer: "News sentiment can change when newer headlines replace older ones or when the latest articles are more positive or negative."
+  },
+  {
+    category: "Eval AI",
+    question: "What can Eval AI answer?",
+    answer: "Eval AI can answer support questions about the app, navigation, dashboard features, metrics, compare, watchlist, industry pages, news sentiment, and loaded or watchlist-saved stocks."
+  },
+  {
+    category: "Eval AI",
+    question: "Can Eval AI answer anything?",
+    answer: "No. Eval AI is limited to Eval app support and stock questions tied to the current dashboard or the user’s watchlist."
+  },
+  {
+    category: "Eval AI",
+    question: "Why will Eval AI not answer a specific stock question?",
+    answer: "Specific stock questions require that ticker to be loaded on the dashboard or saved in the watchlist first."
+  },
+  {
+    category: "Eval AI",
+    question: "Can Eval AI help users navigate?",
+    answer: "Yes. Eval AI is meant to act like a support agent and explain where features are, what buttons do, and how to use the app."
+  },
+  {
+    category: "Account",
+    question: "Why do I need to sign in?",
+    answer: "Signing in protects user access and allows features like profile, watchlist, and saved dashboard experience to work properly."
+  },
+  {
+    category: "Account",
+    question: "Who handles sign-in?",
+    answer: "Eval uses Clerk for secure sign-in, verification, session handling, and account access."
+  },
+  {
+    category: "Account",
+    question: "What if the verification code does not arrive?",
+    answer: "Wait for the resend timer, then request another code. Also check that the email or phone method shown by Clerk is correct."
+  },
+  {
+    category: "Troubleshooting",
+    question: "Why is a metric N/A?",
+    answer: "A metric can show N/A when the required data is missing, unavailable, delayed, or not returned by the data provider for that ticker."
+  },
+  {
+    category: "Troubleshooting",
+    question: "Why does a stock take time to load?",
+    answer: "Eval may be pulling market data, company data, news, rankings, and AI summaries. Some requests can take longer depending on the provider."
+  },
+  {
+    category: "Troubleshooting",
+    question: "Why does the radar chart say data is loading?",
+    answer: "That usually means the full category data for the selected stocks has not finished loading or caching yet."
+  },
+  {
+    category: "Troubleshooting",
+    question: "Why is the app educational only?",
+    answer: "Eval explains company data and scores, but it does not provide licensed financial advice or guaranteed investment recommendations."
+  }
+];
+
+function FaqPage({ onBack, onHome, onTerms, onSupport }) {
+  const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const categories = ["All", ...Array.from(new Set(EVAL_FAQS.map((item) => item.category)))];
+
+  const normalized = query.trim().toLowerCase();
+
+  const filteredFaqs = EVAL_FAQS.filter((item) => {
+    const matchesCategory = activeCategory === "All" || item.category === activeCategory;
+    const haystack = `${item.category} ${item.question} ${item.answer}`.toLowerCase();
+    const matchesQuery = !normalized || haystack.includes(normalized);
+    return matchesCategory && matchesQuery;
+  });
+
+  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 18);
+
+  return (
+    <main className="faq-page">
+      <section className="faq-shell">
+        <div className="faq-topbar">
+          <button className="back-btn" type="button" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+
+          <div className="faq-mini-nav">
+            <button type="button" onClick={onHome}>
+              Homepage
+            </button>
+            <button type="button" onClick={onTerms}>
+              Terms & Conditions
+            </button>
+            <button type="button" onClick={onSupport}>
+              Contact
+            </button>
+          </div>
+        </div>
+
+        <div className="faq-hero">
+          <div className="section-title">
+            <HelpCircle size={17} /> FAQs
+          </div>
+          <h1>Eval help center</h1>
+          <p>
+            Search common questions about the dashboard, score rings, metrics, watchlist, compare,
+            industry rankings, news sentiment, Eval AI, and account basics.
+          </p>
+        </div>
+
+        <div className="faq-search-card">
+          <label htmlFor="faq-search">Search FAQs</label>
+          <input
+            id="faq-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Start typing: watchlist, compare, risk, news sentiment..."
+            autoComplete="off"
+          />
+          <span>{filteredFaqs.length} result{filteredFaqs.length === 1 ? "" : "s"}</span>
+        </div>
+
+        <div className="faq-category-row">
+          {categories.map((category) => (
+            <button
+              type="button"
+              key={category}
+              className={activeCategory === category ? "active" : ""}
+              onClick={() => setActiveCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        {shownFaqs.length ? (
+          <div className="faq-grid">
+            {shownFaqs.map((item) => (
+              <details className="faq-card" key={`${item.category}-${item.question}`}>
+                <summary>
+                  <span>{item.category}</span>
+                  <strong>{item.question}</strong>
+                </summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <div className="faq-empty">
+            <HelpCircle size={30} />
+            <h3>No FAQ matches that search yet</h3>
+            <p>Try a shorter word like “score,” “watchlist,” “compare,” “risk,” or “news.”</p>
+          </div>
+        )}
+
+        {!normalized && filteredFaqs.length > shownFaqs.length && (
+          <p className="faq-search-hint">
+            Type in the search box to instantly search all {EVAL_FAQS.length} FAQs.
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}
+
 
 function SupportContactPage({ onBack, onHome, onTerms }) {
   return (
