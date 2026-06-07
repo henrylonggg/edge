@@ -42,12 +42,12 @@ app.use(
   })
 );
 
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 224 hours
 const analysisCache = new Map();
 const lastValidAnalysisCache = new Map();
 const industryCache = new Map();
 const tickerLookupCache = { savedAt: 0, data: [] };
-const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for FMP stock list
+const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 224 hours for FMP stock list
 
 const INDUSTRY_UNIVERSES = {
   Technology: ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
@@ -108,14 +108,12 @@ function cleanTicker(symbol) {
 function isCommonStockLike(item = {}) {
   const symbol = cleanTicker(item.symbol || item.ticker);
   const name = String(item.name || item.companyName || "").trim();
-  const exchange = String(item.exchangeShortName || item.exchange || "").toUpperCase();
   const type = String(item.type || item.securityType || "").toLowerCase();
 
   if (!symbol || !name) return false;
-  if (symbol.length > 8) return false;
+  if (symbol.length > 10) return false;
   if (/[=/^]/.test(symbol)) return false;
-  if (["ETF", "MUTUAL_FUND", "INDEX", "CRYPTO", "FOREX"].includes(exchange)) return false;
-  if (type && /(etf|fund|trust|warrant|unit|note|preferred|bond|crypto|forex|index)/i.test(type)) return false;
+  if (type && /(etf|fund|warrant|unit|note|preferred|bond|crypto|forex|index)/i.test(type)) return false;
 
   return true;
 }
@@ -126,18 +124,27 @@ async function fetchFmpTickerList() {
     throw new Error("Missing FMP_API_KEY in Render environment variables.");
   }
 
+  // Legacy endpoint is the most reliable for the broad 6,000+ symbol list.
+  // Stable endpoint stays as backup.
   const candidates = [
-    `https://financialmodelingprep.com/stable/stock-list?apikey=${encodeURIComponent(apiKey)}`,
     `https://financialmodelingprep.com/api/v3/stock/list?apikey=${encodeURIComponent(apiKey)}`,
+    `https://financialmodelingprep.com/stable/stock-list?apikey=${encodeURIComponent(apiKey)}`,
   ];
 
   for (const url of candidates) {
     try {
       const response = await fetch(url);
-      const data = await response.json().catch(() => null);
+      const raw = await response.text();
+      let data = null;
+
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = null;
+      }
 
       if (!response.ok || !Array.isArray(data)) {
-        console.warn("FMP ticker list failed:", response.status, url);
+        console.warn("FMP ticker list failed:", response.status, raw?.slice?.(0, 180) || url);
         continue;
       }
 
@@ -163,7 +170,7 @@ async function fetchFmpTickerList() {
     }
   }
 
-  throw new Error("Could not load FMP ticker list.");
+  throw new Error("Could not load FMP ticker list. Confirm FMP_API_KEY is set in Render and redeploy the backend.");
 }
 
 async function getFmpTickerLookupList() {
@@ -221,7 +228,7 @@ function withCacheInfo(data, cacheInfo) {
     cache: {
       ...(data?.cache || {}),
       ...cacheInfo,
-      ttlHours: 4,
+      ttlHours: 24,
     },
   };
 }
@@ -285,8 +292,8 @@ app.get("/", (req, res) => {
     ok: true,
     service: "Eval backend",
     routes: ["/api/health", "/api/ticker-lookup", "/api/analyze/:symbol", "/api/industry-top/:industry"],
-    cacheTtlHours: 4,
-    dataProviderPlan: "Massive + FMP + Finnhub with last-valid fallback",
+    cacheTtlHours: 24,
+    dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
   });
 });
 
@@ -300,11 +307,11 @@ app.get("/api/health", (req, res) => {
       fmp: Boolean(process.env.FMP_API_KEY),
       openai: Boolean(process.env.OPENAI_API_KEY),
     },
-    cacheTtlHours: 4,
+    cacheTtlHours: 24,
     cacheSize: analysisCache.size,
     lastValidCacheSize: lastValidAnalysisCache.size,
     tickerLookupCacheSize: tickerLookupCache.data.length,
-    fallbackPolicy: "Massive for price/history, FMP for fundamentals, Finnhub for profile/news, lastValid cache as final safety net.",
+    fallbackPolicy: "Massive for price/history, light FMP for fundamentals, Finnhub for profile/news/fallback metrics, lastValid cache as final safety net.",
   });
 });
 
@@ -385,7 +392,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) {
       return res.json({
         ...cached.data,
-        cache: { hit: true, ttlHours: 4 },
+        cache: { hit: true, ttlHours: 24 },
       });
     }
 
@@ -421,8 +428,8 @@ app.get("/api/industry-top/:industry", async (req, res) => {
       candidates: universe,
       leaders,
       limit: 5,
-      cachedForHours: 4,
-      cache: { hit: false, ttlHours: 4 },
+      cachedForHours: 24,
+      cache: { hit: false, ttlHours: 24 },
     };
 
     industryCache.set(cacheKey, {
