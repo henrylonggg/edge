@@ -2197,8 +2197,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
           </div>
           <h1>Find a ticker by company name.</h1>
           <p>
-            Start typing a company name and Eval filters FMP's stock list. The ticker on the right is clickable
-            and opens the Analyze dashboard with that company loaded.
+            Start typing a company name and Eval filters FMP’s stock list. Click the ticker on the right to load that company on the Analyze dashboard.
           </p>
         </div>
 
