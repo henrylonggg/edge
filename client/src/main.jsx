@@ -1,3 +1,4 @@
+// Eval update: mobile dropdown always front with reliable click-away.
 // Eval update: expanded FAQ library with at least 20 per category.
 // Eval update: FAQs dropdown tab with live search.
 // Eval update: compare 2-5 stocks and clickable radar legends.
@@ -1029,6 +1030,7 @@ function App() {
                     <button
                       type="button"
                       className="dropdown-click-away"
+                      onPointerDown={() => setMenuOpen(false)}
                       onMouseDown={() => setMenuOpen(false)}
                       onTouchStart={() => setMenuOpen(false)}
                       onClick={() => setMenuOpen(false)}
