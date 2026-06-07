@@ -1,6 +1,9 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const MASSIVE_BASE_URL = "https://api.massive.com";
+const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
+const FMP_LEGACY_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
@@ -23,7 +26,7 @@ function clamp(value, min = 0, max = 10) {
   return Math.max(min, Math.min(max, number));
 }
 
-function metric(value, suffix = "", source = "Finnhub", formula = "") {
+function metric(value, suffix = "", source = "Multi-source", formula = "") {
   const number = safeNumber(value);
   return {
     value: number,
@@ -91,6 +94,319 @@ async function fetchFinnhubOptional(path, params = {}) {
     console.warn(`Optional Finnhub fetch failed for ${path}:`, error?.message || error);
     return null;
   }
+}
+
+async function fetchJsonOptional(url, providerName) {
+  try {
+    const response = await fetch(url);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.warn(`${providerName} request failed: ${response.status} ${url.pathname || ""}`);
+      return null;
+    }
+
+    if (data?.error || data?.["Error Message"] || data?.["Note"]) {
+      console.warn(`${providerName} returned an API message:`, data?.error || data?.["Error Message"] || data?.["Note"]);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.warn(`${providerName} optional fetch failed:`, error?.message || error);
+    return null;
+  }
+}
+
+async function fetchMassiveOptional(path, params = {}) {
+  const apiKey = process.env.MASSIVE_API_KEY;
+  if (!apiKey) return null;
+
+  const url = new URL(`${MASSIVE_BASE_URL}${path}`);
+  Object.entries({ ...params, apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return fetchJsonOptional(url, "Massive");
+}
+
+async function fetchFmpStableOptional(path, params = {}) {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) return null;
+
+  const url = new URL(`${FMP_STABLE_BASE_URL}${path}`);
+  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return fetchJsonOptional(url, "FMP stable");
+}
+
+async function fetchFmpLegacyOptional(path, params = {}) {
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) return null;
+
+  const url = new URL(`${FMP_LEGACY_BASE_URL}${path}`);
+  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return fetchJsonOptional(url, "FMP legacy");
+}
+
+async function fetchFmpListOptional(stablePath, legacyPath, params = {}) {
+  const stable = await fetchFmpStableOptional(stablePath, params);
+  if (Array.isArray(stable) && stable.length) return stable;
+  if (stable && typeof stable === "object" && Object.keys(stable).length) return Array.isArray(stable) ? stable : [stable];
+
+  const legacy = await fetchFmpLegacyOptional(legacyPath, params);
+  if (Array.isArray(legacy)) return legacy;
+  if (legacy && typeof legacy === "object") return [legacy];
+  return [];
+}
+
+function latestObject(list) {
+  return Array.isArray(list) && list.length ? list[0] || {} : {};
+}
+
+function firstFmpNumber(object, ...keys) {
+  for (const key of keys) {
+    const value = safeNumber(object?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+function fmpPercent(value) {
+  const n = safeNumber(value);
+  if (n === null) return null;
+  return Math.abs(n) <= 1.5 ? n * 100 : n;
+}
+
+async function fetchFmpFundamentals(symbol) {
+  if (!process.env.FMP_API_KEY) {
+    return { metrics: {}, profile: null, source: "FMP unavailable" };
+  }
+
+  const [profileList, keyMetricsList, keyMetricsTtmList, ratiosList, ratiosTtmList, incomeList, balanceList, cashFlowList, growthList] =
+    await Promise.all([
+      fetchFmpListOptional("/profile", `/profile/${symbol}`, { symbol, limit: 1 }),
+      fetchFmpListOptional("/key-metrics", `/key-metrics/${symbol}`, { symbol, limit: 5, period: "annual" }),
+      fetchFmpListOptional("/key-metrics-ttm", `/key-metrics-ttm/${symbol}`, { symbol }),
+      fetchFmpListOptional("/ratios", `/ratios/${symbol}`, { symbol, limit: 5, period: "annual" }),
+      fetchFmpListOptional("/ratios-ttm", `/ratios-ttm/${symbol}`, { symbol }),
+      fetchFmpListOptional("/income-statement", `/income-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
+      fetchFmpListOptional("/balance-sheet-statement", `/balance-sheet-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
+      fetchFmpListOptional("/cash-flow-statement", `/cash-flow-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
+      fetchFmpListOptional("/financial-growth", `/financial-growth/${symbol}`, { symbol, limit: 5, period: "annual" }),
+    ]);
+
+  const profile = latestObject(profileList);
+  const km = latestObject(keyMetricsList);
+  const kmTtm = latestObject(keyMetricsTtmList);
+  const ratios = latestObject(ratiosList);
+  const ratiosTtm = latestObject(ratiosTtmList);
+  const income = latestObject(incomeList);
+  const incomePrev = incomeList?.[1] || {};
+  const balance = latestObject(balanceList);
+  const cashFlow = latestObject(cashFlowList);
+  const growth = latestObject(growthList);
+
+  const revenue = firstFmpNumber(income, "revenue");
+  const revenuePrev = firstFmpNumber(incomePrev, "revenue");
+  const netIncome = firstFmpNumber(income, "netIncome");
+  const netIncomePrev = firstFmpNumber(incomePrev, "netIncome");
+  const eps = firstFmpNumber(income, "eps", "epsdiluted");
+  const epsPrev = firstFmpNumber(incomePrev, "eps", "epsdiluted");
+
+  const yoy = (current, previous) =>
+    current !== null && previous !== null && previous !== 0 ? ((current - previous) / Math.abs(previous)) * 100 : null;
+
+  const metrics = {
+    marketCapM: toMillions(firstFmpNumber(profile, "mktCap", "marketCap")),
+
+    peRatio: firstNumber(firstFmpNumber(kmTtm, "peRatioTTM", "peRatio"), firstFmpNumber(km, "peRatio", "peRatioTTM")),
+    priceToSales: firstNumber(firstFmpNumber(kmTtm, "priceToSalesRatioTTM", "priceToSalesRatio"), firstFmpNumber(km, "priceToSalesRatio")),
+    priceToBook: firstNumber(firstFmpNumber(kmTtm, "pbRatioTTM", "pbRatio"), firstFmpNumber(km, "pbRatio")),
+    priceToCashFlow: firstNumber(firstFmpNumber(kmTtm, "pocfratioTTM", "pocfratio"), firstFmpNumber(km, "pocfratio")),
+    priceToFreeCashFlow: firstNumber(firstFmpNumber(kmTtm, "pfcfRatioTTM", "pfcfRatio"), firstFmpNumber(km, "pfcfRatio")),
+    dividendYield: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "dividendYieldTTM", "dividendYield"), firstFmpNumber(ratios, "dividendYield"))),
+
+    revenueGrowth: firstNumber(fmpPercent(firstFmpNumber(growth, "revenueGrowth")), yoy(revenue, revenuePrev)),
+    revenueGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYRevenueGrowthPerShare", "threeYRevenueGrowth")),
+    revenueGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYRevenueGrowthPerShare", "fiveYRevenueGrowth")),
+    epsGrowth: firstNumber(fmpPercent(firstFmpNumber(growth, "epsgrowth", "epsGrowth")), yoy(eps, epsPrev)),
+    epsGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYEpsGrowth")),
+    epsGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYNetIncomeGrowthPerShare", "fiveYEpsGrowth")),
+    netIncomeGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYNetIncomeGrowth")),
+
+    roe: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnEquityTTM", "returnOnEquity"), firstFmpNumber(ratios, "returnOnEquity"))),
+    roa: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnAssetsTTM", "returnOnAssets"), firstFmpNumber(ratios, "returnOnAssets"))),
+    roi: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnCapitalEmployedTTM", "returnOnCapitalEmployed"), firstFmpNumber(ratios, "returnOnCapitalEmployed"))),
+    grossMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "grossProfitMarginTTM", "grossProfitMargin"), firstFmpNumber(ratios, "grossProfitMargin"))),
+    operatingMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "operatingProfitMarginTTM", "operatingProfitMargin"), firstFmpNumber(ratios, "operatingProfitMargin"))),
+    pretaxMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "pretaxProfitMarginTTM", "pretaxProfitMargin"), firstFmpNumber(ratios, "pretaxProfitMargin"))),
+    netMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "netProfitMarginTTM", "netProfitMargin"), firstFmpNumber(ratios, "netProfitMargin"))),
+
+    debtToEquity: firstNumber(firstFmpNumber(ratiosTtm, "debtEquityRatioTTM", "debtEquityRatio"), firstFmpNumber(ratios, "debtEquityRatio")),
+    longTermDebtToEquity: firstNumber(firstFmpNumber(ratiosTtm, "longTermDebtToCapitalizationTTM"), firstFmpNumber(ratios, "longTermDebtToCapitalization")),
+    currentRatio: firstNumber(firstFmpNumber(ratiosTtm, "currentRatioTTM", "currentRatio"), firstFmpNumber(ratios, "currentRatio")),
+    quickRatio: firstNumber(firstFmpNumber(ratiosTtm, "quickRatioTTM", "quickRatio"), firstFmpNumber(ratios, "quickRatio")),
+    cashRatio: firstNumber(firstFmpNumber(ratiosTtm, "cashRatioTTM", "cashRatio"), firstFmpNumber(ratios, "cashRatio")),
+    assetTurnover: firstNumber(firstFmpNumber(ratiosTtm, "assetTurnoverTTM", "assetTurnover"), firstFmpNumber(ratios, "assetTurnover")),
+    interestCoverage: firstNumber(firstFmpNumber(ratiosTtm, "interestCoverageTTM", "interestCoverage"), firstFmpNumber(ratios, "interestCoverage")),
+    cashFlowToDebt: firstNumber(firstFmpNumber(ratiosTtm, "cashFlowToDebtRatioTTM", "cashFlowToDebtRatio"), firstFmpNumber(ratios, "cashFlowToDebtRatio")),
+    operatingCashFlowPerShare: firstNumber(firstFmpNumber(kmTtm, "operatingCashFlowPerShareTTM", "operatingCashFlowPerShare"), firstFmpNumber(km, "operatingCashFlowPerShare")),
+    freeCashFlowPerShare: firstNumber(firstFmpNumber(kmTtm, "freeCashFlowPerShareTTM", "freeCashFlowPerShare"), firstFmpNumber(km, "freeCashFlowPerShare")),
+
+    operatingIncome: firstFmpNumber(income, "operatingIncome"),
+    netIncome,
+    operatingCashFlow: firstFmpNumber(cashFlow, "operatingCashFlow", "netCashProvidedByOperatingActivities"),
+    capex: firstFmpNumber(cashFlow, "capitalExpenditure", "capitalExpenditures"),
+    freeCashFlow: firstFmpNumber(cashFlow, "freeCashFlow"),
+    totalAssets: firstFmpNumber(balance, "totalAssets"),
+    currentLiabilities: firstFmpNumber(balance, "totalCurrentLiabilities"),
+    totalDebt: firstNumber(
+      firstFmpNumber(balance, "totalDebt"),
+      firstFmpNumber(balance, "shortTermDebt") !== null || firstFmpNumber(balance, "longTermDebt") !== null
+        ? (firstFmpNumber(balance, "shortTermDebt") || 0) + (firstFmpNumber(balance, "longTermDebt") || 0)
+        : null
+    ),
+    shareholderEquity: firstFmpNumber(balance, "totalStockholdersEquity", "totalEquity"),
+    cashAndEquivalents: firstFmpNumber(balance, "cashAndCashEquivalents", "cashAndShortTermInvestments"),
+  };
+
+  return {
+    profile,
+    metrics,
+    source: "FMP",
+  };
+}
+
+async function fetchMassiveMarketData(symbol) {
+  if (!process.env.MASSIVE_API_KEY) {
+    return { quote: null, metrics: {}, source: "Massive unavailable" };
+  }
+
+  const toDate = new Date();
+  const fromDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 390);
+  const to = toDate.toISOString().slice(0, 10);
+  const from = fromDate.toISOString().slice(0, 10);
+
+  const aggs = await fetchMassiveOptional(`/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/1/day/${from}/${to}`, {
+    adjusted: "true",
+    sort: "asc",
+    limit: 5000,
+  });
+
+  const rows = Array.isArray(aggs?.results) ? aggs.results.filter((row) => safeNumber(row?.c) !== null) : [];
+  if (!rows.length) return { quote: null, metrics: {}, source: "Massive" };
+
+  const last = rows[rows.length - 1];
+  const prev = rows[rows.length - 2] || null;
+  const currentPrice = safeNumber(last.c);
+  const previousClose = safeNumber(prev?.c);
+  const high52 = rows.reduce((max, row) => {
+    const h = safeNumber(row.h);
+    return h === null ? max : Math.max(max, h);
+  }, -Infinity);
+  const low52 = rows.reduce((min, row) => {
+    const l = safeNumber(row.l);
+    return l === null ? min : Math.min(min, l);
+  }, Infinity);
+
+  const closeDaysAgo = (days) => {
+    if (!rows.length) return null;
+    const target = last.t - days * 24 * 60 * 60 * 1000;
+    let selected = rows[0];
+    for (const row of rows) {
+      if (row.t <= target) selected = row;
+      else break;
+    }
+    return safeNumber(selected?.c);
+  };
+
+  const pctReturn = (days) => {
+    const past = closeDaysAgo(days);
+    return currentPrice !== null && past !== null && past > 0 ? ((currentPrice - past) / past) * 100 : null;
+  };
+
+  const dayChange = currentPrice !== null && previousClose !== null ? currentPrice - previousClose : null;
+  const dayChangePercent = currentPrice !== null && previousClose !== null && previousClose > 0
+    ? ((currentPrice - previousClose) / previousClose) * 100
+    : null;
+
+  return {
+    quote: {
+      c: currentPrice,
+      d: dayChange,
+      dp: dayChangePercent,
+      h: safeNumber(last.h),
+      l: safeNumber(last.l),
+      o: safeNumber(last.o),
+      pc: previousClose,
+    },
+    metrics: {
+      priceReturn4Week: pctReturn(28),
+      priceReturn13Week: pctReturn(91),
+      priceReturn26Week: pctReturn(182),
+      priceReturn52Week: pctReturn(364),
+      weekHigh: Number.isFinite(high52) ? high52 : null,
+      weekLow: Number.isFinite(low52) ? low52 : null,
+      dayChangePercent,
+    },
+    source: "Massive",
+  };
+}
+
+async function fetchMassiveProfile(symbol) {
+  const data = await fetchMassiveOptional(`/v3/reference/tickers/${encodeURIComponent(symbol)}`);
+  return data?.results || null;
+}
+
+function mergeDefined(...objects) {
+  const result = {};
+  for (const object of objects) {
+    if (!object || typeof object !== "object") continue;
+    for (const [key, value] of Object.entries(object)) {
+      if (safeNumber(value) !== null || (typeof value === "string" && value.trim())) {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
+function applyMetricFallbacks(target, primary = {}, fallback = {}) {
+  // Fallback fills only missing values.
+  for (const [key, value] of Object.entries(fallback || {})) {
+    if (scoreInputNumber(target[key]) === null && scoreInputNumber(value) !== null) {
+      target[key] = value;
+    }
+  }
+
+  // Primary source is allowed to overwrite because it is the preferred source for that metric group.
+  for (const [key, value] of Object.entries(primary || {})) {
+    if (scoreInputNumber(value) !== null) {
+      target[key] = value;
+    }
+  }
+
+  return target;
+}
+
+function countValidMetricInputs(values = []) {
+  return values.filter((value) => scoreInputNumber(value) !== null).length;
+}
+
+function isUsableProviderPayload(object) {
+  return object && typeof object === "object" && Object.keys(object).length > 0;
 }
 
 function scoreInputNumber(value) {
@@ -468,10 +784,10 @@ function buildReportedFinancials(reported = {}) {
 
 function buildExtractedMetrics(profile, quote, raw = {}) {
   const currentPrice = safeNumber(quote?.c);
-  const marketCapM = safeNumber(profile?.marketCapitalization);
+  const marketCapM = firstNumber(profile?.marketCapitalization, raw.marketCapM);
 
-  const weekHigh = firstNumber(raw["52WeekHigh"], raw["52WeekHigh"], raw["52WeekHighDate"]);
-  const weekLow = firstNumber(raw["52WeekLow"], raw["52WeekLow"]);
+  const weekHigh = firstNumber(raw.weekHigh, raw["52WeekHigh"], raw["52WeekHighDate"]);
+  const weekLow = firstNumber(raw.weekLow, raw["52WeekLow"]);
 
   const pullbackFromHigh =
     currentPrice !== null && weekHigh !== null && weekHigh > 0
@@ -897,23 +1213,70 @@ export async function buildStockAnalysis(symbol) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
   if (!cleanSymbol) throw new Error("Missing ticker symbol.");
 
-  const [profile, quote, metricsRaw] = await Promise.all([
-    fetchFinnhub("/stock/profile2", { symbol: cleanSymbol }),
-    fetchFinnhub("/quote", { symbol: cleanSymbol }),
+  const [
+    finnhubProfile,
+    finnhubQuote,
+    metricsRaw,
+    financialsReported,
+    massiveMarket,
+    fmpFundamentals,
+    massiveProfile,
+  ] = await Promise.all([
+    fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }),
+    fetchFinnhubOptional("/quote", { symbol: cleanSymbol }),
     fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
+    fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }),
+    fetchMassiveMarketData(cleanSymbol),
+    fetchFmpFundamentals(cleanSymbol),
+    fetchMassiveProfile(cleanSymbol),
   ]);
+
+  const profile = {
+    ...(finnhubProfile || {}),
+    ticker: finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || massiveProfile?.ticker || cleanSymbol,
+    name:
+      finnhubProfile?.name ||
+      fmpFundamentals?.profile?.companyName ||
+      massiveProfile?.name ||
+      cleanSymbol,
+    finnhubIndustry:
+      finnhubProfile?.finnhubIndustry ||
+      fmpFundamentals?.profile?.sector ||
+      fmpFundamentals?.profile?.industry ||
+      massiveProfile?.sic_description ||
+      massiveProfile?.market ||
+      "Public company",
+    marketCapitalization: firstNumber(
+      finnhubProfile?.marketCapitalization,
+      fmpFundamentals?.metrics?.marketCapM,
+      toMillions(massiveProfile?.market_cap)
+    ),
+    weburl: finnhubProfile?.weburl || fmpFundamentals?.profile?.website || massiveProfile?.homepage_url || "",
+    logo: finnhubProfile?.logo || fmpFundamentals?.profile?.image || "",
+  };
+
+  const quote = {
+    ...(finnhubQuote || {}),
+    ...(massiveMarket?.quote || {}),
+  };
 
   if (!profile || (!profile.ticker && !profile.name)) {
     throw new Error(`No company profile found for ${cleanSymbol}.`);
   }
 
-  const financialsReported = await fetchFinnhubOptional("/stock/financials-reported", {
-    symbol: cleanSymbol,
-    freq: "annual",
-  });
+  const finnhubMetrics = metricsRaw?.metric || {};
+  const fmpMetrics = fmpFundamentals?.metrics || {};
+  const massiveMetrics = massiveMarket?.metrics || {};
 
-  const raw = metricsRaw?.metric || {};
+  const raw = mergeDefined(finnhubMetrics, massiveMetrics);
   const extracted = buildExtractedMetrics(profile, quote, raw);
+
+  // Source priority by responsibility:
+  // FMP = fundamentals, ratios, statements, growth, margins, valuation.
+  // Massive = quote-derived market data, historical returns, 52-week high/low.
+  // Finnhub = profile/news and fallback metrics only.
+  applyMetricFallbacks(extracted, fmpMetrics, finnhubMetrics);
+  applyMetricFallbacks(extracted, massiveMetrics, finnhubMetrics);
 
   const reportedFinancials = buildExactReportedFinancials(financialsReported);
   const reportedLatest = reportedFinancials.latest || {};
@@ -1031,6 +1394,60 @@ export async function buildStockAnalysis(symbol) {
     newsSentiment: newsSentimentScore,
   };
 
+  const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
+  const validInputCounts = {
+    growth: countValidMetricInputs([
+      extracted.revenueGrowth,
+      extracted.revenueGrowthQuarterly,
+      extracted.revenueGrowth3Y,
+      extracted.revenueGrowth5Y,
+      extracted.epsGrowth,
+      extracted.epsGrowth3Y,
+      extracted.epsGrowth5Y,
+      extracted.netIncomeGrowth3Y,
+    ]),
+    profitability: countValidMetricInputs([
+      extracted.operatingMargin,
+      extracted.netMargin,
+      extracted.roe,
+      extracted.roa,
+      extracted.roicCalculated,
+      extracted.freeCashFlowPerShare,
+    ]),
+    financialHealth: countValidMetricInputs([
+      extracted.debtToEquity,
+      extracted.longTermDebtToEquity,
+      extracted.currentRatio,
+      extracted.quickRatio,
+      extracted.cashRatio,
+      extracted.interestCoverage,
+      extracted.cashFlowToDebt,
+      extracted.totalDebt,
+      extracted.shareholderEquity,
+      extracted.cashAndEquivalents,
+    ]),
+    valuation: countValidMetricInputs([
+      extracted.peRatio,
+      extracted.forwardPe,
+      extracted.priceToSales,
+      extracted.priceToBook,
+      extracted.priceToCashFlow,
+      extracted.priceToFreeCashFlow,
+      extracted.pegRatio,
+      extracted.marketCapM,
+    ]),
+    marketData: countValidMetricInputs([
+      extracted.currentPrice,
+      extracted.priceReturn4Week,
+      extracted.priceReturn13Week,
+      extracted.priceReturn26Week,
+      extracted.priceReturn52Week,
+      extracted.weekHigh,
+      extracted.weekLow,
+      extracted.dayChangePercent,
+    ]),
+  };
+
   const edgeScore = availableWeightedAverage(
     [
       { score: growthScore, weight: 0.215 },
@@ -1080,56 +1497,73 @@ export async function buildStockAnalysis(symbol) {
       context: {
         marketCapM: extracted.marketCapM,
       },
+      dataQuality: {
+        validCategoryCount,
+        minRequiredCategories: 5,
+        validInputCounts,
+        providerStatus: {
+          massiveKey: Boolean(process.env.MASSIVE_API_KEY),
+          fmpKey: Boolean(process.env.FMP_API_KEY),
+          finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+        },
+        sources: {
+          price: massiveMarket?.quote ? "Massive" : finnhubQuote ? "Finnhub" : "Unavailable",
+          marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
+          fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
+          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : massiveProfile ? "Massive" : "Unavailable",
+          news: recentNews.length ? "Finnhub + OpenAI" : "Cached/neutral fallback",
+        },
+      },
     },
     metrics: {
-      revenueGrowth: metric(extracted.revenueGrowth, "%", "Finnhub", "Revenue growth YoY"),
-      revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", "Finnhub", "Quarterly revenue growth YoY"),
-      revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", "Finnhub", "3-year revenue growth"),
-      revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", "Finnhub", "5-year revenue growth"),
-      epsGrowth: metric(extracted.epsGrowth, "%", "Finnhub", "EPS growth YoY"),
-      epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", "Finnhub", "3-year EPS growth"),
-      epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", "Finnhub", "5-year EPS growth"),
+      revenueGrowth: metric(extracted.revenueGrowth, "%", "FMP", "Revenue growth YoY"),
+      revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", "FMP", "Quarterly revenue growth YoY"),
+      revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", "FMP", "3-year revenue growth"),
+      revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", "FMP", "5-year revenue growth"),
+      epsGrowth: metric(extracted.epsGrowth, "%", "FMP", "EPS growth YoY"),
+      epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", "FMP", "3-year EPS growth"),
+      epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", "FMP", "5-year EPS growth"),
 
-      roe: metric(extracted.roe, "%", "Finnhub", "Return on equity"),
-      roa: metric(extracted.roa, "%", "Finnhub", "Return on assets"),
-      roi: metric(extracted.roi, "%", "Finnhub", "Return on investment / capital"),
-      grossMargin: metric(extracted.grossMargin, "%", "Finnhub", "Gross profit / revenue"),
-      operatingMargin: metric(extracted.operatingMargin, "%", "Finnhub", "Operating income / revenue"),
-      pretaxMargin: metric(extracted.pretaxMargin, "%", "Finnhub", "Pretax income / revenue"),
-      netMargin: metric(extracted.netMargin, "%", "Finnhub", "Net income / revenue"),
+      roe: metric(extracted.roe, "%", "FMP", "Return on equity"),
+      roa: metric(extracted.roa, "%", "FMP", "Return on assets"),
+      roi: metric(extracted.roi, "%", "FMP", "Return on investment / capital"),
+      grossMargin: metric(extracted.grossMargin, "%", "FMP", "Gross profit / revenue"),
+      operatingMargin: metric(extracted.operatingMargin, "%", "FMP", "Operating income / revenue"),
+      pretaxMargin: metric(extracted.pretaxMargin, "%", "FMP", "Pretax income / revenue"),
+      netMargin: metric(extracted.netMargin, "%", "FMP", "Net income / revenue"),
 
-      debtToEquity: metric(extracted.debtToEquity, "", "Finnhub", "Total debt / equity"),
-      longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", "Finnhub", "Long-term debt / equity"),
-      currentRatio: metric(extracted.currentRatio, "", "Finnhub", "Current assets / current liabilities"),
-      quickRatio: metric(extracted.quickRatio, "", "Finnhub", "Quick assets / current liabilities"),
-      cashRatio: metric(extracted.cashRatio, "", "Finnhub", "Cash / current liabilities"),
-      assetTurnover: metric(extracted.assetTurnover, "", "Finnhub", "Revenue / assets"),
-      interestCoverage: metric(extracted.interestCoverage, "", "Finnhub", "EBIT / interest expense"),
-      cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "Finnhub", "Operating cash flow / total debt"),
-      operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "Finnhub", "Operating cash flow / share"),
-      freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", "Finnhub", "Free cash flow / share"),
-      totalDebtToCapital: metric(extracted.totalDebtToCapital, "", "Finnhub", "Debt / total capital"),
-      netDebtToEbitda: metric(extracted.netDebtToEbitda, "", "Finnhub", "Net debt / EBITDA"),
+      debtToEquity: metric(extracted.debtToEquity, "", "FMP", "Total debt / equity"),
+      longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", "FMP", "Long-term debt / equity"),
+      currentRatio: metric(extracted.currentRatio, "", "FMP", "Current assets / current liabilities"),
+      quickRatio: metric(extracted.quickRatio, "", "FMP", "Quick assets / current liabilities"),
+      cashRatio: metric(extracted.cashRatio, "", "FMP", "Cash / current liabilities"),
+      assetTurnover: metric(extracted.assetTurnover, "", "FMP", "Revenue / assets"),
+      interestCoverage: metric(extracted.interestCoverage, "", "FMP", "EBIT / interest expense"),
+      cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "FMP", "Operating cash flow / total debt"),
+      operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "FMP", "Operating cash flow / share"),
+      freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", "FMP", "Free cash flow / share"),
+      totalDebtToCapital: metric(extracted.totalDebtToCapital, "", "FMP", "Debt / total capital"),
+      netDebtToEbitda: metric(extracted.netDebtToEbitda, "", "FMP", "Net debt / EBITDA"),
 
-      peRatio: metric(extracted.peRatio, "", "Finnhub", "Price / earnings"),
-      forwardPe: metric(extracted.forwardPe, "", "Finnhub", "Forward price / earnings"),
-      pegRatio: metric(extracted.pegRatio, "", "Finnhub", "P/E / growth"),
-      priceToSales: metric(extracted.priceToSales, "", "Finnhub", "Price / sales"),
-      priceToBook: metric(extracted.priceToBook, "", "Finnhub", "Price / book value"),
-      priceToCashFlow: metric(extracted.priceToCashFlow, "", "Finnhub", "Price / cash flow"),
-      priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", "Finnhub", "Price / free cash flow"),
-      dividendYield: metric(extracted.dividendYield, "%", "Finnhub", "Annual dividend yield"),
+      peRatio: metric(extracted.peRatio, "", "FMP", "Price / earnings"),
+      forwardPe: metric(extracted.forwardPe, "", "FMP", "Forward price / earnings"),
+      pegRatio: metric(extracted.pegRatio, "", "FMP", "P/E / growth"),
+      priceToSales: metric(extracted.priceToSales, "", "FMP", "Price / sales"),
+      priceToBook: metric(extracted.priceToBook, "", "FMP", "Price / book value"),
+      priceToCashFlow: metric(extracted.priceToCashFlow, "", "FMP", "Price / cash flow"),
+      priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", "FMP", "Price / free cash flow"),
+      dividendYield: metric(extracted.dividendYield, "%", "FMP", "Annual dividend yield"),
 
-      beta: metric(extracted.beta, "", "Finnhub", "Volatility compared with market"),
-      dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current daily price change"),
-      priceReturn4Week: metric(extracted.priceReturn4Week, "%", "Finnhub", "4-week price return"),
-      priceReturn13Week: metric(extracted.priceReturn13Week, "%", "Finnhub", "13-week price return"),
-      priceReturn26Week: metric(extracted.priceReturn26Week, "%", "Finnhub", "26-week price return"),
-      priceReturn52Week: metric(extracted.priceReturn52Week, "%", "Finnhub", "52-week price return"),
-      distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Calculated", "(Current price - 52-week low) / 52-week low"),
-      pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Calculated", "(52-week high - current price) / 52-week high"),
+      beta: metric(extracted.beta, "", "FMP", "Volatility compared with market"),
+      dayChangePercent: metric(extracted.dayChangePercent, "%", "Massive", "Current daily price change"),
+      priceReturn4Week: metric(extracted.priceReturn4Week, "%", "Massive", "4-week price return"),
+      priceReturn13Week: metric(extracted.priceReturn13Week, "%", "Massive", "13-week price return"),
+      priceReturn26Week: metric(extracted.priceReturn26Week, "%", "Massive", "26-week price return"),
+      priceReturn52Week: metric(extracted.priceReturn52Week, "%", "Massive", "52-week price return"),
+      distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Massive + Calculated", "(Current price - 52-week low) / 52-week low"),
+      pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Massive + Calculated", "(52-week high - current price) / 52-week high"),
 
-      marketCapM: metric(extracted.marketCapM, "M", "Finnhub", "Market capitalization in millions"),
+      marketCapM: metric(extracted.marketCapM, "M", "FMP", "Market capitalization in millions"),
       enterpriseValue: metric(null, "M", "Unavailable", "Disabled in backend reset"),
       ebitda: metric(null, "M", "Unavailable", "Disabled in backend reset"),
       evToEbitda: metric(null, "", "Unavailable", "Disabled in backend reset"),
