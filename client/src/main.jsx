@@ -1,3 +1,4 @@
+// Eval update: native-style dropdown menu.
 // Eval update: mobile dropdown always front with reliable click-away.
 // Eval update: expanded FAQ library with at least 20 per category.
 // Eval update: FAQs dropdown tab with live search.
@@ -1037,53 +1038,53 @@ function App() {
                       aria-label="Close menu"
                     />
 
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop">
-                      <button type="button" onClick={() => goMenu("assistant")}>
+                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop eval-select-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
-                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
+                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
 
                       <div className="dropdown-divider" />
 
-                      <button type="button" onClick={() => goMenu("landing")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
                         Homepage
                       </button>
-                      <button type="button" onClick={() => goMenu("terms")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
                         Terms & Conditions
                       </button>
-                      <button type="button" onClick={() => goMenu("faqs")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
                         FAQs
                       </button>
-                      <button type="button" onClick={() => goMenu("support")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
                         Contact
                       </button>
                     </div>
 
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile">
-                      <button type="button" onClick={() => goMenu("assistant")}>
+                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
+                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
-                      <button type="button" onClick={() => { setMenuOpen(false); openComparePage(); }}>
+                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
-                      <button type="button" onClick={() => goMenu("watchlist")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
 
                       <div className="dropdown-divider" />
 
-                      <button type="button" onClick={() => goMenu("landing")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
                         Homepage
                       </button>
-                      <button type="button" onClick={() => goMenu("terms")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
                         Terms & Conditions
                       </button>
-                      <button type="button" onClick={() => goMenu("faqs")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
                         FAQs
                       </button>
-                      <button type="button" onClick={() => goMenu("support")}>
+                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
                         Contact
                       </button>
                     </div>
