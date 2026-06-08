@@ -22909,3 +22909,95 @@ main.landing-page-extreme {
     overflow-x: hidden !important;
   }
 }
+
+
+/* =========================================================
+   EMERGENCY HOMEPAGE LEFT SCROLLBAR REMOVAL
+   Only the browser/body scrollbar should remain.
+========================================================= */
+
+html,
+body,
+#root {
+  overflow-x: hidden !important;
+}
+
+body {
+  overflow-y: auto !important;
+  scrollbar-gutter: auto !important;
+}
+
+/* The landing page must never be its own scroll container. */
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme,
+main.landing-page,
+main.landing-page-pro,
+main.landing-page-extreme {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: clip !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* The bordered homepage card should not show a scrollbar either. */
+.landing-shell,
+.landing-shell-pro,
+.landing-shell-extreme,
+.landing-shell-pro.landing-shell-extreme {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.landing-page::-webkit-scrollbar,
+.landing-page-pro::-webkit-scrollbar,
+.landing-page-extreme::-webkit-scrollbar,
+main.landing-page::-webkit-scrollbar,
+main.landing-page-pro::-webkit-scrollbar,
+main.landing-page-extreme::-webkit-scrollbar,
+.landing-shell::-webkit-scrollbar,
+.landing-shell-pro::-webkit-scrollbar,
+.landing-shell-extreme::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* Preserve visual clipping without creating a scrollable container. */
+.landing-shell::before,
+.landing-shell-pro::before,
+.landing-shell-extreme::before {
+  border-radius: inherit !important;
+  overflow: hidden !important;
+}
+
+/* Fixed visual layers must not participate in scrolling. */
+.landing-scanline,
+.landing-noise,
+.landing-grid-glow,
+.landing-orb,
+.landing-orb-one,
+.landing-orb-two,
+.landing-orb-three {
+  max-height: none !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Avoid any accidental app-level inner scrollbar on the landing view. */
+body:has(.landing-page) #root,
+body:has(.landing-page-pro) #root,
+body:has(.landing-page-extreme) #root {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
