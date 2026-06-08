@@ -1770,33 +1770,43 @@ function LandingPage({ onContinue }) {
   const featureCards = [
     {
       icon: <Gauge size={22} />,
-      title: "One score that makes the stock readable",
-      text: "Eval compresses fundamentals, valuation, risk, momentum, pullback, and news into one clean 0–10 Power Score.",
+      title: "One clean Eval Score",
+      text: "A 0.0–10.0 score blends growth, profitability, financial health, valuation, momentum, pullback, risk, and news sentiment.",
     },
     {
-      icon: <Newspaper size={22} />,
-      title: "AI-powered news sentiment",
-      text: "Recent headlines are summarized, rated, weighted by impact, and turned into an easy bullish, neutral, or bearish read.",
+      icon: <BrainCircuit size={22} />,
+      title: "Smarter Eval AI",
+      text: "Ask about FAQs, navigation, metrics, watchlist stocks, company tickers, key products, and what companies actually do.",
+    },
+    {
+      icon: <Search size={22} />,
+      title: "5,200-company knowledge base",
+      text: "Eval AI can answer company-to-ticker, ticker-to-company, company description, and product questions from the embedded CSV universe.",
+    },
+    {
+      icon: <ShieldCheck size={22} />,
+      title: "Provider fallback engine",
+      text: "Finnhub, Massive, FMP, OpenAI, and cached last-valid reports work together so missing data is not treated like zero.",
     },
     {
       icon: <Star size={22} />,
       title: "Ranked watchlist",
-      text: "Save up to 15 tickers and instantly rank them by score with glowing rings and fast delete/refresh controls.",
+      text: "Save up to 15 tickers and rank them by Eval Score with clean rings, refresh controls, and direct compare support.",
     },
     {
       icon: <Scale size={22} />,
-      title: "Radar comparisons",
-      text: "Compare two watchlist stocks across seven categories with a tech-style radar chart and side-by-side score rings.",
+      title: "2–5 stock radar compare",
+      text: "Select watchlist stocks and compare all seven categories with clickable radar labels and side-by-side score rings.",
     },
     {
-      icon: <BrainCircuit size={22} />,
-      title: "Eval AI Assistant",
-      text: "Ask questions about the dashboard, metric popups, news sentiment, watchlist stocks, and how to use the interface.",
+      icon: <Newspaper size={22} />,
+      title: "AI news sentiment",
+      text: "Recent articles are summarized, scored, and turned into a fast positive, neutral, or negative company read.",
     },
     {
-      icon: <ShieldCheck size={22} />,
-      title: "Risk without the headache",
-      text: "Eval converts volatility, debt, financial stability, and valuation pressure into a fast Low, Medium, or High risk label.",
+      icon: <LineChart size={22} />,
+      title: "Smarter caching",
+      text: "Fundamentals can stay cached for months, valuation for one month, news/risk for seven days, and market data for one day.",
     },
   ];
 return (
@@ -1816,31 +1826,31 @@ return (
           </button>
 
           <div className="landing-status-pill landing-status-live">
-            <span /> Live-style stock evaluation engine
+            <span /> AI stock evaluation + company intelligence engine
           </div>
         </header>
 
         <section className="landing-hero landing-hero-pro landing-hero-extreme">
           <div className="landing-copy landing-copy-pro">
             <div className="landing-kicker landing-kicker-glow">
-              <Sparkles size={16} /> AI-powered stock reports in plain English
+              <Sparkles size={16} /> Eval Score, AI support, company intelligence, and clean stock comparisons
             </div>
 
             <h2>
-              The fastest way to understand a stock before you waste time digging.
+              A smarter stock dashboard that explains the company, the score, and the data.
             </h2>
 
             <p>
-              Eval turns ticker data into a cinematic stock dashboard: Power Score, category
-              ratings, risk, AI news sentiment, watchlist rankings, comparisons, and an assistant
-              that explains the whole report without finance jargon.
+              Eval turns stock data into a cinematic dashboard: Eval Score, seven category ratings,
+              risk, AI news sentiment, watchlist rankings, 2–5 stock radar comparisons, and an
+              assistant that now understands FAQs, company tickers, key products, and what companies do.
             </p>
 
             <div className="landing-actions landing-actions-pro">
               <button type="button" className="landing-continue-btn landing-continue-mega" onClick={onContinue}>
                 Launch Dashboard <ArrowRight size={20} />
               </button>
-              <span>Search. Score. Rank. Compare. Ask AI.</span>
+              <span>Score. Rank. Compare. Ask AI. Understand the company.</span>
             </div>
 
           </div>
@@ -1876,8 +1886,8 @@ return (
 
               <div className="landing-terminal-lines">
                 <span><i /> News sentiment: bullish</span>
-                <span><i /> Watchlist rank: #1</span>
-                <span><i /> Risk: medium</span>
+                <span><i /> Company products: AI chips</span>
+                <span><i /> Cache + fallback protected</span>
               </div>
             </div>
 
@@ -1895,8 +1905,8 @@ return (
 
             <div className="landing-product-card floating ai landing-float-card-three">
               <span>Eval AI</span>
-              <strong>Ask anything</strong>
-              <p>About the report</p>
+              <strong>FAQs + tickers</strong>
+              <p>Products, scores, support</p>
             </div>
           </div>
         </section>
@@ -1916,23 +1926,24 @@ return (
             <div className="landing-kicker">
               <LineChart size={16} /> What users get
             </div>
-            <h2>Built to feel like a premium Bloomberg-style dashboard, but simple enough for anyone.</h2>
+            <h2>Built to feel like a premium Bloomberg-style dashboard, with AI that explains the app, the company, and the report.</h2>
           </div>
 
           <div className="landing-story-grid landing-story-grid-extreme">
-            <div><b>01</b><span>Power Score</span><p>A clean 0.0–10.0 rating users can understand immediately.</p></div>
-            <div><b>02</b><span>Metric Cards</span><p>Growth, profitability, health, valuation, momentum, pullback, and news.</p></div>
-            <div><b>03</b><span>News Sentiment</span><p>Top articles are summarized, linked, scored, and weighted by impact.</p></div>
-            <div><b>04</b><span>Compare Page</span><p>Two stocks, two rings, one radar chart, seven categories.</p></div>
+            <div><b>01</b><span>Eval Score</span><p>A clean 0.0–10.0 rating backed by seven major scoring categories.</p></div>
+            <div><b>02</b><span>Company Intelligence</span><p>Ask Eval AI for tickers, products, descriptions, and what a company sells or does.</p></div>
+            <div><b>03</b><span>Protected Data Engine</span><p>Provider fallbacks and component caching help avoid fake broken scores from missing data.</p></div>
+            <div><b>04</b><span>Compare + Industry</span><p>Compare 2–5 watchlist stocks and review industry leaders with radar charts.</p></div>
           </div>
         </section>
 
         <div className="landing-bottom-strip landing-bottom-strip-pro">
           <span>Eval Score</span>
-          <span>AI News</span>
-          <span>Risk</span>
+          <span>5,200 Companies</span>
+          <span>AI FAQs</span>
+          <span>Provider Fallbacks</span>
           <span>Watchlist</span>
-          <span>Compare</span>
+          <span>Radar Compare</span>
           <span>Eval AI</span>
         </div>
 
@@ -8048,7 +8059,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask for help using Eval: navigation, dashboard, metrics, news sentiment, compare, watchlist, or saved-watchlist stock questions.",
+        "Ask about Eval, FAQs, navigation, metrics, watchlist stocks, company tickers, key products, or what a company does.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -8124,34 +8135,49 @@ function AssistantPage({ current, watchlist, onBack }) {
             <div className="assistant-kicker">
               <BrainCircuit size={16} /> Eval AI Assistant
             </div>
-            <h2>Ask about this Eval report.</h2>
+            <h2>Ask about Eval, the report, or the company.</h2>
             <p>
-              Compare stocks, understand metrics, ask about risk, or get a
-              beginner-friendly breakdown before making a decision.
+              Use Eval AI as a support agent and company explainer. Ask about app navigation,
+              metrics, FAQs, watchlist stocks, tickers, products, news sentiment, or what a company does.
             </p>
 
         <section className="ai-rules-card ai-rules-card-full">
           <div className="ai-rules-eyebrow">What Eval AI can answer</div>
-          <h3>Ask Eval AI for app support, navigation help, and watchlist-stock explanations.</h3>
+          <h3>Ask Eval AI for support, company intelligence, FAQ help, and watchlist-stock explanations.</h3>
 
           <div className="ai-rules-grid ai-rules-grid-brief">
             <div>
-              <strong>Watchlist stock questions</strong>
-              <p>Specific stock questions work when the ticker is loaded on your dashboard or saved in your watchlist.</p>
+              <strong>Company intelligence</strong>
+              <p>Ask “what is Amazon’s ticker,” “what does Apple sell,” “what does Microsoft do,” or “what products does Nvidia make.”</p>
+            </div>
+
+            <div>
+              <strong>FAQs and app support</strong>
+              <p>Ask how to use Eval, read score rings, understand popups, navigate the dropdown, compare stocks, or manage the watchlist.</p>
             </div>
 
             <div>
               <strong>Score and metric help</strong>
-              <p>Ask why a score is high or low, what a category means, or how to read the metric popups and news sentiment.</p>
+              <p>Ask what Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, Risk, or News Sentiment means.</p>
             </div>
 
             <div>
-              <strong>Using Eval</strong>
-              <p>Ask how to navigate pages, use the dropdown, search tickers, add/remove stocks, refresh the watchlist, compare stocks, open industry rankings, or understand each dashboard section.</p>
+              <strong>Watchlist stock questions</strong>
+              <p>Specific stock analysis works when the ticker is loaded on your dashboard or saved in your watchlist.</p>
+            </div>
+
+            <div>
+              <strong>Data and cache questions</strong>
+              <p>Ask how Finnhub, Massive, FMP, OpenAI, provider fallbacks, and component caching protect the report.</p>
+            </div>
+
+            <div>
+              <strong>Compare and industry help</strong>
+              <p>Ask how to compare 2–5 watchlist stocks, read radar charts, or understand industry leader rankings.</p>
             </div>
           </div>
 
-          <p className="ai-rules-note">Eval AI stays focused on the Eval website and stock-evaluation workflow. It will not answer unrelated questions.</p>
+          <p className="ai-rules-note">Eval AI stays focused on Eval support, FAQs, company/ticker/product lookup, and loaded or watchlist stock analysis. It will not answer unrelated questions.</p>
         </section>
 
 </div>
@@ -8180,7 +8206,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask for Eval support: navigation, dashboard, metrics, news sentiment, compare, watchlist, or a stock saved in your watchlist."
+              placeholder="Ask about Eval, FAQs, metrics, watchlist stocks, tickers, products, or what a company does."
               rows="3"
             />
             <button disabled={loading}>
