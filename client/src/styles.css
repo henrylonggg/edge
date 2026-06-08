@@ -23174,3 +23174,43 @@ body {
   border-color: rgba(133,255,71,.25) !important;
   background: rgba(255,255,255,.085) !important;
 }
+
+
+/* =========================================================
+   ADSTERRA NATIVE ADS — KEEP CLEAN LEFT TWO ONLY
+========================================================= */
+
+.eval-native-ad-row {
+  width: min(100%, 1320px);
+  margin: 34px auto 18px;
+  padding: 0 12px;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+#container-2433fdc8d3bddd91b0914445fa985a56 {
+  width: 100% !important;
+  max-width: 820px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Try to hide any generated native ad card after the first two. */
+#container-2433fdc8d3bddd91b0914445fa985a56 > *:nth-child(n + 3),
+#container-2433fdc8d3bddd91b0914445fa985a56 a:nth-of-type(n + 3),
+#container-2433fdc8d3bddd91b0914445fa985a56 iframe:nth-of-type(n + 3),
+#container-2433fdc8d3bddd91b0914445fa985a56 div:nth-of-type(n + 3) {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Make the remaining native area look less disconnected from Eval. */
+#container-2433fdc8d3bddd91b0914445fa985a56 img {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 900px) {
+  #container-2433fdc8d3bddd91b0914445fa985a56 {
+    max-width: 100% !important;
+  }
+}
