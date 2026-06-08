@@ -249,6 +249,7 @@ installClerkResend60Guard();
   This avoids Vercel environment variable problems.
 */
 const API = "https://edge-1-6dtw.onrender.com";
+const EFFECTIVECPM_DIRECT_URL = "https://www.effectivecpmnetwork.com/bn4hqqbxz4?key=a1f6b04023acfc67e2af5ea3ced8d33e";
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
@@ -1939,6 +1940,14 @@ return (
           <span>Watchlist</span>
           <span>Radar Compare</span>
           <span>Eval AI</span>
+          <a
+            className="sponsored-link-pill"
+            href={EFFECTIVECPM_DIRECT_URL}
+            target="_blank"
+            rel="nofollow sponsored noopener noreferrer"
+          >
+            Sponsored
+          </a>
         </div>
 
         <p className="landing-footnote">
