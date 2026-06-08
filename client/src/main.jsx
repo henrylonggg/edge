@@ -2197,7 +2197,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
           </div>
           <h1>Find a ticker by company name.</h1>
           <p>
-            Start typing a company name and Eval filters FMP’s stock list. Click the ticker on the right to load that company on the Analyze dashboard.
+            Start typing a company name and Eval filters the StockAnalysis.com stock table. Click the ticker on the right to load that company on the Analyze dashboard.
           </p>
         </div>
 
@@ -2238,7 +2238,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
         {!lookupLoading && !matches.length && !lookupError && (
           <div className="lookup-empty">
             <Search size={30} />
-            <h3>No FMP match found</h3>
+            <h3>No StockAnalysis.com match found</h3>
             <p>Try a shorter company name or search directly by ticker symbol.</p>
           </div>
         )}
@@ -2251,1302 +2251,5252 @@ const EVAL_FAQS = [
   {
     "category": "Getting started",
     "question": "What is Eval?",
-    "answer": "Eval is a stock-evaluation dashboard that turns company data, price movement, risk, news sentiment, and category metrics into one easy-to-read Eval Score."
+    "answer": "Eval is a stock-evaluation dashboard that turns market data, fundamentals, news sentiment, and category scores into a simple company report."
   },
   {
     "category": "Getting started",
-    "question": "How do I search for a stock?",
-    "answer": "Type a ticker into the search bar, then click the search icon. Eval loads the company report, price card, risk card, news sentiment, category metrics, and available industry data."
+    "question": "How do I start using Eval?",
+    "answer": "Search a ticker or open Ticker Lookup, load a company, then read the Eval Score, price/risk cards, category bars, news sentiment, and watchlist options."
   },
   {
     "category": "Getting started",
-    "question": "Why does the dashboard say no stock report loaded yet?",
-    "answer": "That means no ticker is currently selected. Search a ticker in the top bar to generate the first Eval report."
+    "question": "What should I look at first?",
+    "answer": "Start with the Eval Score ring, then check the strongest and weakest categories, price/risk cards, and recent news sentiment."
   },
   {
     "category": "Getting started",
-    "question": "Can I click the Eval logo?",
-    "answer": "Yes. Clicking the Eval logo or Eval wordmark takes you back to the homepage."
+    "question": "How do I use Eval in Eval?",
+    "answer": "In Eval, Eval is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Getting started",
-    "question": "What should I do first after signing in?",
-    "answer": "Start by searching a ticker you know, then review the Eval Score, category bars, news sentiment, and watchlist options."
+    "question": "What does Eval mean in Eval?",
+    "answer": "Eval is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Getting started",
-    "question": "Do I need finance knowledge to use Eval?",
-    "answer": "No. Eval is designed to simplify stock data into readable scores, summaries, and visual cards."
+    "question": "Why is Eval important?",
+    "answer": "Eval helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Getting started",
-    "question": "What is the main dashboard for?",
-    "answer": "The dashboard is where you search stocks, view Eval reports, manage your watchlist, open Compare, and access support pages."
+    "question": "Can Eval AI explain Eval?",
+    "answer": "Yes. Eval AI can explain Eval when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Getting started",
-    "question": "What is the fastest way to understand a stock?",
-    "answer": "Look at the Eval Score first, then check the strongest and weakest metric categories, news sentiment, price change, and risk label."
+    "question": "What should I do if Eval looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Getting started",
-    "question": "What ticker format should I type?",
-    "answer": "Use the stock ticker symbol, like AAPL, NVDA, MSFT, TSLA, or JPM. Keep it short and avoid full company names in the ticker input."
+    "question": "How do I use dashboard in Eval?",
+    "answer": "In Eval, dashboard is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Getting started",
-    "question": "Why does Eval use ticker symbols?",
-    "answer": "Ticker symbols are the cleanest way to identify stocks and retrieve the correct market data."
+    "question": "What does dashboard mean in Eval?",
+    "answer": "dashboard is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Getting started",
-    "question": "What does the plus button do?",
-    "answer": "The plus button adds the currently loaded stock to your watchlist when that option is available."
+    "question": "Why is dashboard important?",
+    "answer": "dashboard helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Getting started",
-    "question": "What does the search icon do?",
-    "answer": "The search icon runs the stock lookup for the ticker currently typed in the search bar."
+    "question": "Can Eval AI explain dashboard?",
+    "answer": "Yes. Eval AI can explain dashboard when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Getting started",
-    "question": "What does the dropdown button do?",
-    "answer": "The dropdown button opens navigation options like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact."
+    "question": "What should I do if dashboard looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Getting started",
-    "question": "Can I use Eval on mobile?",
-    "answer": "Yes. The mobile layout is designed for portrait mode and includes dropdown navigation for pages that are always visible on desktop."
+    "question": "How do I use ticker search in Eval?",
+    "answer": "In Eval, ticker search is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Getting started",
-    "question": "Why does Eval prefer portrait mode on phones?",
-    "answer": "Portrait mode keeps the score rings, watchlist, metrics, and chart sections readable without horizontal layout issues."
+    "question": "What does ticker search mean in Eval?",
+    "answer": "ticker search is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Getting started",
-    "question": "Does Eval replace financial research?",
-    "answer": "No. Eval helps organize and explain stock information, but users should still do their own research before making decisions."
+    "question": "Why is ticker search important?",
+    "answer": "ticker search helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Getting started",
-    "question": "What does the homepage explain?",
-    "answer": "The homepage gives a visual introduction to Eval, showing how the app turns ticker data into scores, rankings, comparisons, and AI explanations."
+    "question": "Can Eval AI explain ticker search?",
+    "answer": "Yes. Eval AI can explain ticker search when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Getting started",
-    "question": "How often should I refresh a stock?",
-    "answer": "Refresh when you want the latest available score, watchlist ranking, or report data. Some data may also be cached to reduce API calls."
+    "question": "What should I do if ticker search looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Getting started",
-    "question": "Why do some stocks load better than others?",
-    "answer": "Some companies have more complete financial, price, and news data available than others."
+    "question": "How do I use first report in Eval?",
+    "answer": "In Eval, first report is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Getting started",
-    "question": "What is the best way to learn the app?",
-    "answer": "Use the FAQ page, ask Eval AI navigation questions, and open the metric popups to see what each section means."
+    "question": "What does first report mean in Eval?",
+    "answer": "first report is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is first report important?",
+    "answer": "first report helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain first report?",
+    "answer": "Yes. Eval AI can explain first report when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if first report looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use homepage in Eval?",
+    "answer": "In Eval, homepage is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does homepage mean in Eval?",
+    "answer": "homepage is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is homepage important?",
+    "answer": "homepage helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain homepage?",
+    "answer": "Yes. Eval AI can explain homepage when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if homepage looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use score ring in Eval?",
+    "answer": "In Eval, score ring is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does score ring mean in Eval?",
+    "answer": "score ring is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is score ring important?",
+    "answer": "score ring helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain score ring?",
+    "answer": "Yes. Eval AI can explain score ring when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if score ring looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use company report in Eval?",
+    "answer": "In Eval, company report is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does company report mean in Eval?",
+    "answer": "company report is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is company report important?",
+    "answer": "company report helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain company report?",
+    "answer": "Yes. Eval AI can explain company report when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if company report looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use stock lookup in Eval?",
+    "answer": "In Eval, stock lookup is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does stock lookup mean in Eval?",
+    "answer": "stock lookup is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is stock lookup important?",
+    "answer": "stock lookup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain stock lookup?",
+    "answer": "Yes. Eval AI can explain stock lookup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if stock lookup looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use mobile app in Eval?",
+    "answer": "In Eval, mobile app is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does mobile app mean in Eval?",
+    "answer": "mobile app is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is mobile app important?",
+    "answer": "mobile app helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain mobile app?",
+    "answer": "Yes. Eval AI can explain mobile app when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if mobile app looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "How do I use desktop layout in Eval?",
+    "answer": "In Eval, desktop layout is handled inside the Getting started area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Getting started",
+    "question": "What does desktop layout mean in Eval?",
+    "answer": "desktop layout is part of the Getting started experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Why is desktop layout important?",
+    "answer": "desktop layout helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can Eval AI explain desktop layout?",
+    "answer": "Yes. Eval AI can explain desktop layout when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Getting started",
+    "question": "What should I do if desktop layout looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users use Eval from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does Eval update automatically?",
+    "answer": "Eval updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users start dashboard from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does dashboard update automatically?",
+    "answer": "dashboard updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users understand ticker search from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does ticker search update automatically?",
+    "answer": "ticker search updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users open first report from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does first report update automatically?",
+    "answer": "first report updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users read homepage from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does homepage update automatically?",
+    "answer": "homepage updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users load score ring from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does score ring update automatically?",
+    "answer": "score ring updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users refresh company report from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does company report update automatically?",
+    "answer": "company report updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users navigate stock lookup from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does stock lookup update automatically?",
+    "answer": "stock lookup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users search mobile app from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does mobile app update automatically?",
+    "answer": "mobile app updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Getting started",
+    "question": "Can users review desktop layout from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Getting started",
+    "question": "Does desktop layout update automatically?",
+    "answer": "desktop layout updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Navigation",
-    "question": "What is inside the dropdown menu?",
-    "answer": "The dropdown menu opens key pages like AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, and Contact. On mobile and tablet, it also includes Watchlist."
+    "question": "What is in the dropdown menu?",
+    "answer": "The dropdown menu opens Ticker Lookup, AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
   },
   {
     "category": "Navigation",
-    "question": "Why is Watchlist not in the desktop dropdown?",
-    "answer": "On desktop, the Watchlist is already visible on the dashboard, so the dropdown keeps it removed to avoid duplicate navigation. On mobile and tablet, Watchlist appears in the dropdown."
+    "question": "How do I close the dropdown?",
+    "answer": "Tap or click outside the dropdown, or choose one of the menu options."
   },
   {
     "category": "Navigation",
-    "question": "How do I contact support?",
-    "answer": "Open the dropdown menu and click Contact. The support page shows the Eval support contact information."
+    "question": "How do I get back to the homepage?",
+    "answer": "Click the Eval logo/wordmark or select Homepage from the dropdown menu."
   },
   {
     "category": "Navigation",
-    "question": "Where are Terms & Conditions?",
-    "answer": "Open the dropdown menu and click Terms & Conditions. That page explains the app terms, limitations, and user agreement."
+    "question": "How do I open dropdown in Eval?",
+    "answer": "In Eval, dropdown is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Navigation",
-    "question": "How do I get back to the dashboard?",
-    "answer": "Use the Dashboard or Back to dashboard button shown on pages like Compare, FAQs, Contact, and AI Assistant."
+    "question": "What does dropdown mean in Eval?",
+    "answer": "dropdown is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Navigation",
-    "question": "How do I go to the homepage?",
-    "answer": "Click the Eval logo or open the dropdown menu and select Homepage."
+    "question": "Why is dropdown important?",
+    "answer": "dropdown helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Navigation",
-    "question": "How do I open Compare?",
-    "answer": "Open the dropdown menu and click Compare. You will be taken to the compare-selection page."
+    "question": "Can Eval AI explain dropdown?",
+    "answer": "Yes. Eval AI can explain dropdown when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Navigation",
-    "question": "How do I open FAQs?",
-    "answer": "Open the dropdown menu and click FAQs. The FAQ page includes search and category filters."
+    "question": "What should I do if dropdown looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Navigation",
-    "question": "How do I open AI Assistant?",
-    "answer": "Open the dropdown menu and click AI Assistant. The assistant page answers app support and watchlist-stock questions."
+    "question": "How do I open homepage in Eval?",
+    "answer": "In Eval, homepage is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Navigation",
-    "question": "How do I open Watchlist on mobile?",
-    "answer": "Open the dropdown menu and tap Watchlist. The mobile layout uses dropdown navigation because the watchlist is not always shown beside the dashboard."
+    "question": "What does homepage mean in Eval?",
+    "answer": "homepage is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Navigation",
-    "question": "Why does mobile navigation look different?",
-    "answer": "Mobile has less horizontal room, so navigation moves into the dropdown while keeping the dashboard focused on the report."
+    "question": "Why is homepage important?",
+    "answer": "homepage helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Navigation",
-    "question": "What does the Contact tab do?",
-    "answer": "The Contact tab opens the support page where users can find the Eval support email."
+    "question": "Can Eval AI explain homepage?",
+    "answer": "Yes. Eval AI can explain homepage when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Navigation",
-    "question": "What does the Homepage tab do?",
-    "answer": "The Homepage tab returns to the landing page that explains what Eval does."
+    "question": "What should I do if homepage looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Navigation",
-    "question": "What does the Terms & Conditions tab do?",
-    "answer": "It opens the legal and usage terms page for the app."
+    "question": "How do I open dashboard in Eval?",
+    "answer": "In Eval, dashboard is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Navigation",
-    "question": "Can I use the browser back button?",
-    "answer": "Yes, but the app\u2019s own navigation buttons are safer because they keep the dashboard state organized."
+    "question": "What does dashboard mean in Eval?",
+    "answer": "dashboard is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Navigation",
-    "question": "Why is the menu button on the left of the search bar?",
-    "answer": "It keeps navigation close to the ticker search flow and works cleanly on both desktop and mobile."
+    "question": "Why is dashboard important?",
+    "answer": "dashboard helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Navigation",
-    "question": "What happens if I click outside the dropdown?",
-    "answer": "The dropdown should close when you click outside of it."
+    "question": "Can Eval AI explain dashboard?",
+    "answer": "Yes. Eval AI can explain dashboard when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Navigation",
-    "question": "How do I move from an industry page back to the dashboard?",
-    "answer": "Click the Dashboard button at the top of the industry ranking page."
+    "question": "What should I do if dashboard looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Navigation",
-    "question": "How do I move from Compare back to selected stocks?",
-    "answer": "Use the Change selected stocks button at the top of the Compare results page."
+    "question": "How do I open Terms & Conditions in Eval?",
+    "answer": "In Eval, Terms & Conditions is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Navigation",
-    "question": "Where do I find help inside the app?",
-    "answer": "Use the FAQs page or Eval AI Assistant. FAQs are searchable, and Eval AI can answer navigation questions directly."
+    "question": "What does Terms & Conditions mean in Eval?",
+    "answer": "Terms & Conditions is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is Terms & Conditions important?",
+    "answer": "Terms & Conditions helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain Terms & Conditions?",
+    "answer": "Yes. Eval AI can explain Terms & Conditions when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if Terms & Conditions looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open Contact in Eval?",
+    "answer": "In Eval, Contact is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does Contact mean in Eval?",
+    "answer": "Contact is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is Contact important?",
+    "answer": "Contact helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain Contact?",
+    "answer": "Yes. Eval AI can explain Contact when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if Contact looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open FAQs in Eval?",
+    "answer": "In Eval, FAQs is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does FAQs mean in Eval?",
+    "answer": "FAQs is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is FAQs important?",
+    "answer": "FAQs helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain FAQs?",
+    "answer": "Yes. Eval AI can explain FAQs when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if FAQs looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open Ticker Lookup in Eval?",
+    "answer": "In Eval, Ticker Lookup is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does Ticker Lookup mean in Eval?",
+    "answer": "Ticker Lookup is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is Ticker Lookup important?",
+    "answer": "Ticker Lookup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain Ticker Lookup?",
+    "answer": "Yes. Eval AI can explain Ticker Lookup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if Ticker Lookup looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open AI Assistant in Eval?",
+    "answer": "In Eval, AI Assistant is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does AI Assistant mean in Eval?",
+    "answer": "AI Assistant is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is AI Assistant important?",
+    "answer": "AI Assistant helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain AI Assistant?",
+    "answer": "Yes. Eval AI can explain AI Assistant when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if AI Assistant looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open Compare in Eval?",
+    "answer": "In Eval, Compare is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does Compare mean in Eval?",
+    "answer": "Compare is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is Compare important?",
+    "answer": "Compare helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain Compare?",
+    "answer": "Yes. Eval AI can explain Compare when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if Compare looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "How do I open Watchlist in Eval?",
+    "answer": "In Eval, Watchlist is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Navigation",
+    "question": "What does Watchlist mean in Eval?",
+    "answer": "Watchlist is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Why is Watchlist important?",
+    "answer": "Watchlist helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can Eval AI explain Watchlist?",
+    "answer": "Yes. Eval AI can explain Watchlist when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Navigation",
+    "question": "What should I do if Watchlist looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users open dropdown from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does dropdown update automatically?",
+    "answer": "dropdown updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users find homepage from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does homepage update automatically?",
+    "answer": "homepage updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users close dashboard from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does dashboard update automatically?",
+    "answer": "dashboard updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users navigate Terms & Conditions from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does Terms & Conditions update automatically?",
+    "answer": "Terms & Conditions updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users click Contact from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does Contact update automatically?",
+    "answer": "Contact updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users return to FAQs from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does FAQs update automatically?",
+    "answer": "FAQs updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users switch to Ticker Lookup from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does Ticker Lookup update automatically?",
+    "answer": "Ticker Lookup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users access AI Assistant from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does AI Assistant update automatically?",
+    "answer": "AI Assistant updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users use Compare from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does Compare update automatically?",
+    "answer": "Compare updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Navigation",
+    "question": "Can users move between Watchlist from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Navigation",
+    "question": "Does Watchlist update automatically?",
+    "answer": "Watchlist updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What is Ticker Lookup?",
+    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached StockAnalysis.com stock table."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does Ticker Lookup use FMP?",
+    "answer": "No. Ticker Lookup uses the StockAnalysis.com stock table cached by the backend, so it does not burn FMP calls while users type."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What happens when I click a ticker?",
+    "answer": "Clicking the ticker sends you back to the dashboard and loads that ticker\u2019s Analyze report."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search company name search in Eval?",
+    "answer": "In Eval, company name search is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does company name search mean in Eval?",
+    "answer": "company name search is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is company name search important?",
+    "answer": "company name search helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain company name search?",
+    "answer": "Yes. Eval AI can explain company name search when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if company name search looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search ticker in Eval?",
+    "answer": "In Eval, ticker is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does ticker mean in Eval?",
+    "answer": "ticker is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is ticker important?",
+    "answer": "ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain ticker?",
+    "answer": "Yes. Eval AI can explain ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if ticker looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search StockAnalysis.com table in Eval?",
+    "answer": "In Eval, StockAnalysis.com table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does StockAnalysis.com table mean in Eval?",
+    "answer": "StockAnalysis.com table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is StockAnalysis.com table important?",
+    "answer": "StockAnalysis.com table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain StockAnalysis.com table?",
+    "answer": "Yes. Eval AI can explain StockAnalysis.com table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if StockAnalysis.com table looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search lookup results in Eval?",
+    "answer": "In Eval, lookup results is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does lookup results mean in Eval?",
+    "answer": "lookup results is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is lookup results important?",
+    "answer": "lookup results helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain lookup results?",
+    "answer": "Yes. Eval AI can explain lookup results when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if lookup results looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search clickable ticker in Eval?",
+    "answer": "In Eval, clickable ticker is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does clickable ticker mean in Eval?",
+    "answer": "clickable ticker is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is clickable ticker important?",
+    "answer": "clickable ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain clickable ticker?",
+    "answer": "Yes. Eval AI can explain clickable ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if clickable ticker looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search search box in Eval?",
+    "answer": "In Eval, search box is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does search box mean in Eval?",
+    "answer": "search box is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is search box important?",
+    "answer": "search box helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain search box?",
+    "answer": "Yes. Eval AI can explain search box when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if search box looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search company list in Eval?",
+    "answer": "In Eval, company list is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does company list mean in Eval?",
+    "answer": "company list is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is company list important?",
+    "answer": "company list helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain company list?",
+    "answer": "Yes. Eval AI can explain company list when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if company list looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search stock table in Eval?",
+    "answer": "In Eval, stock table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does stock table mean in Eval?",
+    "answer": "stock table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is stock table important?",
+    "answer": "stock table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain stock table?",
+    "answer": "Yes. Eval AI can explain stock table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if stock table looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search filtering in Eval?",
+    "answer": "In Eval, filtering is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does filtering mean in Eval?",
+    "answer": "filtering is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is filtering important?",
+    "answer": "filtering helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain filtering?",
+    "answer": "Yes. Eval AI can explain filtering when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if filtering looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "How do I search analyze page in Eval?",
+    "answer": "In Eval, analyze page is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What does analyze page mean in Eval?",
+    "answer": "analyze page is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Why is analyze page important?",
+    "answer": "analyze page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can Eval AI explain analyze page?",
+    "answer": "Yes. Eval AI can explain analyze page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "What should I do if analyze page looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users search company name search from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does company name search update automatically?",
+    "answer": "company name search updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users filter ticker from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does ticker update automatically?",
+    "answer": "ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users click StockAnalysis.com table from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does StockAnalysis.com table update automatically?",
+    "answer": "StockAnalysis.com table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users load lookup results from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does lookup results update automatically?",
+    "answer": "lookup results updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users find clickable ticker from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does clickable ticker update automatically?",
+    "answer": "clickable ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users select search box from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does search box update automatically?",
+    "answer": "search box updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users type company list from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does company list update automatically?",
+    "answer": "company list updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users open stock table from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does stock table update automatically?",
+    "answer": "stock table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users use filtering from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does filtering update automatically?",
+    "answer": "filtering updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Can users match analyze page from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Ticker Lookup",
+    "question": "Does analyze page update automatically?",
+    "answer": "analyze page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Eval Score",
     "question": "What is the Eval Score?",
-    "answer": "The Eval Score is a 0.0 to 10.0 rating that summarizes the company\u2019s overall dashboard strength based on categories like growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
+    "answer": "The Eval Score is a 0.0 to 10.0 educational rating that blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
   },
   {
     "category": "Eval Score",
-    "question": "Is the Eval Score a buy or sell rating?",
-    "answer": "No. The Eval Score is an educational company-evaluation score, not a buy, sell, or hold recommendation."
+    "question": "Is the Eval Score financial advice?",
+    "answer": "No. It is an educational company-evaluation score, not a buy, sell, or hold recommendation."
   },
   {
     "category": "Eval Score",
-    "question": "What do the score colors mean?",
-    "answer": "Green means stronger, yellow means mixed or average, and red means weaker. The colors help users quickly understand whether a score looks strong, moderate, or low."
+    "question": "Why can a score change?",
+    "answer": "Scores can change when market data, valuation, category inputs, risk, or news sentiment refresh according to their cache schedule."
   },
   {
     "category": "Eval Score",
-    "question": "Why does a stock have a high Eval Score?",
-    "answer": "A high score usually means the company has stronger category ratings across several areas such as growth, profitability, momentum, financial health, and news sentiment."
+    "question": "How do I understand Eval Score in Eval?",
+    "answer": "In Eval, Eval Score is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval Score",
-    "question": "Why does a stock have a low Eval Score?",
-    "answer": "A lower score usually means the company has weaker category ratings, valuation pressure, risk issues, poor momentum, weak profitability, or negative news sentiment."
+    "question": "What does Eval Score mean in Eval?",
+    "answer": "Eval Score is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval Score",
-    "question": "What does 10.0 mean?",
-    "answer": "A 10.0 means the stock currently scores extremely well in the Eval system. It does not mean the stock is guaranteed to rise."
+    "question": "Why is Eval Score important?",
+    "answer": "Eval Score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval Score",
-    "question": "What does 5.0 mean?",
-    "answer": "A 5.0 is a middle-area score that suggests mixed signals. Some categories may be solid while others may be weak."
+    "question": "Can Eval AI explain Eval Score?",
+    "answer": "Yes. Eval AI can explain Eval Score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval Score",
-    "question": "What does a red score mean?",
-    "answer": "A red score means the stock is currently showing weaker signals in the Eval framework."
+    "question": "What should I do if Eval Score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval Score",
-    "question": "What does a yellow score mean?",
-    "answer": "A yellow score means the stock looks mixed, moderate, or uncertain across the Eval categories."
+    "question": "How do I understand score ring in Eval?",
+    "answer": "In Eval, score ring is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval Score",
-    "question": "What does a green score mean?",
-    "answer": "A green score means the stock currently looks stronger across the Eval category system."
+    "question": "What does score ring mean in Eval?",
+    "answer": "score ring is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval Score",
-    "question": "Can the Eval Score change?",
-    "answer": "Yes. It can change as price, financial data, news sentiment, and category scores update."
+    "question": "Why is score ring important?",
+    "answer": "score ring helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval Score",
-    "question": "Why did a score change after refresh?",
-    "answer": "Refreshing may pull newer data or updated cached calculations, which can change one or more category scores."
+    "question": "Can Eval AI explain score ring?",
+    "answer": "Yes. Eval AI can explain score ring when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval Score",
-    "question": "Does Eval compare stocks fairly across industries?",
-    "answer": "Eval is most useful when comparing stocks inside the same or similar industry because different industries naturally behave differently."
+    "question": "What should I do if score ring looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval Score",
-    "question": "Why might a strong company have a mediocre score?",
-    "answer": "A company can be strong but still look expensive, have weak momentum, carry higher risk, or face negative news sentiment."
+    "question": "How do I understand green score in Eval?",
+    "answer": "In Eval, green score is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval Score",
-    "question": "Why might a risky stock still score well?",
-    "answer": "A stock can have strong growth, momentum, or profitability while still carrying risk from volatility, debt, or valuation."
+    "question": "What does green score mean in Eval?",
+    "answer": "green score is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval Score",
-    "question": "Is the Eval Score based only on news?",
-    "answer": "No. News Sentiment is one category, but the total score also considers growth, profitability, financial health, valuation, momentum, and pullback."
+    "question": "Why is green score important?",
+    "answer": "green score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval Score",
-    "question": "Is the Eval Score based only on price?",
-    "answer": "No. Price movement affects some parts, but the score also uses company fundamentals and recent news."
+    "question": "Can Eval AI explain green score?",
+    "answer": "Yes. Eval AI can explain green score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval Score",
-    "question": "Should I only buy green stocks?",
-    "answer": "No. Green means stronger in the Eval framework, but it is not financial advice or a buy recommendation."
+    "question": "What should I do if green score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval Score",
-    "question": "Can a low score become high later?",
-    "answer": "Yes. Scores can improve if company fundamentals, momentum, valuation, or sentiment improve."
+    "question": "How do I understand yellow score in Eval?",
+    "answer": "In Eval, yellow score is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval Score",
-    "question": "Can a high score become low later?",
-    "answer": "Yes. Scores can fall if fundamentals weaken, valuation worsens, momentum fades, risk rises, or news sentiment turns negative."
+    "question": "What does yellow score mean in Eval?",
+    "answer": "yellow score is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is yellow score important?",
+    "answer": "yellow score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain yellow score?",
+    "answer": "Yes. Eval AI can explain yellow score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if yellow score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand red score in Eval?",
+    "answer": "In Eval, red score is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does red score mean in Eval?",
+    "answer": "red score is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is red score important?",
+    "answer": "red score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain red score?",
+    "answer": "Yes. Eval AI can explain red score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if red score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand overall rating in Eval?",
+    "answer": "In Eval, overall rating is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does overall rating mean in Eval?",
+    "answer": "overall rating is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is overall rating important?",
+    "answer": "overall rating helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain overall rating?",
+    "answer": "Yes. Eval AI can explain overall rating when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if overall rating looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand category blend in Eval?",
+    "answer": "In Eval, category blend is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does category blend mean in Eval?",
+    "answer": "category blend is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is category blend important?",
+    "answer": "category blend helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain category blend?",
+    "answer": "Yes. Eval AI can explain category blend when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if category blend looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand score update in Eval?",
+    "answer": "In Eval, score update is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does score update mean in Eval?",
+    "answer": "score update is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is score update important?",
+    "answer": "score update helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain score update?",
+    "answer": "Yes. Eval AI can explain score update when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if score update looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand score meaning in Eval?",
+    "answer": "In Eval, score meaning is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does score meaning mean in Eval?",
+    "answer": "score meaning is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is score meaning important?",
+    "answer": "score meaning helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain score meaning?",
+    "answer": "Yes. Eval AI can explain score meaning when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if score meaning looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "How do I understand company strength in Eval?",
+    "answer": "In Eval, company strength is handled inside the Eval Score area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What does company strength mean in Eval?",
+    "answer": "company strength is part of the Eval Score experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Why is company strength important?",
+    "answer": "company strength helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can Eval AI explain company strength?",
+    "answer": "Yes. Eval AI can explain company strength when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval Score",
+    "question": "What should I do if company strength looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users understand Eval Score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does Eval Score update automatically?",
+    "answer": "Eval Score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users interpret score ring from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does score ring update automatically?",
+    "answer": "score ring updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users read green score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does green score update automatically?",
+    "answer": "green score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users compare yellow score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does yellow score update automatically?",
+    "answer": "yellow score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users explain red score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does red score update automatically?",
+    "answer": "red score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users trust overall rating from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does overall rating update automatically?",
+    "answer": "overall rating updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users refresh category blend from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does category blend update automatically?",
+    "answer": "category blend updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users calculate score update from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does score update update automatically?",
+    "answer": "score update updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users judge score meaning from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does score meaning update automatically?",
+    "answer": "score meaning updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Can users review company strength from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval Score",
+    "question": "Does company strength update automatically?",
+    "answer": "company strength updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Metric cards",
-    "question": "What does Growth mean?",
-    "answer": "Growth shows how quickly the company is expanding sales and earnings. Higher growth scores usually mean the business is increasing revenue or earnings more strongly."
+    "question": "What do the metric cards show?",
+    "answer": "Metric cards show each major category score from 0 to 10 with a bar chart and short explanation."
   },
   {
     "category": "Metric cards",
-    "question": "What does Profitability mean?",
-    "answer": "Profitability shows how efficiently the company turns revenue into profit. Strong margins and return metrics usually improve this score."
+    "question": "Why are metric numbers white?",
+    "answer": "The numbers are white for readability while the bar color shows the score range."
   },
   {
     "category": "Metric cards",
-    "question": "What does Financial Health mean?",
-    "answer": "Financial Health shows balance-sheet strength, debt risk, and stability. Higher scores usually mean the company looks easier to handle financially."
+    "question": "What does a longer bar mean?",
+    "answer": "A longer bar means that category is scoring stronger within the Eval system."
   },
   {
     "category": "Metric cards",
-    "question": "What does Valuation mean?",
-    "answer": "Valuation shows whether the stock price looks reasonable compared with company fundamentals. A higher score generally means valuation looks more attractive."
+    "question": "How do I read growth in Eval?",
+    "answer": "In Eval, growth is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric cards",
-    "question": "What does Momentum mean?",
-    "answer": "Momentum shows recent stock strength and trend direction. Higher scores usually mean the market has been rewarding the stock lately."
+    "question": "What does growth mean in Eval?",
+    "answer": "growth is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric cards",
-    "question": "What does Pullback mean?",
-    "answer": "Pullback shows whether the stock has cooled off enough to look more attractive from a recent-price perspective. It is not a buy signal by itself."
+    "question": "Why is growth important?",
+    "answer": "growth helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric cards",
-    "question": "What does News Sentiment mean?",
-    "answer": "News Sentiment summarizes recent headlines and article impact into a score. A higher number means the recent news looks more positive for the stock."
+    "question": "Can Eval AI explain growth?",
+    "answer": "Yes. Eval AI can explain growth when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric cards",
-    "question": "What are the bar charts?",
-    "answer": "The bar charts show each category score from 0 to 10. Longer bars mean stronger category scores."
+    "question": "What should I do if growth looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric cards",
-    "question": "Why are the score numbers white?",
-    "answer": "The numbers are kept white for readability. The bar color and ring color show the strength range instead."
+    "question": "How do I read profitability in Eval?",
+    "answer": "In Eval, profitability is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric cards",
-    "question": "Why are there seven category metrics?",
-    "answer": "The seven categories give a wider view of the company instead of relying on only one number or one data point."
+    "question": "What does profitability mean in Eval?",
+    "answer": "profitability is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric cards",
-    "question": "Which metric matters most?",
-    "answer": "No single metric always matters most. Growth, profitability, financial health, valuation, momentum, pullback, and news sentiment each show a different angle."
+    "question": "Why is profitability important?",
+    "answer": "profitability helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Growth be high but Valuation low?",
-    "answer": "A company may be growing quickly but also trading at an expensive price compared with fundamentals."
+    "question": "Can Eval AI explain profitability?",
+    "answer": "Yes. Eval AI can explain profitability when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Valuation be high but Momentum low?",
-    "answer": "A stock may look attractively priced but still have weak recent price movement."
+    "question": "What should I do if profitability looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric cards",
-    "question": "Why can News Sentiment be high but the total score lower?",
-    "answer": "Good news can help, but weak valuation, risk, or financial metrics can still drag down the total score."
+    "question": "How do I read financial health in Eval?",
+    "answer": "In Eval, financial health is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Financial Health be low?",
-    "answer": "Financial Health may be lower when debt, balance-sheet risk, liquidity, or stability looks weaker."
+    "question": "What does financial health mean in Eval?",
+    "answer": "financial health is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Profitability be low?",
-    "answer": "Profitability may be low if margins, earnings quality, or returns are weak or negative."
+    "question": "Why is financial health important?",
+    "answer": "financial health helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Pullback be high?",
-    "answer": "Pullback can be high when the stock has cooled from recent levels in a way that looks more attractive inside the model."
+    "question": "Can Eval AI explain financial health?",
+    "answer": "Yes. Eval AI can explain financial health when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric cards",
-    "question": "Why can Pullback be low?",
-    "answer": "Pullback can be low when the stock has not cooled enough or recent price action looks less attractive."
+    "question": "What should I do if financial health looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric cards",
-    "question": "Why do some bars show N/A?",
-    "answer": "A bar can show N/A if the required data is missing or unavailable for that stock."
+    "question": "How do I read valuation in Eval?",
+    "answer": "In Eval, valuation is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric cards",
-    "question": "How should I read the metric cards?",
-    "answer": "Start with the highest and lowest bars. The strongest bars show what is helping the Eval Score, and the weakest bars show what is dragging it down."
+    "question": "What does valuation mean in Eval?",
+    "answer": "valuation is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is valuation important?",
+    "answer": "valuation helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain valuation?",
+    "answer": "Yes. Eval AI can explain valuation when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if valuation looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read momentum in Eval?",
+    "answer": "In Eval, momentum is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does momentum mean in Eval?",
+    "answer": "momentum is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is momentum important?",
+    "answer": "momentum helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain momentum?",
+    "answer": "Yes. Eval AI can explain momentum when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if momentum looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read pullback in Eval?",
+    "answer": "In Eval, pullback is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does pullback mean in Eval?",
+    "answer": "pullback is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is pullback important?",
+    "answer": "pullback helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain pullback?",
+    "answer": "Yes. Eval AI can explain pullback when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if pullback looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read news sentiment in Eval?",
+    "answer": "In Eval, news sentiment is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does news sentiment mean in Eval?",
+    "answer": "news sentiment is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is news sentiment important?",
+    "answer": "news sentiment helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain news sentiment?",
+    "answer": "Yes. Eval AI can explain news sentiment when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if news sentiment looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read bar chart in Eval?",
+    "answer": "In Eval, bar chart is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does bar chart mean in Eval?",
+    "answer": "bar chart is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is bar chart important?",
+    "answer": "bar chart helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain bar chart?",
+    "answer": "Yes. Eval AI can explain bar chart when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if bar chart looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read category score in Eval?",
+    "answer": "In Eval, category score is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does category score mean in Eval?",
+    "answer": "category score is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is category score important?",
+    "answer": "category score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain category score?",
+    "answer": "Yes. Eval AI can explain category score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if category score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "How do I read metric description in Eval?",
+    "answer": "In Eval, metric description is handled inside the Metric cards area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What does metric description mean in Eval?",
+    "answer": "metric description is part of the Metric cards experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Why is metric description important?",
+    "answer": "metric description helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can Eval AI explain metric description?",
+    "answer": "Yes. Eval AI can explain metric description when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric cards",
+    "question": "What should I do if metric description looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users read growth from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does growth update automatically?",
+    "answer": "growth updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users compare profitability from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does profitability update automatically?",
+    "answer": "profitability updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users understand financial health from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does financial health update automatically?",
+    "answer": "financial health updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users explain valuation from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does valuation update automatically?",
+    "answer": "valuation updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users rank momentum from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does momentum update automatically?",
+    "answer": "momentum updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users interpret pullback from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does pullback update automatically?",
+    "answer": "pullback updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users evaluate news sentiment from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does news sentiment update automatically?",
+    "answer": "news sentiment updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users review bar chart from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does bar chart update automatically?",
+    "answer": "bar chart updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users open category score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does category score update automatically?",
+    "answer": "category score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Can users use metric description from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric cards",
+    "question": "Does metric description update automatically?",
+    "answer": "metric description updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Metric popups",
     "question": "What does the question mark button do?",
-    "answer": "The question mark button opens a popup explaining what data or calculations were used for that score."
+    "answer": "It opens a small popup explaining what the score or section means."
   },
   {
     "category": "Metric popups",
-    "question": "How do I close a metric popup?",
-    "answer": "Click the small X button in the popup or click the question mark again if that popup supports toggling."
+    "question": "How do I close a popup?",
+    "answer": "Click the X button in the popup or tap outside if the layout supports it."
   },
   {
     "category": "Metric popups",
-    "question": "Why are metric popups useful?",
-    "answer": "They show what went into the category score so users can understand the number instead of just seeing a rating."
+    "question": "Why do popups matter?",
+    "answer": "Popups help users understand the data behind each score without reading a long report."
   },
   {
     "category": "Metric popups",
-    "question": "What does Metrics button under the main ring do?",
-    "answer": "The Metrics button scrolls down to the category metric cards so users can jump straight to the bar charts."
+    "question": "How do I open question mark button in Eval?",
+    "answer": "In Eval, question mark button is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric popups",
-    "question": "What does the Eval Score question mark explain?",
-    "answer": "It explains the main score system and what the score range means."
+    "question": "What does question mark button mean in Eval?",
+    "answer": "question mark button is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric popups",
-    "question": "Can metric popups show data sources?",
-    "answer": "Yes. Popups can show which data points or calculations helped form the category score."
+    "question": "Why is question mark button important?",
+    "answer": "question mark button helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric popups",
-    "question": "Why does a popup list multiple items?",
-    "answer": "Many scores are built from several inputs, so the popup breaks down the pieces that affected the rating."
+    "question": "Can Eval AI explain question mark button?",
+    "answer": "Yes. Eval AI can explain question mark button when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric popups",
-    "question": "Why does a popup sometimes show N/A?",
-    "answer": "N/A appears when the app could not retrieve or calculate that specific input."
+    "question": "What should I do if question mark button looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric popups",
-    "question": "Are popup metrics the exact full formula?",
-    "answer": "They are meant to explain the major inputs in a simple way, not expose every backend detail."
+    "question": "How do I open popup in Eval?",
+    "answer": "In Eval, popup is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric popups",
-    "question": "Can I use popups for learning?",
-    "answer": "Yes. Popups are built to help users understand what financial terms and score inputs mean."
+    "question": "What does popup mean in Eval?",
+    "answer": "popup is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric popups",
-    "question": "Why is the popup text short?",
-    "answer": "The app keeps popups short so users can quickly understand the score without reading a long report."
+    "question": "Why is popup important?",
+    "answer": "popup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric popups",
-    "question": "Do popups work on mobile?",
-    "answer": "Yes. Mobile popups should appear above the dashboard content and include a close button."
+    "question": "Can Eval AI explain popup?",
+    "answer": "Yes. Eval AI can explain popup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric popups",
-    "question": "What if a popup overlaps content?",
-    "answer": "Use the X button to close it. The popup is designed to appear above the dashboard interface."
+    "question": "What should I do if popup looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric popups",
-    "question": "Can multiple popups be open at once?",
-    "answer": "The app is designed so users can focus on one explanation at a time."
+    "question": "How do I open X close button in Eval?",
+    "answer": "In Eval, X close button is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric popups",
-    "question": "Do popups affect the Eval Score?",
-    "answer": "No. Popups only explain the score; they do not change any calculation."
+    "question": "What does X close button mean in Eval?",
+    "answer": "X close button is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Metric popups",
-    "question": "Why does the risk popup matter?",
-    "answer": "Risk explanations help users see why a stock may be labeled Low, Medium, or High risk."
+    "question": "Why is X close button important?",
+    "answer": "X close button helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Metric popups",
-    "question": "Why does the news popup matter?",
-    "answer": "News explanations show how recent headlines are affecting the sentiment score."
+    "question": "Can Eval AI explain X close button?",
+    "answer": "Yes. Eval AI can explain X close button when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Metric popups",
-    "question": "Can I ask Eval AI about a popup?",
-    "answer": "Yes. Eval AI can explain what popups mean and how to interpret them."
+    "question": "What should I do if X close button looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Metric popups",
-    "question": "Do popups update after refresh?",
-    "answer": "Yes. If the underlying report updates, the popup explanations can update too."
+    "question": "How do I open metric explanation in Eval?",
+    "answer": "In Eval, metric explanation is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Metric popups",
-    "question": "Should I read every popup?",
-    "answer": "You do not have to, but reading the weakest category popup is a good way to understand what is hurting the score."
+    "question": "What does metric explanation mean in Eval?",
+    "answer": "metric explanation is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is metric explanation important?",
+    "answer": "metric explanation helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain metric explanation?",
+    "answer": "Yes. Eval AI can explain metric explanation when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if metric explanation looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open score inputs in Eval?",
+    "answer": "In Eval, score inputs is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does score inputs mean in Eval?",
+    "answer": "score inputs is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is score inputs important?",
+    "answer": "score inputs helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain score inputs?",
+    "answer": "Yes. Eval AI can explain score inputs when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if score inputs looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open data source in Eval?",
+    "answer": "In Eval, data source is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does data source mean in Eval?",
+    "answer": "data source is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is data source important?",
+    "answer": "data source helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain data source?",
+    "answer": "Yes. Eval AI can explain data source when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if data source looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open formula in Eval?",
+    "answer": "In Eval, formula is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does formula mean in Eval?",
+    "answer": "formula is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is formula important?",
+    "answer": "formula helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain formula?",
+    "answer": "Yes. Eval AI can explain formula when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if formula looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open hover card in Eval?",
+    "answer": "In Eval, hover card is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does hover card mean in Eval?",
+    "answer": "hover card is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is hover card important?",
+    "answer": "hover card helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain hover card?",
+    "answer": "Yes. Eval AI can explain hover card when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if hover card looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open help text in Eval?",
+    "answer": "In Eval, help text is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does help text mean in Eval?",
+    "answer": "help text is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is help text important?",
+    "answer": "help text helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain help text?",
+    "answer": "Yes. Eval AI can explain help text when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if help text looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "How do I open category popup in Eval?",
+    "answer": "In Eval, category popup is handled inside the Metric popups area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What does category popup mean in Eval?",
+    "answer": "category popup is part of the Metric popups experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Why is category popup important?",
+    "answer": "category popup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can Eval AI explain category popup?",
+    "answer": "Yes. Eval AI can explain category popup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Metric popups",
+    "question": "What should I do if category popup looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users open question mark button from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does question mark button update automatically?",
+    "answer": "question mark button updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users close popup from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does popup update automatically?",
+    "answer": "popup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users read X close button from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does X close button update automatically?",
+    "answer": "X close button updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users understand metric explanation from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does metric explanation update automatically?",
+    "answer": "metric explanation updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users explain score inputs from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does score inputs update automatically?",
+    "answer": "score inputs updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users inspect data source from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does data source update automatically?",
+    "answer": "data source updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users use formula from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does formula update automatically?",
+    "answer": "formula updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users review hover card from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does hover card update automatically?",
+    "answer": "hover card updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users dismiss help text from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does help text update automatically?",
+    "answer": "help text updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Can users learn category popup from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Metric popups",
+    "question": "Does category popup update automatically?",
+    "answer": "category popup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Price and risk",
     "question": "What does the Price card show?",
-    "answer": "The Price card shows the latest available stock price and the daily percent change when available."
+    "answer": "The Price card shows the latest cached/available price and daily percent movement when available."
   },
   {
     "category": "Price and risk",
-    "question": "What does the Risk card mean?",
-    "answer": "Risk summarizes balance-sheet and market-risk signals into a simple Low, Medium, or High label."
+    "question": "What does the Risk card show?",
+    "answer": "The Risk card turns market and financial risk signals into a simple Low, Medium, or High label."
   },
   {
     "category": "Price and risk",
-    "question": "Why can risk be high even if the Eval Score is good?",
-    "answer": "A company can have strong growth or momentum but still carry risk from volatility, leverage, valuation, or financial-stability concerns."
+    "question": "How long is price cached?",
+    "answer": "Price, momentum, and pullback are cached for about 1 day."
   },
   {
     "category": "Price and risk",
-    "question": "What does daily change percent mean?",
-    "answer": "Daily change percent shows how much the stock price moved during the latest available trading period."
+    "question": "How do I read price card in Eval?",
+    "answer": "In Eval, price card is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Price and risk",
-    "question": "Why is the price sometimes delayed?",
-    "answer": "Market data can be delayed depending on the data provider and plan being used."
+    "question": "What does price card mean in Eval?",
+    "answer": "price card is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Price and risk",
-    "question": "What does Low risk mean?",
-    "answer": "Low risk means the app currently sees fewer risk signals in the available data."
+    "question": "Why is price card important?",
+    "answer": "price card helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Price and risk",
-    "question": "What does Medium risk mean?",
-    "answer": "Medium risk means the app sees some risk signals but not enough to classify the stock as high risk."
+    "question": "Can Eval AI explain price card?",
+    "answer": "Yes. Eval AI can explain price card when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Price and risk",
-    "question": "What does High risk mean?",
-    "answer": "High risk means the app sees stronger risk signals such as volatility, leverage, valuation pressure, or weaker stability."
+    "question": "What should I do if price card looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Price and risk",
-    "question": "Is High risk always bad?",
-    "answer": "Not always. High-risk stocks can still have strong upside potential, but they may be more volatile or uncertain."
+    "question": "How do I read daily change in Eval?",
+    "answer": "In Eval, daily change is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Price and risk",
-    "question": "Can Risk change over time?",
-    "answer": "Yes. Risk can change as market volatility, balance-sheet data, and company conditions change."
+    "question": "What does daily change mean in Eval?",
+    "answer": "daily change is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Price and risk",
-    "question": "Why does the Risk card not give a number?",
-    "answer": "The Risk card is simplified into a label so users can quickly understand the current risk profile."
+    "question": "Why is daily change important?",
+    "answer": "daily change helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Price and risk",
-    "question": "Can price change affect risk?",
-    "answer": "Yes. Large or volatile price movement can affect risk signals."
+    "question": "Can Eval AI explain daily change?",
+    "answer": "Yes. Eval AI can explain daily change when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Price and risk",
-    "question": "Can financial health affect risk?",
-    "answer": "Yes. Debt, liquidity, and balance-sheet stability can influence the risk label."
+    "question": "What should I do if daily change looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Price and risk",
-    "question": "Does risk mean bankruptcy risk?",
-    "answer": "Not necessarily. Risk is broader and can include volatility, financial leverage, uncertainty, and valuation pressure."
+    "question": "How do I read risk card in Eval?",
+    "answer": "In Eval, risk card is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Price and risk",
-    "question": "Should I avoid all high-risk stocks?",
-    "answer": "Eval does not provide buy or sell advice. High risk simply means users should understand the risk before making decisions."
+    "question": "What does risk card mean in Eval?",
+    "answer": "risk card is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Price and risk",
-    "question": "Why can a stable company still have risk?",
-    "answer": "Even stable companies can face valuation risk, market volatility, weak momentum, or industry pressure."
+    "question": "Why is risk card important?",
+    "answer": "risk card helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Price and risk",
-    "question": "Where do I see price on mobile?",
-    "answer": "The price card appears inside the stock report layout beneath the score and company title area."
+    "question": "Can Eval AI explain risk card?",
+    "answer": "Yes. Eval AI can explain risk card when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Price and risk",
-    "question": "Where do I see risk on mobile?",
-    "answer": "The risk card appears near the price card inside the mobile stock report layout."
+    "question": "What should I do if risk card looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Price and risk",
-    "question": "Why does price say N/A?",
-    "answer": "Price can show N/A if the data provider does not return a valid current quote."
+    "question": "How do I read risk label in Eval?",
+    "answer": "In Eval, risk label is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Price and risk",
-    "question": "Can Eval AI explain risk?",
-    "answer": "Yes. Ask Eval AI to explain the risk card or why a loaded/watchlist stock has a specific risk label."
+    "question": "What does risk label mean in Eval?",
+    "answer": "risk label is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is risk label important?",
+    "answer": "risk label helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain risk label?",
+    "answer": "Yes. Eval AI can explain risk label when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if risk label looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read Low risk in Eval?",
+    "answer": "In Eval, Low risk is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does Low risk mean in Eval?",
+    "answer": "Low risk is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is Low risk important?",
+    "answer": "Low risk helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain Low risk?",
+    "answer": "Yes. Eval AI can explain Low risk when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if Low risk looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read Medium risk in Eval?",
+    "answer": "In Eval, Medium risk is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does Medium risk mean in Eval?",
+    "answer": "Medium risk is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is Medium risk important?",
+    "answer": "Medium risk helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain Medium risk?",
+    "answer": "Yes. Eval AI can explain Medium risk when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if Medium risk looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read High risk in Eval?",
+    "answer": "In Eval, High risk is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does High risk mean in Eval?",
+    "answer": "High risk is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is High risk important?",
+    "answer": "High risk helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain High risk?",
+    "answer": "Yes. Eval AI can explain High risk when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if High risk looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read market data in Eval?",
+    "answer": "In Eval, market data is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does market data mean in Eval?",
+    "answer": "market data is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is market data important?",
+    "answer": "market data helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain market data?",
+    "answer": "Yes. Eval AI can explain market data when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if market data looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read price cache in Eval?",
+    "answer": "In Eval, price cache is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does price cache mean in Eval?",
+    "answer": "price cache is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is price cache important?",
+    "answer": "price cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain price cache?",
+    "answer": "Yes. Eval AI can explain price cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if price cache looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "How do I read risk cache in Eval?",
+    "answer": "In Eval, risk cache is handled inside the Price and risk area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What does risk cache mean in Eval?",
+    "answer": "risk cache is part of the Price and risk experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Why is risk cache important?",
+    "answer": "risk cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can Eval AI explain risk cache?",
+    "answer": "Yes. Eval AI can explain risk cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Price and risk",
+    "question": "What should I do if risk cache looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users read price card from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does price card update automatically?",
+    "answer": "price card updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users refresh daily change from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does daily change update automatically?",
+    "answer": "daily change updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users understand risk card from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does risk card update automatically?",
+    "answer": "risk card updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users explain risk label from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does risk label update automatically?",
+    "answer": "risk label updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users compare Low risk from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does Low risk update automatically?",
+    "answer": "Low risk updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users interpret Medium risk from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does Medium risk update automatically?",
+    "answer": "Medium risk updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users use High risk from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does High risk update automatically?",
+    "answer": "High risk updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users review market data from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does market data update automatically?",
+    "answer": "market data updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users check price cache from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does price cache update automatically?",
+    "answer": "price cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Can users watch risk cache from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Price and risk",
+    "question": "Does risk cache update automatically?",
+    "answer": "risk cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Watchlist",
-    "question": "How do I add a stock to my watchlist?",
-    "answer": "Search a ticker, then click the plus button on the report card or add the ticker directly from the Watchlist panel."
+    "question": "What is the Watchlist?",
+    "answer": "The Watchlist stores tickers users want to track and ranks them by Eval Score."
   },
   {
     "category": "Watchlist",
-    "question": "How many stocks can I save in the watchlist?",
-    "answer": "The dashboard watchlist currently supports up to 15 stocks."
+    "question": "Why does Compare require watchlist stocks?",
+    "answer": "Compare uses saved watchlist reports so users can select 2 to 5 tracked stocks for comparison."
   },
   {
     "category": "Watchlist",
-    "question": "What does the watchlist ranking mean?",
-    "answer": "The watchlist sorts saved stocks by Eval Score so users can quickly see which saved companies currently rank higher."
+    "question": "Can Eval AI answer watchlist questions?",
+    "answer": "Yes. Eval AI can answer specific stock questions when the ticker is loaded or saved in the user\u2019s watchlist."
   },
   {
     "category": "Watchlist",
-    "question": "How do I remove a stock from the watchlist?",
-    "answer": "Click the trash/delete button next to the ticker in the Watchlist panel."
+    "question": "How do I add add stock in Eval?",
+    "answer": "In Eval, add stock is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Watchlist",
-    "question": "What does the refresh button do on the watchlist?",
-    "answer": "The refresh button reloads the saved watchlist stocks and updates their scores when new data is available."
+    "question": "What does add stock mean in Eval?",
+    "answer": "add stock is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Watchlist",
-    "question": "Why should I use the watchlist?",
-    "answer": "The watchlist lets you track stocks you care about and makes Compare and Eval AI stock questions work better."
+    "question": "Why is add stock important?",
+    "answer": "add stock helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Watchlist",
-    "question": "Can I compare stocks without saving them?",
-    "answer": "No. Stocks need to be in your watchlist before they can be selected on the Compare page."
+    "question": "Can Eval AI explain add stock?",
+    "answer": "Yes. Eval AI can explain add stock when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Watchlist",
-    "question": "Why does Eval AI need watchlist stocks?",
-    "answer": "Eval AI uses the watchlist context to answer stock-specific questions with the right data."
+    "question": "What should I do if add stock looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Watchlist",
-    "question": "How is the watchlist sorted?",
-    "answer": "The watchlist is generally ranked by Eval Score from strongest to weakest."
+    "question": "How do I add remove stock in Eval?",
+    "answer": "In Eval, remove stock is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Watchlist",
-    "question": "Why does my watchlist score change?",
-    "answer": "Scores can update when data, news sentiment, or cached reports refresh."
+    "question": "What does remove stock mean in Eval?",
+    "answer": "remove stock is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Watchlist",
-    "question": "Can I add the same ticker twice?",
-    "answer": "No. The app should avoid duplicate watchlist tickers."
+    "question": "Why is remove stock important?",
+    "answer": "remove stock helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Watchlist",
-    "question": "What happens when the watchlist is full?",
-    "answer": "You need to remove a ticker before adding another one if the list reaches its limit."
+    "question": "Can Eval AI explain remove stock?",
+    "answer": "Yes. Eval AI can explain remove stock when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Watchlist",
-    "question": "Why do some watchlist rows show yellow or red rings?",
-    "answer": "The ring color reflects that stock\u2019s current Eval Score range."
+    "question": "What should I do if remove stock looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Watchlist",
-    "question": "What does the trash icon do?",
-    "answer": "The trash icon removes that stock from your watchlist."
+    "question": "How do I add refresh watchlist in Eval?",
+    "answer": "In Eval, refresh watchlist is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Watchlist",
-    "question": "Can I open a stock from the watchlist?",
-    "answer": "Yes. Clicking or selecting a watchlist stock can open its full dashboard report depending on the current layout."
+    "question": "What does refresh watchlist mean in Eval?",
+    "answer": "refresh watchlist is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Watchlist",
-    "question": "Why is Watchlist visible on desktop?",
-    "answer": "Desktop has enough space to keep Watchlist beside the main dashboard for quick access."
+    "question": "Why is refresh watchlist important?",
+    "answer": "refresh watchlist helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Watchlist",
-    "question": "Why is Watchlist in the dropdown on mobile?",
-    "answer": "Mobile has less screen width, so Watchlist is moved into the dropdown for cleaner layout."
+    "question": "Can Eval AI explain refresh watchlist?",
+    "answer": "Yes. Eval AI can explain refresh watchlist when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Watchlist",
-    "question": "Can watchlist stocks be used in radar charts?",
-    "answer": "Yes. Watchlist stocks can be selected for Compare, which includes radar charts."
+    "question": "What should I do if refresh watchlist looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Watchlist",
-    "question": "Can I ask Eval AI about my watchlist?",
-    "answer": "Yes. Eval AI can explain saved watchlist stocks and help compare their strengths and weaknesses."
+    "question": "How do I add watchlist ranking in Eval?",
+    "answer": "In Eval, watchlist ranking is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Watchlist",
-    "question": "What if the watchlist does not update?",
-    "answer": "Try refreshing the watchlist or reloading the page. Data may also be cached briefly to reduce API usage."
+    "question": "What does watchlist ranking mean in Eval?",
+    "answer": "watchlist ranking is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is watchlist ranking important?",
+    "answer": "watchlist ranking helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain watchlist ranking?",
+    "answer": "Yes. Eval AI can explain watchlist ranking when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if watchlist ranking looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add saved ticker in Eval?",
+    "answer": "In Eval, saved ticker is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does saved ticker mean in Eval?",
+    "answer": "saved ticker is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is saved ticker important?",
+    "answer": "saved ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain saved ticker?",
+    "answer": "Yes. Eval AI can explain saved ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if saved ticker looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add trash icon in Eval?",
+    "answer": "In Eval, trash icon is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does trash icon mean in Eval?",
+    "answer": "trash icon is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is trash icon important?",
+    "answer": "trash icon helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain trash icon?",
+    "answer": "Yes. Eval AI can explain trash icon when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if trash icon looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add watchlist score in Eval?",
+    "answer": "In Eval, watchlist score is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does watchlist score mean in Eval?",
+    "answer": "watchlist score is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is watchlist score important?",
+    "answer": "watchlist score helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain watchlist score?",
+    "answer": "Yes. Eval AI can explain watchlist score when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if watchlist score looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add mobile watchlist in Eval?",
+    "answer": "In Eval, mobile watchlist is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does mobile watchlist mean in Eval?",
+    "answer": "mobile watchlist is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is mobile watchlist important?",
+    "answer": "mobile watchlist helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain mobile watchlist?",
+    "answer": "Yes. Eval AI can explain mobile watchlist when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if mobile watchlist looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add desktop watchlist in Eval?",
+    "answer": "In Eval, desktop watchlist is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does desktop watchlist mean in Eval?",
+    "answer": "desktop watchlist is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is desktop watchlist important?",
+    "answer": "desktop watchlist helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain desktop watchlist?",
+    "answer": "Yes. Eval AI can explain desktop watchlist when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if desktop watchlist looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "How do I add watchlist limit in Eval?",
+    "answer": "In Eval, watchlist limit is handled inside the Watchlist area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What does watchlist limit mean in Eval?",
+    "answer": "watchlist limit is part of the Watchlist experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Why is watchlist limit important?",
+    "answer": "watchlist limit helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can Eval AI explain watchlist limit?",
+    "answer": "Yes. Eval AI can explain watchlist limit when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Watchlist",
+    "question": "What should I do if watchlist limit looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users add add stock from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does add stock update automatically?",
+    "answer": "add stock updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users remove remove stock from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does remove stock update automatically?",
+    "answer": "remove stock updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users rank refresh watchlist from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does refresh watchlist update automatically?",
+    "answer": "refresh watchlist updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users refresh watchlist ranking from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does watchlist ranking update automatically?",
+    "answer": "watchlist ranking updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users open saved ticker from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does saved ticker update automatically?",
+    "answer": "saved ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users compare trash icon from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does trash icon update automatically?",
+    "answer": "trash icon updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users track watchlist score from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does watchlist score update automatically?",
+    "answer": "watchlist score updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users use mobile watchlist from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does mobile watchlist update automatically?",
+    "answer": "mobile watchlist updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users save desktop watchlist from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does desktop watchlist update automatically?",
+    "answer": "desktop watchlist updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Can users delete watchlist limit from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Watchlist",
+    "question": "Does watchlist limit update automatically?",
+    "answer": "watchlist limit updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Compare",
     "question": "What does Compare do?",
-    "answer": "Compare lets users choose 2 to 5 watchlist stocks and view their Eval Scores and category ratings side by side."
+    "answer": "Compare lets users select 2 to 5 watchlist stocks and compare their Eval Scores and category radar charts."
   },
   {
     "category": "Compare",
-    "question": "How many stocks can I compare?",
-    "answer": "You can compare a minimum of 2 stocks and a maximum of 5 stocks at a time."
+    "question": "Can I hide stocks on the radar chart?",
+    "answer": "Yes. Click a ticker label to hide or show that stock on the radar chart."
   },
   {
     "category": "Compare",
-    "question": "Why do stocks need to be in my watchlist before comparing?",
-    "answer": "Compare uses saved dashboard data, so tickers must be in the watchlist before Eval can compare them."
+    "question": "Why use Compare?",
+    "answer": "Compare makes it easier to see which stock is stronger by category instead of only looking at the overall score."
   },
   {
     "category": "Compare",
-    "question": "What does the Compare radar chart show?",
-    "answer": "The radar chart shows the selected stocks across the seven Eval categories. Wider shapes generally mean stronger scores across more areas."
+    "question": "How do I compare compare page in Eval?",
+    "answer": "In Eval, compare page is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Compare",
-    "question": "Can I hide a stock on the radar chart?",
-    "answer": "Yes. Click a ticker label above the radar chart to hide that stock. Click it again to show it."
+    "question": "What does compare page mean in Eval?",
+    "answer": "compare page is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Compare",
-    "question": "How do I select stocks to compare?",
-    "answer": "Open Compare from the dropdown, check 2 to 5 watchlist stocks, then save the selected stocks."
+    "question": "Why is compare page important?",
+    "answer": "compare page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Compare",
-    "question": "Why can I not select more than 5 stocks?",
-    "answer": "The radar chart becomes hard to read with too many overlays, so Compare is limited to 5 stocks."
+    "question": "Can Eval AI explain compare page?",
+    "answer": "Yes. Eval AI can explain compare page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Compare",
-    "question": "Why is the minimum 2 stocks?",
-    "answer": "Compare needs at least two stocks to show a meaningful side-by-side comparison."
+    "question": "What should I do if compare page looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Compare",
-    "question": "What are the score rings at the top of Compare?",
-    "answer": "They show each selected stock\u2019s overall Eval Score before the radar chart shows category-level differences."
+    "question": "How do I compare radar chart in Eval?",
+    "answer": "In Eval, radar chart is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Compare",
-    "question": "What does a wider radar shape mean?",
-    "answer": "A wider shape usually means the stock has stronger category scores across more areas."
+    "question": "What does radar chart mean in Eval?",
+    "answer": "radar chart is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Compare",
-    "question": "What does a narrow radar shape mean?",
-    "answer": "A narrow shape usually means weaker category scores or more uneven performance."
+    "question": "Why is radar chart important?",
+    "answer": "radar chart helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Compare",
-    "question": "Why do two stocks overlap on the radar?",
-    "answer": "They may have similar category scores, causing their shapes to land near each other."
+    "question": "Can Eval AI explain radar chart?",
+    "answer": "Yes. Eval AI can explain radar chart when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Compare",
-    "question": "Can I compare stocks in the same industry?",
-    "answer": "Yes. Comparing within the same industry is often more useful because the companies face similar business conditions."
+    "question": "What should I do if radar chart looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Compare",
-    "question": "Can I compare different industries?",
-    "answer": "Yes, but the comparison may be less direct because industries naturally have different financial profiles."
+    "question": "How do I compare 2 to 5 stocks in Eval?",
+    "answer": "In Eval, 2 to 5 stocks is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Compare",
-    "question": "How do I change selected stocks?",
-    "answer": "Click Change selected stocks at the top of the Compare results page."
+    "question": "What does 2 to 5 stocks mean in Eval?",
+    "answer": "2 to 5 stocks is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Compare",
-    "question": "What if a stock is missing category data?",
-    "answer": "The chart may skip missing points or show a loading state until the report data is available."
+    "question": "Why is 2 to 5 stocks important?",
+    "answer": "2 to 5 stocks helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Compare",
-    "question": "Can Eval AI explain a comparison?",
-    "answer": "Yes. Ask Eval AI about Compare, the radar chart, or differences between watchlist stocks."
+    "question": "Can Eval AI explain 2 to 5 stocks?",
+    "answer": "Yes. Eval AI can explain 2 to 5 stocks when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Compare",
-    "question": "Does Compare choose the better stock for me?",
-    "answer": "No. Compare visualizes the data, but it does not make a buy or sell decision."
+    "question": "What should I do if 2 to 5 stocks looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Compare",
-    "question": "Why are there different colors in the radar chart?",
-    "answer": "Each selected stock receives a different radar color so users can tell the shapes apart."
+    "question": "How do I compare selected stocks in Eval?",
+    "answer": "In Eval, selected stocks is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Compare",
-    "question": "What should I look at first in Compare?",
-    "answer": "Look at the Eval Score rings, then check which stock has the strongest and weakest radar areas."
+    "question": "What does selected stocks mean in Eval?",
+    "answer": "selected stocks is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is selected stocks important?",
+    "answer": "selected stocks helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain selected stocks?",
+    "answer": "Yes. Eval AI can explain selected stocks when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if selected stocks looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare ticker labels in Eval?",
+    "answer": "In Eval, ticker labels is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does ticker labels mean in Eval?",
+    "answer": "ticker labels is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is ticker labels important?",
+    "answer": "ticker labels helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain ticker labels?",
+    "answer": "Yes. Eval AI can explain ticker labels when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if ticker labels looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare hide a stock in Eval?",
+    "answer": "In Eval, hide a stock is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does hide a stock mean in Eval?",
+    "answer": "hide a stock is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is hide a stock important?",
+    "answer": "hide a stock helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain hide a stock?",
+    "answer": "Yes. Eval AI can explain hide a stock when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if hide a stock looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare show a stock in Eval?",
+    "answer": "In Eval, show a stock is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does show a stock mean in Eval?",
+    "answer": "show a stock is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is show a stock important?",
+    "answer": "show a stock helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain show a stock?",
+    "answer": "Yes. Eval AI can explain show a stock when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if show a stock looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare score cards in Eval?",
+    "answer": "In Eval, score cards is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does score cards mean in Eval?",
+    "answer": "score cards is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is score cards important?",
+    "answer": "score cards helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain score cards?",
+    "answer": "Yes. Eval AI can explain score cards when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if score cards looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare category comparison in Eval?",
+    "answer": "In Eval, category comparison is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does category comparison mean in Eval?",
+    "answer": "category comparison is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is category comparison important?",
+    "answer": "category comparison helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain category comparison?",
+    "answer": "Yes. Eval AI can explain category comparison when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if category comparison looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "How do I compare head-to-head in Eval?",
+    "answer": "In Eval, head-to-head is handled inside the Compare area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Compare",
+    "question": "What does head-to-head mean in Eval?",
+    "answer": "head-to-head is part of the Compare experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Compare",
+    "question": "Why is head-to-head important?",
+    "answer": "head-to-head helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Compare",
+    "question": "Can Eval AI explain head-to-head?",
+    "answer": "Yes. Eval AI can explain head-to-head when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Compare",
+    "question": "What should I do if head-to-head looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users compare compare page from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does compare page update automatically?",
+    "answer": "compare page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users select radar chart from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does radar chart update automatically?",
+    "answer": "radar chart updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users hide 2 to 5 stocks from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does 2 to 5 stocks update automatically?",
+    "answer": "2 to 5 stocks updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users show selected stocks from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does selected stocks update automatically?",
+    "answer": "selected stocks updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users read ticker labels from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does ticker labels update automatically?",
+    "answer": "ticker labels updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users interpret hide a stock from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does hide a stock update automatically?",
+    "answer": "hide a stock updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users open show a stock from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does show a stock update automatically?",
+    "answer": "show a stock updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users change score cards from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does score cards update automatically?",
+    "answer": "score cards updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users save category comparison from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does category comparison update automatically?",
+    "answer": "category comparison updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Compare",
+    "question": "Can users review head-to-head from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Compare",
+    "question": "Does head-to-head update automatically?",
+    "answer": "head-to-head updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
     "question": "What is an industry ranking page?",
-    "answer": "The industry ranking page compares stocks inside a similar industry group and shows the highest-scoring companies Eval found for that industry."
+    "answer": "It shows top-ranked stocks in a similar industry using Eval\u2019s cached analysis data."
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open an industry page?",
-    "answer": "Click the industry name under the company ticker inside the main stock report card."
+    "question": "Does industry ranking reuse cached stock data?",
+    "answer": "Yes. Industry stocks use the same cached analysis system and category TTL rules as normal reports."
   },
   {
     "category": "Industry rankings",
-    "question": "What does the industry Top 5 mean?",
-    "answer": "The Top 5 are the highest-ranked stocks Eval found in that industry based on current Eval Score calculations."
+    "question": "Can I hide stocks on the industry radar?",
+    "answer": "Yes. Click the ticker label to hide or show that company on the radar."
   },
   {
     "category": "Industry rankings",
-    "question": "What does the industry radar chart show?",
-    "answer": "The industry radar chart plots the Top 5 stocks across the seven Eval categories so users can compare strengths and weaknesses visually."
+    "question": "How do I open industry page in Eval?",
+    "answer": "In Eval, industry page is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "Can I hide a stock on the industry radar chart?",
-    "answer": "Yes. Click the ticker label above the radar chart to hide or show that company."
+    "question": "What does industry page mean in Eval?",
+    "answer": "industry page is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why compare stocks by industry?",
-    "answer": "Industry comparisons are useful because companies in the same industry often face similar risks, margins, growth patterns, and investor expectations."
+    "question": "Why is industry page important?",
+    "answer": "industry page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "What does the rank badge mean?",
-    "answer": "The rank badge shows the stock\u2019s position in the industry list, such as 1, 2, 3, 4, or 5."
+    "question": "Can Eval AI explain industry page?",
+    "answer": "Yes. Eval AI can explain industry page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "Why might a famous stock not be number one?",
-    "answer": "A well-known company may still rank lower if its current Eval Score is weaker than peers in that industry."
+    "question": "What should I do if industry page looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Industry rankings",
-    "question": "Can industry rankings change?",
-    "answer": "Yes. Rankings can change when scores, data, market conditions, or news sentiment update."
+    "question": "How do I open Top 5 stocks in Eval?",
+    "answer": "In Eval, Top 5 stocks is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "Why does the industry page have a description?",
-    "answer": "The description helps explain what the industry is and what usually matters for companies in that group."
+    "question": "What does Top 5 stocks mean in Eval?",
+    "answer": "Top 5 stocks is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why does the industry radar chart use five stocks?",
-    "answer": "The chart uses the Top 5 to give a broader peer comparison without becoming unreadable."
+    "question": "Why is Top 5 stocks important?",
+    "answer": "Top 5 stocks helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can I click a company on the industry page?",
-    "answer": "Yes. Industry cards can open the full dashboard overview for that company."
+    "question": "Can Eval AI explain Top 5 stocks?",
+    "answer": "Yes. Eval AI can explain Top 5 stocks when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What if the industry is wrong?",
-    "answer": "Industry classification depends on provider data and app mapping. Some companies may need custom classification fixes."
+    "question": "What should I do if Top 5 stocks looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Industry rankings",
-    "question": "Why does one industry have stronger scores than another?",
-    "answer": "Different industries have different growth, profitability, risk, and valuation profiles, so score patterns can vary."
+    "question": "How do I open industry radar in Eval?",
+    "answer": "In Eval, industry radar is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does a strong industry radar shape mean?",
-    "answer": "It means the stock scores well across multiple category areas compared with peers."
+    "question": "What does industry radar mean in Eval?",
+    "answer": "industry radar is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "What if the radar chart says loading?",
-    "answer": "That means category data for the Top 5 stocks is still being fetched or cached."
+    "question": "Why is industry radar important?",
+    "answer": "industry radar helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can I use industry rankings to find peers?",
-    "answer": "Yes. Industry rankings help identify stocks that may be useful for comparison."
+    "question": "Can Eval AI explain industry radar?",
+    "answer": "Yes. Eval AI can explain industry radar when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "Are industry rankings investment advice?",
-    "answer": "No. They are educational rankings based on Eval scoring data."
+    "question": "What should I do if industry radar looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Industry rankings",
-    "question": "Why are only some stocks shown?",
-    "answer": "The page focuses on a limited Top 5 so the ranking and radar chart remain readable."
+    "question": "How do I open industry ranking in Eval?",
+    "answer": "In Eval, industry ranking is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry rankings?",
-    "answer": "Yes. Ask Eval AI how industry pages work or what the ranking/radar chart means."
+    "question": "What does industry ranking mean in Eval?",
+    "answer": "industry ranking is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is industry ranking important?",
+    "answer": "industry ranking helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain industry ranking?",
+    "answer": "Yes. Eval AI can explain industry ranking when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if industry ranking looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open peer comparison in Eval?",
+    "answer": "In Eval, peer comparison is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does peer comparison mean in Eval?",
+    "answer": "peer comparison is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is peer comparison important?",
+    "answer": "peer comparison helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain peer comparison?",
+    "answer": "Yes. Eval AI can explain peer comparison when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if peer comparison looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open industry ticker in Eval?",
+    "answer": "In Eval, industry ticker is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does industry ticker mean in Eval?",
+    "answer": "industry ticker is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is industry ticker important?",
+    "answer": "industry ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain industry ticker?",
+    "answer": "Yes. Eval AI can explain industry ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if industry ticker looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open rank badge in Eval?",
+    "answer": "In Eval, rank badge is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does rank badge mean in Eval?",
+    "answer": "rank badge is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is rank badge important?",
+    "answer": "rank badge helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain rank badge?",
+    "answer": "Yes. Eval AI can explain rank badge when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if rank badge looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open industry description in Eval?",
+    "answer": "In Eval, industry description is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does industry description mean in Eval?",
+    "answer": "industry description is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is industry description important?",
+    "answer": "industry description helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain industry description?",
+    "answer": "Yes. Eval AI can explain industry description when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if industry description looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open industry cache in Eval?",
+    "answer": "In Eval, industry cache is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does industry cache mean in Eval?",
+    "answer": "industry cache is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is industry cache important?",
+    "answer": "industry cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain industry cache?",
+    "answer": "Yes. Eval AI can explain industry cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if industry cache looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "How do I open leaders in Eval?",
+    "answer": "In Eval, leaders is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What does leaders mean in Eval?",
+    "answer": "leaders is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Why is leaders important?",
+    "answer": "leaders helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can Eval AI explain leaders?",
+    "answer": "Yes. Eval AI can explain leaders when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "What should I do if leaders looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users open industry page from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry page update automatically?",
+    "answer": "industry page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users rank Top 5 stocks from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does Top 5 stocks update automatically?",
+    "answer": "Top 5 stocks updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users compare industry radar from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry radar update automatically?",
+    "answer": "industry radar updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users read industry ranking from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry ranking update automatically?",
+    "answer": "industry ranking updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users hide peer comparison from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does peer comparison update automatically?",
+    "answer": "peer comparison updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users show industry ticker from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry ticker update automatically?",
+    "answer": "industry ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users analyze rank badge from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does rank badge update automatically?",
+    "answer": "rank badge updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users review industry description from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry description update automatically?",
+    "answer": "industry description updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users select industry cache from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does industry cache update automatically?",
+    "answer": "industry cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Can users interpret leaders from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Industry rankings",
+    "question": "Does leaders update automatically?",
+    "answer": "leaders updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "News sentiment",
     "question": "What is News Sentiment?",
-    "answer": "News Sentiment uses recent stock-related articles to estimate whether the latest news appears positive, neutral, or negative for the company."
+    "answer": "News Sentiment scores and summarizes recent company news so users can see whether recent headlines look positive, neutral, or negative."
   },
   {
     "category": "News sentiment",
-    "question": "What do the news cards show?",
-    "answer": "News cards show recent article topics, impact weighting, sentiment score, and a short explanation of why the article matters."
+    "question": "How long is news sentiment cached?",
+    "answer": "News Sentiment is cached for about 7 days."
   },
   {
     "category": "News sentiment",
-    "question": "What does Read article do?",
-    "answer": "Read article opens the original article source when a valid article link is available."
+    "question": "Does news sentiment decide the whole Eval Score?",
+    "answer": "No. It is one category inside the overall score, not the entire rating."
   },
   {
     "category": "News sentiment",
-    "question": "Why can news sentiment change?",
-    "answer": "News sentiment can change when newer headlines replace older ones or when the latest articles are more positive or negative."
+    "question": "How do I read news sentiment in Eval?",
+    "answer": "In Eval, news sentiment is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "News sentiment",
-    "question": "How many articles does Eval use?",
-    "answer": "Eval focuses on recent relevant articles and summarizes the most important news signals when available."
+    "question": "What does news sentiment mean in Eval?",
+    "answer": "news sentiment is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "News sentiment",
-    "question": "What does bullish mean?",
-    "answer": "Bullish means the recent news appears more positive for the stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does bearish mean?",
-    "answer": "Bearish means the recent news appears more negative for the stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does neutral mean?",
-    "answer": "Neutral means the news is mixed or not clearly positive or negative."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why can a news article score low?",
-    "answer": "An article may score low if it highlights risk, weakness, uncertainty, poor performance, or negative market reaction."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why can a news article score high?",
-    "answer": "An article may score high if it highlights growth, strong demand, positive earnings, partnerships, or favorable business developments."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What is impact weight?",
-    "answer": "Impact weight estimates how much a specific news item matters relative to the other recent articles."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can unrelated articles affect sentiment?",
-    "answer": "The app tries to focus on relevant articles, but some news sources may still return broader market or sector stories."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is a competitor mentioned in news sentiment?",
-    "answer": "Sometimes articles mention competitors or the broader sector. Eval attempts to judge how relevant that is to the selected stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can news sentiment move the total Eval Score?",
-    "answer": "Yes. News Sentiment is one category and can affect the overall score, but it is not the only factor."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why does news sentiment not match price movement?",
-    "answer": "News and price can disagree. The market may react to other factors, or price may have already reflected the news."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can I use news sentiment alone?",
-    "answer": "It is better to use it alongside growth, profitability, valuation, financial health, momentum, and risk."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does Eval write the news articles?",
-    "answer": "No. Eval summarizes and scores articles from external news sources when links are available."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why do some stocks have no news sentiment?",
-    "answer": "Some tickers may have limited recent news or missing article data from the provider."
+    "question": "Why is news sentiment important?",
+    "answer": "news sentiment helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "News sentiment",
     "question": "Can Eval AI explain news sentiment?",
-    "answer": "Yes. Eval AI can explain the News Sentiment section for a loaded or watchlist stock."
+    "answer": "Yes. Eval AI can explain news sentiment when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "News sentiment",
-    "question": "How should I read the news section?",
-    "answer": "Start with the overall sentiment score, then scan the individual article cards and impact weights."
+    "question": "What should I do if news sentiment looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read article cards in Eval?",
+    "answer": "In Eval, article cards is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does article cards mean in Eval?",
+    "answer": "article cards is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is article cards important?",
+    "answer": "article cards helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain article cards?",
+    "answer": "Yes. Eval AI can explain article cards when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if article cards looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read headline scoring in Eval?",
+    "answer": "In Eval, headline scoring is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does headline scoring mean in Eval?",
+    "answer": "headline scoring is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is headline scoring important?",
+    "answer": "headline scoring helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain headline scoring?",
+    "answer": "Yes. Eval AI can explain headline scoring when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if headline scoring looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read OpenAI summary in Eval?",
+    "answer": "In Eval, OpenAI summary is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does OpenAI summary mean in Eval?",
+    "answer": "OpenAI summary is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is OpenAI summary important?",
+    "answer": "OpenAI summary helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain OpenAI summary?",
+    "answer": "Yes. Eval AI can explain OpenAI summary when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if OpenAI summary looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read Finnhub news in Eval?",
+    "answer": "In Eval, Finnhub news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does Finnhub news mean in Eval?",
+    "answer": "Finnhub news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is Finnhub news important?",
+    "answer": "Finnhub news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain Finnhub news?",
+    "answer": "Yes. Eval AI can explain Finnhub news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if Finnhub news looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read sentiment cache in Eval?",
+    "answer": "In Eval, sentiment cache is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does sentiment cache mean in Eval?",
+    "answer": "sentiment cache is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is sentiment cache important?",
+    "answer": "sentiment cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain sentiment cache?",
+    "answer": "Yes. Eval AI can explain sentiment cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if sentiment cache looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read news topics in Eval?",
+    "answer": "In Eval, news topics is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does news topics mean in Eval?",
+    "answer": "news topics is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is news topics important?",
+    "answer": "news topics helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain news topics?",
+    "answer": "Yes. Eval AI can explain news topics when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if news topics looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read impact weight in Eval?",
+    "answer": "In Eval, impact weight is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does impact weight mean in Eval?",
+    "answer": "impact weight is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is impact weight important?",
+    "answer": "impact weight helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain impact weight?",
+    "answer": "Yes. Eval AI can explain impact weight when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if impact weight looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read positive news in Eval?",
+    "answer": "In Eval, positive news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does positive news mean in Eval?",
+    "answer": "positive news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is positive news important?",
+    "answer": "positive news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain positive news?",
+    "answer": "Yes. Eval AI can explain positive news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if positive news looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "How do I read negative news in Eval?",
+    "answer": "In Eval, negative news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What does negative news mean in Eval?",
+    "answer": "negative news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Why is negative news important?",
+    "answer": "negative news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can Eval AI explain negative news?",
+    "answer": "Yes. Eval AI can explain negative news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "News sentiment",
+    "question": "What should I do if negative news looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users read news sentiment from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does news sentiment update automatically?",
+    "answer": "news sentiment updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users score article cards from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does article cards update automatically?",
+    "answer": "article cards updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users summarize headline scoring from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does headline scoring update automatically?",
+    "answer": "headline scoring updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users explain OpenAI summary from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does OpenAI summary update automatically?",
+    "answer": "OpenAI summary updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users refresh Finnhub news from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does Finnhub news update automatically?",
+    "answer": "Finnhub news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users interpret sentiment cache from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does sentiment cache update automatically?",
+    "answer": "sentiment cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users open news topics from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does news topics update automatically?",
+    "answer": "news topics updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users compare impact weight from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does impact weight update automatically?",
+    "answer": "impact weight updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users review positive news from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does positive news update automatically?",
+    "answer": "positive news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Can users understand negative news from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "News sentiment",
+    "question": "Does negative news update automatically?",
+    "answer": "negative news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Eval AI",
     "question": "What can Eval AI answer?",
-    "answer": "Eval AI can answer support questions about the app, navigation, dashboard features, metrics, compare, watchlist, industry pages, news sentiment, and loaded or watchlist-saved stocks."
+    "answer": "Eval AI can answer app support questions, FAQ-style questions, navigation help, metric explanations, and stock questions tied to the current dashboard or watchlist."
   },
   {
     "category": "Eval AI",
     "question": "Can Eval AI answer anything?",
-    "answer": "No. Eval AI is limited to Eval app support and stock questions tied to the current dashboard or the user\u2019s watchlist."
+    "answer": "No. It is focused on Eval app support and loaded/watchlist stock information."
   },
   {
     "category": "Eval AI",
-    "question": "Why will Eval AI not answer a specific stock question?",
-    "answer": "Specific stock questions require that ticker to be loaded on the dashboard or saved in the watchlist first."
+    "question": "Can Eval AI understand FAQs?",
+    "answer": "Yes. Eval AI is instructed with the FAQ knowledge base topics so it can answer FAQ-style support questions directly."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI help users navigate?",
-    "answer": "Yes. Eval AI is meant to act like a support agent and explain where features are, what buttons do, and how to use the app."
+    "question": "How do I answer support agent in Eval?",
+    "answer": "In Eval, support agent is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain the dashboard?",
-    "answer": "Yes. Ask it what each dashboard section means or how to use the ticker search, score card, news section, or watchlist."
+    "question": "What does support agent mean in Eval?",
+    "answer": "support agent is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain metrics?",
-    "answer": "Yes. It can explain Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment."
+    "question": "Why is support agent important?",
+    "answer": "support agent helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain Compare?",
-    "answer": "Yes. It can explain how to select stocks, read score rings, and interpret the radar chart."
+    "question": "Can Eval AI explain support agent?",
+    "answer": "Yes. Eval AI can explain support agent when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain Watchlist?",
-    "answer": "Yes. It can explain how to add, remove, refresh, rank, and use watchlist stocks."
+    "question": "What should I do if support agent looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain industry pages?",
-    "answer": "Yes. It can explain industry rankings, Top 5 cards, and the industry radar chart."
+    "question": "How do I answer navigation help in Eval?",
+    "answer": "In Eval, navigation help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI answer support questions?",
-    "answer": "Yes. It should behave like a support agent for the Eval web app."
+    "question": "What does navigation help mean in Eval?",
+    "answer": "navigation help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI give financial advice?",
-    "answer": "No. Eval AI can explain data and app features, but it should not give buy, sell, or hold commands."
+    "question": "Why is navigation help important?",
+    "answer": "navigation help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI answer coding questions?",
-    "answer": "No. It is limited to Eval app support and Eval stock dashboard questions."
+    "question": "Can Eval AI explain navigation help?",
+    "answer": "Yes. Eval AI can explain navigation help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain why a stock has a score?",
-    "answer": "Yes, if the stock is loaded on the dashboard or saved in the watchlist."
+    "question": "What should I do if navigation help looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI compare two watchlist stocks?",
-    "answer": "Yes. It can explain differences using watchlist context, but the Compare page is better for visual analysis."
+    "question": "How do I answer FAQ answers in Eval?",
+    "answer": "In Eval, FAQ answers is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI answer questions about a stock not in my watchlist?",
-    "answer": "Only if that stock is currently loaded on the dashboard. Otherwise, add it to the watchlist first."
+    "question": "What does FAQ answers mean in Eval?",
+    "answer": "FAQ answers is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval AI",
-    "question": "Why is Eval AI short with answers?",
-    "answer": "It is designed to give quick, clear answers inside the dashboard instead of long essays."
+    "question": "Why is FAQ answers important?",
+    "answer": "FAQ answers helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval AI",
-    "question": "What should I ask Eval AI first?",
-    "answer": "Try asking: \u201cHow do I use Compare?\u201d or \u201cWhy is this stock\u2019s valuation score low?\u201d"
+    "question": "Can Eval AI explain FAQ answers?",
+    "answer": "Yes. Eval AI can explain FAQ answers when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain colors?",
-    "answer": "Yes. It can explain what green, yellow, and red mean across score rings and metric bars."
+    "question": "What should I do if FAQ answers looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI help with FAQs?",
-    "answer": "Yes. It can answer similar support questions, while the FAQs page provides searchable prewritten answers."
+    "question": "How do I answer dashboard help in Eval?",
+    "answer": "In Eval, dashboard help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI open pages for me?",
-    "answer": "It can explain where to click, but users still need to click the app navigation buttons themselves."
+    "question": "What does dashboard help mean in Eval?",
+    "answer": "dashboard help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is dashboard help important?",
+    "answer": "dashboard help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain dashboard help?",
+    "answer": "Yes. Eval AI can explain dashboard help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if dashboard help looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer watchlist stock in Eval?",
+    "answer": "In Eval, watchlist stock is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does watchlist stock mean in Eval?",
+    "answer": "watchlist stock is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is watchlist stock important?",
+    "answer": "watchlist stock helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain watchlist stock?",
+    "answer": "Yes. Eval AI can explain watchlist stock when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if watchlist stock looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer specific ticker in Eval?",
+    "answer": "In Eval, specific ticker is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does specific ticker mean in Eval?",
+    "answer": "specific ticker is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is specific ticker important?",
+    "answer": "specific ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain specific ticker?",
+    "answer": "Yes. Eval AI can explain specific ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if specific ticker looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer app support in Eval?",
+    "answer": "In Eval, app support is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does app support mean in Eval?",
+    "answer": "app support is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is app support important?",
+    "answer": "app support helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain app support?",
+    "answer": "Yes. Eval AI can explain app support when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if app support looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer metrics explanation in Eval?",
+    "answer": "In Eval, metrics explanation is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does metrics explanation mean in Eval?",
+    "answer": "metrics explanation is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is metrics explanation important?",
+    "answer": "metrics explanation helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain metrics explanation?",
+    "answer": "Yes. Eval AI can explain metrics explanation when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if metrics explanation looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer compare help in Eval?",
+    "answer": "In Eval, compare help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does compare help mean in Eval?",
+    "answer": "compare help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is compare help important?",
+    "answer": "compare help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain compare help?",
+    "answer": "Yes. Eval AI can explain compare help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if compare help looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "How do I answer industry help in Eval?",
+    "answer": "In Eval, industry help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What does industry help mean in Eval?",
+    "answer": "industry help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Why is industry help important?",
+    "answer": "industry help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can Eval AI explain industry help?",
+    "answer": "Yes. Eval AI can explain industry help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Eval AI",
+    "question": "What should I do if industry help looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users answer support agent from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does support agent update automatically?",
+    "answer": "support agent updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users explain navigation help from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does navigation help update automatically?",
+    "answer": "navigation help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users support FAQ answers from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does FAQ answers update automatically?",
+    "answer": "FAQ answers updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users guide dashboard help from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does dashboard help update automatically?",
+    "answer": "dashboard help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users understand watchlist stock from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does watchlist stock update automatically?",
+    "answer": "watchlist stock updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users use specific ticker from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does specific ticker update automatically?",
+    "answer": "specific ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users navigate app support from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does app support update automatically?",
+    "answer": "app support updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users teach metrics explanation from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does metrics explanation update automatically?",
+    "answer": "metrics explanation updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users summarize compare help from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does compare help update automatically?",
+    "answer": "compare help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Can users clarify industry help from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Eval AI",
+    "question": "Does industry help update automatically?",
+    "answer": "industry help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Account",
     "question": "Why do I need to sign in?",
-    "answer": "Signing in protects user access and allows features like profile, watchlist, and saved dashboard experience to work properly."
+    "answer": "Signing in protects dashboard access and lets user-specific features like watchlist/profile behavior work properly."
   },
   {
     "category": "Account",
-    "question": "Who handles sign-in?",
-    "answer": "Eval uses Clerk for secure sign-in, verification, session handling, and account access."
+    "question": "What handles sign-in?",
+    "answer": "Eval uses Clerk for sign-in, verification, account sessions, and profile popups."
   },
   {
     "category": "Account",
-    "question": "What if the verification code does not arrive?",
-    "answer": "Wait for the resend timer, then request another code. Also check that the email or phone method shown by Clerk is correct."
+    "question": "Where do I find account help?",
+    "answer": "Use the Contact page, FAQs, or Eval AI Assistant for app support guidance."
   },
   {
     "category": "Account",
-    "question": "What is Clerk?",
-    "answer": "Clerk is the authentication system used to manage secure sign-in and account sessions."
+    "question": "How do I sign in sign in in Eval?",
+    "answer": "In Eval, sign in is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Account",
-    "question": "Why is there a verification code?",
-    "answer": "Verification helps confirm that the account belongs to the user and protects access."
+    "question": "What does sign in mean in Eval?",
+    "answer": "sign in is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Account",
-    "question": "Why is there a resend timer?",
-    "answer": "The resend timer prevents repeated code requests too quickly and helps protect account security."
+    "question": "Why is sign in important?",
+    "answer": "sign in helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Account",
-    "question": "Can I change my profile picture?",
-    "answer": "Profile options are handled through the Clerk profile popup when available."
+    "question": "Can Eval AI explain sign in?",
+    "answer": "Yes. Eval AI can explain sign in when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Account",
-    "question": "Why does the profile popup appear?",
-    "answer": "The profile popup lets users view or manage account-related information through Clerk."
+    "question": "What should I do if sign in looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Account",
-    "question": "What happens if I sign out?",
-    "answer": "You will need to sign back in before using protected dashboard features again."
+    "question": "How do I sign in Clerk in Eval?",
+    "answer": "In Eval, Clerk is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Account",
-    "question": "Does Eval store my password?",
-    "answer": "Authentication is handled by Clerk, so Eval does not directly manage user passwords in the app interface."
+    "question": "What does Clerk mean in Eval?",
+    "answer": "Clerk is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Account",
-    "question": "Why does Eval have Terms & Conditions?",
-    "answer": "Terms explain the rules, limitations, and educational nature of the app."
+    "question": "Why is Clerk important?",
+    "answer": "Clerk helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Account",
-    "question": "Do I need to accept terms?",
-    "answer": "The app can require terms acceptance before allowing full dashboard access."
+    "question": "Can Eval AI explain Clerk?",
+    "answer": "Yes. Eval AI can explain Clerk when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Account",
-    "question": "Why does the dashboard show my name?",
-    "answer": "The dashboard uses account information from the signed-in user profile."
+    "question": "What should I do if Clerk looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Account",
-    "question": "Can I use Eval without signing in?",
-    "answer": "Some public pages may be viewable, but dashboard functionality generally requires signing in."
+    "question": "How do I sign in profile in Eval?",
+    "answer": "In Eval, profile is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Account",
-    "question": "What if sign-in fails?",
-    "answer": "Check your code, internet connection, and Clerk prompts. Then try again or use the Contact page if issues continue."
+    "question": "What does profile mean in Eval?",
+    "answer": "profile is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Account",
-    "question": "What if I forgot my password?",
-    "answer": "Use Clerk\u2019s recovery or reset flow if it is available on the sign-in screen."
+    "question": "Why is profile important?",
+    "answer": "profile helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Account",
-    "question": "Why does the profile glow appear?",
-    "answer": "The profile display is part of the app\u2019s visual design around the user account area."
+    "question": "Can Eval AI explain profile?",
+    "answer": "Yes. Eval AI can explain profile when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Account",
-    "question": "Is my watchlist tied to my account?",
-    "answer": "The app is designed so watchlist and user-specific dashboard behavior can be connected to the signed-in user."
+    "question": "What should I do if profile looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Account",
-    "question": "Can multiple users have different watchlists?",
-    "answer": "Yes. Each signed-in user can have their own dashboard state and saved tickers when connected properly."
+    "question": "How do I sign in verification code in Eval?",
+    "answer": "In Eval, verification code is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Account",
-    "question": "Where do I find account support?",
-    "answer": "Use the Contact page or ask Eval AI where account and support options are located."
+    "question": "What does verification code mean in Eval?",
+    "answer": "verification code is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is verification code important?",
+    "answer": "verification code helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain verification code?",
+    "answer": "Yes. Eval AI can explain verification code when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if verification code looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in terms acceptance in Eval?",
+    "answer": "In Eval, terms acceptance is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does terms acceptance mean in Eval?",
+    "answer": "terms acceptance is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is terms acceptance important?",
+    "answer": "terms acceptance helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain terms acceptance?",
+    "answer": "Yes. Eval AI can explain terms acceptance when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if terms acceptance looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in user account in Eval?",
+    "answer": "In Eval, user account is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does user account mean in Eval?",
+    "answer": "user account is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is user account important?",
+    "answer": "user account helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain user account?",
+    "answer": "Yes. Eval AI can explain user account when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if user account looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in session in Eval?",
+    "answer": "In Eval, session is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does session mean in Eval?",
+    "answer": "session is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is session important?",
+    "answer": "session helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain session?",
+    "answer": "Yes. Eval AI can explain session when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if session looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in profile popup in Eval?",
+    "answer": "In Eval, profile popup is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does profile popup mean in Eval?",
+    "answer": "profile popup is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is profile popup important?",
+    "answer": "profile popup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain profile popup?",
+    "answer": "Yes. Eval AI can explain profile popup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if profile popup looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in logout in Eval?",
+    "answer": "In Eval, logout is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does logout mean in Eval?",
+    "answer": "logout is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is logout important?",
+    "answer": "logout helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain logout?",
+    "answer": "Yes. Eval AI can explain logout when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if logout looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "How do I sign in account support in Eval?",
+    "answer": "In Eval, account support is handled inside the Account area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Account",
+    "question": "What does account support mean in Eval?",
+    "answer": "account support is part of the Account experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Account",
+    "question": "Why is account support important?",
+    "answer": "account support helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Account",
+    "question": "Can Eval AI explain account support?",
+    "answer": "Yes. Eval AI can explain account support when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Account",
+    "question": "What should I do if account support looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Account",
+    "question": "Can users sign in sign in from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does sign in update automatically?",
+    "answer": "sign in updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users verify Clerk from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does Clerk update automatically?",
+    "answer": "Clerk updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users open profile from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does profile update automatically?",
+    "answer": "profile updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users manage verification code from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does verification code update automatically?",
+    "answer": "verification code updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users accept terms acceptance from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does terms acceptance update automatically?",
+    "answer": "terms acceptance updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users close user account from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does user account update automatically?",
+    "answer": "user account updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users reset session from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does session update automatically?",
+    "answer": "session updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users use profile popup from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does profile popup update automatically?",
+    "answer": "profile popup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users access logout from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does logout update automatically?",
+    "answer": "logout updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Account",
+    "question": "Can users protect account support from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Account",
+    "question": "Does account support update automatically?",
+    "answer": "account support updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is a metric N/A?",
-    "answer": "A metric can show N/A when the required data is missing, unavailable, delayed, or not returned by the data provider for that ticker."
+    "question": "Why does a metric show N/A?",
+    "answer": "A metric shows N/A when the required data is missing, unavailable, or skipped instead of being incorrectly scored as zero."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does a stock take time to load?",
-    "answer": "Eval may be pulling market data, company data, news, rankings, and AI summaries. Some requests can take longer depending on the provider."
+    "question": "What happens if an API fails?",
+    "answer": "Eval tries provider fallbacks, cached category data, and the last valid report instead of creating a fake bad score."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does the radar chart say data is loading?",
-    "answer": "That usually means the full category data for the selected stocks has not finished loading or caching yet."
+    "question": "Why does a chart say data is loading?",
+    "answer": "The chart may still be waiting for category data or cached analysis to become available."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is the app educational only?",
-    "answer": "Eval explains company data and scores, but it does not provide licensed financial advice or guaranteed investment recommendations."
+    "question": "How do I fix N/A metric in Eval?",
+    "answer": "In Eval, N/A metric is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why did the app not find my ticker?",
-    "answer": "The ticker may be invalid, unsupported, delisted, misspelled, or unavailable from the data provider."
+    "question": "What does N/A metric mean in Eval?",
+    "answer": "N/A metric is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does the page look different on mobile?",
-    "answer": "The mobile layout is optimized for portrait screens, so some sections stack vertically or move into the dropdown."
+    "question": "Why is N/A metric important?",
+    "answer": "N/A metric helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why can I not scroll enough on mobile?",
-    "answer": "If a section feels cut off, refresh the page and keep the device in portrait mode. The layout is built for vertical scrolling."
+    "question": "Can Eval AI explain N/A metric?",
+    "answer": "Yes. Eval AI can explain N/A metric when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why are scores different after refresh?",
-    "answer": "Refreshing can pull updated data or use a newer cached report."
+    "question": "What should I do if N/A metric looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is news sentiment missing?",
-    "answer": "News sentiment may be missing if no recent relevant articles are returned for that ticker."
+    "question": "How do I fix rate limit in Eval?",
+    "answer": "In Eval, rate limit is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is industry ranking missing?",
-    "answer": "Industry ranking may be unavailable if the app cannot classify the ticker or load enough peer companies."
+    "question": "What does rate limit mean in Eval?",
+    "answer": "rate limit is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does the chart look empty?",
-    "answer": "A chart can look empty when the underlying category scores are not loaded yet."
+    "question": "Why is rate limit important?",
+    "answer": "rate limit helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does Compare not let me save?",
-    "answer": "You need to select at least 2 and no more than 5 watchlist stocks."
+    "question": "Can Eval AI explain rate limit?",
+    "answer": "Yes. Eval AI can explain rate limit when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is Contact hidden on mobile?",
-    "answer": "The dropdown is designed to appear above dashboard content. If it still hides, refresh after applying the latest styles."
+    "question": "What should I do if rate limit looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does the website cache scores?",
-    "answer": "Caching reduces API calls, improves speed, and helps prevent provider rate-limit issues."
+    "question": "How do I fix cached report in Eval?",
+    "answer": "In Eval, cached report is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why might Finnhub data be limited?",
-    "answer": "Free or lower-tier data plans can have limits, delays, missing fields, or rate limits."
+    "question": "What does cached report mean in Eval?",
+    "answer": "cached report is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Troubleshooting",
-    "question": "What should I do if the app is blank?",
-    "answer": "Refresh the page, check deployment status, and make sure the latest frontend and backend files were uploaded."
+    "question": "Why is cached report important?",
+    "answer": "cached report helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does AI not answer?",
-    "answer": "Eval AI may need the OpenAI key connected, or the question may be outside the allowed Eval support/watchlist scope."
+    "question": "Can Eval AI explain cached report?",
+    "answer": "Yes. Eval AI can explain cached report when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why does a button do nothing?",
-    "answer": "The feature may need data first. For example, Compare needs watchlist stocks before it can compare."
+    "question": "What should I do if cached report looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Troubleshooting",
-    "question": "Why is the score ring color wrong?",
-    "answer": "Score colors come from the app\u2019s thresholds and CSS. Refresh after deploying updated style files."
+    "question": "How do I fix last valid report in Eval?",
+    "answer": "In Eval, last valid report is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Troubleshooting",
-    "question": "What should I report to support?",
-    "answer": "Send the page, ticker, what you clicked, what you expected, and what actually happened."
+    "question": "What does last valid report mean in Eval?",
+    "answer": "last valid report is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is last valid report important?",
+    "answer": "last valid report helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain last valid report?",
+    "answer": "Yes. Eval AI can explain last valid report when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if last valid report looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix blank chart in Eval?",
+    "answer": "In Eval, blank chart is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does blank chart mean in Eval?",
+    "answer": "blank chart is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is blank chart important?",
+    "answer": "blank chart helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain blank chart?",
+    "answer": "Yes. Eval AI can explain blank chart when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if blank chart looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix ticker not found in Eval?",
+    "answer": "In Eval, ticker not found is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does ticker not found mean in Eval?",
+    "answer": "ticker not found is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is ticker not found important?",
+    "answer": "ticker not found helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain ticker not found?",
+    "answer": "Yes. Eval AI can explain ticker not found when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if ticker not found looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix provider failure in Eval?",
+    "answer": "In Eval, provider failure is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does provider failure mean in Eval?",
+    "answer": "provider failure is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is provider failure important?",
+    "answer": "provider failure helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain provider failure?",
+    "answer": "Yes. Eval AI can explain provider failure when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if provider failure looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix partial data in Eval?",
+    "answer": "In Eval, partial data is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does partial data mean in Eval?",
+    "answer": "partial data is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is partial data important?",
+    "answer": "partial data helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain partial data?",
+    "answer": "Yes. Eval AI can explain partial data when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if partial data looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix Render restart in Eval?",
+    "answer": "In Eval, Render restart is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does Render restart mean in Eval?",
+    "answer": "Render restart is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is Render restart important?",
+    "answer": "Render restart helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain Render restart?",
+    "answer": "Yes. Eval AI can explain Render restart when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if Render restart looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "How do I fix API key in Eval?",
+    "answer": "In Eval, API key is handled inside the Troubleshooting area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What does API key mean in Eval?",
+    "answer": "API key is part of the Troubleshooting experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why is API key important?",
+    "answer": "API key helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can Eval AI explain API key?",
+    "answer": "Yes. Eval AI can explain API key when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "What should I do if API key looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users fix N/A metric from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does N/A metric update automatically?",
+    "answer": "N/A metric updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users understand rate limit from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does rate limit update automatically?",
+    "answer": "rate limit updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users check cached report from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does cached report update automatically?",
+    "answer": "cached report updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users reload last valid report from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does last valid report update automatically?",
+    "answer": "last valid report updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users refresh blank chart from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does blank chart update automatically?",
+    "answer": "blank chart updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users explain ticker not found from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does ticker not found update automatically?",
+    "answer": "ticker not found updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users recover provider failure from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does provider failure update automatically?",
+    "answer": "provider failure updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users troubleshoot partial data from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does partial data update automatically?",
+    "answer": "partial data updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users diagnose Render restart from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does Render restart update automatically?",
+    "answer": "Render restart updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Can users report API key from the dashboard?",
+    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Does API key update automatically?",
+    "answer": "API key updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How is data cached?",
+    "answer": "Eval caches different data sections on different schedules so it avoids unnecessary API calls and keeps scores stable."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What uses Massive?",
+    "answer": "Massive is used for price, historical returns, momentum, pullback, and 52-week market data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What uses FMP?",
+    "answer": "FMP is used lightly for key financial metrics, ratios, growth, profitability, financial health, and valuation inputs."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What uses Finnhub?",
+    "answer": "Finnhub is used for profile/news and fallback metrics when another source is missing."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What uses StockAnalysis.com?",
+    "answer": "Ticker Lookup uses the StockAnalysis.com stock table so it does not use FMP just to search company names."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How do I cache component cache in Eval?",
+    "answer": "In Eval, component cache is handled inside the Caching and data sources area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What does component cache mean in Eval?",
+    "answer": "component cache is part of the Caching and data sources experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Why is component cache important?",
+    "answer": "component cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Can Eval AI explain component cache?",
+    "answer": "Yes. Eval AI can explain component cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What should I do if component cache looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How do I cache FMP in Eval?",
+    "answer": "In Eval, FMP is handled inside the Caching and data sources area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What does FMP mean in Eval?",
+    "answer": "FMP is part of the Caching and data sources experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Why is FMP important?",
+    "answer": "FMP helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Can Eval AI explain FMP?",
+    "answer": "Yes. Eval AI can explain FMP when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What should I do if FMP looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How do I cache Massive in Eval?",
+    "answer": "In Eval, Massive is handled inside the Caching and data sources area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What does Massive mean in Eval?",
+    "answer": "Massive is part of the Caching and data sources experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Why is Massive important?",
+    "answer": "Massive helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Can Eval AI explain Massive?",
+    "answer": "Yes. Eval AI can explain Massive when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What should I do if Massive looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How do I cache Finnhub in Eval?",
+    "answer": "In Eval, Finnhub is handled inside the Caching and data sources area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What does Finnhub mean in Eval?",
+    "answer": "Finnhub is part of the Caching and data sources experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Why is Finnhub important?",
+    "answer": "Finnhub helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Can Eval AI explain Finnhub?",
+    "answer": "Yes. Eval AI can explain Finnhub when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What should I do if Finnhub looks wrong?",
+    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "How do I cache StockAnalysis lookup in Eval?",
+    "answer": "In Eval, StockAnalysis lookup is handled inside the Caching and data sources area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "What does StockAnalysis lookup mean in Eval?",
+    "answer": "StockAnalysis lookup is part of the Caching and data sources experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+  },
+  {
+    "category": "Caching and data sources",
+    "question": "Why is StockAnalysis lookup important?",
+    "answer": "StockAnalysis lookup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   }
 ];
 
@@ -3565,7 +7515,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
     return matchesCategory && matchesQuery;
   });
 
-  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 24);
+  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 36);
 
   return (
     <main className="faq-page">
@@ -3594,8 +7544,8 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           </div>
           <h1>Eval help center</h1>
           <p>
-            Search common questions about the dashboard, score rings, metrics, watchlist, compare,
-            industry rankings, news sentiment, Eval AI, and account basics.
+            Search roughly 1,000 support questions about the dashboard, score rings, metrics, watchlist, compare,
+            industry rankings, news sentiment, ticker lookup, caching, data sources, Eval AI, and account basics.
           </p>
         </div>
 
@@ -3646,7 +7596,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
 
         {!normalized && filteredFaqs.length > shownFaqs.length && (
           <p className="faq-search-hint">
-            Type in the search box to instantly search all {EVAL_FAQS.length} FAQs.
+            Type in the search box to instantly search the full FAQ library.
           </p>
         )}
       </section>
