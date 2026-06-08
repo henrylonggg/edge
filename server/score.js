@@ -1210,7 +1210,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     fmpFundamentals,
   ] = await Promise.all([
     refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
-    refreshMarket && !process.env.MASSIVE_API_KEY ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
+    refreshMarket ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
     shouldFetchFundamentalMetrics ? fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }) : null,
     refreshFundamentals && !process.env.FMP_API_KEY ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
     refreshMarket ? fetchMassiveMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Massive cached" },
@@ -1245,8 +1245,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const quote = refreshMarket
     ? {
         ...(cachedReport?.quote || {}),
-        ...(finnhubQuote || {}),
         ...(massiveMarket?.quote || {}),
+        ...(finnhubQuote || {}),
       }
     : {
         ...(cachedReport?.quote || {}),
@@ -1499,10 +1499,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
           massiveKey: Boolean(process.env.MASSIVE_API_KEY),
           fmpKey: Boolean(process.env.FMP_API_KEY),
           finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
-          apiMinimization: "Uses component TTL cache; skips Finnhub quote when Massive exists; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
+          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
         },
         sources: {
-          price: massiveMarket?.quote ? "Massive" : finnhubQuote ? "Finnhub" : "Unavailable",
+          price: finnhubQuote ? "Finnhub" : massiveMarket?.quote ? "Massive" : "Unavailable",
           marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
           fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
           profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
@@ -1550,7 +1550,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
       dividendYield: metric(extracted.dividendYield, "%", "FMP", "Annual dividend yield"),
 
       beta: metric(extracted.beta, "", "FMP", "Volatility compared with market"),
-      dayChangePercent: metric(extracted.dayChangePercent, "%", "Massive", "Current daily price change"),
+      dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current daily price change"),
       priceReturn4Week: metric(extracted.priceReturn4Week, "%", "Massive", "4-week price return"),
       priceReturn13Week: metric(extracted.priceReturn13Week, "%", "Massive", "13-week price return"),
       priceReturn26Week: metric(extracted.priceReturn26Week, "%", "Massive", "26-week price return"),
