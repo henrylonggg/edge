@@ -1811,12 +1811,6 @@ function LandingPage({ onContinue }) {
   ];
 return (
     <main className="landing-page-clean">
-      <div className="landing-orb landing-orb-one" />
-      <div className="landing-orb landing-orb-two" />
-      <div className="landing-orb landing-orb-three" />
-      <div className="landing-grid-glow" />
-      <div className="landing-scanline" />
-      <div className="landing-noise" />
 
       <section className="landing-shell landing-shell-pro landing-shell-extreme">
         <header className="landing-brand-row landing-brand-row-pro">
