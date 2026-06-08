@@ -1810,7 +1810,7 @@ function LandingPage({ onContinue }) {
     },
   ];
 return (
-    <main className="landing-page landing-page-pro landing-page-extreme">
+    <main className="landing-page-clean">
       <div className="landing-orb landing-orb-one" />
       <div className="landing-orb landing-orb-two" />
       <div className="landing-orb landing-orb-three" />
