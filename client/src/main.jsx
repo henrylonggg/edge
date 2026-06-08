@@ -115,8 +115,6 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-
-
 /* Force Clerk resend verification cooldown to 60 seconds.
    Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
    keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
@@ -243,13 +241,11 @@ function installClerkResend60Guard() {
 
 installClerkResend60Guard();
 
-
 /*
   HARD-CODED RENDER BACKEND URL
   This avoids Vercel environment variable problems.
 */
 const API = "https://edge-1-6dtw.onrender.com";
-const EFFECTIVECPM_DIRECT_URL = "https://www.effectivecpmnetwork.com/bn4hqqbxz4?key=a1f6b04023acfc67e2af5ea3ced8d33e";
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
@@ -304,7 +300,6 @@ function fmt(v, suffix = "") {
     maximumFractionDigits: 1,
   })}${suffix}`;
 }
-
 
 function dailyChangeClass(value) {
   const num = Number(value);
@@ -398,7 +393,6 @@ function getScoreInsight(score) {
     text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
   };
 }
-
 
 function getSafeProfileAccent(user) {
   const fallbackColors = [
@@ -598,7 +592,6 @@ function App() {
     }
   }
 
-
   function buildStockListItem(analyzed, fallbackSymbol) {
     const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
     const cats = analyzed?.grades?.categories || {};
@@ -623,7 +616,6 @@ function App() {
     };
   }
 
-
   async function addTicker(ticker = symbol) {
     const clean = ticker.trim().toUpperCase();
     if (!clean) return;
@@ -646,7 +638,6 @@ function App() {
     setWatchlist(next);
     saveWatchlist(next);
   }
-
 
   function openComparePage() {
     setCompareError("");
@@ -1139,11 +1130,6 @@ function App() {
   );
 }
 
-
-
-
-
-
 function ScoreRingSvg({ value, className = "", label = null }) {
   const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
   const tone = scoreTone(score);
@@ -1180,7 +1166,6 @@ function ScoreRingSvg({ value, className = "", label = null }) {
     </div>
   );
 }
-
 
 function CompareRadar({ categories, stocks }) {
   const [hiddenSymbols, setHiddenSymbols] = useState([]);
@@ -1480,8 +1465,6 @@ function ComparePage({
   );
 }
 
-
-
 function industryDescription(industry = "") {
   const text = String(industry || "").toLowerCase();
 
@@ -1511,7 +1494,6 @@ function industryDescription(industry = "") {
 
   return "This industry groups companies with similar business models. Comparing Eval Scores inside the same industry can make the ranking more useful because the stocks face similar risks and opportunities.";
 }
-
 
 function IndustryRadar({ leaders }) {
   const [hiddenSymbols, setHiddenSymbols] = useState([]);
@@ -1940,15 +1922,7 @@ return (
           <span>Watchlist</span>
           <span>Radar Compare</span>
           <span>Eval AI</span>
-          <a
-            className="sponsored-link-pill"
-            href={EFFECTIVECPM_DIRECT_URL}
-            target="_blank"
-            rel="nofollow sponsored noopener noreferrer"
-          >
-            Sponsored
-          </a>
-        </div>
+</div>
 
         <p className="landing-footnote">
           Eval is for educational stock evaluation only and is not financial advice.
@@ -2105,7 +2079,6 @@ function ClerkAccessPage({ onBack, onSuccess }) {
   );
 }
 
-
 function DashboardLinkRow({ onHome, onTerms, onSupport }) {
   return (
     <nav className="dashboard-link-row" aria-label="Dashboard navigation">
@@ -2119,8 +2092,6 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
     </nav>
   );
 }
-
-
 
 const EVAL_FAQS = [
   {
@@ -7479,7 +7450,6 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
   );
 }
 
-
 function SupportContactPage({ onBack, onHome, onTerms }) {
   return (
     <main className="support-page">
@@ -7805,7 +7775,6 @@ function TermsPage({ onAgree, onBack, requireAgreement = true }) {
   );
 }
 
-
 function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
   const ranked = [...items].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
   const leader = ranked[0];
@@ -7880,7 +7849,6 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
     </aside>
   );
 }
-
 
 function Watchlist({
   items,
@@ -7967,7 +7935,6 @@ function Watchlist({
     </aside>
   );
 }
-
 
 function PlansPage({ onBack }) {
   const plan = {
@@ -8256,7 +8223,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
     if (!industryName || industryName === "Public company") return;
     onOpenIndustry?.(industryName, data.symbol);
   }
-
 
   const strongest = useMemo(
     () =>
@@ -8843,7 +8809,6 @@ function Metric({ label, item, help }) {
     </div>
   );
 }
-
 
 function EmptyReport() {
   return (
