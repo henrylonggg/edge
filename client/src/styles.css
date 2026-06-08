@@ -23080,3 +23080,70 @@ body {
     overflow-x: hidden !important;
   }
 }
+
+
+/* =========================================================
+   HOMEPAGE BACKGROUND ANIMATION REMOVED
+   No fixed/floating background layers, no inner scroll conflict.
+========================================================= */
+
+.landing-page-clean {
+  background:
+    radial-gradient(circle at 16% 12%, rgba(21,231,255,.12), transparent 36%),
+    radial-gradient(circle at 86% 18%, rgba(133,255,71,.10), transparent 34%),
+    linear-gradient(135deg, #01050d 0%, #04101c 42%, #050817 70%, #01040b 100%) !important;
+}
+
+/* Kill the animated/fixed background decorations completely. */
+.landing-orb,
+.landing-orb-one,
+.landing-orb-two,
+.landing-orb-three,
+.landing-grid-glow,
+.landing-scanline,
+.landing-noise {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: static !important;
+  width: 0 !important;
+  height: 0 !important;
+  inset: auto !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Remove homepage background motion/entrance animations that can cause layout jank. */
+.landing-shell-pro,
+.landing-shell-extreme,
+.landing-product-card,
+.landing-main-terminal,
+.landing-feature-card-extreme,
+.landing-story-grid-extreme > div,
+.landing-continue-mega {
+  animation: none !important;
+}
+
+/* Make sure homepage scroll is owned by the document only. */
+.landing-page-clean,
+.landing-page-clean .landing-shell,
+.landing-page-clean .landing-shell-pro,
+.landing-page-clean .landing-shell-extreme {
+  overflow: visible !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+html,
+body,
+#root {
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+body {
+  overflow-y: auto !important;
+}
