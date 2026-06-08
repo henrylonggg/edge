@@ -2143,6 +2143,13 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
       setLookupError("");
 
       try {
+        if (!normalized) {
+          setMatches([]);
+          setTotalAvailable(null);
+          setLookupLoading(false);
+          return;
+        }
+
         const params = new URLSearchParams({
           q: normalized,
           limit: "160",
@@ -2170,7 +2177,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
           setLookupLoading(false);
         }
       }
-    }, normalized ? 180 : 0);
+    }, 180);
 
     return () => {
       clearTimeout(timer);
@@ -2229,13 +2236,21 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
               key={item.symbol}
               onClick={() => onAnalyze(item.symbol)}
             >
-              <strong>{item.name}</strong>
               <span>{item.symbol}</span>
+              <strong>{item.name}</strong>
             </button>
           ))}
         </div>
 
-        {!lookupLoading && !matches.length && !lookupError && (
+        {!normalized && !lookupLoading && (
+          <div className="lookup-empty lookup-start-empty">
+            <Search size={30} />
+            <h3>Start typing to search</h3>
+            <p>Company matches will appear here after you type a company name or ticker.</p>
+          </div>
+        )}
+
+        {normalized && !lookupLoading && !matches.length && !lookupError && (
           <div className="lookup-empty">
             <Search size={30} />
             <h3>No ticker match found</h3>
