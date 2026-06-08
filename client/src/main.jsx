@@ -1,5 +1,5 @@
-// Eval update: FMP 6000 stock ticker lookup page.
-// Eval update: static Top 1000 ticker lookup page.
+// Eval update: FMP 6000 stock ticker search page.
+// Eval update: static Top 1000 ticker search page.
 // Eval update: native-style dropdown menu.
 // Eval update: mobile dropdown always front with reliable click-away.
 // Eval update: expanded FAQ library with at least 20 per category.
@@ -910,19 +910,6 @@ function App() {
     );
   }
 
-  if (view === "lookup") {
-    return (
-      <TickerLookupPage
-        onBack={() => setView("dashboard")}
-        onFaqs={() => setView("faqs")}
-        onAnalyze={async (ticker) => {
-          setView("dashboard");
-          await analyze(null, ticker);
-        }}
-      />
-    );
-  }
-
   if (view === "faqs") {
     return (
       <FaqPage
@@ -1054,9 +1041,6 @@ function App() {
                     />
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-desktop eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("lookup")}>
-                        Ticker Lookup
-                      </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
@@ -1081,9 +1065,6 @@ function App() {
                     </div>
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("lookup")}>
-                        Ticker Lookup
-                      </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
@@ -2127,141 +2108,6 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
 
 
 
-function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
-  const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState([]);
-  const [totalAvailable, setTotalAvailable] = useState(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState("");
-
-  const normalized = query.trim();
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setLookupLoading(true);
-      setLookupError("");
-
-      try {
-        if (!normalized) {
-          setMatches([]);
-          setTotalAvailable(null);
-          setLookupLoading(false);
-          return;
-        }
-
-        const params = new URLSearchParams({
-          q: normalized,
-          limit: "160",
-        });
-
-        const response = await fetch(`${API}/api/ticker-lookup?${params.toString()}`, {
-          signal: controller.signal,
-        });
-
-        const json = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          throw new Error(json?.error || "Ticker lookup failed.");
-        }
-
-        setMatches(Array.isArray(json?.results) ? json.results : []);
-        setTotalAvailable(Number(json?.totalAvailable) || null);
-      } catch (error) {
-        if (error?.name !== "AbortError") {
-          setLookupError(error?.message || "Ticker lookup failed.");
-          setMatches([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLookupLoading(false);
-        }
-      }
-    }, 180);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [normalized]);
-
-  return (
-    <main className="lookup-page">
-      <section className="lookup-shell">
-        <div className="lookup-topbar">
-          <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-
-          <button className="lookup-help-btn" type="button" onClick={onFaqs}>
-            <HelpCircle size={16} /> FAQs
-          </button>
-        </div>
-
-        <div className="lookup-hero">
-          <div className="section-title">
-            <Search size={17} /> Ticker Lookup
-          </div>
-          <h1>Find a ticker by company name.</h1>
-          <p>
-            Start typing a company name and Eval filters the built-in 5,199-stock ticker universe. Click the ticker on the right to load that company on the Analyze dashboard.
-          </p>
-        </div>
-
-        <div className="lookup-search-card">
-          <Search size={20} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type Apple, Nvidia, JPMorgan, Tesla..."
-            autoComplete="off"
-            autoFocus
-          />
-          <span>
-            {lookupLoading ? "Searching..." : `${matches.length} shown${totalAvailable ? ` / ${totalAvailable}+` : ""}`}
-          </span>
-        </div>
-
-        {lookupError && (
-          <div className="lookup-error">
-            {lookupError}
-          </div>
-        )}
-
-        <div className="lookup-results lookup-results-table">
-          {matches.map((item) => (
-            <button
-              type="button"
-              className="lookup-result-row"
-              key={item.symbol}
-              onClick={() => onAnalyze(item.symbol)}
-            >
-              <span>{item.symbol}</span>
-              <strong>{item.name}</strong>
-            </button>
-          ))}
-        </div>
-
-        {!normalized && !lookupLoading && (
-          <div className="lookup-empty lookup-start-empty">
-            <Search size={30} />
-            <h3>Start typing to search</h3>
-            <p>Company matches will appear here after you type a company name or ticker.</p>
-          </div>
-        )}
-
-        {normalized && !lookupLoading && !matches.length && !lookupError && (
-          <div className="lookup-empty">
-            <Search size={30} />
-            <h3>No ticker match found</h3>
-            <p>Try a shorter company name or search directly by ticker symbol.</p>
-          </div>
-        )}
-      </section>
-    </main>
-  );
-}
-
 const EVAL_FAQS = [
   {
     "category": "Getting started",
@@ -2271,7 +2117,7 @@ const EVAL_FAQS = [
   {
     "category": "Getting started",
     "question": "How do I start using Eval?",
-    "answer": "Search a ticker or open Ticker Lookup, load a company, then read the Eval Score, price/risk cards, category bars, news sentiment, and watchlist options."
+    "answer": "Search a ticker or open Ticker search, load a company, then read the Eval Score, price/risk cards, category bars, news sentiment, and watchlist options."
   },
   {
     "category": "Getting started",
@@ -2631,7 +2477,7 @@ const EVAL_FAQS = [
   {
     "category": "Navigation",
     "question": "What is in the dropdown menu?",
-    "answer": "The dropdown menu opens Ticker Lookup, AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
+    "answer": "The dropdown menu opens Ticker search, AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
   },
   {
     "category": "Navigation",
@@ -2795,27 +2641,27 @@ const EVAL_FAQS = [
   },
   {
     "category": "Navigation",
-    "question": "How do I open Ticker Lookup in Eval?",
-    "answer": "In Eval, Ticker Lookup is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open Ticker search in Eval?",
+    "answer": "In Eval, Ticker search is handled inside the Navigation area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Navigation",
-    "question": "What does Ticker Lookup mean in Eval?",
-    "answer": "Ticker Lookup is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does Ticker search mean in Eval?",
+    "answer": "Ticker search is part of the Navigation experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Navigation",
-    "question": "Why is Ticker Lookup important?",
-    "answer": "Ticker Lookup helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is Ticker search important?",
+    "answer": "Ticker search helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Navigation",
-    "question": "Can Eval AI explain Ticker Lookup?",
-    "answer": "Yes. Eval AI can explain Ticker Lookup when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain Ticker search?",
+    "answer": "Yes. Eval AI can explain Ticker search when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Navigation",
-    "question": "What should I do if Ticker Lookup looks wrong?",
+    "question": "What should I do if Ticker search looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -2955,13 +2801,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Navigation",
-    "question": "Can users switch to Ticker Lookup from the dashboard?",
+    "question": "Can users switch to Ticker search from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Navigation",
-    "question": "Does Ticker Lookup update automatically?",
-    "answer": "Ticker Lookup updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does Ticker search update automatically?",
+    "answer": "Ticker search updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Navigation",
@@ -2994,367 +2840,367 @@ const EVAL_FAQS = [
     "answer": "Watchlist updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
-    "question": "What is Ticker Lookup?",
-    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached built-in ticker universe."
+    "category": "Ticker search",
+    "question": "What is Ticker search?",
+    "answer": "Ticker search lets users type a company name and find the matching ticker from the cached built-in ticker universe."
   },
   {
-    "category": "Ticker Lookup",
-    "question": "Does Ticker Lookup use FMP?",
-    "answer": "No. Ticker Lookup uses the built-in ticker universe cached by the backend, so it does not burn FMP calls while users type."
+    "category": "Ticker search",
+    "question": "Does Ticker search use FMP?",
+    "answer": "No. Ticker search uses the built-in ticker universe cached by the backend, so it does not burn FMP calls while users type."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What happens when I click a ticker?",
     "answer": "Clicking the ticker sends you back to the dashboard and loads that ticker\u2019s Analyze report."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search company name search in Eval?",
-    "answer": "In Eval, company name search is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, company name search is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does company name search mean in Eval?",
-    "answer": "company name search is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "company name search is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is company name search important?",
     "answer": "company name search helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain company name search?",
     "answer": "Yes. Eval AI can explain company name search when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if company name search looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search ticker in Eval?",
-    "answer": "In Eval, ticker is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, ticker is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does ticker mean in Eval?",
-    "answer": "ticker is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "ticker is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is ticker important?",
     "answer": "ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain ticker?",
     "answer": "Yes. Eval AI can explain ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if ticker looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search the ticker universe table in Eval?",
-    "answer": "In Eval, the ticker universe table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, the ticker universe table is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does the ticker universe table mean in Eval?",
-    "answer": "the ticker universe table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "the ticker universe table is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is the ticker universe table important?",
     "answer": "the ticker universe table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain the ticker universe table?",
     "answer": "Yes. Eval AI can explain the ticker universe table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if the ticker universe table looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search lookup results in Eval?",
-    "answer": "In Eval, lookup results is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, lookup results is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does lookup results mean in Eval?",
-    "answer": "lookup results is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "lookup results is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is lookup results important?",
     "answer": "lookup results helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain lookup results?",
     "answer": "Yes. Eval AI can explain lookup results when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if lookup results looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search clickable ticker in Eval?",
-    "answer": "In Eval, clickable ticker is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, clickable ticker is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does clickable ticker mean in Eval?",
-    "answer": "clickable ticker is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "clickable ticker is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is clickable ticker important?",
     "answer": "clickable ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain clickable ticker?",
     "answer": "Yes. Eval AI can explain clickable ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if clickable ticker looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search search box in Eval?",
-    "answer": "In Eval, search box is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, search box is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does search box mean in Eval?",
-    "answer": "search box is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "search box is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is search box important?",
     "answer": "search box helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain search box?",
     "answer": "Yes. Eval AI can explain search box when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if search box looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search company list in Eval?",
-    "answer": "In Eval, company list is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, company list is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does company list mean in Eval?",
-    "answer": "company list is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "company list is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is company list important?",
     "answer": "company list helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain company list?",
     "answer": "Yes. Eval AI can explain company list when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if company list looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search stock table in Eval?",
-    "answer": "In Eval, stock table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, stock table is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does stock table mean in Eval?",
-    "answer": "stock table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "stock table is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is stock table important?",
     "answer": "stock table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain stock table?",
     "answer": "Yes. Eval AI can explain stock table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if stock table looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search filtering in Eval?",
-    "answer": "In Eval, filtering is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, filtering is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does filtering mean in Eval?",
-    "answer": "filtering is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "filtering is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is filtering important?",
     "answer": "filtering helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain filtering?",
     "answer": "Yes. Eval AI can explain filtering when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if filtering looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "How do I search analyze page in Eval?",
-    "answer": "In Eval, analyze page is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "answer": "In Eval, analyze page is handled inside the Ticker search area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What does analyze page mean in Eval?",
-    "answer": "analyze page is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "answer": "analyze page is part of the Ticker search experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Why is analyze page important?",
     "answer": "analyze page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can Eval AI explain analyze page?",
     "answer": "Yes. Eval AI can explain analyze page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "What should I do if analyze page looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users search company name search from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does company name search update automatically?",
     "answer": "company name search updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users filter ticker from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does ticker update automatically?",
     "answer": "ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users click the ticker universe table from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does the ticker universe table update automatically?",
     "answer": "the ticker universe table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users load lookup results from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does lookup results update automatically?",
     "answer": "lookup results updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users find clickable ticker from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does clickable ticker update automatically?",
     "answer": "clickable ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users select search box from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does search box update automatically?",
     "answer": "search box updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users type company list from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does company list update automatically?",
     "answer": "company list updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users open stock table from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does stock table update automatically?",
     "answer": "stock table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users use filtering from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does filtering update automatically?",
     "answer": "filtering updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Can users match analyze page from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
-    "category": "Ticker Lookup",
+    "category": "Ticker search",
     "question": "Does analyze page update automatically?",
     "answer": "analyze page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
@@ -7396,7 +7242,7 @@ const EVAL_FAQS = [
   {
     "category": "Caching and data sources",
     "question": "What uses the ticker universe?",
-    "answer": "Ticker Lookup uses the built-in ticker universe so it does not use FMP just to search company names."
+    "answer": "Ticker search uses the built-in ticker universe so it does not use FMP just to search company names."
   },
   {
     "category": "Caching and data sources",
@@ -7560,7 +7406,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           <h1>Eval help center</h1>
           <p>
             Search roughly 1,000 support questions about the dashboard, score rings, metrics, watchlist, compare,
-            industry rankings, news sentiment, ticker lookup, caching, data sources, Eval AI, and account basics.
+            industry rankings, news sentiment, ticker search, caching, data sources, Eval AI, and account basics.
           </p>
         </div>
 
