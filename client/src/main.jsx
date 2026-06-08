@@ -1837,7 +1837,7 @@ return (
             </div>
 
             <h2>
-              A smarter stock dashboard that explains the company, the score, and the data.
+              The fastest way to understand a stock before you waste time digging.
             </h2>
 
             <p>
