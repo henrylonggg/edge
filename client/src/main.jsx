@@ -2197,7 +2197,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
           </div>
           <h1>Find a ticker by company name.</h1>
           <p>
-            Start typing a company name and Eval filters the StockAnalysis.com stock table. Click the ticker on the right to load that company on the Analyze dashboard.
+            Start typing a company name and Eval filters the built-in 2,000-stock ticker list. Click the ticker on the right to load that company on the Analyze dashboard.
           </p>
         </div>
 
@@ -2238,7 +2238,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
         {!lookupLoading && !matches.length && !lookupError && (
           <div className="lookup-empty">
             <Search size={30} />
-            <h3>No StockAnalysis.com match found</h3>
+            <h3>No ticker match found</h3>
             <p>Try a shorter company name or search directly by ticker symbol.</p>
           </div>
         )}
@@ -2981,12 +2981,12 @@ const EVAL_FAQS = [
   {
     "category": "Ticker Lookup",
     "question": "What is Ticker Lookup?",
-    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached StockAnalysis.com stock table."
+    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached built-in ticker list."
   },
   {
     "category": "Ticker Lookup",
     "question": "Does Ticker Lookup use FMP?",
-    "answer": "No. Ticker Lookup uses the StockAnalysis.com stock table cached by the backend, so it does not burn FMP calls while users type."
+    "answer": "No. Ticker Lookup uses the built-in ticker list cached by the backend, so it does not burn FMP calls while users type."
   },
   {
     "category": "Ticker Lookup",
@@ -3045,27 +3045,27 @@ const EVAL_FAQS = [
   },
   {
     "category": "Ticker Lookup",
-    "question": "How do I search StockAnalysis.com table in Eval?",
-    "answer": "In Eval, StockAnalysis.com table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I search the ticker list table in Eval?",
+    "answer": "In Eval, the ticker list table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Ticker Lookup",
-    "question": "What does StockAnalysis.com table mean in Eval?",
-    "answer": "StockAnalysis.com table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does the ticker list table mean in Eval?",
+    "answer": "the ticker list table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Why is StockAnalysis.com table important?",
-    "answer": "StockAnalysis.com table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is the ticker list table important?",
+    "answer": "the ticker list table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Can Eval AI explain StockAnalysis.com table?",
-    "answer": "Yes. Eval AI can explain StockAnalysis.com table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain the ticker list table?",
+    "answer": "Yes. Eval AI can explain the ticker list table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Ticker Lookup",
-    "question": "What should I do if StockAnalysis.com table looks wrong?",
+    "question": "What should I do if the ticker list table looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -3265,13 +3265,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Ticker Lookup",
-    "question": "Can users click StockAnalysis.com table from the dashboard?",
+    "question": "Can users click the ticker list table from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Does StockAnalysis.com table update automatically?",
-    "answer": "StockAnalysis.com table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does the ticker list table update automatically?",
+    "answer": "the ticker list table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Ticker Lookup",
@@ -7380,8 +7380,8 @@ const EVAL_FAQS = [
   },
   {
     "category": "Caching and data sources",
-    "question": "What uses StockAnalysis.com?",
-    "answer": "Ticker Lookup uses the StockAnalysis.com stock table so it does not use FMP just to search company names."
+    "question": "What uses the ticker list?",
+    "answer": "Ticker Lookup uses the built-in ticker list so it does not use FMP just to search company names."
   },
   {
     "category": "Caching and data sources",
