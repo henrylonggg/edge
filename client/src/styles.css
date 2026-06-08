@@ -23001,3 +23001,82 @@ body:has(.landing-page-extreme) #root {
   height: auto !important;
   max-height: none !important;
 }
+
+
+/* =========================================================
+   CLEAN HOMEPAGE ROOT — NO INTERNAL SCROLL CONTAINER
+   This replaces the old landing-page/pro/extreme root classes.
+========================================================= */
+
+.landing-page-clean {
+  width: 100% !important;
+  min-height: 100vh !important;
+  height: auto !important;
+  max-height: none !important;
+  position: relative !important;
+  display: block !important;
+  padding: clamp(18px, 3vw, 36px) 0 56px !important;
+  color: var(--text) !important;
+  overflow: visible !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(21,231,255,.20), transparent 34%),
+    radial-gradient(circle at 86% 16%, rgba(133,255,71,.16), transparent 32%),
+    radial-gradient(circle at 82% 82%, rgba(159,92,255,.24), transparent 36%),
+    linear-gradient(135deg, #01050d 0%, #04101c 38%, #050817 66%, #01040b 100%) !important;
+}
+
+.landing-page-clean::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.landing-page-clean {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.landing-page-clean .landing-shell,
+.landing-page-clean .landing-shell-pro,
+.landing-page-clean .landing-shell-extreme {
+  width: min(1220px, calc(100vw - 32px)) !important;
+  margin: 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Force all homepage scrolling onto the document/body, not the homepage component. */
+html,
+body,
+#root {
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+}
+
+body {
+  overflow-y: auto !important;
+}
+
+@media (max-width: 1024px) {
+  .landing-page-clean {
+    min-height: 100svh !important;
+    padding: 10px 0 max(120px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .landing-page-clean .landing-shell,
+  .landing-page-clean .landing-shell-pro,
+  .landing-page-clean .landing-shell-extreme {
+    width: calc(100vw - 14px) !important;
+    max-width: calc(100vw - 14px) !important;
+  }
+}
+
+@supports not (overflow: clip) {
+  .landing-page-clean {
+    overflow-x: hidden !important;
+  }
+}
