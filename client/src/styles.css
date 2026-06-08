@@ -22845,3 +22845,67 @@ button[aria-label="Open Eval menu"]::after {
     max-width: calc(100vw - 20px) !important;
   }
 }
+
+
+/* =========================================================
+   FINAL HOMEPAGE SINGLE SCROLLBAR FIX
+   Prevent landing page/shell from creating a second inner scrollbar.
+========================================================= */
+
+html,
+body,
+#root {
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+}
+
+body {
+  overflow-y: auto !important;
+}
+
+.landing-page,
+.landing-page-pro,
+.landing-page-extreme,
+main.landing-page,
+main.landing-page-pro,
+main.landing-page-extreme {
+  height: auto !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+
+.landing-shell,
+.landing-shell-pro,
+.landing-shell-extreme {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* These are visual layers only; they should never create scroll containers. */
+.landing-scanline,
+.landing-noise,
+.landing-grid-glow,
+.landing-orb,
+.landing-orb-one,
+.landing-orb-two,
+.landing-orb-three {
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+@supports not (overflow: clip) {
+  .landing-page,
+  .landing-page-pro,
+  .landing-page-extreme,
+  main.landing-page,
+  main.landing-page-pro,
+  main.landing-page-extreme {
+    overflow-x: hidden !important;
+  }
+}
