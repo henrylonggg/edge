@@ -22571,3 +22571,195 @@ button[aria-label="Open Eval menu"]::after {
     font-size: 12px !important;
   }
 }
+
+
+/* Ticker lookup starts empty until user types. */
+.lookup-start-empty {
+  min-height: 180px !important;
+  opacity: .82 !important;
+}
+
+
+/* =========================================================
+   TICKER LOOKUP ROW REVAMP
+   ticker left, company name centered/right
+========================================================= */
+
+.lookup-results-table {
+  gap: 9px !important;
+}
+
+.lookup-result-row {
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  min-height: 62px !important;
+  padding: 10px 16px 10px 12px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(21,231,255,.055), transparent 36%),
+    rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 12px 28px rgba(0,0,0,.16) !important;
+}
+
+.lookup-result-row span {
+  order: 1 !important;
+  justify-self: start !important;
+  min-width: 78px !important;
+  text-align: center !important;
+  border-radius: 999px !important;
+  padding: 8px 12px !important;
+  color: #fff !important;
+  background:
+    linear-gradient(145deg, rgba(7, 13, 20, .96), rgba(18, 20, 32, .94)) !important;
+  border: 1px solid rgba(133,255,71,.42) !important;
+  box-shadow:
+    0 0 0 1px rgba(133,255,71,.10),
+    0 0 20px rgba(133,255,71,.14),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+  font-size: 13px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .07em !important;
+}
+
+.lookup-result-row strong {
+  order: 2 !important;
+  justify-self: center !important;
+  width: 100% !important;
+  text-align: center !important;
+  color: rgba(255,255,255,.94) !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+}
+
+.lookup-result-row:hover span {
+  border-color: rgba(133,255,71,.66) !important;
+  box-shadow:
+    0 0 0 1px rgba(133,255,71,.16),
+    0 0 24px rgba(133,255,71,.22),
+    inset 0 1px 0 rgba(255,255,255,.09) !important;
+}
+
+@media (max-width: 780px) {
+  .lookup-result-row {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    min-height: 62px !important;
+    gap: 12px !important;
+  }
+
+  .lookup-result-row span {
+    min-width: 70px !important;
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
+
+  .lookup-result-row strong {
+    font-size: 13px !important;
+    text-align: center !important;
+  }
+}
+
+
+/* =========================================================
+   TICKER LOOKUP TABLE ALIGNMENT FIX
+   table-style rows: ticker column left, company column aligned
+========================================================= */
+
+.lookup-results-table {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 6px !important;
+  padding-right: 2px !important;
+}
+
+.lookup-result-row {
+  grid-template-columns: 112px minmax(0, 1fr) !important;
+  min-height: 54px !important;
+  gap: 14px !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+  padding: 8px 14px !important;
+  border-radius: 15px !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.028)) !important;
+  border: 1px solid rgba(255,255,255,.105) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    0 10px 22px rgba(0,0,0,.13) !important;
+}
+
+.lookup-result-row span {
+  order: 1 !important;
+  justify-self: start !important;
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 999px !important;
+  color: rgba(255,255,255,.94) !important;
+  background:
+    linear-gradient(145deg, rgba(7,13,20,.96), rgba(17,19,31,.94)) !important;
+  border: 1px solid rgba(133,255,71,.46) !important;
+  box-shadow:
+    0 0 0 1px rgba(133,255,71,.09),
+    0 0 18px rgba(133,255,71,.13),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+  font-size: 12.5px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .075em !important;
+  text-align: center !important;
+}
+
+.lookup-result-row strong {
+  order: 2 !important;
+  justify-self: stretch !important;
+  width: 100% !important;
+  text-align: left !important;
+  color: rgba(255,255,255,.92) !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.lookup-result-row:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(133,255,71,.22) !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.065), rgba(255,255,255,.038)) !important;
+}
+
+.lookup-result-row:hover span {
+  border-color: rgba(133,255,71,.72) !important;
+}
+
+@media (max-width: 780px) {
+  .lookup-result-row {
+    grid-template-columns: 86px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 8px 10px !important;
+    min-height: 54px !important;
+  }
+
+  .lookup-result-row span {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+    height: 32px !important;
+    font-size: 11.5px !important;
+    padding: 0 !important;
+  }
+
+  .lookup-result-row strong {
+    text-align: left !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+}
