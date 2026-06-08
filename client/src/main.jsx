@@ -2204,7 +2204,7 @@ function TickerLookupPage({ onBack, onAnalyze, onFaqs }) {
           </div>
           <h1>Find a ticker by company name.</h1>
           <p>
-            Start typing a company name and Eval filters the built-in 2,000-stock ticker list. Click the ticker on the right to load that company on the Analyze dashboard.
+            Start typing a company name and Eval filters the built-in 5,199-stock ticker universe. Click the ticker on the right to load that company on the Analyze dashboard.
           </p>
         </div>
 
@@ -2996,12 +2996,12 @@ const EVAL_FAQS = [
   {
     "category": "Ticker Lookup",
     "question": "What is Ticker Lookup?",
-    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached built-in ticker list."
+    "answer": "Ticker Lookup lets users type a company name and find the matching ticker from the cached built-in ticker universe."
   },
   {
     "category": "Ticker Lookup",
     "question": "Does Ticker Lookup use FMP?",
-    "answer": "No. Ticker Lookup uses the built-in ticker list cached by the backend, so it does not burn FMP calls while users type."
+    "answer": "No. Ticker Lookup uses the built-in ticker universe cached by the backend, so it does not burn FMP calls while users type."
   },
   {
     "category": "Ticker Lookup",
@@ -3060,27 +3060,27 @@ const EVAL_FAQS = [
   },
   {
     "category": "Ticker Lookup",
-    "question": "How do I search the ticker list table in Eval?",
-    "answer": "In Eval, the ticker list table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I search the ticker universe table in Eval?",
+    "answer": "In Eval, the ticker universe table is handled inside the Ticker Lookup area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Ticker Lookup",
-    "question": "What does the ticker list table mean in Eval?",
-    "answer": "the ticker list table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does the ticker universe table mean in Eval?",
+    "answer": "the ticker universe table is part of the Ticker Lookup experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Why is the ticker list table important?",
-    "answer": "the ticker list table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is the ticker universe table important?",
+    "answer": "the ticker universe table helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Can Eval AI explain the ticker list table?",
-    "answer": "Yes. Eval AI can explain the ticker list table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain the ticker universe table?",
+    "answer": "Yes. Eval AI can explain the ticker universe table when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Ticker Lookup",
-    "question": "What should I do if the ticker list table looks wrong?",
+    "question": "What should I do if the ticker universe table looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -3280,13 +3280,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Ticker Lookup",
-    "question": "Can users click the ticker list table from the dashboard?",
+    "question": "Can users click the ticker universe table from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Ticker Lookup",
-    "question": "Does the ticker list table update automatically?",
-    "answer": "the ticker list table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does the ticker universe table update automatically?",
+    "answer": "the ticker universe table updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Ticker Lookup",
@@ -7395,8 +7395,8 @@ const EVAL_FAQS = [
   },
   {
     "category": "Caching and data sources",
-    "question": "What uses the ticker list?",
-    "answer": "Ticker Lookup uses the built-in ticker list so it does not use FMP just to search company names."
+    "question": "What uses the ticker universe?",
+    "answer": "Ticker Lookup uses the built-in ticker universe so it does not use FMP just to search company names."
   },
   {
     "category": "Caching and data sources",
@@ -7772,7 +7772,7 @@ function TermsPage({ onAgree, onBack, requireAgreement = true }) {
     {
       title: "9. User content and feedback",
       text: [
-        "If you submit questions, ticker lists, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
+        "If you submit questions, ticker universes, feedback, suggestions, messages, or other content, you represent that you have the right to submit it and that it does not violate law or third-party rights. You grant Eval a license to use that content to operate, improve, secure, and support the service.",
         "Do not submit confidential, regulated, illegal, harmful, or sensitive information that you do not want processed by the service."
       ],
     },
