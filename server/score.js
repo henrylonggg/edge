@@ -36,6 +36,18 @@ function metric(value, suffix = "", source = "Multi-source", formula = "") {
   };
 }
 
+function metricsFromCachedReport(report) {
+  const metrics = report?.metrics || {};
+  const extracted = {};
+
+  for (const [key, entry] of Object.entries(metrics)) {
+    const value = safeNumber(entry?.value);
+    if (value !== null) extracted[key] = value;
+  }
+
+  return extracted;
+}
+
 function divide(a, b) {
   const x = safeNumber(a);
   const y = safeNumber(b);
@@ -194,98 +206,63 @@ async function fetchFmpFundamentals(symbol) {
     return { metrics: {}, profile: null, source: "FMP unavailable" };
   }
 
-  const [profileList, keyMetricsList, keyMetricsTtmList, ratiosList, ratiosTtmList, incomeList, balanceList, cashFlowList, growthList] =
+  // Keep FMP light on the free plan:
+  // 1 profile + 1 key-metrics-ttm + 1 ratios-ttm + 1 financial-growth = about 4 FMP calls per fresh uncached ticker.
+  const [profileList, keyMetricsTtmList, ratiosTtmList, growthList] =
     await Promise.all([
       fetchFmpListOptional("/profile", `/profile/${symbol}`, { symbol, limit: 1 }),
-      fetchFmpListOptional("/key-metrics", `/key-metrics/${symbol}`, { symbol, limit: 5, period: "annual" }),
       fetchFmpListOptional("/key-metrics-ttm", `/key-metrics-ttm/${symbol}`, { symbol }),
-      fetchFmpListOptional("/ratios", `/ratios/${symbol}`, { symbol, limit: 5, period: "annual" }),
       fetchFmpListOptional("/ratios-ttm", `/ratios-ttm/${symbol}`, { symbol }),
-      fetchFmpListOptional("/income-statement", `/income-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
-      fetchFmpListOptional("/balance-sheet-statement", `/balance-sheet-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
-      fetchFmpListOptional("/cash-flow-statement", `/cash-flow-statement/${symbol}`, { symbol, limit: 5, period: "annual" }),
       fetchFmpListOptional("/financial-growth", `/financial-growth/${symbol}`, { symbol, limit: 5, period: "annual" }),
     ]);
 
   const profile = latestObject(profileList);
-  const km = latestObject(keyMetricsList);
   const kmTtm = latestObject(keyMetricsTtmList);
-  const ratios = latestObject(ratiosList);
   const ratiosTtm = latestObject(ratiosTtmList);
-  const income = latestObject(incomeList);
-  const incomePrev = incomeList?.[1] || {};
-  const balance = latestObject(balanceList);
-  const cashFlow = latestObject(cashFlowList);
   const growth = latestObject(growthList);
-
-  const revenue = firstFmpNumber(income, "revenue");
-  const revenuePrev = firstFmpNumber(incomePrev, "revenue");
-  const netIncome = firstFmpNumber(income, "netIncome");
-  const netIncomePrev = firstFmpNumber(incomePrev, "netIncome");
-  const eps = firstFmpNumber(income, "eps", "epsdiluted");
-  const epsPrev = firstFmpNumber(incomePrev, "eps", "epsdiluted");
-
-  const yoy = (current, previous) =>
-    current !== null && previous !== null && previous !== 0 ? ((current - previous) / Math.abs(previous)) * 100 : null;
 
   const metrics = {
     marketCapM: toMillions(firstFmpNumber(profile, "mktCap", "marketCap")),
 
-    peRatio: firstNumber(firstFmpNumber(kmTtm, "peRatioTTM", "peRatio"), firstFmpNumber(km, "peRatio", "peRatioTTM")),
-    priceToSales: firstNumber(firstFmpNumber(kmTtm, "priceToSalesRatioTTM", "priceToSalesRatio"), firstFmpNumber(km, "priceToSalesRatio")),
-    priceToBook: firstNumber(firstFmpNumber(kmTtm, "pbRatioTTM", "pbRatio"), firstFmpNumber(km, "pbRatio")),
-    priceToCashFlow: firstNumber(firstFmpNumber(kmTtm, "pocfratioTTM", "pocfratio"), firstFmpNumber(km, "pocfratio")),
-    priceToFreeCashFlow: firstNumber(firstFmpNumber(kmTtm, "pfcfRatioTTM", "pfcfRatio"), firstFmpNumber(km, "pfcfRatio")),
-    dividendYield: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "dividendYieldTTM", "dividendYield"), firstFmpNumber(ratios, "dividendYield"))),
+    peRatio: firstFmpNumber(kmTtm, "peRatioTTM", "peRatio"),
+    priceToSales: firstFmpNumber(kmTtm, "priceToSalesRatioTTM", "priceToSalesRatio"),
+    priceToBook: firstFmpNumber(kmTtm, "pbRatioTTM", "pbRatio"),
+    priceToCashFlow: firstFmpNumber(kmTtm, "pocfratioTTM", "pocfratio"),
+    priceToFreeCashFlow: firstFmpNumber(kmTtm, "pfcfRatioTTM", "pfcfRatio"),
+    dividendYield: fmpPercent(firstFmpNumber(ratiosTtm, "dividendYieldTTM", "dividendYield")),
 
-    revenueGrowth: firstNumber(fmpPercent(firstFmpNumber(growth, "revenueGrowth")), yoy(revenue, revenuePrev)),
+    revenueGrowth: fmpPercent(firstFmpNumber(growth, "revenueGrowth")),
     revenueGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYRevenueGrowthPerShare", "threeYRevenueGrowth")),
     revenueGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYRevenueGrowthPerShare", "fiveYRevenueGrowth")),
-    epsGrowth: firstNumber(fmpPercent(firstFmpNumber(growth, "epsgrowth", "epsGrowth")), yoy(eps, epsPrev)),
+    epsGrowth: fmpPercent(firstFmpNumber(growth, "epsgrowth", "epsGrowth")),
     epsGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYEpsGrowth")),
     epsGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYNetIncomeGrowthPerShare", "fiveYEpsGrowth")),
     netIncomeGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYNetIncomeGrowth")),
 
-    roe: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnEquityTTM", "returnOnEquity"), firstFmpNumber(ratios, "returnOnEquity"))),
-    roa: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnAssetsTTM", "returnOnAssets"), firstFmpNumber(ratios, "returnOnAssets"))),
-    roi: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "returnOnCapitalEmployedTTM", "returnOnCapitalEmployed"), firstFmpNumber(ratios, "returnOnCapitalEmployed"))),
-    grossMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "grossProfitMarginTTM", "grossProfitMargin"), firstFmpNumber(ratios, "grossProfitMargin"))),
-    operatingMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "operatingProfitMarginTTM", "operatingProfitMargin"), firstFmpNumber(ratios, "operatingProfitMargin"))),
-    pretaxMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "pretaxProfitMarginTTM", "pretaxProfitMargin"), firstFmpNumber(ratios, "pretaxProfitMargin"))),
-    netMargin: fmpPercent(firstNumber(firstFmpNumber(ratiosTtm, "netProfitMarginTTM", "netProfitMargin"), firstFmpNumber(ratios, "netProfitMargin"))),
+    roe: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnEquityTTM", "returnOnEquity")),
+    roa: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnAssetsTTM", "returnOnAssets")),
+    roi: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnCapitalEmployedTTM", "returnOnCapitalEmployed")),
+    grossMargin: fmpPercent(firstFmpNumber(ratiosTtm, "grossProfitMarginTTM", "grossProfitMargin")),
+    operatingMargin: fmpPercent(firstFmpNumber(ratiosTtm, "operatingProfitMarginTTM", "operatingProfitMargin")),
+    pretaxMargin: fmpPercent(firstFmpNumber(ratiosTtm, "pretaxProfitMarginTTM", "pretaxProfitMargin")),
+    netMargin: fmpPercent(firstFmpNumber(ratiosTtm, "netProfitMarginTTM", "netProfitMargin")),
 
-    debtToEquity: firstNumber(firstFmpNumber(ratiosTtm, "debtEquityRatioTTM", "debtEquityRatio"), firstFmpNumber(ratios, "debtEquityRatio")),
-    longTermDebtToEquity: firstNumber(firstFmpNumber(ratiosTtm, "longTermDebtToCapitalizationTTM"), firstFmpNumber(ratios, "longTermDebtToCapitalization")),
-    currentRatio: firstNumber(firstFmpNumber(ratiosTtm, "currentRatioTTM", "currentRatio"), firstFmpNumber(ratios, "currentRatio")),
-    quickRatio: firstNumber(firstFmpNumber(ratiosTtm, "quickRatioTTM", "quickRatio"), firstFmpNumber(ratios, "quickRatio")),
-    cashRatio: firstNumber(firstFmpNumber(ratiosTtm, "cashRatioTTM", "cashRatio"), firstFmpNumber(ratios, "cashRatio")),
-    assetTurnover: firstNumber(firstFmpNumber(ratiosTtm, "assetTurnoverTTM", "assetTurnover"), firstFmpNumber(ratios, "assetTurnover")),
-    interestCoverage: firstNumber(firstFmpNumber(ratiosTtm, "interestCoverageTTM", "interestCoverage"), firstFmpNumber(ratios, "interestCoverage")),
-    cashFlowToDebt: firstNumber(firstFmpNumber(ratiosTtm, "cashFlowToDebtRatioTTM", "cashFlowToDebtRatio"), firstFmpNumber(ratios, "cashFlowToDebtRatio")),
-    operatingCashFlowPerShare: firstNumber(firstFmpNumber(kmTtm, "operatingCashFlowPerShareTTM", "operatingCashFlowPerShare"), firstFmpNumber(km, "operatingCashFlowPerShare")),
-    freeCashFlowPerShare: firstNumber(firstFmpNumber(kmTtm, "freeCashFlowPerShareTTM", "freeCashFlowPerShare"), firstFmpNumber(km, "freeCashFlowPerShare")),
-
-    operatingIncome: firstFmpNumber(income, "operatingIncome"),
-    netIncome,
-    operatingCashFlow: firstFmpNumber(cashFlow, "operatingCashFlow", "netCashProvidedByOperatingActivities"),
-    capex: firstFmpNumber(cashFlow, "capitalExpenditure", "capitalExpenditures"),
-    freeCashFlow: firstFmpNumber(cashFlow, "freeCashFlow"),
-    totalAssets: firstFmpNumber(balance, "totalAssets"),
-    currentLiabilities: firstFmpNumber(balance, "totalCurrentLiabilities"),
-    totalDebt: firstNumber(
-      firstFmpNumber(balance, "totalDebt"),
-      firstFmpNumber(balance, "shortTermDebt") !== null || firstFmpNumber(balance, "longTermDebt") !== null
-        ? (firstFmpNumber(balance, "shortTermDebt") || 0) + (firstFmpNumber(balance, "longTermDebt") || 0)
-        : null
-    ),
-    shareholderEquity: firstFmpNumber(balance, "totalStockholdersEquity", "totalEquity"),
-    cashAndEquivalents: firstFmpNumber(balance, "cashAndCashEquivalents", "cashAndShortTermInvestments"),
+    debtToEquity: firstFmpNumber(ratiosTtm, "debtEquityRatioTTM", "debtEquityRatio"),
+    longTermDebtToEquity: firstFmpNumber(ratiosTtm, "longTermDebtToCapitalizationTTM", "longTermDebtToCapitalization"),
+    currentRatio: firstFmpNumber(ratiosTtm, "currentRatioTTM", "currentRatio"),
+    quickRatio: firstFmpNumber(ratiosTtm, "quickRatioTTM", "quickRatio"),
+    cashRatio: firstFmpNumber(ratiosTtm, "cashRatioTTM", "cashRatio"),
+    assetTurnover: firstFmpNumber(ratiosTtm, "assetTurnoverTTM", "assetTurnover"),
+    interestCoverage: firstFmpNumber(ratiosTtm, "interestCoverageTTM", "interestCoverage"),
+    cashFlowToDebt: firstFmpNumber(ratiosTtm, "cashFlowToDebtRatioTTM", "cashFlowToDebtRatio"),
+    operatingCashFlowPerShare: firstFmpNumber(kmTtm, "operatingCashFlowPerShareTTM", "operatingCashFlowPerShare"),
+    freeCashFlowPerShare: firstFmpNumber(kmTtm, "freeCashFlowPerShareTTM", "freeCashFlowPerShare"),
   };
 
   return {
     profile,
     metrics,
-    source: "FMP",
+    source: "FMP light",
   };
 }
 
@@ -1209,9 +1186,20 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
 }
 
 
-export async function buildStockAnalysis(symbol) {
+export async function buildStockAnalysis(symbol, options = {}) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
   if (!cleanSymbol) throw new Error("Missing ticker symbol.");
+
+  const cachedReport = options?.cachedReport || null;
+  const hasCachedReport = Boolean(cachedReport?.grades?.categories);
+
+  const refreshProfile = options?.refreshProfile ?? !hasCachedReport;
+  const refreshFundamentals = options?.refreshFundamentals ?? true;
+  const refreshValuation = options?.refreshValuation ?? refreshFundamentals;
+  const refreshMarket = options?.refreshMarket ?? true;
+  const refreshNews = options?.refreshNews ?? true;
+
+  const shouldFetchFundamentalMetrics = refreshFundamentals || refreshValuation;
 
   const [
     finnhubProfile,
@@ -1220,64 +1208,68 @@ export async function buildStockAnalysis(symbol) {
     financialsReported,
     massiveMarket,
     fmpFundamentals,
-    massiveProfile,
   ] = await Promise.all([
-    fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }),
-    fetchFinnhubOptional("/quote", { symbol: cleanSymbol }),
-    fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }),
-    fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }),
-    fetchMassiveMarketData(cleanSymbol),
-    fetchFmpFundamentals(cleanSymbol),
-    fetchMassiveProfile(cleanSymbol),
+    refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
+    refreshMarket && !process.env.MASSIVE_API_KEY ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
+    shouldFetchFundamentalMetrics ? fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }) : null,
+    refreshFundamentals && !process.env.FMP_API_KEY ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
+    refreshMarket ? fetchMassiveMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Massive cached" },
+    shouldFetchFundamentalMetrics ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, profile: null, source: "FMP cached" },
   ]);
 
+  const cachedProfile = cachedReport?.profile || {};
   const profile = {
+    ...(cachedProfile || {}),
     ...(finnhubProfile || {}),
-    ticker: finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || massiveProfile?.ticker || cleanSymbol,
+    ticker: finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || cachedProfile?.ticker || cleanSymbol,
     name:
       finnhubProfile?.name ||
       fmpFundamentals?.profile?.companyName ||
-      massiveProfile?.name ||
+      cachedProfile?.name ||
       cleanSymbol,
     finnhubIndustry:
       finnhubProfile?.finnhubIndustry ||
       fmpFundamentals?.profile?.sector ||
       fmpFundamentals?.profile?.industry ||
-      massiveProfile?.sic_description ||
-      massiveProfile?.market ||
+      cachedProfile?.finnhubIndustry ||
       "Public company",
     marketCapitalization: firstNumber(
       finnhubProfile?.marketCapitalization,
       fmpFundamentals?.metrics?.marketCapM,
-      toMillions(massiveProfile?.market_cap)
+      cachedProfile?.marketCapitalization
     ),
-    weburl: finnhubProfile?.weburl || fmpFundamentals?.profile?.website || massiveProfile?.homepage_url || "",
-    logo: finnhubProfile?.logo || fmpFundamentals?.profile?.image || "",
+    weburl: finnhubProfile?.weburl || fmpFundamentals?.profile?.website || cachedProfile?.weburl || "",
+    logo: finnhubProfile?.logo || fmpFundamentals?.profile?.image || cachedProfile?.logo || "",
   };
 
-  const quote = {
-    ...(finnhubQuote || {}),
-    ...(massiveMarket?.quote || {}),
-  };
+  const quote = refreshMarket
+    ? {
+        ...(cachedReport?.quote || {}),
+        ...(finnhubQuote || {}),
+        ...(massiveMarket?.quote || {}),
+      }
+    : {
+        ...(cachedReport?.quote || {}),
+      };
 
   if (!profile || (!profile.ticker && !profile.name)) {
     throw new Error(`No company profile found for ${cleanSymbol}.`);
   }
 
+  const cachedMetrics = metricsFromCachedReport(cachedReport);
   const finnhubMetrics = metricsRaw?.metric || {};
   const fmpMetrics = fmpFundamentals?.metrics || {};
   const massiveMetrics = massiveMarket?.metrics || {};
 
-  const raw = mergeDefined(finnhubMetrics, massiveMetrics);
+  const raw = mergeDefined(cachedMetrics, finnhubMetrics, massiveMetrics);
   const extracted = buildExtractedMetrics(profile, quote, raw);
 
   // Source priority by responsibility:
   // FMP = fundamentals, ratios, statements, growth, margins, valuation.
   // Massive = quote-derived market data, historical returns, 52-week high/low.
   // Finnhub = profile/news and fallback metrics only.
-  applyMetricFallbacks(extracted, fmpMetrics, finnhubMetrics);
-  applyMetricFallbacks(extracted, massiveMetrics, finnhubMetrics);
-
+  applyMetricFallbacks(extracted, fmpMetrics, cachedMetrics);
+  applyMetricFallbacks(extracted, massiveMetrics, cachedMetrics);
   const reportedFinancials = buildExactReportedFinancials(financialsReported);
   const reportedLatest = reportedFinancials.latest || {};
 
@@ -1373,8 +1365,10 @@ export async function buildStockAnalysis(symbol) {
     scoreInputNumber(extracted.freeCashFlow) !== null
       ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
       : null;
-  const recentNews = await fetchRecentNews(cleanSymbol);
-  const newsSentiment = await scoreNewsSentiment(cleanSymbol, profile, recentNews);
+  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol) : [];
+  const newsSentiment = refreshNews
+    ? await scoreNewsSentiment(cleanSymbol, profile, recentNews)
+    : (cachedReport?.newsSentiment || fallbackNewsSentiment([]));
 
   const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
@@ -1505,12 +1499,13 @@ export async function buildStockAnalysis(symbol) {
           massiveKey: Boolean(process.env.MASSIVE_API_KEY),
           fmpKey: Boolean(process.env.FMP_API_KEY),
           finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+          apiMinimization: "Uses component TTL cache; skips Finnhub quote when Massive exists; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
         },
         sources: {
           price: massiveMarket?.quote ? "Massive" : finnhubQuote ? "Finnhub" : "Unavailable",
           marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
           fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
-          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : massiveProfile ? "Massive" : "Unavailable",
+          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
           news: recentNews.length ? "Finnhub + OpenAI" : "Cached/neutral fallback",
         },
       },
