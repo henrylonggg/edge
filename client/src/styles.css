@@ -2903,7 +2903,6 @@ button:active,
   }
 }
 
-
 /* =========================
    QUESTION MARK INFO BUTTON CLEANUP
    Removes skipped-data note and centers ? inside every circular help button
@@ -2982,7 +2981,6 @@ button:active,
     letter-spacing: -1.2px !important;
   }
 }
-
 
 /* =========================================================
    CLERK ACCOUNT ACCESS PAGE — FINAL CLEAN VERSION
@@ -4594,7 +4592,6 @@ button:active,
   line-height: 1.58;
 }
 
-
 /* =========================
    MAIN SCORE POPUP FRONT-LAYER FIX
    Forces the new score-color help popup above the hero/card animation layers.
@@ -4903,7 +4900,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    PROFILE + WATCHLIST ALIGNMENT UPDATE
    Removes the outer profile bubble, centers the avatar with the Eval title,
@@ -5001,7 +4997,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    AI ASSISTANT STARTER BUBBLE UPDATE
    Makes the intro bubble fit the text, adds neon/gold emphasis,
@@ -5072,7 +5067,6 @@ button:active,
     width: auto !important;
   }
 }
-
 
 /* =========================================================
    AI ASSISTANT INTRO BUBBLE — TIGHT PURPLE / SILVER UPDATE
@@ -5161,7 +5155,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    DASHBOARD WELCOME TEXT NEXT TO PROFILE
 ========================================================= */
@@ -5213,7 +5206,6 @@ button:active,
     font-size: 12px !important;
   }
 }
-
 
 /* =========================================================
    CLICKABLE INDUSTRY + TOP 5 INDUSTRY POPUP
@@ -5623,7 +5615,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    BIGGER WELCOME + PROFILE AREA
    Profile is slightly smaller than the Eval logo and text scales with it.
@@ -5728,7 +5719,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    PRICE / RISK SNAPSHOT UPDATE
    Bigger price bubble, risk strengths underneath, market cap moved to Key Metrics.
@@ -5809,7 +5799,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    SLIGHTLY SMALLER WELCOME + PROFILE AREA
 ========================================================= */
@@ -5880,7 +5869,6 @@ button:active,
     min-height: 64px !important;
   }
 }
-
 
 /* =========================================================
    PHONE VIEW — MINI DESKTOP LAYOUT ONLY
@@ -6395,7 +6383,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MOBILE CLEANUP ONLY
    Desktop/laptop layout stays unchanged.
@@ -6627,7 +6614,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MOBILE ADD TICKER BUBBLE FIX
    Desktop/laptop unchanged.
@@ -6735,7 +6721,6 @@ button:active,
     height: 13px !important;
   }
 }
-
 
 /* =========================================================
    MOBILE TICKER BUBBLE HARD ORDER FIX
@@ -6884,7 +6869,6 @@ button:active,
     height: 13px !important;
   }
 }
-
 
 /* =========================================================
    MOBILE WATCHLIST BUTTON + SEPARATE PAGE
@@ -7068,7 +7052,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MOBILE FULL-WIDTH TICKER BUBBLE
    Desktop/laptop unchanged.
@@ -7194,7 +7177,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    AI ASSISTANT BUBBLE BLEND + INPUT SPACING UPDATE
    Makes the intro bubble blend with the main dashboard background
@@ -7253,7 +7235,6 @@ button:active,
     margin-top: 7px !important;
   }
 }
-
 
 /* =========================================================
    GLASSMORPHISM SCORE RINGS — SITEWIDE
@@ -7375,7 +7356,6 @@ button:active,
   --ring-glow: rgba(21,231,255,.28);
 }
 
-
 /* =========================================================
    GLASSMORPHISM SCORE BARS — CATEGORY CARDS
    Keeps Growth / Profitability / Financial Health / Valuation /
@@ -7494,7 +7474,6 @@ button:active,
     height: 7px !important;
   }
 }
-
 
 /* =========================================================
    PULSE RING SCORE STYLE — SITEWIDE
@@ -7770,7 +7749,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    REMOVE WHITE CAPS FROM CATEGORY BARS
    Keeps the neon/pulse bar theme but removes the white base/end marks.
@@ -7791,7 +7769,6 @@ button:active,
     inset 0 1px 0 rgba(255,255,255,.16),
     inset 0 -1px 0 rgba(0,0,0,.18) !important;
 }
-
 
 /* =========================================================
    SOFI REFERRAL BUTTON + INDUSTRY PULSE RINGS UPDATE
@@ -7980,7 +7957,6 @@ button:active,
     animation: none !important;
   }
 }
-
 
 /* =========================================================
    DESKTOP + MOBILE TICKER BUBBLE LAYOUT FIX
@@ -8238,7 +8214,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    DESKTOP TOPBAR RESTORE — MOBILE SAFE
    Fixes laptop/desktop ticker bubble after adding SoFi.
@@ -8341,7 +8316,6 @@ button:active,
     margin-top: 0 !important;
   }
 }
-
 
 /* =========================================================
    DESKTOP-ONLY DASHBOARD ALIGNMENT FIX
@@ -8490,7 +8464,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    PULSE RINGS — TOP START / TOP FINISH FIX
    Forces every score ring to fill from 12 o'clock instead of the left.
@@ -8547,7 +8520,6 @@ button:active,
 .preview-score-ring {
   --score-angle: 274deg;
 }
-
 
 /* =========================================================
    HOMEPAGE PREVIEW PULSE RING + WHITE CATEGORY NUMBERS
@@ -8630,7 +8602,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    HOMEPAGE PREVIEW RING — DASHBOARD GREEN
    Makes the homepage preview score ring match the dashboard green pulse style.
@@ -8669,7 +8640,6 @@ button:active,
     0 0 22px rgba(133,255,71,.38),
     inset 0 0 18px rgba(255,255,255,.045) !important;
 }
-
 
 /* =========================================================
    MOBILE DAILY PRICE CHANGE CHIP
@@ -8734,7 +8704,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    DESKTOP WATCHLIST ALIGNMENT FIX
    Lines the watchlist top up with the Power Score/report card.
@@ -8757,7 +8726,6 @@ button:active,
     margin-top: 0 !important;
   }
 }
-
 
 /* =========================================================
    DESKTOP-ONLY WATCHLIST LOWER ALIGNMENT
@@ -8783,7 +8751,6 @@ button:active,
     margin-top: 0 !important;
   }
 }
-
 
 /* =========================================================
    FORCE DESKTOP WATCHLIST ALIGNMENT
@@ -8814,7 +8781,6 @@ button:active,
     transform: none !important;
   }
 }
-
 
 /* =========================================================
    WATCHLIST MOVED TO SEPARATE PAGE
@@ -9045,7 +9011,6 @@ button:active,
     border-radius: 11px !important;
   }
 }
-
 
 /* =========================================================
    MAG 7 DASHBOARD PANEL + EMPTY USER WATCHLIST PAGE
@@ -9293,7 +9258,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    INDUSTRY TOP 3 ONLY — GOLD / SILVER / BRONZE
 ========================================================= */
@@ -9337,7 +9301,6 @@ button:active,
   --industry-ring-bright: #cd7f32 !important;
   --industry-ring-glow: rgba(205,127,50,.34) !important;
 }
-
 
 /* =========================================================
    MAG 7 + WATCHLIST PAGE LAYOUT FIX
@@ -9573,7 +9536,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MAG 7 + WATCHLIST PER-STOCK STRENGTH/WEAKNESS
    Also tightens main report spacing to reduce dead space.
@@ -9728,7 +9690,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    WATCHLIST PAGE TIGHT ROW LAYOUT + STRONG/WEAK
    Removes the huge gap between ticker and score.
@@ -9875,7 +9836,6 @@ button:active,
     height: 30px !important;
   }
 }
-
 
 /* =========================================================
    WATCHLIST PAGE FINAL TIGHTEN
@@ -10081,7 +10041,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    NEWS SENTIMENT CATEGORY + CLEAN METRIC POPUPS
 ========================================================= */
@@ -10166,7 +10125,6 @@ button:active,
     max-width: calc(100vw - 34px) !important;
   }
 }
-
 
 /* =========================================================
    NEWS SENTIMENT SECTION UNDER POWER SCORE
@@ -10356,7 +10314,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    WATCHLIST INLINE PANEL + MOMENTUM FIX COMPANION STYLES
 ========================================================= */
@@ -10519,7 +10476,6 @@ button:active,
   display: none !important;
 }
 
-
 /* =========================================================
    POPUP NULL FILTER + WATCHLIST RANK + SEARCHBAR TIGHTEN
 ========================================================= */
@@ -10651,7 +10607,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    FINAL HOTFIX: WATCHLIST RANKS WITHOUT JS index
    Prevents blank screen from ReferenceError: index is not defined.
@@ -10720,7 +10675,6 @@ button:active,
     font-size: 10px !important;
   }
 }
-
 
 /* =========================================================
    CLEANUP: PRICE BUBBLE, SEARCHBAR WIDTH, WATCHLIST TEXT
@@ -10804,7 +10758,6 @@ button:active,
 .stock-main h1 {
   margin-top: 0 !important;
 }
-
 
 /* =========================================================
    CLEAN FIX: SEARCH BAR, PRICE BUBBLE, WATCHLIST SPACING
@@ -10917,7 +10870,6 @@ button:active,
 .current-report-kicker:empty {
   display: none !important;
 }
-
 
 /* =========================================================
    FINAL FIX: PRICE BUBBLE, REMOVE REPORT ICON, WATCHLIST OVERLAP
@@ -11057,10 +11009,6 @@ button:active,
   }
 }
 
-
-
-
-
 /* =========================================================
    DESKTOP HARD LAYOUT GUARD
    Prevents report cards/news/company text from overlapping right Watchlist.
@@ -11192,7 +11140,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    CLEAN NEWS DISPLAY + COMPANY NAME FIT
 ========================================================= */
@@ -11286,7 +11233,6 @@ button:active,
   }
 }
 
-
 /* Remove leftover icon above company name */
 .report-kicker,
 .stock-kicker,
@@ -11310,7 +11256,6 @@ button:active,
 .hero-main > svg:first-child {
   display: none !important;
 }
-
 
 /* =========================================================
    HARD FIX: POWER SCORE REPORT CARD NEVER OVERLAPS
@@ -11483,7 +11428,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    WATCHLIST: NO INNER SCROLL
    Panel grows when stocks are added and shrinks when deleted.
@@ -11535,7 +11479,6 @@ button:active,
     overflow: visible !important;
   }
 }
-
 
 /* =========================================================
    FINAL REPORT CARD CLEANUP:
@@ -11760,7 +11703,6 @@ button:active,
   }
 }
 
-
 /* Eval UI update: hard price/risk + mobile score layout sync */
 
 /* Remove leftover decorative report icon above company name */
@@ -11943,7 +11885,6 @@ button:active,
     grid-column: 2 !important;
   }
 }
-
 
 /* =========================================================
    MOBILE REPORT LAYOUT: centered company, score, bottom stats
@@ -12172,7 +12113,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MOBILE REPORT FIX USING ACTUAL CLASSES
    Actual markup: .hero-card > .score-panel + .company-panel + .snapshot-grid
@@ -12347,7 +12287,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    MOBILE PRICE/RISK THEME BLEND
    Makes Price + Risk bubbles match the green report-card gradient.
@@ -12398,7 +12337,6 @@ button:active,
     border-color: rgba(133,255,71,.42) !important;
   }
 }
-
 
 /* =========================================================
    RISK HELP BUTTON MATCH
@@ -12488,7 +12426,6 @@ button:active,
     font-size: 10px !important;
   }
 }
-
 
 /* =========================================================
    RISK HELP BUTTON MATCH + BIGGER MOBILE EVAL SCORE
@@ -12584,7 +12521,6 @@ button:active,
   }
 }
 
-
 /* =========================================================
    UI FIXES + EARNINGS QUALITY
 ========================================================= */
@@ -12647,7 +12583,6 @@ button:active,
   }
 }
 
-
 /* Sleep fix: center actual risk question mark button */
 .snapshot-grid-refined .score-help-btn,
 .snapshot-grid .score-help-btn,
@@ -12670,7 +12605,6 @@ button:active,
   transform: translateY(-1px) !important;
   text-align: center !important;
 }
-
 
 /* Final risk/price cleanup */
 .mini-risk-help-btn {
@@ -12705,7 +12639,6 @@ button:active,
     font-size: 16px !important;
   }
 }
-
 
 /* Layout update: ticker opens company site, Add button in report corner */
 .ticker-company-link {
@@ -12754,8 +12687,6 @@ button:active,
     border-radius: 14px !important;
   }
 }
-
-
 
    Keeps original pie/ring charts and bar charts.
    Only prevents overlap inside the main Eval Score bubble.
@@ -12865,7 +12796,6 @@ button:active,
   }
 }
 
-
 /* Ticker link: clickable like the industry link, opens company website */
 .ticker-company-link {
   appearance: none !important;
@@ -12892,8 +12822,6 @@ button:active,
   cursor: default !important;
   text-decoration-color: rgba(255,255,255,.20) !important;
 }
-
-
 
    Simple, stable, no overlap, original rings/bars preserved.
 ========================================================= */
@@ -13149,8 +13077,6 @@ button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
   }
 }
 
-
-
    No forced grid. Bubble simply shrink-wraps visible controls.
 ========================================================= */
 
@@ -13357,8 +13283,6 @@ button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
     gap: 12px !important;
   }
 }
-
-
 
 ========================================================= */
 
@@ -13587,7 +13511,6 @@ button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
     flex-basis: clamp(170px, 42vw, 240px) !important;
   }
 }
-
 
 /* =========================================================
    STACK SCORE BUTTONS + RESPONSIVE SEARCHBAR MATCH
@@ -13869,7 +13792,6 @@ button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
   }
 }
 
-
 /* Remove SoFi/referral button everywhere, including mobile */
 .sofi-btn,
 .sofi-button,
@@ -13901,7 +13823,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   border: 0 !important;
   overflow: hidden !important;
 }
-
 
 /* =========================================================
    REMOVE SOFI EVERYWHERE + DESKTOP AI BUTTON IN FORMER SOFI SLOT
@@ -14077,7 +13998,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
 
 /* Eval update: mobile price bubble matches desktop price bubble. */
 
-
 /* =========================================================
    MOBILE PRICE BUBBLE = DESKTOP PRICE BUBBLE
    Removes mobile-only green/black background and percent-change chip styling.
@@ -14165,7 +14085,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   }
 }
 
-
 /* =========================================================
    GLOBAL COPYRIGHT FOOTER
 ========================================================= */
@@ -14201,7 +14120,6 @@ body {
     padding-bottom: 20px;
   }
 }
-
 
 /* =========================================================
    PRICE/RISK TRANSPARENT GLASS + DESKTOP AI LEFT SEARCHBAR
@@ -14433,7 +14351,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   }
 }
 
-
 /* =========================================================
    MOBILE PRICE/RISK BUBBLES MATCH DESKTOP EXACTLY
 ========================================================= */
@@ -14518,7 +14435,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
     color: rgba(255,255,255,.76) !important;
   }
 }
-
 
 /* =========================================================
    MOBILE STOCK REPORT SPACING UPDATE
@@ -14624,7 +14540,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   }
 }
 
-
 /* =========================================================
    MOBILE SCORE RING BIGGER + PRICE/RISK EXACT SAME BACKGROUND
 ========================================================= */
@@ -14724,7 +14639,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
     color: rgba(255,255,255,.82) !important;
   }
 }
-
 
 /* =========================================================
    FINAL MOBILE SCORE RING POP
@@ -14950,7 +14864,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   }
 }
 
-
 /* =========================================================
    AI PAGE RULES + POPUP CLOSE + MOBILE POLISH
 ========================================================= */
@@ -15122,7 +15035,6 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
   }
 }
 
-
 /* =========================================================
    AI CARD ONLY ON ASSISTANT PAGE + IPAD USES MOBILE LAYOUT
 ========================================================= */
@@ -15266,14 +15178,12 @@ aside .ai-rules-card {
   }
 }
 
-
 /* Clerk resend 60-second guard styling */
 [data-eval-resend-locked="true"] {
   color: rgba(133, 255, 71, .72) !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
 }
-
 
 /* =========================================================
    POPUP CLOSE BUTTONS — TOP RIGHT
@@ -15344,7 +15254,6 @@ aside .ai-rules-card {
   padding-right: 28px !important;
   padding-left: 0 !important;
 }
-
 
 /* =========================================================
    DEEP AI ASSISTANT RULES + TABLET MATCHES MOBILE
@@ -15590,7 +15499,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    FRONTEND DEPLOY ERROR FIX
 ========================================================= */
@@ -15607,7 +15515,6 @@ aside .ai-rules-card {
   right: 8px !important;
   left: auto !important;
 }
-
 
 /* =========================================================
    POPUP SPACING + BRIEF AI CARD + TABLET MOBILE LAYOUT + PORTRAIT LOCK
@@ -15969,7 +15876,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    KEEP MOBILE/TABLET WATCHLIST FIXES ONLY
    Homepage and profile/welcome layout are intentionally unchanged.
@@ -16176,7 +16082,6 @@ aside .ai-rules-card {
     max-height: 44px !important;
   }
 }
-
 
 /* =========================================================
    WATCHLIST STOCK COMPARISON PAGE
@@ -16542,7 +16447,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    COMPARE SCORE RINGS + RADAR CHART
 ========================================================= */
@@ -16771,7 +16675,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    COMPARE RADAR LEGEND + OUTSIDE METRIC LABELS
 ========================================================= */
@@ -16856,7 +16759,6 @@ aside .ai-rules-card {
     padding: 8px 11px !important;
   }
 }
-
 
 /* =========================================================
    FINAL COMPARE RADAR + SCORE RING POLISH
@@ -17017,7 +16919,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    COMPARE RADAR FRONT LABELS + TIGHTER SPACE + SAME MOBILE LAYOUT
 ========================================================= */
@@ -17140,7 +17041,6 @@ aside .ai-rules-card {
     padding: 40px !important;
   }
 }
-
 
 /* =========================================================
    LOGO HOME LINK + SEARCHBAR WITHOUT TOP ADD + PRO HOMEPAGE
@@ -17708,7 +17608,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    EXTREME HOMEPAGE VISUAL UPGRADE
 ========================================================= */
@@ -18032,7 +17931,6 @@ aside .ai-rules-card {
   }
 }
 
-
 /* =========================================================
    HOMEPAGE CLEANUP: REMOVE FLOW BUBBLES + ROTATING ORBIT
 ========================================================= */
@@ -18063,7 +17961,6 @@ aside .ai-rules-card {
     min-height: 470px !important;
   }
 }
-
 
 /* =========================================================
    MOBILE HOMEPAGE SCROLL FIX + SAME DESKTOP STRUCTURE
@@ -18431,7 +18328,6 @@ body {
   }
 }
 
-
 /* =========================================================
    COMPARE PAGE BOTTOM NOTE UPDATE
 ========================================================= */
@@ -18443,7 +18339,6 @@ body {
     rgba(0,0,0,.18) !important;
   color: rgba(255,255,255,.70) !important;
 }
-
 
 /* =========================================================
    DASHBOARD DROPDOWN MENU + SIMPLIFIED SEARCHBAR
@@ -18632,7 +18527,6 @@ body {
   }
 }
 
-
 /* =========================================================
    DROPDOWN MENU FRONT LAYER + CLEAN BUTTON ROWS
 ========================================================= */
@@ -18766,7 +18660,6 @@ body {
     font-size: 12.5px !important;
   }
 }
-
 
 /* =========================================================
    CLEAN TEXT DROPDOWN + CLICK-AWAY CLOSE
@@ -18908,7 +18801,6 @@ body {
     max-height: 44px !important;
   }
 }
-
 
 /* =========================================================
    FINAL MOBILE HOMEPAGE + DROPDOWN CLICKAWAY + FOOTER CLEANUP
@@ -19199,7 +19091,6 @@ body {
   justify-content: center !important;
 }
 
-
 /* =========================================================
    HARD FIX: MOBILE DROPDOWN IN OLD AI BUTTON SLOT
 ========================================================= */
@@ -19333,7 +19224,6 @@ body {
   }
 }
 
-
 /* =========================================================
    CLERK PROFILE POPUP FRONT LAYER FIX
 ========================================================= */
@@ -19400,7 +19290,6 @@ body {
   text-align: initial !important;
   white-space: normal !important;
 }
-
 
 /* =========================================================
    COMPARE SELECTION FLOW + 3 STOCK RADAR SUPPORT
@@ -19676,7 +19565,6 @@ body {
   }
 }
 
-
 /* =========================================================
    BIGGER COMPARE RADAR CHART
 ========================================================= */
@@ -19795,7 +19683,6 @@ body {
     stroke-width: 3.4px !important;
   }
 }
-
 
 /* =========================================================
    GLOBAL SCORE RING STYLE — MATCH COMPARE PIE CHARTS
@@ -19960,7 +19847,6 @@ body {
 .preview-score-ring::before {
   filter: none !important;
 }
-
 
 /* =========================================================
    CLEAN GLOBAL RINGS + DROPDOWN FRONT FIX
@@ -20181,7 +20067,6 @@ body {
   }
 }
 
-
 /* =========================================================
    FINAL DROPDOWN FRONT FIX + FULL TERMS LABEL
 ========================================================= */
@@ -20305,7 +20190,6 @@ body {
     max-width: 292px !important;
   }
 }
-
 
 /* =========================================================
    ABSOLUTE FINAL DROPDOWN FIX
@@ -20451,7 +20335,6 @@ body {
   }
 }
 
-
 /* =========================================================
    DROPDOWN DESKTOP/MOBILE SPLIT
    Desktop: no Watchlist
@@ -20485,7 +20368,6 @@ body {
     display: grid !important;
   }
 }
-
 
 /* =========================================================
    INDUSTRY TOP 5 RADAR + RANK NUMBER FIX
@@ -20667,7 +20549,6 @@ body {
     stroke-width: 3.6px !important;
   }
 }
-
 
 /* =========================================================
    FINAL UNIVERSAL CLEAN SCORE RINGS
@@ -20901,7 +20782,6 @@ body {
   }
 }
 
-
 /* =========================================================
    INDUSTRY RADAR BELOW TOP 5 + REAL CATEGORY DATA
 ========================================================= */
@@ -21046,7 +20926,6 @@ body {
     stroke-width: 3.6px !important;
   }
 }
-
 
 /* =========================================================
    SVG SCORE RINGS — CLEAN FUTURISTIC STANDARD CHARTS
@@ -21255,7 +21134,6 @@ body {
   }
 }
 
-
 /* =========================================================
    MATCH BAR CHARTS TO NEW SVG RING STYLE
 ========================================================= */
@@ -21342,7 +21220,6 @@ body {
   padding: 22px !important;
 }
 
-
 /* =========================================================
    BAR CHART COLOR FIX
    Green bars stay green. All metric score numbers stay white.
@@ -21415,7 +21292,6 @@ body {
   color: #ffffff !important;
   text-shadow: 0 0 14px rgba(255,255,255,.24) !important;
 }
-
 
 /* =========================================================
    EVAL AI ASSISTANT RESPONSE + INPUT COPY STYLE
@@ -21512,7 +21388,6 @@ textarea[placeholder*="Eval interface"]::placeholder {
   border: 1px solid rgba(255,255,255,.13) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
 }
-
 
 /* =========================================================
    COMPARE 2–5 + CLICKABLE RADAR LEGENDS
@@ -21658,7 +21533,6 @@ textarea[placeholder*="Eval interface"]::placeholder {
     gap: 8px !important;
   }
 }
-
 
 /* =========================================================
    FAQ PAGE + LIVE SEARCH
@@ -21904,7 +21778,6 @@ textarea[placeholder*="Eval interface"]::placeholder {
   }
 }
 
-
 /* =========================================================
    MOBILE DROPDOWN HARD FIX
    Keeps FAQ + Contact visible above empty dashboard graphic
@@ -22097,7 +21970,6 @@ body,
   }
 }
 
-
 /* =========================================================
    NATIVE-STYLE EVAL DROPDOWN
    Looks/behaves like an actual dropdown instead of a big button panel.
@@ -22264,7 +22136,6 @@ button[aria-label="Open Eval menu"]::after {
     font-size: 12.5px !important;
   }
 }
-
 
 /* =========================================================
    TICKER LOOKUP PAGE - STATIC 1000+ LOCAL LIST
@@ -22476,7 +22347,6 @@ button[aria-label="Open Eval menu"]::after {
   }
 }
 
-
 /* =========================================================
    FMP 6000+ TICKER LOOKUP TABLE
 ========================================================= */
@@ -22572,13 +22442,11 @@ button[aria-label="Open Eval menu"]::after {
   }
 }
 
-
 /* Ticker lookup starts empty until user types. */
 .lookup-start-empty {
   min-height: 180px !important;
   opacity: .82 !important;
 }
-
 
 /* =========================================================
    TICKER LOOKUP ROW REVAMP
@@ -22660,7 +22528,6 @@ button[aria-label="Open Eval menu"]::after {
     text-align: center !important;
   }
 }
-
 
 /* =========================================================
    TICKER LOOKUP TABLE ALIGNMENT FIX
@@ -22764,7 +22631,6 @@ button[aria-label="Open Eval menu"]::after {
   }
 }
 
-
 /* New homepage + assistant feature update polish */
 .ai-rules-grid.ai-rules-grid-brief {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
@@ -22791,7 +22657,6 @@ button[aria-label="Open Eval menu"]::after {
     min-height: auto !important;
   }
 }
-
 
 /* =========================================================
    FINAL MOBILE DROPDOWN ALIGNMENT
@@ -22845,7 +22710,6 @@ button[aria-label="Open Eval menu"]::after {
     max-width: calc(100vw - 20px) !important;
   }
 }
-
 
 /* =========================================================
    FINAL HOMEPAGE SINGLE SCROLLBAR FIX
@@ -22909,7 +22773,6 @@ main.landing-page-extreme {
     overflow-x: hidden !important;
   }
 }
-
 
 /* =========================================================
    EMERGENCY HOMEPAGE LEFT SCROLLBAR REMOVAL
@@ -23002,7 +22865,6 @@ body:has(.landing-page-extreme) #root {
   max-height: none !important;
 }
 
-
 /* =========================================================
    CLEAN HOMEPAGE ROOT — NO INTERNAL SCROLL CONTAINER
    This replaces the old landing-page/pro/extreme root classes.
@@ -23081,7 +22943,6 @@ body {
   }
 }
 
-
 /* =========================================================
    HOMEPAGE BACKGROUND ANIMATION REMOVED
    No fixed/floating background layers, no inner scroll conflict.
@@ -23148,69 +23009,14 @@ body {
   overflow-y: auto !important;
 }
 
-
-/* Sponsored external ad link pill */
-.sponsored-link-pill {
-  min-height: 34px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 13px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  background: rgba(255,255,255,.055) !important;
-  color: rgba(255,255,255,.78) !important;
-  font-size: 11.5px !important;
-  font-weight: 900 !important;
-  letter-spacing: .03em !important;
-  text-decoration: none !important;
-  white-space: nowrap !important;
-  transition: transform .15s ease, border-color .15s ease, background .15s ease, color .15s ease !important;
-}
-
-.sponsored-link-pill:hover {
-  transform: translateY(-1px) !important;
-  color: #fff !important;
-  border-color: rgba(133,255,71,.25) !important;
-  background: rgba(255,255,255,.085) !important;
-}
-
-
 /* =========================================================
    ADSTERRA NATIVE ADS — KEEP CLEAN LEFT TWO ONLY
 ========================================================= */
 
-.eval-native-ad-row {
-  width: min(100%, 1320px);
-  margin: 34px auto 18px;
-  padding: 0 12px;
-  overflow: hidden !important;
-  box-sizing: border-box;
-}
-
-#container-2433fdc8d3bddd91b0914445fa985a56 {
-  width: 100% !important;
-  max-width: 820px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-}
-
 /* Try to hide any generated native ad card after the first two. */
-#container-2433fdc8d3bddd91b0914445fa985a56 > *:nth-child(n + 3),
-#container-2433fdc8d3bddd91b0914445fa985a56 a:nth-of-type(n + 3),
-#container-2433fdc8d3bddd91b0914445fa985a56 iframe:nth-of-type(n + 3),
-#container-2433fdc8d3bddd91b0914445fa985a56 div:nth-of-type(n + 3) {
-  display: none !important;
-  visibility: hidden !important;
-}
 
 /* Make the remaining native area look less disconnected from Eval. */
-#container-2433fdc8d3bddd91b0914445fa985a56 img {
-  border-radius: 0 !important;
-}
 
 @media (max-width: 900px) {
-  #container-2433fdc8d3bddd91b0914445fa985a56 {
-    max-width: 100% !important;
-  }
+  
 }
