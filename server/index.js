@@ -9,6 +9,8 @@ import { buildStockAnalysis } from "./score.js";
 
 dotenv.config();
 
+const EVAL_FAQ_KNOWLEDGE = "Eval FAQ knowledge base summary:\n- Eval is a stock-evaluation dashboard, not financial advice.\n- Users search tickers, use Ticker Lookup, save Watchlist stocks, compare 2-5 watchlist stocks, read industry rankings, and ask Eval AI support questions.\n- Ticker Lookup uses the StockAnalysis.com stocks table cached by the backend. It lets users type company names, see tickers on the right, and click a ticker to load the Analyze dashboard.\n- Eval Score is 0.0-10.0 and blends Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment.\n- Green/yellow/red indicate stronger/mixed/weaker score ranges. Score numbers are educational and not buy/sell/hold recommendations.\n- Metric cards are bar charts from 0-10. Popups/question marks explain category inputs and can be closed with the X button.\n- Price, Momentum, and Pullback use Massive and cache about 1 day.\n- Growth, Profitability, and Financial Health use light FMP/Finnhub fallback and cache about 4 months.\n- Valuation caches about 1 month.\n- Risk and News Sentiment cache about 7 days.\n- Finnhub is used for profile/news and fallback metrics. FMP is used lightly for fundamentals. Massive is used for market data. StockAnalysis.com is used for ticker lookup. OpenAI summarizes/explains support and news.\n- If providers fail, Eval should use fallback providers, cached categories, or the last valid report instead of scoring missing metrics as zero.\n- Watchlist stores saved tickers and powers Compare and stock-specific Eval AI questions.\n- Compare requires 2-5 watchlist stocks and includes clickable radar labels to hide/show tickers.\n- Industry pages show Top 5 peers and use the same cached analysis for each stock. Industry radar labels are clickable.\n- Eval AI should answer all FAQ-style questions about app navigation, dashboard sections, dropdown menu, ticker lookup, score rings, metrics, caching, data sources, watchlist, compare, industry rankings, news sentiment, troubleshooting, profile/sign-in basics, terms/contact/support, and loaded/watchlist stocks.\n- Eval AI should not answer unrelated questions outside Eval. Stock-specific questions require the ticker to be loaded on dashboard or saved in watchlist.";
+
 const app = express();
 const PORT = process.env.PORT || 5050;
 
@@ -42,12 +44,27 @@ app.use(
   })
 );
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 224 hours
+const DAY_MS = 24 * 60 * 60 * 1000;
+const COMPONENT_TTLS_MS = {
+  fundamentals: 120 * DAY_MS, // growth, profitability, financial health: about 4 months
+  valuation: 30 * DAY_MS, // valuation: about 1 month
+  market: 1 * DAY_MS, // price, momentum, pullback: 1 day
+  news: 7 * DAY_MS, // news sentiment: 7 days
+  risk: 7 * DAY_MS, // risk label: 7 days
+  profile: 120 * DAY_MS,
+};
+const REPORT_CACHE_TTL_MS = Math.min(
+  COMPONENT_TTLS_MS.fundamentals,
+  COMPONENT_TTLS_MS.valuation,
+  COMPONENT_TTLS_MS.market,
+  COMPONENT_TTLS_MS.news,
+  COMPONENT_TTLS_MS.risk
+);
 const analysisCache = new Map();
 const lastValidAnalysisCache = new Map();
 const industryCache = new Map();
 const tickerLookupCache = { savedAt: 0, data: [] };
-const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 224 hours for FMP stock list
+const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for StockAnalysis.com stocks table
 
 const INDUSTRY_UNIVERSES = {
   Technology: ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
@@ -105,80 +122,122 @@ function cleanTicker(symbol) {
 }
 
 
-function isCommonStockLike(item = {}) {
+function decodeHtmlEntities(value = "") {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripTags(value = "") {
+  return decodeHtmlEntities(String(value || "").replace(/<[^>]*>/g, " "));
+}
+
+function isStockAnalysisTickerLike(item = {}) {
   const symbol = cleanTicker(item.symbol || item.ticker);
   const name = String(item.name || item.companyName || "").trim();
-  const type = String(item.type || item.securityType || "").toLowerCase();
 
   if (!symbol || !name) return false;
   if (symbol.length > 10) return false;
   if (/[=/^]/.test(symbol)) return false;
-  if (type && /(etf|fund|warrant|unit|note|preferred|bond|crypto|forex|index)/i.test(type)) return false;
+  if (/warrant|unit|rights|preferred|depositary|note|bond|etf|fund|trust/i.test(name)) return false;
 
   return true;
 }
 
-async function fetchFmpTickerList() {
-  const apiKey = process.env.FMP_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing FMP_API_KEY in Render environment variables.");
-  }
+function parseStockAnalysisTable(html = "") {
+  const seen = new Set();
+  const results = [];
 
-  // Legacy endpoint is the most reliable for the broad 6,000+ symbol list.
-  // Stable endpoint stays as backup.
-  const candidates = [
-    `https://financialmodelingprep.com/api/v3/stock/list?apikey=${encodeURIComponent(apiKey)}`,
-    `https://financialmodelingprep.com/stable/stock-list?apikey=${encodeURIComponent(apiKey)}`,
-  ];
+  // Preferred parser for actual SSR table rows.
+  const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let rowMatch;
 
-  for (const url of candidates) {
-    try {
-      const response = await fetch(url);
-      const raw = await response.text();
-      let data = null;
+  while ((rowMatch = rowRegex.exec(html)) !== null) {
+    const row = rowMatch[1];
+    const linkMatch = row.match(/href=["']\/stocks\/([^\/"']+)\/["'][^>]*>\s*([^<]+?)\s*<\/a>/i);
+    if (!linkMatch) continue;
 
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        data = null;
-      }
+    const symbol = cleanTicker(decodeHtmlEntities(linkMatch[2] || linkMatch[1]).toUpperCase());
+    const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((cell) => stripTags(cell[1]));
+    const name = cells.find((cell) => cell && cell !== symbol && !/^[0-9.,]+[KMBT]?$/.test(cell)) || "";
 
-      if (!response.ok || !Array.isArray(data)) {
-        console.warn("FMP ticker list failed:", response.status, raw?.slice?.(0, 180) || url);
-        continue;
-      }
+    const item = {
+      symbol,
+      name,
+      source: "StockAnalysis.com",
+    };
 
-      const seen = new Set();
-      const normalized = data
-        .map((item) => ({
-          symbol: cleanTicker(item.symbol || item.ticker),
-          name: String(item.name || item.companyName || "").trim(),
-          exchange: String(item.exchangeShortName || item.exchange || "").trim(),
-          type: String(item.type || item.securityType || "").trim(),
-        }))
-        .filter((item) => isCommonStockLike(item))
-        .filter((item) => {
-          if (seen.has(item.symbol)) return false;
-          seen.add(item.symbol);
-          return true;
-        })
-        .sort((a, b) => a.symbol.localeCompare(b.symbol));
-
-      if (normalized.length) return normalized;
-    } catch (error) {
-      console.warn("FMP ticker list fetch failed:", error?.message || error);
+    if (isStockAnalysisTickerLike(item) && !seen.has(symbol)) {
+      seen.add(symbol);
+      results.push(item);
     }
   }
 
-  throw new Error("Could not load FMP ticker list. Confirm FMP_API_KEY is set in Render and redeploy the backend.");
+  // Fallback parser for the simplified text-like HTML returned by some environments.
+  if (results.length < 100) {
+    const linkRegex = /href=["']\/stocks\/([a-z0-9.-]+)\/["'][^>]*>\s*([A-Z0-9.-]+)\s*<\/a>\s*([^<\n\r]+)/gi;
+    let match;
+
+    while ((match = linkRegex.exec(html)) !== null) {
+      const symbol = cleanTicker(match[2] || match[1]);
+      let tail = decodeHtmlEntities(match[3] || "").replace(/\s+/g, " ").trim();
+
+      // Remove obvious trailing market-cap text if it is directly attached.
+      tail = tail.replace(/\s+\d+(?:\.\d+)?[KMBT]\s*$/i, "").trim();
+
+      const item = {
+        symbol,
+        name: tail,
+        source: "StockAnalysis.com",
+      };
+
+      if (isStockAnalysisTickerLike(item) && !seen.has(symbol)) {
+        seen.add(symbol);
+        results.push(item);
+      }
+    }
+  }
+
+  return results.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 
-async function getFmpTickerLookupList() {
+async function fetchStockAnalysisTickerList() {
+  const response = await fetch("https://stockanalysis.com/stocks/", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; EvalTickerLookup/1.0)",
+      "Accept": "text/html,application/xhtml+xml",
+    },
+  });
+
+  const html = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`StockAnalysis.com ticker page failed: ${response.status}`);
+  }
+
+  const parsed = parseStockAnalysisTable(html);
+
+  if (parsed.length < 500) {
+    throw new Error(`StockAnalysis.com ticker parse returned only ${parsed.length} stocks.`);
+  }
+
+  return parsed;
+}
+
+async function getStockAnalysisTickerLookupList() {
   if (tickerLookupCache.data.length && Date.now() - tickerLookupCache.savedAt < TICKER_LOOKUP_TTL_MS) {
     return tickerLookupCache.data;
   }
 
-  const data = await fetchFmpTickerList();
+  const data = await fetchStockAnalysisTickerList();
   tickerLookupCache.savedAt = Date.now();
   tickerLookupCache.data = data;
   return data;
@@ -222,14 +281,263 @@ function isValidAnalysisPayload(data) {
   return Number.isFinite(score) && score >= 2 && validCategories >= 5 && hasMarketData && hasEnoughFundamentals;
 }
 
-function withCacheInfo(data, cacheInfo) {
+function hoursFromMs(ms) {
+  return Number((ms / (60 * 60 * 1000)).toFixed(1));
+}
+
+function componentMetaFor(savedAt = {}) {
+  return {
+    fundamentals: hoursFromMs(COMPONENT_TTLS_MS.fundamentals),
+    valuation: hoursFromMs(COMPONENT_TTLS_MS.valuation),
+    market: hoursFromMs(COMPONENT_TTLS_MS.market),
+    news: hoursFromMs(COMPONENT_TTLS_MS.news),
+    risk: hoursFromMs(COMPONENT_TTLS_MS.risk),
+    profile: hoursFromMs(COMPONENT_TTLS_MS.profile),
+    savedAt,
+  };
+}
+
+function withCacheInfo(data, cacheInfo, savedAt = {}) {
   return {
     ...data,
     cache: {
       ...(data?.cache || {}),
       ...cacheInfo,
       ttlHours: 24,
+      componentTtlsHours: componentMetaFor(savedAt),
     },
+  };
+}
+
+function isFresh(savedAt, key) {
+  const saved = Number(savedAt?.[key] || 0);
+  if (!saved) return false;
+  return Date.now() - saved < COMPONENT_TTLS_MS[key];
+}
+
+function getRefreshPlan(savedAt = {}) {
+  return {
+    refreshFundamentals: !isFresh(savedAt, "fundamentals"),
+    refreshValuation: !isFresh(savedAt, "valuation"),
+    refreshMarket: !isFresh(savedAt, "market"),
+    refreshNews: !isFresh(savedAt, "news"),
+    refreshRisk: !isFresh(savedAt, "risk"),
+    refreshProfile: !isFresh(savedAt, "profile"),
+  };
+}
+
+function allComponentsFresh(plan) {
+  return !Object.values(plan).some(Boolean);
+}
+
+function scoreToneName(score) {
+  const n = Number(score);
+  if (!Number.isFinite(n)) return "N/A";
+  if (n >= 7.5) return "Strong";
+  if (n >= 6.5) return "Mixed";
+  return "Weak";
+}
+
+function scoreText10(score) {
+  const n = Number(score);
+  return Number.isFinite(n) ? n.toFixed(1) : "N/A";
+}
+
+function availableWeightedAverage(values, fallback = null) {
+  let total = 0;
+  let weight = 0;
+
+  for (const item of values) {
+    const score = Number(item?.score);
+    const w = Number(item?.weight);
+    if (Number.isFinite(score) && Number.isFinite(w) && w > 0) {
+      total += score * w;
+      weight += w;
+    }
+  }
+
+  if (weight === 0) return fallback;
+  return Math.max(0, Math.min(10, total / weight));
+}
+
+function strongestWeakestFromCategories(categories = {}) {
+  const entries = Object.entries(categories)
+    .map(([key, value]) => [key, Number(value)])
+    .filter(([, value]) => Number.isFinite(value));
+
+  const label = (key) =>
+    ({
+      growth: "Growth",
+      profitability: "Profitability",
+      financialHealth: "Financial Health",
+      valuation: "Valuation",
+      momentum: "Momentum",
+      reversal: "Pullback",
+      newsSentiment: "News Sentiment",
+    }[key] || key);
+
+  if (!entries.length) {
+    return { strongest: "Not enough category data yet.", weakest: "Not enough category data yet." };
+  }
+
+  const strongest = entries.reduce((best, item) => (item[1] > best[1] ? item : best), entries[0]);
+  const weakest = entries.reduce((worst, item) => (item[1] < worst[1] ? item : worst), entries[0]);
+
+  return {
+    strongest: `${label(strongest[0])} is the strongest category at ${scoreText10(strongest[1])}/10.`,
+    weakest: `${label(weakest[0])} is the weakest category at ${scoreText10(weakest[1])}/10.`,
+  };
+}
+
+const FUNDAMENTAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth"];
+const VALUATION_CATEGORY_KEYS = ["valuation"];
+const MARKET_CATEGORY_KEYS = ["momentum", "reversal"];
+const NEWS_CATEGORY_KEYS = ["newsSentiment"];
+
+const FUNDAMENTAL_METRIC_KEYS = [
+  "revenueGrowth",
+  "revenueGrowthQuarterly",
+  "revenueGrowth3Y",
+  "revenueGrowth5Y",
+  "epsGrowth",
+  "epsGrowth3Y",
+  "epsGrowth5Y",
+  "roe",
+  "roa",
+  "roi",
+  "grossMargin",
+  "operatingMargin",
+  "pretaxMargin",
+  "netMargin",
+  "debtToEquity",
+  "longTermDebtToEquity",
+  "currentRatio",
+  "quickRatio",
+  "cashRatio",
+  "assetTurnover",
+  "interestCoverage",
+  "cashFlowToDebt",
+  "operatingCashFlowPerShare",
+  "freeCashFlowPerShare",
+  "totalDebtToCapital",
+  "netDebtToEbitda",
+  "marketCapM",
+];
+
+const VALUATION_METRIC_KEYS = [
+  "peRatio",
+  "forwardPe",
+  "pegRatio",
+  "priceToSales",
+  "priceToBook",
+  "priceToCashFlow",
+  "priceToFreeCashFlow",
+  "dividendYield",
+  "wacc",
+  "costOfEquity",
+  "afterTaxCostOfDebt",
+  "taxRate",
+  "dcfEnterpriseValue",
+  "intrinsicValue",
+  "intrinsicValueGap",
+  "dcfGrowthRate",
+];
+
+const MARKET_METRIC_KEYS = [
+  "beta",
+  "dayChangePercent",
+  "priceReturn4Week",
+  "priceReturn13Week",
+  "priceReturn26Week",
+  "priceReturn52Week",
+  "distanceFrom52WeekLow",
+  "pullbackFromHigh",
+];
+
+function copyKeys(target = {}, source = {}, keys = []) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(source || {}, key)) {
+      target[key] = source[key];
+    }
+  }
+}
+
+function mergeByTtl(cachedReport, freshReport, plan) {
+  if (!cachedReport?.grades || !freshReport?.grades) return freshReport;
+
+  const merged = structuredClone(freshReport);
+  const cachedCategories = cachedReport?.grades?.categories || {};
+  const freshCategories = freshReport?.grades?.categories || {};
+  merged.grades.categories = { ...freshCategories };
+
+  if (!plan.refreshFundamentals) {
+    copyKeys(merged.grades.categories, cachedCategories, FUNDAMENTAL_CATEGORY_KEYS);
+    copyKeys(merged.metrics, cachedReport.metrics, FUNDAMENTAL_METRIC_KEYS);
+  }
+
+  if (!plan.refreshValuation) {
+    copyKeys(merged.grades.categories, cachedCategories, VALUATION_CATEGORY_KEYS);
+    copyKeys(merged.metrics, cachedReport.metrics, VALUATION_METRIC_KEYS);
+  }
+
+  if (!plan.refreshMarket) {
+    merged.quote = cachedReport.quote || merged.quote;
+    copyKeys(merged.grades.categories, cachedCategories, MARKET_CATEGORY_KEYS);
+    copyKeys(merged.metrics, cachedReport.metrics, MARKET_METRIC_KEYS);
+  }
+
+  if (!plan.refreshNews) {
+    copyKeys(merged.grades.categories, cachedCategories, NEWS_CATEGORY_KEYS);
+    if (cachedReport.metrics?.newsSentiment) merged.metrics.newsSentiment = cachedReport.metrics.newsSentiment;
+    if (cachedReport.newsSentiment) merged.newsSentiment = cachedReport.newsSentiment;
+  }
+
+  if (!plan.refreshRisk && cachedReport?.grades?.riskLabel) {
+    merged.grades.riskLabel = cachedReport.grades.riskLabel;
+  }
+
+  if (!plan.refreshProfile && cachedReport?.profile) {
+    merged.profile = cachedReport.profile;
+  }
+
+  const categories = merged.grades.categories || {};
+  const edgeScore = availableWeightedAverage(
+    [
+      { score: categories.growth, weight: 0.215 },
+      { score: categories.profitability, weight: 0.205 },
+      { score: categories.financialHealth, weight: 0.175 },
+      { score: categories.valuation, weight: 0.150 },
+      { score: categories.momentum, weight: 0.105 },
+      { score: categories.reversal, weight: 0.075 },
+      { score: categories.newsSentiment, weight: 0.075 },
+    ],
+    Number(merged.grades.edgeScore)
+  );
+
+  merged.grades.edgeScore = Number(edgeScore.toFixed(1));
+  merged.grades.grade = scoreToneName(edgeScore);
+
+  const sw = strongestWeakestFromCategories(categories);
+  merged.strengths = [sw.strongest];
+  merged.weaknesses = [sw.weakest];
+  merged.evaluationSummary = `${merged.symbol} has an Eval Score of ${scoreText10(edgeScore)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment.`;
+
+  if (merged.grades.dataQuality) {
+    merged.grades.dataQuality.componentCachePolicy = "growth/profitability/financial health 4 months, valuation 1 month, price/momentum/pullback 1 day, risk/news 7 days";
+  }
+
+  return merged;
+}
+
+function updatedComponentSavedAt(previous = {}, plan = {}) {
+  const now = Date.now();
+  return {
+    fundamentals: previous.fundamentals && !plan.refreshFundamentals ? previous.fundamentals : now,
+    valuation: previous.valuation && !plan.refreshValuation ? previous.valuation : now,
+    market: previous.market && !plan.refreshMarket ? previous.market : now,
+    news: previous.news && !plan.refreshNews ? previous.news : now,
+    risk: previous.risk && !plan.refreshRisk ? previous.risk : now,
+    profile: previous.profile && !plan.refreshProfile ? previous.profile : now,
   };
 }
 
@@ -238,15 +546,33 @@ async function getCachedAnalysis(symbol) {
   if (!clean) throw new Error("Missing ticker symbol.");
 
   const cached = analysisCache.get(clean);
-  if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) {
-    return withCacheInfo(cached.data, { hit: true });
+  const cachedReport = cached?.data || null;
+  const savedAt = cached?.componentSavedAt || {};
+  const plan = getRefreshPlan(savedAt);
+
+  if (cachedReport && allComponentsFresh(plan)) {
+    return withCacheInfo(cachedReport, { hit: true, componentHit: true }, savedAt);
   }
 
   const lastValid = lastValidAnalysisCache.get(clean);
 
   try {
-    const data = await buildStockAnalysis(clean);
-    const payload = withCacheInfo(data, { hit: false });
+    const data = await buildStockAnalysis(clean, {
+      cachedReport,
+      refreshFundamentals: plan.refreshFundamentals,
+      refreshValuation: plan.refreshValuation,
+      refreshMarket: plan.refreshMarket,
+      refreshNews: plan.refreshNews,
+      refreshRisk: plan.refreshRisk,
+      refreshProfile: plan.refreshProfile,
+    });
+
+    const merged = cachedReport ? mergeByTtl(cachedReport, data, plan) : data;
+    const componentSavedAt = updatedComponentSavedAt(savedAt, plan);
+    const payload = withCacheInfo(merged, {
+      hit: false,
+      refreshed: Object.entries(plan).filter(([, value]) => value).map(([key]) => key),
+    }, componentSavedAt);
 
     if (!isValidAnalysisPayload(payload)) {
       if (lastValid?.data) {
@@ -254,7 +580,7 @@ async function getCachedAnalysis(symbol) {
           hit: true,
           fallback: "lastValid",
           reason: "New report had incomplete provider data or rate-limited source response.",
-        });
+        }, lastValid.componentSavedAt || {});
       }
 
       return {
@@ -265,11 +591,13 @@ async function getCachedAnalysis(symbol) {
 
     analysisCache.set(clean, {
       savedAt: Date.now(),
+      componentSavedAt,
       data: payload,
     });
 
     lastValidAnalysisCache.set(clean, {
       savedAt: Date.now(),
+      componentSavedAt,
       data: payload,
     });
 
@@ -280,7 +608,7 @@ async function getCachedAnalysis(symbol) {
         hit: true,
         fallback: "lastValid",
         reason: error?.message || "Provider fetch failed.",
-      });
+      }, lastValid.componentSavedAt || {});
     }
 
     throw error;
@@ -293,7 +621,9 @@ app.get("/", (req, res) => {
     service: "Eval backend",
     routes: ["/api/health", "/api/ticker-lookup", "/api/analyze/:symbol", "/api/industry-top/:industry"],
     cacheTtlHours: 24,
+    componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
+    faqCount: 1050,
   });
 });
 
@@ -308,10 +638,13 @@ app.get("/api/health", (req, res) => {
       openai: Boolean(process.env.OPENAI_API_KEY),
     },
     cacheTtlHours: 24,
+    componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     cacheSize: analysisCache.size,
     lastValidCacheSize: lastValidAnalysisCache.size,
     tickerLookupCacheSize: tickerLookupCache.data.length,
-    fallbackPolicy: "Massive for price/history, light FMP for fundamentals, Finnhub for profile/news/fallback metrics, lastValid cache as final safety net.",
+    tickerLookupSource: "StockAnalysis.com/stocks",
+    fallbackPolicy: "Component-level cache plus minimized provider calls: Massive for price/history, light FMP for fundamentals, Finnhub for profile/news/fallback metrics, StockAnalysis.com for ticker lookup, lastValid cache as final safety net.",
+    faqCount: 1050,
   });
 });
 
@@ -320,7 +653,7 @@ app.get("/api/ticker-lookup", async (req, res) => {
   try {
     const q = String(req.query.q || "").trim().toLowerCase();
     const limit = Math.min(Math.max(Number(req.query.limit) || 150, 1), 300);
-    const list = await getFmpTickerLookupList();
+    const list = await getStockAnalysisTickerLookupList();
 
     const results = (!q
       ? list.slice(0, limit)
@@ -354,14 +687,14 @@ app.get("/api/ticker-lookup", async (req, res) => {
       count: results.length,
       totalAvailable: list.length,
       cached: tickerLookupCache.savedAt > 0,
-      source: "FMP stock list",
+      source: "StockAnalysis.com stocks table",
       results,
     });
   } catch (error) {
     console.error("Ticker lookup route failed:", error?.stack || error?.message || error);
     res.status(500).json({
       error: error?.message || "Could not load ticker lookup list.",
-      source: "FMP stock list",
+      source: "StockAnalysis.com stocks table",
       results: [],
     });
   }
@@ -662,7 +995,10 @@ app.post("/api/assistant", async (req, res) => {
           {
             role: "system",
             content:
-              "You are Eval AI, the support assistant inside the Eval stock-evaluation website. Your main job is to help users navigate and understand the app. You CAN answer questions about how to use the dashboard, search ticker bar, dropdown menu, AI Assistant page, Compare page, Watchlist, industry ranking pages, metric cards, bar charts, radar charts, Eval Score rings, score colors, price/risk cards, news sentiment, article cards, Terms & Conditions, Contact/Support page, profile/sign-in basics, and how to add, remove, refresh, or compare stocks. You CAN explain what the metrics mean in simple language. You CAN answer stock-specific questions only using the current loaded stock or tickers saved in the user's watchlist context. If a stock is not loaded or in the watchlist, tell the user to add it to the watchlist first. Do NOT answer unrelated questions outside Eval. Do NOT give buy/sell commands or financial advice. Be helpful like a website support agent. Keep answers clear and under 110 words.",
+              `You are Eval AI, the support assistant inside the Eval stock-evaluation website. Your main job is to help users navigate and understand the app. You CAN answer questions about all Eval FAQs, how to use the dashboard, ticker lookup, search ticker bar, dropdown menu, AI Assistant page, Compare page, Watchlist, industry ranking pages, metric cards, bar charts, radar charts, Eval Score rings, score colors, price/risk cards, data caching, data sources, provider fallbacks, news sentiment, article cards, Terms & Conditions, Contact/Support page, profile/sign-in basics, and how to add, remove, refresh, or compare stocks. You CAN explain what the metrics mean in simple language. You CAN answer stock-specific questions only using the current loaded stock or tickers saved in the user's watchlist context. If a stock is not loaded or in the watchlist, tell the user to load it or add it to the watchlist first. Do NOT answer unrelated questions outside Eval. Do NOT give buy/sell commands or financial advice. Be helpful like a website support agent. Keep answers clear and under 130 words.
+
+FAQ KNOWLEDGE:
+${EVAL_FAQ_KNOWLEDGE}`,
           },
           {
             role: "user",
