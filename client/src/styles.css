@@ -22791,3 +22791,57 @@ button[aria-label="Open Eval menu"]::after {
     min-height: auto !important;
   }
 }
+
+
+/* =========================================================
+   FINAL MOBILE DROPDOWN ALIGNMENT
+   Keep mobile/tablet dropdown attached to menu button like desktop.
+========================================================= */
+
+.menu-wrap {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-dropdown-menu.eval-select-menu,
+  .dashboard-dropdown-mobile.eval-select-menu {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: min(260px, calc(100vw - 28px)) !important;
+    max-height: min(420px, calc(100dvh - 118px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 2147483647 !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .dashboard-dropdown-menu.eval-select-menu,
+  .dashboard-dropdown-mobile.eval-select-menu {
+    top: calc(100% + 8px) !important;
+    left: 0 !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: min(390px, calc(100dvh - 102px)) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .dashboard-dropdown-menu.eval-select-menu,
+  .dashboard-dropdown-mobile.eval-select-menu {
+    top: calc(100% + 7px) !important;
+    left: 0 !important;
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+}
