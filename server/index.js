@@ -170,13 +170,21 @@ function stripTickerQuestionWords(value = "") {
     .trim();
 }
 
+const UPPERCASE_TICKER_STOPWORDS = new Set([
+  "A", "AN", "AND", "ARE", "AS", "AT", "BE", "BY", "CAN", "DO", "DOES", "FOR", "FROM",
+  "HOW", "I", "IF", "IN", "IS", "IT", "ME", "MY", "OF", "ON", "OR", "THE", "THEIR",
+  "THEY", "TO", "WHAT", "WHATS", "WHEN", "WHERE", "WHO", "WHY", "WITH", "YOUR"
+]);
+
 function tickerLookupCandidates(query = "") {
   const raw = String(query || "");
   const q = normalizeLookupText(raw);
   const cleaned = stripTickerQuestionWords(raw);
   const compactCleaned = compactLookupText(cleaned);
   const compactRaw = compactLookupText(raw);
-  const upperTokens = [...raw.toUpperCase().matchAll(/\b[A-Z]{1,8}(?:\.[A-Z])?\b/g)].map((m) => m[0]);
+  const upperTokens = [...raw.toUpperCase().matchAll(/\b[A-Z]{1,8}(?:\.[A-Z])?\b/g)]
+    .map((m) => m[0])
+    .filter((token) => !UPPERCASE_TICKER_STOPWORDS.has(token));
 
   return { raw, q, cleaned, compactCleaned, compactRaw, upperTokens };
 }
@@ -275,7 +283,97 @@ function findTickerLookupMatches(question = "", limit = 5) {
   return findCompanyUniverseMatches(question, limit);
 }
 
+
+function commonCompanyAliases(value = "") {
+  const q = normalizeLookupText(value);
+  const compact = compactLookupText(value);
+
+  const aliases = {
+    "home depot": "home depot",
+    "homedepot": "home depot",
+    "the home depot": "home depot",
+    "robinhood": "robinhood",
+    "robin hood": "robinhood",
+    "sofi": "sofi",
+    "sofitech": "sofi",
+    "sales force": "salesforce",
+    "salesforce": "salesforce",
+    "amazon": "amazon",
+    "apple": "apple",
+    "microsoft": "microsoft",
+    "nvidia": "nvidia",
+    "meta": "meta platforms",
+    "facebook": "meta platforms",
+    "google": "alphabet",
+    "alphabet": "alphabet",
+    "tesla": "tesla",
+  };
+
+  return aliases[q] || aliases[compact] || q;
+}
+
+function extractCompanyQueryParts(question = "") {
+  let q = String(question || "");
+
+  // Remove broad request words but keep the company names.
+  q = q
+    .replace(/\b(what'?s|whats|what is|what are|tell me|give me|show me|find|lookup|look up|stock symbols?|tickers?|ticker symbols?|symbols?|for|of|please|pls)\b/gi, " ")
+    .replace(/[?!.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Split on commas, slashes, ampersands, plus signs, and standalone "and".
+  const rawParts = q
+    .split(/\s*(?:,|\/|\+|&|\band\b)\s*/i)
+    .map((part) => commonCompanyAliases(part))
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2);
+
+  // Remove accidental junk words.
+  const junk = new Set(["ticker", "tickers", "symbol", "symbols", "stock", "stocks", "company", "companies"]);
+  const parts = rawParts.filter((part) => !junk.has(part));
+
+  return [...new Set(parts)];
+}
+
+function bestSingleCompanyMatch(queryPart = "") {
+  const matches = findCompanyUniverseMatches(queryPart, 3);
+  if (!matches.length) return null;
+
+  const parts = tickerLookupCandidates(queryPart);
+  const scored = matches.map((item) => ({ item, score: scoreTickerLookupItem(item, parts) }))
+    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name));
+
+  if (!scored.length || scored[0].score <= 0) return null;
+  return scored[0].item;
+}
+
+function findMultiCompanyTickerAnswer(question = "") {
+  if (!/\b(tickers?|symbols?|ticker symbols?|stock symbols?)\b/i.test(question)) return null;
+
+  const queryParts = extractCompanyQueryParts(question);
+  if (queryParts.length < 2) return null;
+
+  const matches = [];
+  const seenSymbols = new Set();
+
+  for (const part of queryParts) {
+    const match = bestSingleCompanyMatch(part);
+    if (match && !seenSymbols.has(match.symbol)) {
+      seenSymbols.add(match.symbol);
+      matches.push(match);
+    }
+  }
+
+  if (!matches.length) return null;
+
+  return matches.map((match) => `${match.symbol} — ${match.name}`).join("\n");
+}
+
 function findTickerLookupAnswer(question = "") {
+  const multiAnswer = findMultiCompanyTickerAnswer(question);
+  if (multiAnswer) return multiAnswer;
+
   const matches = findCompanyUniverseMatches(question, 5);
   if (!matches.length) return null;
 
@@ -287,16 +385,17 @@ function findTickerLookupAnswer(question = "") {
     return formatCompanyUniverseAnswer(matches[0], mode);
   }
 
-  // If one match is far more likely, answer it directly instead of confusing users.
   const parts = tickerLookupCandidates(question);
-  const scored = matches.map((item) => ({ item, score: scoreTickerLookupItem(item, parts) }));
+  const scored = matches.map((item) => ({ item, score: scoreTickerLookupItem(item, parts) }))
+    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name));
+
+  // If one match is clearly better, answer it directly.
   if (scored.length >= 2 && scored[0].score >= scored[1].score + 500) {
     return formatCompanyUniverseAnswer(scored[0].item, mode);
   }
 
-  return matches.slice(0, 3).map((match) => formatCompanyUniverseAnswer(match, mode)).join("\n");
+  return scored.slice(0, 3).map(({ item }) => formatCompanyUniverseAnswer(item, mode)).join("\n");
 }
-
 
 
 function normalizeFaqText(value = "") {
