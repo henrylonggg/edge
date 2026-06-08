@@ -266,6 +266,75 @@ async function fetchFmpFundamentals(symbol) {
   };
 }
 
+async function fetchFmpQuoteOptional(symbol) {
+  if (!process.env.FMP_API_KEY) {
+    return null;
+  }
+
+  const rows = await fetchFmpListOptional("/quote", `/quote/${symbol}`, { symbol });
+  const q = latestObject(rows);
+  const price = firstFmpNumber(q, "price", "previousClose");
+  const previousClose = firstFmpNumber(q, "previousClose");
+  const change = firstFmpNumber(q, "change", "changes");
+  const changesPercentage = fmpPercent(firstFmpNumber(q, "changesPercentage", "changePercentage"));
+
+  if (price === null && previousClose === null && changesPercentage === null) {
+    return null;
+  }
+
+  const calculatedChange = change !== null ? change : price !== null && previousClose !== null ? price - previousClose : null;
+  const calculatedPercent =
+    changesPercentage !== null
+      ? changesPercentage
+      : price !== null && previousClose !== null && previousClose > 0
+        ? ((price - previousClose) / previousClose) * 100
+        : null;
+
+  return {
+    c: price,
+    d: calculatedChange,
+    dp: calculatedPercent,
+    h: firstFmpNumber(q, "dayHigh"),
+    l: firstFmpNumber(q, "dayLow"),
+    o: firstFmpNumber(q, "open"),
+    pc: previousClose,
+  };
+}
+
+function hasUsableQuote(quote = {}) {
+  return safeNumber(quote?.c) !== null || safeNumber(quote?.dp) !== null;
+}
+
+function bestQuote({ cachedQuote, finnhubQuote, massiveQuote, fmpQuote }) {
+  // Current price and percent change priority:
+  // 1. Finnhub quote
+  // 2. Massive aggregate-derived latest close
+  // 3. FMP quote
+  // 4. cached previous quote
+  const sources = [finnhubQuote, massiveQuote, fmpQuote, cachedQuote].filter(Boolean);
+  const out = {};
+
+  for (const key of ["c", "d", "dp", "h", "l", "o", "pc"]) {
+    for (const source of sources) {
+      const value = safeNumber(source?.[key]);
+      if (value !== null) {
+        out[key] = value;
+        break;
+      }
+    }
+  }
+
+  if (out.dp === undefined && out.c !== undefined && out.pc !== undefined && out.pc > 0) {
+    out.dp = ((out.c - out.pc) / out.pc) * 100;
+  }
+
+  if (out.d === undefined && out.c !== undefined && out.pc !== undefined) {
+    out.d = out.c - out.pc;
+  }
+
+  return out;
+}
+
 async function fetchMassiveMarketData(symbol) {
   if (!process.env.MASSIVE_API_KEY) {
     return { quote: null, metrics: {}, source: "Massive unavailable" };
@@ -1208,6 +1277,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     financialsReported,
     massiveMarket,
     fmpFundamentals,
+    fmpQuote,
   ] = await Promise.all([
     refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
     refreshMarket ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
@@ -1215,6 +1285,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     refreshFundamentals && !process.env.FMP_API_KEY ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
     refreshMarket ? fetchMassiveMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Massive cached" },
     shouldFetchFundamentalMetrics ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, profile: null, source: "FMP cached" },
+    refreshMarket ? fetchFmpQuoteOptional(cleanSymbol) : null,
   ]);
 
   const cachedProfile = cachedReport?.profile || {};
@@ -1243,11 +1314,12 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const quote = refreshMarket
-    ? {
-        ...(cachedReport?.quote || {}),
-        ...(massiveMarket?.quote || {}),
-        ...(finnhubQuote || {}),
-      }
+    ? bestQuote({
+        cachedQuote: cachedReport?.quote || {},
+        finnhubQuote,
+        massiveQuote: massiveMarket?.quote || {},
+        fmpQuote,
+      })
     : {
         ...(cachedReport?.quote || {}),
       };
@@ -1499,10 +1571,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
           massiveKey: Boolean(process.env.MASSIVE_API_KEY),
           fmpKey: Boolean(process.env.FMP_API_KEY),
           finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
-          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
+          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change with Massive then FMP then cache as backups; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
         },
         sources: {
-          price: finnhubQuote ? "Finnhub" : massiveMarket?.quote ? "Massive" : "Unavailable",
+          price: hasUsableQuote(finnhubQuote) ? "Finnhub" : hasUsableQuote(massiveMarket?.quote) ? "Massive" : hasUsableQuote(fmpQuote) ? "FMP" : cachedReport?.quote ? "Cached" : "Unavailable",
           marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
           fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
           profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
