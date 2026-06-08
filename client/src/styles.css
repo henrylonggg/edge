@@ -22763,3 +22763,31 @@ button[aria-label="Open Eval menu"]::after {
     white-space: nowrap !important;
   }
 }
+
+
+/* New homepage + assistant feature update polish */
+.ai-rules-grid.ai-rules-grid-brief {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+}
+
+.ai-rules-card-full .ai-rules-grid-brief > div {
+  min-height: 118px !important;
+}
+
+.landing-feature-strip-extreme {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+}
+
+.landing-feature-card-extreme {
+  min-height: 185px !important;
+}
+
+@media (max-width: 780px) {
+  .landing-feature-strip-extreme {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ai-rules-card-full .ai-rules-grid-brief > div {
+    min-height: auto !important;
+  }
+}
