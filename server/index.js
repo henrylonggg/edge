@@ -131,61 +131,115 @@ function getCsvTickerLookupList() {
 function normalizeLookupText(value = "") {
   return String(value || "")
     .toLowerCase()
-    .replace(/&/g, "and")
+    .replace(/&/g, " and ")
+    .replace(/\bcorporation\b/g, "corp")
+    .replace(/\bcompany\b/g, "co")
+    .replace(/\bincorporated\b/g, "inc")
+    .replace(/\blimited\b/g, "ltd")
+    .replace(/\bclass\b/g, "class")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function findTickerLookupAnswer(question = "") {
-  const q = normalizeLookupText(question);
-  if (!q) return null;
+function compactLookupText(value = "") {
+  return normalizeLookupText(value).replace(/\s+/g, "");
+}
 
-  const isTickerQuestion =
-    /\b(ticker|symbol)\b/i.test(question) ||
-    /\bwhat(?:'s| is|s)?\b/i.test(question) ||
-    /\bfind\b/i.test(question);
-
-  if (!isTickerQuestion) return null;
-
-  const list = getCsvTickerLookupList();
-
-  // Direct ticker question: "what is AMZN?"
-  const tickerTokens = [...String(question).toUpperCase().matchAll(/\b[A-Z]{1,5}(?:\.[A-Z])?\b/g)].map((m) => m[0]);
-  for (const token of tickerTokens) {
-    const match = list.find((item) => item.symbol === token);
-    if (match) return `${match.name}: ${match.symbol}`;
-  }
-
-  const cleaned = q
-    .replace(/\b(what|whats|what s|is|the|ticker|symbol|for|of|stock|company|please|tell|me|find)\b/g, " ")
+function stripTickerQuestionWords(value = "") {
+  return normalizeLookupText(value)
+    .replace(/\b(what|whats|what s|is|the|ticker|symbol|for|of|stock|company|please|pls|tell|me|find|lookup|look|up|called|name|give|show|does|do|you|know|a|an)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
 
-  if (!cleaned) return null;
+function tickerLookupCandidates(query = "") {
+  const raw = String(query || "");
+  const q = normalizeLookupText(raw);
+  const cleaned = stripTickerQuestionWords(raw);
+  const compactCleaned = compactLookupText(cleaned);
+  const compactRaw = compactLookupText(raw);
+  const upperTokens = [...raw.toUpperCase().matchAll(/\b[A-Z]{1,6}(?:\.[A-Z])?\b/g)].map((m) => m[0]);
 
-  const scored = list
-    .map((item) => {
-      const name = normalizeLookupText(item.name);
-      const symbol = normalizeLookupText(item.symbol);
-      let score = 0;
+  return { raw, q, cleaned, compactCleaned, compactRaw, upperTokens };
+}
 
-      if (name === cleaned) score -= 100;
-      if (name.startsWith(cleaned)) score -= 75;
-      if (name.includes(cleaned)) score -= 45;
-      if (symbol === cleaned) score -= 95;
-      if (symbol.startsWith(cleaned)) score -= 60;
-      if (symbol.includes(cleaned)) score -= 25;
+function scoreTickerLookupItem(item, parts) {
+  const symbolRaw = String(item.symbol || "");
+  const nameRaw = String(item.name || "");
+  const symbol = normalizeLookupText(symbolRaw);
+  const name = normalizeLookupText(nameRaw);
+  const compactName = compactLookupText(nameRaw);
+  const compactSymbol = compactLookupText(symbolRaw);
+  const aliases = [
+    name,
+    name.replace(/\bcorp\b/g, "corporation"),
+    name.replace(/\bco\b/g, "company"),
+    name.replace(/\binc\b/g, "incorporated"),
+    name.replace(/\bltd\b/g, "limited"),
+  ].map(normalizeLookupText);
 
-      return { item, score };
-    })
-    .filter((entry) => entry.score < 0)
-    .sort((a, b) => a.score - b.score || a.item.name.localeCompare(b.item.name));
+  let score = 0;
 
-  if (!scored.length) return null;
+  if (parts.upperTokens.includes(symbolRaw)) score += 1000;
+  if (symbol === parts.cleaned || symbol === parts.q) score += 950;
+  if (compactSymbol === parts.compactCleaned || compactSymbol === parts.compactRaw) score += 900;
 
-  const match = scored[0].item;
-  return `${match.name}: ${match.symbol}`;
+  for (const alias of aliases) {
+    const compactAlias = alias.replace(/\s+/g, "");
+    if (alias === parts.cleaned || alias === parts.q) score += 850;
+    if (alias.startsWith(parts.cleaned) && parts.cleaned.length >= 2) score += 700;
+    if (alias.includes(parts.cleaned) && parts.cleaned.length >= 2) score += 560;
+    if (compactAlias === parts.compactCleaned && parts.compactCleaned.length >= 2) score += 820;
+    if (compactAlias.includes(parts.compactCleaned) && parts.compactCleaned.length >= 2) score += 520;
+  }
+
+  // Word-level fuzzy-ish scoring: useful for "amazon", "salesforce", "toast", etc.
+  const queryWords = parts.cleaned.split(" ").filter((word) => word.length >= 2);
+  const nameWords = name.split(" ");
+  if (queryWords.length) {
+    const matched = queryWords.filter((word) =>
+      nameWords.some((nameWord) => nameWord.startsWith(word) || nameWord.includes(word))
+    ).length;
+    score += matched * 120;
+    if (matched === queryWords.length) score += 220;
+  }
+
+  if (symbol.startsWith(parts.cleaned) && parts.cleaned.length >= 1) score += 420;
+  if (symbol.includes(parts.cleaned) && parts.cleaned.length >= 2) score += 260;
+
+  return score;
+}
+
+function findTickerLookupMatches(question = "", limit = 5) {
+  const parts = tickerLookupCandidates(question);
+  if (!parts.q) return [];
+
+  const likelyTickerQuestion =
+    /\b(ticker|symbol|stock symbol|stock ticker|what'?s|what is|find|lookup|look up)\b/i.test(question) ||
+    parts.upperTokens.length > 0;
+
+  if (!likelyTickerQuestion) return [];
+
+  const matches = getCsvTickerLookupList()
+    .map((item) => ({ item, score: scoreTickerLookupItem(item, parts) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name))
+    .slice(0, limit)
+    .map((entry) => entry.item);
+
+  return matches;
+}
+
+function findTickerLookupAnswer(question = "") {
+  const matches = findTickerLookupMatches(question, 3);
+  if (!matches.length) return null;
+
+  if (matches.length === 1) {
+    return `${matches[0].symbol} — ${matches[0].name}`;
+  }
+
+  return matches.map((match) => `${match.symbol} — ${match.name}`).join("\n");
 }
 
 
@@ -565,7 +619,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/analyze/:symbol", "/api/industry-top/:industry"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/industry-top/:industry"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -595,6 +649,20 @@ app.get("/api/health", (req, res) => {
 });
 
 
+
+app.get("/api/ticker-answer", (req, res) => {
+  const q = String(req.query.q || "").trim();
+  const matches = findTickerLookupMatches(q, 8);
+
+  res.json({
+    query: q,
+    count: matches.length,
+    source: "CSV ticker list",
+    results: matches,
+    answer: matches.length ? matches.map((match) => `${match.symbol} — ${match.name}`).join("\n") : null,
+  });
+});
+
 app.get("/api/ticker-lookup", async (req, res) => {
   try {
     const q = String(req.query.q || "").trim().toLowerCase();
@@ -610,20 +678,10 @@ app.get("/api/ticker-lookup", async (req, res) => {
             return symbol.includes(q) || name.includes(q);
           })
           .sort((a, b) => {
-            const aSymbol = a.symbol.toLowerCase();
-            const bSymbol = b.symbol.toLowerCase();
-            const aName = a.name.toLowerCase();
-            const bName = b.name.toLowerCase();
-
-            const score = (symbol, name) =>
-              (name === q ? -70 : 0) +
-              (name.startsWith(q) ? -55 : 0) +
-              (symbol === q ? -45 : 0) +
-              (symbol.startsWith(q) ? -35 : 0) +
-              (name.includes(q) ? -20 : 0) +
-              (symbol.includes(q) ? -8 : 0);
-
-            return score(aSymbol, aName) - score(bSymbol, bName) || a.name.localeCompare(b.name);
+            const parts = tickerLookupCandidates(q);
+            const scoreA = scoreTickerLookupItem(a, parts);
+            const scoreB = scoreTickerLookupItem(b, parts);
+            return scoreB - scoreA || a.name.localeCompare(b.name);
           })
           .slice(0, limit)
     );
@@ -823,6 +881,11 @@ app.post("/api/assistant", async (req, res) => {
       "clerk",
       "csv",
       "symbol",
+      "stock ticker",
+      "stock symbol",
+      "company name",
+      "microsoft",
+      "apple",
     ];
 
     const supportIntentTerms = [
@@ -943,12 +1006,12 @@ app.post("/api/assistant", async (req, res) => {
       body: JSON.stringify({
         model: process.env.OPENAI_ASSISTANT_MODEL || "gpt-4.1-nano",
         temperature: 0.15,
-        max_tokens: 70,
+        max_tokens: 55,
         messages: [
           {
             role: "system",
             content:
-              `You are Eval AI, the support assistant inside the Eval stock-evaluation website. Your main job is to help users navigate and understand the app. You CAN answer questions about all Eval FAQs, how to use the dashboard, ticker lookup, search ticker bar, dropdown menu, AI Assistant page, Compare page, Watchlist, industry ranking pages, metric cards, bar charts, radar charts, Eval Score rings, score colors, price/risk cards, data caching, data sources, provider fallbacks, news sentiment, article cards, Terms & Conditions, Contact/Support page, profile/sign-in basics, and how to add, remove, refresh, or compare stocks. You CAN explain what the metrics mean in simple language. You CAN answer stock-specific questions only using the current loaded stock or tickers saved in the user's watchlist context. If a stock is not loaded or in the watchlist, tell the user to load it or add it to the watchlist first. Do NOT answer unrelated questions outside Eval. Do NOT give buy/sell commands or financial advice. Be helpful like a website support agent. Keep answers extremely short: 1-2 sentences, under 45 words.
+              `You are Eval AI, the support assistant inside the Eval stock-evaluation website. Your main job is to help users navigate and understand the app. You CAN answer questions about CSV ticker lookup/company ticker symbols and all Eval FAQs, how to use the dashboard, ticker lookup, search ticker bar, dropdown menu, AI Assistant page, Compare page, Watchlist, industry ranking pages, metric cards, bar charts, radar charts, Eval Score rings, score colors, price/risk cards, data caching, data sources, provider fallbacks, news sentiment, article cards, Terms & Conditions, Contact/Support page, profile/sign-in basics, and how to add, remove, refresh, or compare stocks. You CAN explain what the metrics mean in simple language. You CAN answer stock-specific questions only using the current loaded stock or tickers saved in the user's watchlist context. If a stock is not loaded or in the watchlist, tell the user to load it or add it to the watchlist first. Do NOT answer unrelated questions outside Eval. Do NOT give buy/sell commands or financial advice. Be helpful like a website support agent. Keep answers extremely short. Prefer one line. For ticker questions, answer only like: AMZN — Amazon.com Inc.
 
 FAQ KNOWLEDGE:
 ${EVAL_FAQ_KNOWLEDGE}`,
