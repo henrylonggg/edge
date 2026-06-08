@@ -71,15 +71,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  ClerkProvider,
-  SignIn,
-  SignUp,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  useUser,
-} from "@clerk/clerk-react";
-import {
   Search,
   RefreshCw,
   Plus,
@@ -115,139 +106,41 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-/* Force Clerk resend verification cooldown to 60 seconds.
-   Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
-   keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
-function installClerkResend60Guard() {
-  if (typeof window === "undefined" || typeof document === "undefined") return;
-  if (window.__evalClerkResend60GuardInstalled) return;
-  window.__evalClerkResend60GuardInstalled = true;
+/* Clerk temporarily disabled.
+   These shims keep the app open while auth is removed. */
+const TEMP_EVAL_USER = {
+  id: "guest",
+  firstName: "Guest",
+  fullName: "Eval Guest",
+  primaryEmailAddress: { emailAddress: "guest@getstockeval.com" },
+};
 
-  const COOLDOWN_SECONDS = 60;
-  let cooldownStartedAt = Date.now();
-  let lastFactorTwoPath = "";
-
-  const isAuthVerificationPage = () => {
-    const text = document.body?.innerText || "";
-    const url = window.location.href || "";
-    return (
-      url.includes("factor-two") ||
-      text.includes("Check your phone") ||
-      text.includes("Check your email") ||
-      text.includes("verification code") ||
-      text.includes("Didn't receive a code")
-    );
-  };
-
-  const findResendNodes = () => {
-    const nodes = Array.from(document.querySelectorAll("button, a, span, p, div"));
-    return nodes.filter((node) => {
-      const text = (node.textContent || "").trim();
-      return /didn.?t receive a code\??\s*resend/i.test(text) || /^resend(?:\s*\(\d+\))?$/i.test(text);
-    });
-  };
-
-  const lockNode = (node, secondsLeft) => {
-    const text = (node.textContent || "").trim();
-
-    if (/didn.?t receive a code/i.test(text)) {
-      node.textContent = `Didn't receive a code? Resend (${secondsLeft})`;
-    } else if (/^resend/i.test(text)) {
-      node.textContent = `Resend (${secondsLeft})`;
-    }
-
-    node.setAttribute("aria-disabled", "true");
-    node.setAttribute("data-eval-resend-locked", "true");
-    node.style.pointerEvents = "none";
-    node.style.opacity = "0.72";
-    node.style.cursor = "not-allowed";
-  };
-
-  const unlockNode = (node) => {
-    const text = (node.textContent || "").trim();
-
-    if (/didn.?t receive a code/i.test(text)) {
-      node.textContent = "Didn't receive a code? Resend";
-    } else if (/^resend/i.test(text)) {
-      node.textContent = "Resend";
-    }
-
-    node.removeAttribute("aria-disabled");
-    node.removeAttribute("data-eval-resend-locked");
-    node.style.pointerEvents = "";
-    node.style.opacity = "";
-    node.style.cursor = "";
-  };
-
-  const update = () => {
-    if (!isAuthVerificationPage()) {
-      cooldownStartedAt = Date.now();
-      lastFactorTwoPath = window.location.href;
-      return;
-    }
-
-    if (lastFactorTwoPath !== window.location.href) {
-      lastFactorTwoPath = window.location.href;
-      cooldownStartedAt = Date.now();
-    }
-
-    const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
-    const secondsLeft = Math.max(0, COOLDOWN_SECONDS - elapsed);
-    const nodes = findResendNodes();
-
-    nodes.forEach((node) => {
-      if (secondsLeft > 0) lockNode(node, secondsLeft);
-      else unlockNode(node);
-    });
-  };
-
-  document.addEventListener(
-    "click",
-    (event) => {
-      const target = event.target?.closest?.("button, a, span, p, div");
-      if (!target) return;
-      const text = (target.textContent || "").trim();
-      if (!/resend/i.test(text)) return;
-
-      const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
-      if (isAuthVerificationPage() && elapsed < COOLDOWN_SECONDS) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation?.();
-        update();
-      }
-    },
-    true
-  );
-
-  const observer = new MutationObserver(update);
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
-
-  window.addEventListener("hashchange", () => {
-    cooldownStartedAt = Date.now();
-    setTimeout(update, 50);
-  });
-
-  window.addEventListener("popstate", () => {
-    cooldownStartedAt = Date.now();
-    setTimeout(update, 50);
-  });
-
-  setInterval(update, 250);
-  setTimeout(update, 50);
-  setTimeout(update, 500);
-  setTimeout(update, 1200);
+function SignedIn({ children }) {
+  return <>{children}</>;
 }
 
-installClerkResend60Guard();
+function SignedOut() {
+  return null;
+}
+
+function UserButton() {
+  return <div className="temporary-user-avatar" title="Account disabled temporarily">G</div>;
+}
+
+function SignIn() {
+  return null;
+}
+
+function SignUp() {
+  return null;
+}
+
 
 /*
   HARD-CODED RENDER BACKEND URL
   This avoids Vercel environment variable problems.
 */
 const API = "https://edge-1-6dtw.onrender.com";
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
 const STORAGE_KEY = "edge-watchlist-v8";
 const TERMS_VERSION = "2026-05-30";
 const MAX_WATCHLIST_ITEMS = 15;
@@ -413,82 +306,9 @@ function getSafeProfileAccent(user) {
 }
 
 function ProfileButton() {
-  const { user } = useUser();
-  const [accent, setAccent] = useState(() => getSafeProfileAccent(user));
-
-  useEffect(() => {
-    let cancelled = false;
-    const imageUrl = user?.imageUrl;
-
-    if (!imageUrl) {
-      setAccent(getSafeProfileAccent(user));
-      return;
-    }
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.referrerPolicy = "no-referrer";
-
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const size = 36;
-        canvas.width = size;
-        canvas.height = size;
-
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) throw new Error("Canvas unavailable");
-
-        ctx.drawImage(img, 0, 0, size, size);
-        const pixels = ctx.getImageData(0, 0, size, size).data;
-
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let count = 0;
-
-        for (let i = 0; i < pixels.length; i += 16) {
-          const alpha = pixels[i + 3];
-          if (alpha < 180) continue;
-
-          const pr = pixels[i];
-          const pg = pixels[i + 1];
-          const pb = pixels[i + 2];
-          const brightness = (pr + pg + pb) / 3;
-
-          if (brightness < 24 || brightness > 236) continue;
-
-          r += pr;
-          g += pg;
-          b += pb;
-          count += 1;
-        }
-
-        if (!count) throw new Error("No usable avatar color");
-
-        const color = `${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)}`;
-        if (!cancelled) setAccent(color);
-      } catch {
-        if (!cancelled) setAccent(getSafeProfileAccent(user));
-      }
-    };
-
-    img.onerror = () => {
-      if (!cancelled) setAccent(getSafeProfileAccent(user));
-    };
-
-    img.src = imageUrl;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, user?.imageUrl]);
-
-  const firstName =
-    user?.firstName ||
-    user?.fullName?.split(" ")?.[0] ||
-    user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
-    "there";
+  const user = TEMP_EVAL_USER;
+  const accent = getSafeProfileAccent(user);
+  const firstName = "Guest";
 
   return (
     <div className="profile-welcome-wrap">
@@ -500,16 +320,18 @@ function ProfileButton() {
       <div
         className="topbar-user"
         style={{ "--profile-accent": accent }}
-        title="Account settings"
+        title="Account temporarily disabled"
       >
-        <UserButton />
+        <div className="temporary-user-avatar">G</div>
       </div>
     </div>
   );
 }
 
 function App() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const isLoaded = true;
+  const isSignedIn = true;
+  const user = TEMP_EVAL_USER;
   const [symbol, setSymbol] = useState("");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -832,54 +654,24 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn || !user?.id) {
-      setTermsAccepted(false);
-      return;
-    }
-
-    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+    const key = `eval-terms-accepted-${TERMS_VERSION}-guest`;
     setTermsAccepted(localStorage.getItem(key) === "true");
-  }, [isLoaded, isSignedIn, user?.id]);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const publicViews = ["landing", "account"];
-    if (!isSignedIn && !publicViews.includes(view)) {
-      setView("account");
-      return;
-    }
-
-    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
-      setView("terms");
-    }
-  }, [isLoaded, isSignedIn, termsAccepted, view]);
+  }, []);
 
   function acceptTerms() {
-    if (user?.id) {
-      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
-      localStorage.setItem(key, "true");
-    }
-
+    const key = `eval-terms-accepted-${TERMS_VERSION}-guest`;
+    localStorage.setItem(key, "true");
     setTermsAccepted(true);
     setView("dashboard");
   }
 
-  if (!isLoaded) {
-    return <LoadingScreen />;
-  }
-
   if (view === "landing") {
-    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
+    return <LandingPage onContinue={() => setView("dashboard")} />;
   }
 
   if (view === "account") {
-    return (
-      <ClerkAccessPage
-        onBack={() => setView("landing")}
-        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
-      />
-    );
+    setView("dashboard");
+    return <LoadingScreen />;
   }
 
   if (view === "terms") {
@@ -939,11 +731,9 @@ function App() {
         </button>
 
         <div className="topbar-actions-stack">
-          <SignedIn>
-            <div className="profile-bubble" aria-label="Profile">
-              <ProfileButton />
-            </div>
-          </SignedIn>
+          <div className="profile-bubble" aria-label="Profile">
+            <ProfileButton />
+          </div>
         </div>
       </header>
 
@@ -1131,8 +921,9 @@ function App() {
 }
 
 function ScoreRingSvg({ value, className = "", label = null }) {
-  const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
-  const tone = scoreTone(score);
+  const scoreValue = score10(value);
+  const score = scoreValue === null ? 0 : Math.max(0, Math.min(10, scoreValue));
+  const tone = scoreValue === null ? "neutral" : scoreTone(scoreValue);
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const dash = (score / 10) * circumference;
@@ -1162,7 +953,7 @@ function ScoreRingSvg({ value, className = "", label = null }) {
         <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
       </svg>
 
-      <strong>{label || scoreText(score)}</strong>
+      <strong>{label || scoreText(scoreValue)}</strong>
     </div>
   );
 }
@@ -8833,31 +8624,8 @@ function LoadingScreen() {
   );
 }
 
-function MissingClerkConfig() {
-  return (
-    <main className="loading-screen">
-      <div className="loading-card missing-clerk-card">
-        <AlertTriangle size={24} />
-        <h2>Missing Clerk publishable key</h2>
-        <p>
-          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
-          then redeploy the frontend.
-        </p>
-      </div>
-    </main>
-  );
-}
-
 function Root() {
-  if (!CLERK_PUBLISHABLE_KEY) {
-    return <MissingClerkConfig />;
-  }
-
-  return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <App />
-    </ClerkProvider>
-  );
+  return <App />;
 }
 
 createRoot(document.getElementById("root")).render(<Root />);
