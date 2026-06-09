@@ -23989,3 +23989,96 @@ body:has(.landing-page-static) .landing-shell-static {
 .landing-page-static *::after {
   animation: none !important;
 }
+
+/* =========================================================
+   REQUESTED CLEAN DISPLAY PATCH — WHITE SCORE NUMBERS
+   Keeps colored bars/rings, removes duplicate top news score.
+========================================================= */
+
+/* Growth / Profitability / Financial Health / Valuation / Momentum / Pullback / News Sentiment numbers stay white. */
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral,
+.grade-score-row strong,
+.grade-score-row strong.green,
+.grade-score-row strong.yellow,
+.grade-score-row strong.red,
+.grade-score-row strong.neutral,
+.grade-card .score-value,
+.grade-card .score-value.green,
+.grade-card .score-value.yellow,
+.grade-card .score-value.red,
+.grade-card .score-value.neutral,
+.metric-score,
+.metric-score.green,
+.metric-score.yellow,
+.metric-score.red,
+.metric-score.neutral,
+.category-score,
+.category-score.green,
+.category-score.yellow,
+.category-score.red,
+.category-score.neutral {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: transparent !important;
+  text-shadow: 0 0 13px rgba(255,255,255,.22) !important;
+}
+
+/* Keep summaries under category score cards softer, so the white score pops cleanly. */
+.grade-description,
+.grade-card p,
+.grade-card small {
+  color: rgba(226,234,242,.66) !important;
+}
+
+/* News header: only show the label like Bullish/Neutral/Bearish, not the duplicate score. */
+.news-section-title .news-score-pill {
+  display: none !important;
+}
+
+.news-section-title small {
+  color: rgba(226,234,242,.70) !important;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.055);
+}
+
+/* Article score numbers should be white even if the article is positive/yellow/red. */
+.news-topic-head b,
+.news-topic-head b.green,
+.news-topic-head b.yellow,
+.news-topic-head b.red,
+.news-topic-head b.neutral,
+.news-topic-card b,
+.news-topic-card b.green,
+.news-topic-card b.yellow,
+.news-topic-card b.red,
+.news-topic-card b.neutral {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 0 12px rgba(255,255,255,.20) !important;
+}
+
+.news-topic-head h3 {
+  color: #ffffff !important;
+}
+
+.news-topic-card p,
+.news-overall-summary {
+  color: rgba(226,234,242,.70) !important;
+}
+
+.news-topic-head span {
+  color: rgba(226,234,242,.55) !important;
+}
+
+/* Slightly cleaner article cards without changing the dark theme. */
+.news-topic-card {
+  background:
+    linear-gradient(145deg, rgba(8,15,27,.72), rgba(20,24,38,.58)) !important;
+  border-color: rgba(255,255,255,.105) !important;
+}
