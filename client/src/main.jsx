@@ -654,17 +654,13 @@ function App() {
           aria-label="Go to homepage"
           title="Go to homepage"
         >
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
+          <img src="/apple-touch-icon.png" alt="Eval logo" />
           <div>
             <h1>Eval</h1>
           </div>
         </button>
 
-        <div className="topbar-actions-stack">
-          <div className="profile-bubble" aria-label="Profile">
-            <ProfileButton />
-          </div>
-        </div>
+        <div className="topbar-actions-stack" aria-hidden="true" />
       </header>
 
       {error && (
@@ -1499,13 +1495,9 @@ function LandingPage({ onContinue }) {
       <section className="landing-shell landing-shell-pro landing-shell-editorial">
         <header className="landing-brand-row landing-brand-row-pro landing-brand-editorial">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <img src="/apple-touch-icon.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
-
-          <div className="landing-status-pill landing-status-live">
-            <span /> AI stock evaluation dashboard
-          </div>
         </header>
 
         <section className="landing-hero landing-hero-pro landing-hero-editorial">
@@ -1525,9 +1517,7 @@ function LandingPage({ onContinue }) {
             <div className="landing-actions landing-actions-pro">
               <button type="button" className="landing-continue-btn landing-continue-mega" onClick={onContinue}>
                 Open dashboard <ArrowRight size={20} />
-              </button>
-              <span>No trading noise. Just the numbers that matter.</span>
-            </div>
+              </button>            </div>
           </div>
 
           <div className="landing-product-stage landing-product-stage-editorial" aria-label="Eval product preview">
@@ -1661,7 +1651,7 @@ function ClerkAccessPage({ onBack, onSuccess }) {
           </button>
 
           <div className="clerk-access-brand">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <img src="/apple-touch-icon.png" alt="Eval logo" />
             <div>
               <h1>Eval</h1>
               <p>Secure account access</p>
@@ -8096,7 +8086,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
             className="score-ring"
           />
 
-          <div className={`eval-score-rating-label ${tone}`}>Eval Score Rating</div>
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
