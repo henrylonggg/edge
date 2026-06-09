@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  ClerkProvider,
+  SignIn,
+  SignUp,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useUser,
+} from "@clerk/clerk-react";
+import {
   Search,
   RefreshCw,
   Plus,
@@ -36,41 +45,139 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
-/* Clerk temporarily disabled.
-   These shims keep the app open while auth is removed. */
-const TEMP_EVAL_USER = {
-  id: "guest",
-  firstName: "Guest",
-  fullName: "Eval Guest",
-  primaryEmailAddress: { emailAddress: "guest@getstockeval.com" },
-};
+/* Force Clerk resend verification cooldown to 60 seconds.
+   Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
+   keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
+function installClerkResend60Guard() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (window.__evalClerkResend60GuardInstalled) return;
+  window.__evalClerkResend60GuardInstalled = true;
 
-function SignedIn({ children }) {
-  return <>{children}</>;
+  const COOLDOWN_SECONDS = 60;
+  let cooldownStartedAt = Date.now();
+  let lastFactorTwoPath = "";
+
+  const isAuthVerificationPage = () => {
+    const text = document.body?.innerText || "";
+    const url = window.location.href || "";
+    return (
+      url.includes("factor-two") ||
+      text.includes("Check your phone") ||
+      text.includes("Check your email") ||
+      text.includes("verification code") ||
+      text.includes("Didn't receive a code")
+    );
+  };
+
+  const findResendNodes = () => {
+    const nodes = Array.from(document.querySelectorAll("button, a, span, p, div"));
+    return nodes.filter((node) => {
+      const text = (node.textContent || "").trim();
+      return /didn.?t receive a code\??\s*resend/i.test(text) || /^resend(?:\s*\(\d+\))?$/i.test(text);
+    });
+  };
+
+  const lockNode = (node, secondsLeft) => {
+    const text = (node.textContent || "").trim();
+
+    if (/didn.?t receive a code/i.test(text)) {
+      node.textContent = `Didn't receive a code? Resend (${secondsLeft})`;
+    } else if (/^resend/i.test(text)) {
+      node.textContent = `Resend (${secondsLeft})`;
+    }
+
+    node.setAttribute("aria-disabled", "true");
+    node.setAttribute("data-eval-resend-locked", "true");
+    node.style.pointerEvents = "none";
+    node.style.opacity = "0.72";
+    node.style.cursor = "not-allowed";
+  };
+
+  const unlockNode = (node) => {
+    const text = (node.textContent || "").trim();
+
+    if (/didn.?t receive a code/i.test(text)) {
+      node.textContent = "Didn't receive a code? Resend";
+    } else if (/^resend/i.test(text)) {
+      node.textContent = "Resend";
+    }
+
+    node.removeAttribute("aria-disabled");
+    node.removeAttribute("data-eval-resend-locked");
+    node.style.pointerEvents = "";
+    node.style.opacity = "";
+    node.style.cursor = "";
+  };
+
+  const update = () => {
+    if (!isAuthVerificationPage()) {
+      cooldownStartedAt = Date.now();
+      lastFactorTwoPath = window.location.href;
+      return;
+    }
+
+    if (lastFactorTwoPath !== window.location.href) {
+      lastFactorTwoPath = window.location.href;
+      cooldownStartedAt = Date.now();
+    }
+
+    const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
+    const secondsLeft = Math.max(0, COOLDOWN_SECONDS - elapsed);
+    const nodes = findResendNodes();
+
+    nodes.forEach((node) => {
+      if (secondsLeft > 0) lockNode(node, secondsLeft);
+      else unlockNode(node);
+    });
+  };
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target?.closest?.("button, a, span, p, div");
+      if (!target) return;
+      const text = (target.textContent || "").trim();
+      if (!/resend/i.test(text)) return;
+
+      const elapsed = Math.floor((Date.now() - cooldownStartedAt) / 1000);
+      if (isAuthVerificationPage() && elapsed < COOLDOWN_SECONDS) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+        update();
+      }
+    },
+    true
+  );
+
+  const observer = new MutationObserver(update);
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
+  window.addEventListener("hashchange", () => {
+    cooldownStartedAt = Date.now();
+    setTimeout(update, 50);
+  });
+
+  window.addEventListener("popstate", () => {
+    cooldownStartedAt = Date.now();
+    setTimeout(update, 50);
+  });
+
+  setInterval(update, 250);
+  setTimeout(update, 50);
+  setTimeout(update, 500);
+  setTimeout(update, 1200);
 }
 
-function SignedOut() {
-  return null;
-}
-
-function UserButton() {
-  return <div className="temporary-user-avatar" title="Account disabled temporarily">G</div>;
-}
-
-function SignIn() {
-  return null;
-}
-
-function SignUp() {
-  return null;
-}
-
+installClerkResend60Guard();
 
 /*
   HARD-CODED RENDER BACKEND URL
   This avoids Vercel environment variable problems.
 */
 const API = "https://edge-1-6dtw.onrender.com";
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 const STORAGE_KEY = "edge-watchlist-v8";
 const TERMS_VERSION = "2026-05-30";
 const MAX_WATCHLIST_ITEMS = 15;
@@ -199,21 +306,21 @@ function getScoreInsight(score) {
 
   if (n <= 5) {
     return {
-      label: "Red Eval Score Rating",
-      text: "Red means the company currently has a weaker overall company-quality profile. The data may show pressure in growth, margins, balance-sheet strength, valuation, momentum, or recent news sentiment. This is not a buy or sell signal; it means the current company profile needs more caution.",
+      label: "Red Evaluation",
+      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
     };
   }
 
   if (n <= 7) {
     return {
-      label: "Yellow Eval Score Rating",
-      text: "Yellow means the company has a mixed overall profile. There may be real strengths, but the data is not consistently strong across the full score model yet. Review the category ratings to see what is helping and what is holding the company back.",
+      label: "Yellow Evaluation",
+      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
     };
   }
 
   return {
-    label: "Green Eval Score Rating",
-    text: "Green means the company currently shows a stronger overall company-quality profile. The available data points to better execution, healthier fundamentals, stronger consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality rating, not financial advice.",
+    label: "Green Evaluation",
+    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
   };
 }
 
@@ -236,9 +343,82 @@ function getSafeProfileAccent(user) {
 }
 
 function ProfileButton() {
-  const user = TEMP_EVAL_USER;
-  const accent = getSafeProfileAccent(user);
-  const firstName = "Guest";
+  const { user } = useUser();
+  const [accent, setAccent] = useState(() => getSafeProfileAccent(user));
+
+  useEffect(() => {
+    let cancelled = false;
+    const imageUrl = user?.imageUrl;
+
+    if (!imageUrl) {
+      setAccent(getSafeProfileAccent(user));
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.referrerPolicy = "no-referrer";
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const size = 36;
+        canvas.width = size;
+        canvas.height = size;
+
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) throw new Error("Canvas unavailable");
+
+        ctx.drawImage(img, 0, 0, size, size);
+        const pixels = ctx.getImageData(0, 0, size, size).data;
+
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let count = 0;
+
+        for (let i = 0; i < pixels.length; i += 16) {
+          const alpha = pixels[i + 3];
+          if (alpha < 180) continue;
+
+          const pr = pixels[i];
+          const pg = pixels[i + 1];
+          const pb = pixels[i + 2];
+          const brightness = (pr + pg + pb) / 3;
+
+          if (brightness < 24 || brightness > 236) continue;
+
+          r += pr;
+          g += pg;
+          b += pb;
+          count += 1;
+        }
+
+        if (!count) throw new Error("No usable avatar color");
+
+        const color = `${Math.round(r / count)},${Math.round(g / count)},${Math.round(b / count)}`;
+        if (!cancelled) setAccent(color);
+      } catch {
+        if (!cancelled) setAccent(getSafeProfileAccent(user));
+      }
+    };
+
+    img.onerror = () => {
+      if (!cancelled) setAccent(getSafeProfileAccent(user));
+    };
+
+    img.src = imageUrl;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.imageUrl]);
+
+  const firstName =
+    user?.firstName ||
+    user?.fullName?.split(" ")?.[0] ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
+    "there";
 
   return (
     <div className="profile-welcome-wrap">
@@ -250,18 +430,16 @@ function ProfileButton() {
       <div
         className="topbar-user"
         style={{ "--profile-accent": accent }}
-        title="Account temporarily disabled"
+        title="Account settings"
       >
-        <div className="temporary-user-avatar">G</div>
+        <UserButton />
       </div>
     </div>
   );
 }
 
 function App() {
-  const isLoaded = true;
-  const isSignedIn = true;
-  const user = TEMP_EVAL_USER;
+  const { isLoaded, isSignedIn, user } = useUser();
   const [symbol, setSymbol] = useState("");
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
@@ -584,24 +762,54 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const key = `eval-terms-accepted-${TERMS_VERSION}-guest`;
+    if (!isLoaded || !isSignedIn || !user?.id) {
+      setTermsAccepted(false);
+      return;
+    }
+
+    const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
     setTermsAccepted(localStorage.getItem(key) === "true");
-  }, []);
+  }, [isLoaded, isSignedIn, user?.id]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const publicViews = ["landing", "account"];
+    if (!isSignedIn && !publicViews.includes(view)) {
+      setView("account");
+      return;
+    }
+
+    if (isSignedIn && !termsAccepted && ![...publicViews, "terms"].includes(view)) {
+      setView("terms");
+    }
+  }, [isLoaded, isSignedIn, termsAccepted, view]);
 
   function acceptTerms() {
-    const key = `eval-terms-accepted-${TERMS_VERSION}-guest`;
-    localStorage.setItem(key, "true");
+    if (user?.id) {
+      const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
+      localStorage.setItem(key, "true");
+    }
+
     setTermsAccepted(true);
     setView("dashboard");
   }
 
+  if (!isLoaded) {
+    return <LoadingScreen />;
+  }
+
   if (view === "landing") {
-    return <LandingPage onContinue={() => setView("dashboard")} />;
+    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
   }
 
   if (view === "account") {
-    setView("dashboard");
-    return <LoadingScreen />;
+    return (
+      <ClerkAccessPage
+        onBack={() => setView("landing")}
+        onSuccess={() => setView(termsAccepted ? "dashboard" : "terms")}
+      />
+    );
   }
 
   if (view === "terms") {
@@ -636,7 +844,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell eval-claude-app">
+    <main className="app-shell">
 
       <div className="portrait-lock-overlay" aria-hidden="true">
         <div className="portrait-lock-card">
@@ -654,13 +862,19 @@ function App() {
           aria-label="Go to homepage"
           title="Go to homepage"
         >
-          <img src="/apple-touch-icon.png" alt="Eval logo" />
+          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
           <div>
             <h1>Eval</h1>
           </div>
         </button>
 
-        <div className="topbar-actions-stack" aria-hidden="true" />
+        <div className="topbar-actions-stack">
+          <SignedIn>
+            <div className="profile-bubble" aria-label="Profile">
+              <ProfileButton />
+            </div>
+          </SignedIn>
+        </div>
       </header>
 
       {error && (
@@ -722,9 +936,9 @@ function App() {
           />
         </main>
       ) : (
-        <section className="layout dashboard-main eval-dashboard-grid">
-          <div className="content dashboard-content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-clean-searchbar eval-safe-searchbar eval-responsive-searchbar eval-menu-searchbar dashboard-search-row">
+        <section className="layout">
+          <div className="content">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
               <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
@@ -847,9 +1061,8 @@ function App() {
 }
 
 function ScoreRingSvg({ value, className = "", label = null }) {
-  const scoreValue = score10(value);
-  const score = scoreValue === null ? 0 : Math.max(0, Math.min(10, scoreValue));
-  const tone = scoreValue === null ? "neutral" : scoreTone(scoreValue);
+  const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
+  const tone = scoreTone(score);
   const radius = 46;
   const circumference = 2 * Math.PI * radius;
   const dash = (score / 10) * circumference;
@@ -879,7 +1092,7 @@ function ScoreRingSvg({ value, className = "", label = null }) {
         <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
       </svg>
 
-      <strong>{label || scoreText(scoreValue)}</strong>
+      <strong>{label || scoreText(score)}</strong>
     </div>
   );
 }
@@ -1469,59 +1682,91 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
 function LandingPage({ onContinue }) {
   const featureCards = [
     {
-      icon: <Gauge size={20} />,
-      title: "Score",
-      text: "A clear 0.0–10.0 company-quality score with the exact categories behind it.",
+      icon: <Gauge size={22} />,
+      title: "One clean Eval Score",
+      text: "A 0.0–10.0 score blends growth, profitability, financial health, valuation, momentum, pullback, risk, and news sentiment.",
     },
     {
-      icon: <Search size={20} />,
-      title: "Search",
-      text: "Type a ticker, load the report, and get the important numbers without digging.",
+      icon: <BrainCircuit size={22} />,
+      title: "Smarter Eval AI",
+      text: "Ask about FAQs, navigation, metrics, watchlist stocks, company tickers, key products, and what companies actually do.",
     },
     {
-      icon: <Star size={20} />,
-      title: "Watchlist",
-      text: "Save stocks, refresh rankings, and compare the names you actually care about.",
+      icon: <Search size={22} />,
+      title: "5,200-company knowledge base",
+      text: "Eval AI can answer company-to-ticker, ticker-to-company, company description, and product questions from the embedded CSV universe.",
     },
     {
-      icon: <BrainCircuit size={20} />,
-      title: "Ask",
-      text: "Use Eval AI to explain the report, the company, and how the dashboard works.",
+      icon: <ShieldCheck size={22} />,
+      title: "Provider fallback engine",
+      text: "Finnhub, Massive, FMP, OpenAI, and cached last-valid reports work together so missing data is not treated like zero.",
+    },
+    {
+      icon: <Star size={22} />,
+      title: "Ranked watchlist",
+      text: "Save up to 15 tickers and rank them by Eval Score with clean rings, refresh controls, and direct compare support.",
+    },
+    {
+      icon: <Scale size={22} />,
+      title: "2–5 stock radar compare",
+      text: "Select watchlist stocks and compare all seven categories with clickable radar labels and side-by-side score rings.",
+    },
+    {
+      icon: <Newspaper size={22} />,
+      title: "AI news sentiment",
+      text: "Recent articles are summarized, scored, and turned into a fast positive, neutral, or negative company read.",
+    },
+    {
+      icon: <LineChart size={22} />,
+      title: "Smarter caching",
+      text: "Fundamentals can stay cached for months, valuation for one month, news/risk for seven days, and market data for one day.",
     },
   ];
+return (
+    <main className="landing-page-clean">
 
-  return (
-    <main className="landing-page-clean landing-page-editorial">
-      <section className="landing-shell landing-shell-pro landing-shell-editorial">
-        <header className="landing-brand-row landing-brand-row-pro landing-brand-editorial">
+      <section className="landing-shell landing-shell-pro landing-shell-extreme">
+        <header className="landing-brand-row landing-brand-row-pro">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/apple-touch-icon.png" alt="Eval logo" />
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
+
+          <div className="landing-status-pill landing-status-live">
+            <span /> AI stock evaluation + company intelligence engine
+          </div>
         </header>
 
-        <section className="landing-hero landing-hero-pro landing-hero-editorial">
+        <section className="landing-hero landing-hero-pro landing-hero-extreme">
           <div className="landing-copy landing-copy-pro">
             <div className="landing-kicker landing-kicker-glow">
-              <Sparkles size={16} /> Built for fast, clean stock research
+              <Sparkles size={16} /> Eval Score, AI support, company intelligence, and clean stock comparisons
             </div>
 
-            <h2>No digging. Just the numbers that matter.</h2>
+            <h2>
+              The fastest way to understand a stock before you waste time digging.
+            </h2>
 
             <p>
-              Eval turns ticker research into one focused report: company score, category ratings, risk, recent news, watchlist ranking, and AI explanations without digging through endless tabs.
+              Eval turns stock data into a cinematic dashboard: Eval Score, seven category ratings,
+              risk, AI news sentiment, watchlist rankings, 2–5 stock radar comparisons, and an
+              assistant that now understands FAQs, company tickers, key products, and what companies do.
             </p>
 
             <div className="landing-actions landing-actions-pro">
               <button type="button" className="landing-continue-btn landing-continue-mega" onClick={onContinue}>
-                Open dashboard <ArrowRight size={20} />
-              </button>            </div>
+                Launch Dashboard <ArrowRight size={20} />
+              </button>
+              <span>Score. Rank. Compare. Ask AI. Understand the company.</span>
+            </div>
+
           </div>
 
-          <div className="landing-product-stage landing-product-stage-editorial" aria-label="Eval product preview">
+          <div className="landing-product-stage landing-product-stage-extreme" aria-label="Eval product preview">
+
             <div className="landing-product-card main landing-main-terminal">
               <div className="preview-topline">
-                <span>Eval report</span>
+                <span>Eval stock report</span>
                 <b>NVDA</b>
               </div>
 
@@ -1547,17 +1792,35 @@ function LandingPage({ onContinue }) {
               </div>
 
               <div className="landing-terminal-lines">
-                <span><i /> Score-backed report</span>
-                <span><i /> Watchlist ready</span>
-                <span><i /> AI explanation built in</span>
+                <span><i /> News sentiment: bullish</span>
+                <span><i /> Company products: AI chips</span>
+                <span><i /> Cache + fallback protected</span>
               </div>
+            </div>
+
+            <div className="landing-product-card floating watch landing-float-card-one">
+              <span>Watchlist</span>
+              <strong>#1 NVDA</strong>
+              <p>Score-ranked instantly</p>
+            </div>
+
+            <div className="landing-product-card floating radar landing-float-card-two">
+              <span>Compare</span>
+              <strong>Radar chart</strong>
+              <p>7-metric matchup</p>
+            </div>
+
+            <div className="landing-product-card floating ai landing-float-card-three">
+              <span>Eval AI</span>
+              <strong>FAQs + tickers</strong>
+              <p>Products, scores, support</p>
             </div>
           </div>
         </section>
 
-        <section className="landing-feature-strip landing-feature-strip-editorial">
+        <section className="landing-feature-strip landing-feature-strip-extreme">
           {featureCards.map((item) => (
-            <article className="landing-feature-card landing-feature-card-editorial" key={item.title}>
+            <article className="landing-feature-card landing-feature-card-extreme" key={item.title}>
               <div className="landing-feature-icon">{item.icon}</div>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
@@ -1565,21 +1828,31 @@ function LandingPage({ onContinue }) {
           ))}
         </section>
 
-        <section className="landing-scroll-story landing-scroll-story-editorial">
+        <section className="landing-scroll-story landing-scroll-story-extreme">
           <div className="landing-story-copy">
             <div className="landing-kicker">
-              <LineChart size={16} /> Workflow
+              <LineChart size={16} /> What users get
             </div>
-            <h2>Search a ticker, review the score, check the weak spots, save it, then compare it later.</h2>
+            <h2>Built to feel like a premium Bloomberg-style dashboard, with AI that explains the app, the company, and the report.</h2>
           </div>
 
-          <div className="landing-story-grid landing-story-grid-editorial">
-            <div><b>01</b><span>Search</span><p>Enter a ticker and load the company report.</p></div>
-            <div><b>02</b><span>Evaluate</span><p>Read the score, price, risk, and seven category ratings.</p></div>
-            <div><b>03</b><span>Explain</span><p>Use popups and Eval AI to understand what moved the score.</p></div>
-            <div><b>04</b><span>Track</span><p>Save stocks to your watchlist and compare them side by side.</p></div>
+          <div className="landing-story-grid landing-story-grid-extreme">
+            <div><b>01</b><span>Eval Score</span><p>A clean 0.0–10.0 rating backed by seven major scoring categories.</p></div>
+            <div><b>02</b><span>Company Intelligence</span><p>Ask Eval AI for tickers, products, descriptions, and what a company sells or does.</p></div>
+            <div><b>03</b><span>Protected Data Engine</span><p>Provider fallbacks and component caching help avoid fake broken scores from missing data.</p></div>
+            <div><b>04</b><span>Compare + Industry</span><p>Compare 2–5 watchlist stocks and review industry leaders with radar charts.</p></div>
           </div>
         </section>
+
+        <div className="landing-bottom-strip landing-bottom-strip-pro">
+          <span>Eval Score</span>
+          <span>5,200 Companies</span>
+          <span>AI FAQs</span>
+          <span>Provider Fallbacks</span>
+          <span>Watchlist</span>
+          <span>Radar Compare</span>
+          <span>Eval AI</span>
+</div>
 
         <p className="landing-footnote">
           Eval is for educational stock evaluation only and is not financial advice.
@@ -1649,7 +1922,7 @@ function ClerkAccessPage({ onBack, onSuccess }) {
           </button>
 
           <div className="clerk-access-brand">
-            <img src="/apple-touch-icon.png" alt="Eval logo" />
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <div>
               <h1>Eval</h1>
               <p>Secure account access</p>
@@ -7566,9 +7839,9 @@ function Watchlist({
             Your watchlist is empty. Add a ticker above to start building your own list.
           </div>
         ) : (
-          items.map((item, index) => (
+          items.map((item) => (
             <div className="watch-row" key={item.symbol}>
-              <span className={`watch-rank-number ${index < 3 ? "top-rank" : ""}`} aria-label={`Rank ${index + 1}`}>{index + 1}</span>
+              <span className="watch-rank-number" aria-hidden="true" />
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
                 <div className="row-sw watch-row-sw">
@@ -8077,42 +8350,12 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   return (
     <>
-      <section className={`hero-card eval-clean-hero eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
+      <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
-          <div className="score-company-heading">
-            <h2>{data.profile?.name || data.symbol}</h2>
-            <p className="subline score-company-subline">
-              {(data.profile?.weburl || data.profile?.website || data.profile?.site) ? (
-                <a
-                  href={data.profile?.weburl || data.profile?.website || data.profile?.site}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="ticker-company-link"
-                  title={`Open ${data.symbol} company website`}
-                >
-                  {data.symbol}
-                </a>
-              ) : (
-                <span className="ticker-company-link is-disabled">{data.symbol}</span>
-              )}
-              <span> · </span>
-              <button
-                type="button"
-                className="industry-link"
-                onClick={openIndustryPopup}
-                disabled={!industryName || industryName === "Public company"}
-                title={`View top Eval stocks in ${industryName}`}
-              >
-                {industryName}
-              </button>
-            </p>
-          </div>
-
           <ScoreRingSvg
             value={edge}
             className="score-ring"
           />
-
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
@@ -8499,16 +8742,11 @@ function Metric({ label, item, help }) {
 
 function EmptyReport() {
   return (
-    <div className="empty-report empty-report-card empty-state">
+    <div className="empty-report">
       <div className="center">
         <Activity size={26} />
-        <h2>Start with one ticker.</h2>
-        <p>Search a symbol to generate a clean Eval report with score, risk, category grades, news sentiment, and watchlist tools.</p>
-        <div className="empty-state-chips" aria-label="Example tickers">
-          <span>AAPL</span>
-          <span>NVDA</span>
-          <span>MSFT</span>
-        </div>
+        <h2>No stock report loaded yet</h2>
+        <p>Search a ticker above to generate an Eval report.</p>
       </div>
     </div>
   );
@@ -8525,8 +8763,31 @@ function LoadingScreen() {
   );
 }
 
+function MissingClerkConfig() {
+  return (
+    <main className="loading-screen">
+      <div className="loading-card missing-clerk-card">
+        <AlertTriangle size={24} />
+        <h2>Missing Clerk publishable key</h2>
+        <p>
+          Add VITE_CLERK_PUBLISHABLE_KEY to your Vercel environment variables,
+          then redeploy the frontend.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 function Root() {
-  return <App />;
+  if (!CLERK_PUBLISHABLE_KEY) {
+    return <MissingClerkConfig />;
+  }
+
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <App />
+    </ClerkProvider>
+  );
 }
 
 createRoot(document.getElementById("root")).render(<Root />);
