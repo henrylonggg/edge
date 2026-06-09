@@ -199,21 +199,21 @@ function getScoreInsight(score) {
 
   if (n <= 5) {
     return {
-      label: "Red Evaluation",
-      text: "Red means the company currently shows a weaker overall business profile. This can point to a business that is struggling to prove durable growth, protect margins, maintain balance-sheet strength, or justify its market value compared with stronger companies. It does not mean the company cannot improve, but it means the available data is not showing a high-quality company profile right now.",
+      label: "Red Eval Score Rating",
+      text: "Red means the company currently has a weaker overall company-quality profile. The data may show pressure in growth, margins, balance-sheet strength, valuation, momentum, or recent news sentiment. This is not a buy or sell signal; it means the current company profile needs more caution.",
     };
   }
 
   if (n <= 7) {
     return {
-      label: "Yellow Evaluation",
-      text: "Yellow means the company has a mixed overall business profile. There may be real strengths in the business, but the full picture is not consistently strong yet. The company may be performing well in some areas while still showing questions around durability, efficiency, stability, valuation, or execution quality.",
+      label: "Yellow Eval Score Rating",
+      text: "Yellow means the company has a mixed overall profile. There may be real strengths, but the data is not consistently strong across the full score model yet. Review the category ratings to see what is helping and what is holding the company back.",
     };
   }
 
   return {
-    label: "Green Evaluation",
-    text: "Green means the company currently shows a strong overall business profile. The available data points to a higher-quality company with stronger execution, healthier financial performance, better consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality evaluation, not a buy or sell signal.",
+    label: "Green Eval Score Rating",
+    text: "Green means the company currently shows a stronger overall company-quality profile. The available data points to better execution, healthier fundamentals, stronger consistency, and a more durable business position compared with weaker-scoring companies. This is a company-quality rating, not financial advice.",
   };
 }
 
@@ -654,10 +654,9 @@ function App() {
           aria-label="Go to homepage"
           title="Go to homepage"
         >
-          <img src="/apple-touch-icon.png" alt="Eval AI logo" />
+          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
           <div>
             <h1>Eval</h1>
-            <span>Company intelligence, simplified</span>
           </div>
         </button>
 
@@ -1500,7 +1499,7 @@ function LandingPage({ onContinue }) {
       <section className="landing-shell landing-shell-pro landing-shell-editorial">
         <header className="landing-brand-row landing-brand-row-pro landing-brand-editorial">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/apple-touch-icon.png" alt="Eval logo" />
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
 
@@ -1662,7 +1661,7 @@ function ClerkAccessPage({ onBack, onSuccess }) {
           </button>
 
           <div className="clerk-access-brand">
-            <img src="/apple-touch-icon.png" alt="Eval logo" />
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <div>
               <h1>Eval</h1>
               <p>Secure account access</p>
@@ -8096,6 +8095,8 @@ function Report({ data, onAdd, onOpenIndustry }) {
             value={edge}
             className="score-ring"
           />
+
+          <div className={`eval-score-rating-label ${tone}`}>Eval Score Rating</div>
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
