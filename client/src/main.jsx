@@ -654,7 +654,7 @@ function App() {
           aria-label="Go to homepage"
           title="Go to homepage"
         >
-          <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
+          <img src="/apple-touch-icon.png" alt="Eval AI logo" />
           <div>
             <h1>Eval</h1>
             <span>Company intelligence, simplified</span>
@@ -1500,7 +1500,7 @@ function LandingPage({ onContinue }) {
       <section className="landing-shell landing-shell-pro landing-shell-editorial">
         <header className="landing-brand-row landing-brand-row-pro landing-brand-editorial">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <img src="/apple-touch-icon.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
 
@@ -1662,7 +1662,7 @@ function ClerkAccessPage({ onBack, onSuccess }) {
           </button>
 
           <div className="clerk-access-brand">
-            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
+            <img src="/apple-touch-icon.png" alt="Eval logo" />
             <div>
               <h1>Eval</h1>
               <p>Secure account access</p>
