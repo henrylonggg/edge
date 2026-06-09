@@ -23420,3 +23420,494 @@ svg,
   .landing-shell { border-radius: 22px !important; padding: 18px !important; }
   .searchbar { padding: 10px !important; border-radius: 22px !important; }
 }
+
+/* =========================================================
+   EVAL LIGHT PROFESSIONAL READABILITY FIX
+   White app, black text, darker chart colors, requested fonts.
+   Keep this at the very bottom of styles.css.
+========================================================= */
+:root {
+  --bg: #f7f4ee !important;
+  --panel: #ffffff !important;
+  --panel-strong: #ffffff !important;
+  --line: rgba(17, 24, 39, .14) !important;
+  --text: #111827 !important;
+  --muted: rgba(17, 24, 39, .72) !important;
+  --soft: rgba(17, 24, 39, .58) !important;
+  --green: #166534 !important;
+  --yellow: #a16207 !important;
+  --red: #b91c1c !important;
+  --blue: #334155 !important;
+  --cyan: #0f766e !important;
+  --purple: #4c1d95 !important;
+  --gold: #a16207 !important;
+  --gold-strong: #854d0e !important;
+  --shadow: 0 22px 60px rgba(17, 24, 39, .10) !important;
+  --display-font: "Adobe Caslon Pro", "Adobe Caslon", "Adobe Caslon Pro Bold", Georgia, "Times New Roman", serif;
+  --body-font: "Avenir Light", "Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body,
+button,
+input,
+textarea,
+select,
+a,
+p,
+span,
+small,
+li,
+label,
+div {
+  font-family: var(--body-font) !important;
+}
+
+body {
+  color: #111827 !important;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(17, 24, 39, .045), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(161, 98, 7, .055), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #faf7f1 47%, #f3eee5 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body::before {
+  background:
+    linear-gradient(90deg, rgba(17,24,39,.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17,24,39,.030) 1px, transparent 1px) !important;
+  background-size: 44px 44px !important;
+  opacity: .26 !important;
+  z-index: -1 !important;
+}
+
+/* Force readable dark text everywhere old dark-theme CSS used white. */
+body,
+body *:not(.grade-line):not(.grade-line span):not(.score-ring):not(.score-ring *):not(.watch-score-ring):not(.watch-score-ring *) {
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+
+::placeholder {
+  color: rgba(17, 24, 39, .46) !important;
+  opacity: 1 !important;
+}
+
+/* Big editorial typography. Title is Caslon, bold, not italic. */
+.brand h1,
+.landing-brand-row h1,
+.landing-brand-home h1,
+.clerk-access-brand h1,
+.company-panel h2,
+.assistant-page-head h2,
+.plans-page-head h2,
+.empty-report h2,
+.story-card h2,
+.summary-card h2,
+.metrics-card h2,
+.panel-head h2,
+.plan-top h3,
+.plan-card h3,
+.landing-copy h2 {
+  font-family: var(--display-font) !important;
+  color: #111827 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+.brand h1,
+.landing-brand-row h1,
+.landing-brand-home h1,
+.clerk-access-brand h1 {
+  font-style: normal !important;
+  letter-spacing: -.045em !important;
+}
+
+.landing-copy h2,
+.company-panel h2,
+.assistant-page-head h2,
+.plans-page-head h2,
+.plan-top h3,
+.plan-card h3 {
+  font-style: italic !important;
+  letter-spacing: -.035em !important;
+}
+
+/* Clean light surfaces. */
+.app-shell,
+.landing-page,
+.assistant-page,
+.plans-page {
+  background: transparent !important;
+}
+
+.hero-card,
+.watch-panel,
+.summary-card,
+.story-card,
+.grade-card,
+.metrics-card,
+.empty-report,
+.assistant-shell,
+.plans-shell,
+.chat-panel,
+.searchbar,
+.metric-tile,
+.mini-stat,
+.watch-row,
+.plan-card,
+.landing-shell,
+.landing-point-card,
+.landing-feature-card,
+.landing-story-card,
+.landing-score-preview,
+.clerk-access-shell,
+.ticker-lookup-shell,
+.faq-shell,
+.contact-shell,
+.terms-shell,
+.compare-shell,
+.industry-shell {
+  background: rgba(255, 255, 255, .94) !important;
+  border-color: rgba(17, 24, 39, .13) !important;
+  box-shadow: 0 18px 50px rgba(17, 24, 39, .10) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.searchbar input,
+.watch-add input,
+.chat-input textarea,
+input,
+textarea,
+select {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: rgba(17, 24, 39, .16) !important;
+  box-shadow: inset 0 1px 0 rgba(17, 24, 39, .035) !important;
+}
+
+button,
+.back-btn,
+.icon-btn,
+.delete-btn,
+.searchbar button,
+.hero-actions button,
+.hero-actions a,
+.watch-add button,
+.chat-input button,
+.ai-nav-btn,
+.plan-select-btn,
+.plan-card button,
+.plan-button,
+.landing-continue-btn,
+.landing-brand-home,
+.ghost-btn {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid rgba(17, 24, 39, .16) !important;
+  box-shadow: 0 8px 22px rgba(17, 24, 39, .08) !important;
+  text-shadow: none !important;
+}
+
+button:hover,
+.back-btn:hover,
+.icon-btn:hover,
+.delete-btn:hover,
+.searchbar button:hover,
+.hero-actions button:hover,
+.hero-actions a:hover,
+.watch-add button:hover,
+.chat-input button:hover,
+.ai-nav-btn:hover,
+.plan-select-btn:hover,
+.plan-card button:hover,
+.plan-button:hover,
+.landing-continue-btn:hover,
+.landing-brand-home:hover,
+.ghost-btn:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border-color: rgba(17, 24, 39, .25) !important;
+  box-shadow: 0 12px 30px rgba(17, 24, 39, .12) !important;
+}
+
+.plans-nav-btn,
+.pro-only-card .plan-select-btn,
+.plan-card:nth-child(2) button,
+.plan-card:nth-child(2) .plan-button {
+  background: linear-gradient(135deg, #f8e7b3, #d6a13d) !important;
+  color: #111827 !important;
+  border-color: rgba(133, 77, 14, .35) !important;
+  box-shadow: 0 12px 28px rgba(133, 77, 14, .16) !important;
+}
+
+/* Homepage faded/white text made dark and readable. */
+.landing-brand-row span,
+.landing-brand-row p,
+.landing-status-pill,
+.landing-status-pill span,
+.landing-kicker,
+.landing-copy p,
+.landing-actions span,
+.landing-point-card p,
+.landing-bottom-strip,
+.landing-bottom-strip span,
+.landing-footnote,
+.subline,
+.story-card p,
+.summary-card p,
+.metric-tile p,
+.metric-tile small,
+.panel-head p,
+.plan-card p,
+.plans-note,
+.fineprint,
+.eyebrow,
+.section-title,
+.assistant-kicker,
+.grade-head,
+.grade-head h3,
+.grade-description,
+.mini-stat span,
+.metric-tile div span,
+.watch-info span,
+.chat-bubble span,
+.chat-bubble p {
+  color: rgba(17, 24, 39, .74) !important;
+}
+
+.landing-kicker,
+.eyebrow,
+.section-title,
+.assistant-kicker,
+.panel-head h2,
+.metric-tile h3,
+.watch-info strong,
+.mini-stat b,
+.metric-tile strong,
+.score-popup-title,
+.score-popup li,
+.score-popup li span,
+.score-popup small,
+.info-letter,
+.plan-card li,
+.plan-feature {
+  color: #111827 !important;
+}
+
+/* Logo: keep the original logo clean on the light site, not inverted or recolored. */
+.brand img,
+.landing-brand-row img,
+.landing-brand-home img,
+.clerk-access-brand img {
+  filter: none !important;
+  background: transparent !important;
+  border-radius: 24px !important;
+  box-shadow: none !important;
+}
+
+/* Darker score rings and chart bars. */
+.score-ring.green,
+.watch-score-ring.green,
+.landing-score-ring.green,
+.industry-score-ring.green {
+  --ring-bright: #166534 !important;
+  --ring-glow: rgba(22, 101, 52, .16) !important;
+  --watch-ring-bright: #166534 !important;
+  --watch-glow: rgba(22, 101, 52, .16) !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.landing-score-ring.yellow,
+.industry-score-ring.yellow {
+  --ring-bright: #a16207 !important;
+  --ring-glow: rgba(161, 98, 7, .16) !important;
+  --watch-ring-bright: #a16207 !important;
+  --watch-glow: rgba(161, 98, 7, .16) !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.landing-score-ring.red,
+.industry-score-ring.red {
+  --ring-bright: #b91c1c !important;
+  --ring-glow: rgba(185, 28, 28, .16) !important;
+  --watch-ring-bright: #b91c1c !important;
+  --watch-glow: rgba(185, 28, 28, .16) !important;
+}
+
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.landing-score-ring.neutral,
+.industry-score-ring.neutral {
+  --ring-bright: #475569 !important;
+  --ring-glow: rgba(71, 85, 105, .14) !important;
+  --watch-ring-bright: #475569 !important;
+  --watch-glow: rgba(71, 85, 105, .14) !important;
+}
+
+.score-ring,
+.watch-score-ring,
+.landing-score-ring,
+.industry-score-ring {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(17,24,39,.03), transparent 48%),
+    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, #475569)) var(--score-angle, var(--watch-score-angle, 0deg)), rgba(17,24,39,.12) 0deg) !important;
+  box-shadow: 0 16px 42px rgba(17, 24, 39, .10) !important;
+}
+
+.score-ring::before,
+.watch-score-ring::before,
+.landing-score-ring::before,
+.industry-score-ring::before {
+  opacity: .10 !important;
+  filter: blur(9px) !important;
+}
+
+.score-core,
+.watch-score-ring strong,
+.landing-score-core,
+.industry-score-core {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid rgba(17, 24, 39, .12) !important;
+  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, .03) !important;
+}
+
+.score-core strong,
+.watch-score-ring strong,
+.landing-score-core strong,
+.industry-score-core strong,
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.grade-line {
+  background: #e5e7eb !important;
+  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, .03) !important;
+}
+
+.grade-line span {
+  box-shadow: none !important;
+}
+
+.grade-line span.green,
+.score-bar-fill.green,
+.bar-fill.green {
+  background: #166534 !important;
+  color: #166534 !important;
+}
+
+.grade-line span.yellow,
+.score-bar-fill.yellow,
+.bar-fill.yellow {
+  background: #a16207 !important;
+  color: #a16207 !important;
+}
+
+.grade-line span.red,
+.score-bar-fill.red,
+.bar-fill.red {
+  background: #b91c1c !important;
+  color: #b91c1c !important;
+}
+
+.grade-line span.neutral,
+.score-bar-fill.neutral,
+.bar-fill.neutral {
+  background: #475569 !important;
+  color: #475569 !important;
+}
+
+/* Popups, chat, errors, and states remain readable on white. */
+.score-popup,
+.mini-stat-popup,
+.menu-panel,
+.dropdown-panel,
+.tooltip,
+.popover {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: rgba(17, 24, 39, .16) !important;
+  box-shadow: 0 20px 50px rgba(17, 24, 39, .14) !important;
+}
+
+.chat-bubble.user,
+.chat-bubble.assistant {
+  background: #f8fafc !important;
+  color: #111827 !important;
+  border-color: rgba(17, 24, 39, .12) !important;
+}
+
+.error-banner {
+  background: #fff1f2 !important;
+  color: #881337 !important;
+  border-color: rgba(185, 28, 28, .22) !important;
+}
+
+.daily-change.up,
+.up,
+.positive {
+  color: #166534 !important;
+}
+
+.daily-change.down,
+.down,
+.negative {
+  color: #b91c1c !important;
+}
+
+/* Any old SVG/icon strokes inherited as white become dark unless purposely in bars. */
+svg {
+  color: currentColor !important;
+}
+
+/* Mobile stays clean and legible. */
+@media (max-width: 680px) {
+  .app-shell {
+    padding: 14px !important;
+  }
+
+  .brand img,
+  .landing-brand-row img,
+  .landing-brand-home img {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .brand h1,
+  .landing-brand-row h1,
+  .landing-brand-home h1 {
+    font-size: 50px !important;
+    letter-spacing: -.045em !important;
+  }
+
+  .landing-copy h2,
+  .company-panel h2,
+  .assistant-page-head h2,
+  .plans-page-head h2 {
+    font-size: 38px !important;
+    line-height: .95 !important;
+  }
+
+  .hero-card,
+  .watch-panel,
+  .metrics-card,
+  .story-card,
+  .summary-card,
+  .assistant-shell,
+  .plans-shell,
+  .landing-shell,
+  .searchbar {
+    border-radius: 22px !important;
+  }
+}
