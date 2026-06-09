@@ -13287,7 +13287,6 @@ button[title*="sofi"], button[title*="SoFi"], button[title*="SOFI"] {
   }
 }
 
-/* ========================================================= */
 
 /* Keep search bubble sane without forced grid */
 .eval-safe-searchbar,
@@ -23043,505 +23042,218 @@ body {
 }
 
 /* =========================================================
-   EVAL LIGHT PROFESSIONAL RESET — KEEP ORIGINAL LOGO
-   App-wide white background, black text, clean cards.
-   Added last so it overrides older dark/neon sections safely.
+   CLAUDE-STYLE PROFESSIONAL REDESIGN OVERRIDES
+   Built on the original uploaded stylesheet. Keep at bottom.
 ========================================================= */
 :root {
-  --bg: #f6f7f9 !important;
-  --panel: #ffffff !important;
-  --panel-strong: #ffffff !important;
-  --line: rgba(15, 23, 42, .12) !important;
-  --text: #0b1220 !important;
-  --muted: rgba(15, 23, 42, .68) !important;
-  --soft: rgba(15, 23, 42, .48) !important;
-  --green: #15803d !important;
-  --yellow: #b7791f !important;
-  --red: #dc2626 !important;
-  --blue: #2563eb !important;
-  --cyan: #0f766e !important;
-  --purple: #6d28d9 !important;
-  --gold: #b7791f !important;
-  --gold-strong: #92400e !important;
-  --shadow: 0 18px 55px rgba(15, 23, 42, .09) !important;
+  --eval-bg: #10100d;
+  --eval-bg-2: #171510;
+  --eval-panel: rgba(255, 251, 242, .075);
+  --eval-panel-strong: rgba(255, 251, 242, .115);
+  --eval-line: rgba(255, 244, 224, .145);
+  --eval-line-strong: rgba(255, 244, 224, .22);
+  --eval-text: #fbf7ef;
+  --eval-muted: rgba(251, 247, 239, .70);
+  --eval-soft: rgba(251, 247, 239, .48);
+  --eval-warm: #d8a657;
+  --eval-warm-soft: rgba(216, 166, 87, .18);
+  --eval-green: #7ee787;
+  --eval-yellow: #f2cc60;
+  --eval-red: #ff7b72;
+  --eval-blue: #79c0ff;
+  --eval-shadow: 0 22px 70px rgba(0, 0, 0, .34);
+  --eval-card-radius: 28px;
 }
 
-html,
-body,
-#root {
-  background: #f6f7f9 !important;
-  color: #0b1220 !important;
+html {
+  background: var(--eval-bg) !important;
+  scroll-behavior: smooth;
 }
 
 body {
+  color: var(--eval-text) !important;
   background:
-    radial-gradient(circle at 18% 0%, rgba(15, 23, 42, .045), transparent 34%),
-    radial-gradient(circle at 88% 8%, rgba(37, 99, 235, .05), transparent 30%),
-    linear-gradient(180deg, #ffffff 0%, #f7f8fb 48%, #eef1f5 100%) !important;
-}
-
-body::before,
-.landing-page::before,
-.landing-page::after,
-.plans-page::before,
-.plans-page::after,
-.landing-page-clean::before,
-.landing-page-clean::after {
-  display: none !important;
-}
-
-* {
-  text-shadow: none !important;
-}
-
-.app-shell,
-.landing-page,
-.landing-page-clean,
-.assistant-page,
-.plans-page,
-.terms-page,
-.contact-page,
-.faq-page,
-.compare-page,
-.lookup-page,
-.industry-page,
-.watchlist-page {
-  background: transparent !important;
-  color: #0b1220 !important;
-}
-
-/* Preserve the user's black-on-white logo and stop forced glow/filter changes. */
-.brand img,
-.landing-brand-home img,
-.clerk-access-brand img,
-.logo-mark,
-.brand-logo {
-  background: #ffffff !important;
-  border-radius: 22px !important;
-  filter: none !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, .10) !important;
-  border: 1px solid rgba(15, 23, 42, .08) !important;
-  object-fit: contain !important;
-}
-
-.brand h1,
-.brand span,
-.landing-copy h1,
-.landing-copy p,
-.landing-kicker,
-.landing-status-pill,
-.company-panel h2,
-.assistant-page-head h2,
-.plans-page-head h2,
-.section-title,
-.eyebrow,
-.assistant-kicker,
-h1, h2, h3, h4, h5, h6,
-p, span, small, label, strong, b, li, a, div {
-  color: inherit;
-}
-
-.brand h1,
-.landing-copy h1,
-.company-panel h2,
-.assistant-page-head h2,
-.plans-page-head h2 {
-  color: #0b1220 !important;
-  letter-spacing: -0.055em;
-}
-
-.brand span,
-.subline,
-.panel-head p,
-.story-card p,
-.summary-card p,
-.metric-tile p,
-.metric-tile small,
-.fineprint,
-.plans-note,
-.plan-card p,
-.plan-yearly,
-.landing-copy p,
-.landing-footnote,
-.landing-story-copy p,
-.landing-feature-card p {
-  color: rgba(15, 23, 42, .64) !important;
-}
-
-.hero-card,
-.watch-panel,
-.summary-card,
-.story-card,
-.grade-card,
-.metrics-card,
-.empty-report,
-.assistant-shell,
-.plans-shell,
-.chat-panel,
-.plan-card,
-.metric-tile,
-.mini-stat,
-.searchbar,
-.watch-row,
-.watch-add input,
-.searchbar input,
-.chat-input textarea,
-.landing-shell,
-.landing-shell-pro,
-.landing-shell-editorial,
-.landing-product-card,
-.landing-feature-card,
-.landing-story-card,
-.clerk-access-card,
-.terms-shell,
-.contact-shell,
-.faq-shell,
-.compare-shell,
-.lookup-shell,
-.industry-shell {
-  background: #ffffff !important;
-  color: #0b1220 !important;
-  border: 1px solid rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 18px 55px rgba(15, 23, 42, .08) !important;
-  backdrop-filter: none !important;
-}
-
-.searchbar,
-.hero-card,
-.watch-panel,
-.metrics-card,
-.story-card,
-.summary-card,
-.assistant-shell,
-.plans-shell,
-.plan-card,
-.landing-shell {
-  border-radius: 28px !important;
-}
-
-.searchbar input,
-.watch-add input,
-.chat-input textarea,
-input,
-textarea,
-select {
-  background: #f8fafc !important;
-  color: #0b1220 !important;
-  border: 1px solid rgba(15, 23, 42, .14) !important;
-  box-shadow: inset 0 1px 0 rgba(15, 23, 42, .03) !important;
-}
-
-.searchbar input::placeholder,
-.watch-add input::placeholder,
-.chat-input textarea::placeholder,
-input::placeholder,
-textarea::placeholder {
-  color: rgba(15, 23, 42, .40) !important;
-}
-
-button,
-.back-btn,
-.icon-btn,
-.delete-btn,
-.hero-actions a,
-.hero-actions button,
-.watch-add button,
-.searchbar button,
-.chat-input button,
-.plan-button,
-.plan-select-btn,
-.plan-card button,
-.ai-nav-btn,
-.ghost-btn {
-  background: #ffffff !important;
-  color: #0b1220 !important;
-  border: 1px solid rgba(15, 23, 42, .14) !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, .08) !important;
-}
-
-button:hover,
-.back-btn:hover,
-.icon-btn:hover,
-.delete-btn:hover,
-.hero-actions a:hover,
-.hero-actions button:hover,
-.watch-add button:hover,
-.searchbar button:hover,
-.chat-input button:hover,
-.plan-button:hover,
-.plan-select-btn:hover,
-.plan-card button:hover,
-.ai-nav-btn:hover,
-.ghost-btn:hover {
-  background: #f8fafc !important;
-  color: #0b1220 !important;
-  border-color: rgba(15, 23, 42, .22) !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .11) !important;
-}
-
-.plans-nav-btn,
-.pro-only-card .plan-select-btn,
-.plan-card:nth-child(2) button,
-.plan-card:nth-child(2) .plan-button {
-  background: #0b1220 !important;
-  color: #ffffff !important;
-  border-color: #0b1220 !important;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, .16) !important;
-}
-
-svg,
-.grade-head span,
-.plan-feature svg,
-.landing-feature-icon {
-  color: #0b1220 !important;
-  filter: none !important;
-}
-
-.score-ring,
-.watch-score-ring {
-  background:
-    conic-gradient(from -90deg, var(--ring-bright, #0b1220) var(--score-angle, var(--watch-score-angle, 0deg)), rgba(15, 23, 42, .10) 0deg) !important;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, .10) !important;
-}
-
-.score-ring::before,
-.watch-score-ring::before {
-  display: none !important;
-}
-
-.score-core,
-.watch-score-ring strong {
-  background: #ffffff !important;
-  color: #0b1220 !important;
-  border: 1px solid rgba(15, 23, 42, .10) !important;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .02) !important;
-}
-
-.score-core strong,
-.watch-score-ring strong,
-.grade-card strong,
-.grade-card strong.green,
-.grade-card strong.yellow,
-.grade-card strong.red,
-.grade-card strong.neutral {
-  color: #0b1220 !important;
-}
-
-.score-ring.green,
-.watch-score-ring.green { --ring-bright: #15803d !important; --watch-ring-bright: #15803d !important; }
-.score-ring.yellow,
-.watch-score-ring.yellow { --ring-bright: #b7791f !important; --watch-ring-bright: #b7791f !important; }
-.score-ring.red,
-.watch-score-ring.red { --ring-bright: #dc2626 !important; --watch-ring-bright: #dc2626 !important; }
-.score-ring.neutral,
-.watch-score-ring.neutral { --ring-bright: #64748b !important; --watch-ring-bright: #64748b !important; }
-
-.grade-line {
-  background: #e5e7eb !important;
-  box-shadow: none !important;
-}
-
-.grade-line span {
-  box-shadow: none !important;
-}
-
-.grade-line span.green { background: #15803d !important; color: #15803d !important; }
-.grade-line span.yellow { background: #b7791f !important; color: #b7791f !important; }
-.grade-line span.red { background: #dc2626 !important; color: #dc2626 !important; }
-.grade-line span.neutral { background: #64748b !important; color: #64748b !important; }
-
-.metric-tile,
-.mini-stat,
-.watch-row,
-.grade-card,
-.landing-feature-card,
-.landing-story-card,
-.plan-feature {
-  background: #ffffff !important;
-  border-color: rgba(15, 23, 42, .10) !important;
-}
-
-.watch-info strong,
-.metric-tile h3,
-.metric-tile strong,
-.mini-stat b,
-.panel-head h2,
-.plan-card h3,
-.plan-price strong,
-.chat-bubble p,
-.chat-bubble span {
-  color: #0b1220 !important;
-}
-
-.chat-bubble.user,
-.chat-bubble.assistant {
-  background: #f8fafc !important;
-  color: #0b1220 !important;
-  border-color: rgba(15, 23, 42, .10) !important;
-}
-
-.score-popup,
-.mini-stat-popup {
-  background: #ffffff !important;
-  color: #0b1220 !important;
-  border: 1px solid rgba(15, 23, 42, .14) !important;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, .14) !important;
-}
-
-.score-popup-title,
-.score-popup li,
-.score-popup li span,
-.score-popup small,
-.info-letter {
-  color: #0b1220 !important;
-}
-
-.error-banner {
-  background: #fff1f2 !important;
-  color: #9f1239 !important;
-  border-color: rgba(225, 29, 72, .22) !important;
-}
-
-/* Clean mobile spacing: keep it easy to use. */
-@media (max-width: 680px) {
-  .app-shell { padding: 14px !important; }
-  .topbar { gap: 14px !important; margin-bottom: 14px !important; }
-  .brand { gap: 12px !important; }
-  .brand img { width: 78px !important; height: 78px !important; border-radius: 18px !important; }
-  .brand h1 { font-size: 52px !important; letter-spacing: -2.5px !important; }
-  .hero-card,
-  .watch-panel,
-  .metrics-card,
-  .story-card,
-  .summary-card,
-  .assistant-shell,
-  .plans-shell,
-  .landing-shell { border-radius: 22px !important; padding: 18px !important; }
-  .searchbar { padding: 10px !important; border-radius: 22px !important; }
-}
-
-/* =========================================================
-   EVAL LIGHT PROFESSIONAL READABILITY FIX
-   White app, black text, darker chart colors, requested fonts.
-   Keep this at the very bottom of styles.css.
-========================================================= */
-:root {
-  --bg: #f7f4ee !important;
-  --panel: #ffffff !important;
-  --panel-strong: #ffffff !important;
-  --line: rgba(17, 24, 39, .14) !important;
-  --text: #111827 !important;
-  --muted: rgba(17, 24, 39, .72) !important;
-  --soft: rgba(17, 24, 39, .58) !important;
-  --green: #166534 !important;
-  --yellow: #a16207 !important;
-  --red: #b91c1c !important;
-  --blue: #334155 !important;
-  --cyan: #0f766e !important;
-  --purple: #4c1d95 !important;
-  --gold: #a16207 !important;
-  --gold-strong: #854d0e !important;
-  --shadow: 0 22px 60px rgba(17, 24, 39, .10) !important;
-  --display-font: "Adobe Caslon Pro", "Adobe Caslon", "Adobe Caslon Pro Bold", Georgia, "Times New Roman", serif;
-  --body-font: "Avenir Light", "Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-}
-
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body,
-button,
-input,
-textarea,
-select,
-a,
-p,
-span,
-small,
-li,
-label,
-div {
-  font-family: var(--body-font) !important;
-}
-
-body {
-  color: #111827 !important;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(17, 24, 39, .045), transparent 30%),
-    radial-gradient(circle at 88% 10%, rgba(161, 98, 7, .055), transparent 32%),
-    linear-gradient(180deg, #ffffff 0%, #faf7f1 47%, #f3eee5 100%) !important;
+    radial-gradient(circle at 8% -8%, rgba(216,166,87,.18), transparent 32%),
+    radial-gradient(circle at 88% 10%, rgba(121,192,255,.10), transparent 34%),
+    radial-gradient(circle at 52% 108%, rgba(126,231,135,.08), transparent 36%),
+    linear-gradient(135deg, #0c0c09 0%, #12110e 48%, #0a0b0b 100%) !important;
   background-attachment: fixed !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 body::before {
   background:
-    linear-gradient(90deg, rgba(17,24,39,.035) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(17,24,39,.030) 1px, transparent 1px) !important;
-  background-size: 44px 44px !important;
-  opacity: .26 !important;
-  z-index: -1 !important;
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.014) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,.055), transparent 31%) !important;
+  background-size: 42px 42px, 42px 42px, auto !important;
+  opacity: .65 !important;
 }
 
-/* Force readable dark text everywhere old dark-theme CSS used white. */
-body,
-body *:not(.grade-line):not(.grade-line span):not(.score-ring):not(.score-ring *):not(.watch-score-ring):not(.watch-score-ring *) {
-  color: #111827 !important;
-  text-shadow: none !important;
+#root,
+.app-shell {
+  min-height: 100dvh;
 }
 
-::placeholder {
-  color: rgba(17, 24, 39, .46) !important;
-  opacity: 1 !important;
+.app-shell {
+  max-width: 1460px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 24px !important;
 }
 
-/* Big editorial typography. Title is Caslon, bold, not italic. */
-.brand h1,
-.landing-brand-row h1,
-.landing-brand-home h1,
-.clerk-access-brand h1,
-.company-panel h2,
-.assistant-page-head h2,
-.plans-page-head h2,
-.empty-report h2,
-.story-card h2,
-.summary-card h2,
-.metrics-card h2,
-.panel-head h2,
-.plan-top h3,
-.plan-card h3,
-.landing-copy h2 {
-  font-family: var(--display-font) !important;
-  color: #111827 !important;
-  font-weight: 800 !important;
-  text-shadow: none !important;
+.topbar {
+  display: grid !important;
+  grid-template-columns: minmax(220px, .72fr) minmax(460px, 760px) auto !important;
+  gap: 18px !important;
+  align-items: center !important;
+  margin-bottom: 18px !important;
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  padding: 12px 0;
+  backdrop-filter: blur(22px);
 }
 
-.brand h1,
-.landing-brand-row h1,
-.landing-brand-home h1,
-.clerk-access-brand h1 {
-  font-style: normal !important;
-  letter-spacing: -.045em !important;
+.brand,
+.brand-home-btn {
+  gap: 14px !important;
+  min-width: 0 !important;
 }
 
-.landing-copy h2,
-.company-panel h2,
-.assistant-page-head h2,
-.plans-page-head h2,
-.plan-top h3,
-.plan-card h3 {
-  font-style: italic !important;
-  letter-spacing: -.035em !important;
+.brand img,
+.landing-brand-home img,
+.clerk-access-brand img {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 18px !important;
+  padding: 7px !important;
+  background: rgba(255,255,255,.92) !important;
+  filter: drop-shadow(0 14px 28px rgba(0,0,0,.32)) !important;
+  object-fit: contain !important;
 }
 
-/* Clean light surfaces. */
-.app-shell,
-.landing-page,
-.assistant-page,
-.plans-page {
-  background: transparent !important;
+.brand h1 {
+  font-size: clamp(34px, 4.2vw, 58px) !important;
+  letter-spacing: -0.07em !important;
+  line-height: .9 !important;
+  margin: 0 !important;
+}
+
+.brand span,
+.profile-welcome-text span,
+.panel-head p,
+.subline,
+.fineprint,
+.metric-tile small,
+.story-card p,
+.summary-card p,
+.plans-page-head p,
+.assistant-page-head p,
+.faq-hero p,
+.support-hero p,
+.compare-page-head p,
+.industry-page-head p {
+  color: var(--eval-muted) !important;
+}
+
+.searchbar,
+.compact-searchbar,
+.eval-responsive-searchbar,
+.eval-menu-searchbar {
+  display: grid !important;
+  grid-template-columns: auto auto minmax(190px, 1fr) auto auto auto !important;
+  gap: 8px !important;
+  align-items: center !important;
+  padding: 8px !important;
+  border-radius: 22px !important;
+  border: 1px solid var(--eval-line) !important;
+  background: rgba(20, 18, 14, .74) !important;
+  box-shadow: 0 18px 55px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06) !important;
+  backdrop-filter: blur(24px) saturate(130%) !important;
+}
+
+.searchbar label,
+.watch-add label {
+  display: none !important;
+}
+
+.searchbar input,
+.watch-add input,
+.chat-input textarea,
+.faq-search-card input {
+  min-height: 48px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,244,224,.14) !important;
+  background: rgba(0,0,0,.26) !important;
+  color: var(--eval-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.searchbar input {
+  padding: 0 16px !important;
+  font-size: 16px !important;
+  letter-spacing: .08em !important;
+}
+
+button,
+.back-btn,
+.icon-btn,
+.delete-btn,
+.hero-actions a,
+.dashboard-link-btn,
+.plan-select-btn,
+.plan-card button,
+.plan-button,
+.watch-add button,
+.chat-input button,
+.auth-submit-btn,
+.compare-save-btn {
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,244,224,.15) !important;
+  color: var(--eval-text) !important;
+  background: rgba(255,251,242,.075) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 24px rgba(0,0,0,.18) !important;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+
+button:hover,
+.back-btn:hover,
+.icon-btn:hover,
+.delete-btn:hover,
+.hero-actions a:hover,
+.dashboard-link-btn:hover,
+.plan-select-btn:hover,
+.plan-card button:hover,
+.plan-button:hover,
+.watch-add button:hover,
+.chat-input button:hover,
+.auth-submit-btn:hover,
+.compare-save-btn:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(255,244,224,.26) !important;
+  background: rgba(255,251,242,.115) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 16px 34px rgba(0,0,0,.24) !important;
+}
+
+.plans-nav-btn,
+.pro-only-card .plan-select-btn,
+.plan-card:nth-child(2) button,
+.plan-card:nth-child(2) .plan-button {
+  color: #181006 !important;
+  background: linear-gradient(135deg, #fff1c2, #d8a657 48%, #b8822d) !important;
+  border-color: rgba(216,166,87,.62) !important;
+  box-shadow: 0 16px 38px rgba(216,166,87,.22), inset 0 1px 0 rgba(255,255,255,.48) !important;
+}
+
+.layout {
+  grid-template-columns: minmax(0, 1fr) 350px !important;
+  gap: 18px !important;
+}
+
+.content {
+  gap: 18px !important;
 }
 
 .hero-card,
@@ -23554,360 +23266,1113 @@ body *:not(.grade-line):not(.grade-line span):not(.score-ring):not(.score-ring *
 .assistant-shell,
 .plans-shell,
 .chat-panel,
-.searchbar,
 .metric-tile,
 .mini-stat,
-.watch-row,
-.plan-card,
-.landing-shell,
-.landing-point-card,
-.landing-feature-card,
-.landing-story-card,
-.landing-score-preview,
-.clerk-access-shell,
-.ticker-lookup-shell,
-.faq-shell,
-.contact-shell,
-.terms-shell,
-.compare-shell,
-.industry-shell {
-  background: rgba(255, 255, 255, .94) !important;
-  border-color: rgba(17, 24, 39, .13) !important;
-  box-shadow: 0 18px 50px rgba(17, 24, 39, .10) !important;
-  backdrop-filter: blur(12px) !important;
-}
-
-.searchbar input,
-.watch-add input,
-.chat-input textarea,
-input,
-textarea,
-select {
-  background: #ffffff !important;
-  color: #111827 !important;
-  border-color: rgba(17, 24, 39, .16) !important;
-  box-shadow: inset 0 1px 0 rgba(17, 24, 39, .035) !important;
-}
-
-button,
-.back-btn,
-.icon-btn,
-.delete-btn,
-.searchbar button,
-.hero-actions button,
-.hero-actions a,
-.watch-add button,
-.chat-input button,
-.ai-nav-btn,
-.plan-select-btn,
-.plan-card button,
-.plan-button,
-.landing-continue-btn,
-.landing-brand-home,
-.ghost-btn {
-  background: #ffffff !important;
-  color: #111827 !important;
-  border: 1px solid rgba(17, 24, 39, .16) !important;
-  box-shadow: 0 8px 22px rgba(17, 24, 39, .08) !important;
-  text-shadow: none !important;
-}
-
-button:hover,
-.back-btn:hover,
-.icon-btn:hover,
-.delete-btn:hover,
-.searchbar button:hover,
-.hero-actions button:hover,
-.hero-actions a:hover,
-.watch-add button:hover,
-.chat-input button:hover,
-.ai-nav-btn:hover,
-.plan-select-btn:hover,
-.plan-card button:hover,
-.plan-button:hover,
-.landing-continue-btn:hover,
-.landing-brand-home:hover,
-.ghost-btn:hover {
-  background: #f3f4f6 !important;
-  color: #111827 !important;
-  border-color: rgba(17, 24, 39, .25) !important;
-  box-shadow: 0 12px 30px rgba(17, 24, 39, .12) !important;
-}
-
-.plans-nav-btn,
-.pro-only-card .plan-select-btn,
-.plan-card:nth-child(2) button,
-.plan-card:nth-child(2) .plan-button {
-  background: linear-gradient(135deg, #f8e7b3, #d6a13d) !important;
-  color: #111827 !important;
-  border-color: rgba(133, 77, 14, .35) !important;
-  box-shadow: 0 12px 28px rgba(133, 77, 14, .16) !important;
-}
-
-/* Homepage faded/white text made dark and readable. */
-.landing-brand-row span,
-.landing-brand-row p,
-.landing-status-pill,
-.landing-status-pill span,
-.landing-kicker,
-.landing-copy p,
-.landing-actions span,
-.landing-point-card p,
-.landing-bottom-strip,
-.landing-bottom-strip span,
-.landing-footnote,
-.subline,
-.story-card p,
-.summary-card p,
-.metric-tile p,
-.metric-tile small,
-.panel-head p,
-.plan-card p,
-.plans-note,
-.fineprint,
-.eyebrow,
-.section-title,
-.assistant-kicker,
-.grade-head,
-.grade-head h3,
-.grade-description,
-.mini-stat span,
-.metric-tile div span,
-.watch-info span,
-.chat-bubble span,
-.chat-bubble p {
-  color: rgba(17, 24, 39, .74) !important;
-}
-
-.landing-kicker,
-.eyebrow,
-.section-title,
-.assistant-kicker,
-.panel-head h2,
-.metric-tile h3,
-.watch-info strong,
-.mini-stat b,
-.metric-tile strong,
-.score-popup-title,
-.score-popup li,
-.score-popup li span,
-.score-popup small,
-.info-letter,
-.plan-card li,
-.plan-feature {
-  color: #111827 !important;
-}
-
-/* Logo: keep the original logo clean on the light site, not inverted or recolored. */
-.brand img,
-.landing-brand-row img,
-.landing-brand-home img,
-.clerk-access-brand img {
-  filter: none !important;
-  background: transparent !important;
-  border-radius: 24px !important;
-  box-shadow: none !important;
-}
-
-/* Darker score rings and chart bars. */
-.score-ring.green,
-.watch-score-ring.green,
-.landing-score-ring.green,
-.industry-score-ring.green {
-  --ring-bright: #166534 !important;
-  --ring-glow: rgba(22, 101, 52, .16) !important;
-  --watch-ring-bright: #166534 !important;
-  --watch-glow: rgba(22, 101, 52, .16) !important;
-}
-
-.score-ring.yellow,
-.watch-score-ring.yellow,
-.landing-score-ring.yellow,
-.industry-score-ring.yellow {
-  --ring-bright: #a16207 !important;
-  --ring-glow: rgba(161, 98, 7, .16) !important;
-  --watch-ring-bright: #a16207 !important;
-  --watch-glow: rgba(161, 98, 7, .16) !important;
-}
-
-.score-ring.red,
-.watch-score-ring.red,
-.landing-score-ring.red,
-.industry-score-ring.red {
-  --ring-bright: #b91c1c !important;
-  --ring-glow: rgba(185, 28, 28, .16) !important;
-  --watch-ring-bright: #b91c1c !important;
-  --watch-glow: rgba(185, 28, 28, .16) !important;
-}
-
-.score-ring.neutral,
-.watch-score-ring.neutral,
-.landing-score-ring.neutral,
-.industry-score-ring.neutral {
-  --ring-bright: #475569 !important;
-  --ring-glow: rgba(71, 85, 105, .14) !important;
-  --watch-ring-bright: #475569 !important;
-  --watch-glow: rgba(71, 85, 105, .14) !important;
-}
-
-.score-ring,
-.watch-score-ring,
-.landing-score-ring,
-.industry-score-ring {
+.faq-card,
+.support-card,
+.support-contact-card,
+.compare-radar-card,
+.industry-radar-card,
+.news-sentiment-card,
+.news-topic-card,
+.mag7-panel,
+.clerk-access-card,
+.clerk-access-panel {
+  border: 1px solid var(--eval-line) !important;
   background:
-    radial-gradient(circle at 50% 50%, rgba(17,24,39,.03), transparent 48%),
-    conic-gradient(from -90deg, var(--ring-bright, var(--watch-ring-bright, #475569)) var(--score-angle, var(--watch-score-angle, 0deg)), rgba(17,24,39,.12) 0deg) !important;
-  box-shadow: 0 16px 42px rgba(17, 24, 39, .10) !important;
+    linear-gradient(180deg, rgba(255,251,242,.085), rgba(255,251,242,.052)),
+    rgba(12, 12, 9, .62) !important;
+  box-shadow: var(--eval-shadow), inset 0 1px 0 rgba(255,255,255,.055) !important;
+  backdrop-filter: blur(22px) saturate(125%) !important;
 }
 
-.score-ring::before,
-.watch-score-ring::before,
-.landing-score-ring::before,
-.industry-score-ring::before {
-  opacity: .10 !important;
-  filter: blur(9px) !important;
+.hero-card {
+  grid-template-columns: 235px minmax(0, 1fr) 220px !important;
+  min-height: 248px !important;
+  padding: 22px !important;
+  gap: 20px !important;
+  border-radius: 30px !important;
+  overflow: visible !important;
+}
+
+.company-panel h2 {
+  font-size: clamp(42px, 4.8vw, 72px) !important;
+  line-height: .92 !important;
+  letter-spacing: -0.065em !important;
+  margin: 10px 0 12px !important;
+}
+
+.assistant-kicker,
+.eyebrow,
+.section-title,
+.plans-kicker,
+.support-kicker,
+.ai-rules-eyebrow,
+.landing-kicker {
+  color: var(--eval-warm) !important;
+  letter-spacing: .10em !important;
+  text-transform: uppercase !important;
+}
+
+.score-ring {
+  width: 196px !important;
+  height: 196px !important;
+  padding: 15px !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,251,242,.06), transparent 47%),
+    conic-gradient(from -90deg, var(--ring-bright) var(--score-angle), rgba(255,251,242,.10) 0deg) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,244,224,.12), 0 18px 55px rgba(0,0,0,.36), 0 0 30px var(--ring-glow) !important;
 }
 
 .score-core,
 .watch-score-ring strong,
-.landing-score-core,
-.industry-score-core {
-  background: #ffffff !important;
-  color: #111827 !important;
-  border: 1px solid rgba(17, 24, 39, .12) !important;
-  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, .03) !important;
+.compare-score-ring strong,
+.industry-score-pie strong,
+.preview-score-ring strong {
+  background: linear-gradient(145deg, rgba(19,18,14,.96), rgba(7,7,6,.82)) !important;
+  border: 1px solid rgba(255,244,224,.13) !important;
 }
 
-.score-core strong,
-.watch-score-ring strong,
-.landing-score-core strong,
-.industry-score-core strong,
-.grade-card strong,
-.grade-card strong.green,
-.grade-card strong.yellow,
-.grade-card strong.red,
-.grade-card strong.neutral {
-  color: #111827 !important;
-  text-shadow: none !important;
+.score-core strong {
+  font-size: 70px !important;
+  letter-spacing: -0.06em !important;
+}
+
+.score-ring.green,
+.watch-score-ring.green,
+.compare-score-ring.green,
+.industry-score-pie.green {
+  --ring-bright: var(--eval-green) !important;
+  --watch-ring-bright: var(--eval-green) !important;
+  --ring-glow: rgba(126,231,135,.32) !important;
+  --watch-glow: rgba(126,231,135,.27) !important;
+}
+
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.compare-score-ring.yellow,
+.industry-score-pie.yellow {
+  --ring-bright: var(--eval-yellow) !important;
+  --watch-ring-bright: var(--eval-yellow) !important;
+  --ring-glow: rgba(242,204,96,.30) !important;
+  --watch-glow: rgba(242,204,96,.25) !important;
+}
+
+.score-ring.red,
+.watch-score-ring.red,
+.compare-score-ring.red,
+.industry-score-pie.red {
+  --ring-bright: var(--eval-red) !important;
+  --watch-ring-bright: var(--eval-red) !important;
+  --ring-glow: rgba(255,123,114,.30) !important;
+  --watch-glow: rgba(255,123,114,.25) !important;
+}
+
+.snapshot-grid,
+.snapshot-grid-refined {
+  gap: 10px !important;
+}
+
+.mini-stat {
+  border-radius: 20px !important;
+  padding: 14px !important;
+  background: rgba(255,251,242,.055) !important;
+}
+
+.mini-stat b {
+  font-size: 21px !important;
+}
+
+.summary-grid {
+  grid-template-columns: 1.1fr .9fr !important;
+  gap: 18px !important;
+}
+
+.story-card,
+.summary-card,
+.metrics-card,
+.empty-report,
+.assistant-shell,
+.plans-shell {
+  border-radius: var(--eval-card-radius) !important;
+  padding: 22px !important;
+}
+
+.grade-grid,
+.metric-grid,
+.preview-mini-grid,
+.support-grid,
+.faq-grid,
+.compare-results,
+.industry-leader-grid,
+.news-topic-list {
+  gap: 12px !important;
+}
+
+.grade-card,
+.metric-tile {
+  border-radius: 22px !important;
+  padding: 16px !important;
+}
+
+.grade-card {
+  min-height: 158px !important;
+}
+
+.grade-head h3,
+.metric-tile h3,
+.panel-head h2,
+.watch-info strong {
+  color: var(--eval-text) !important;
 }
 
 .grade-line {
-  background: #e5e7eb !important;
-  box-shadow: inset 0 0 0 1px rgba(17, 24, 39, .03) !important;
+  height: 7px !important;
+  background: rgba(255,251,242,.10) !important;
+  margin: 16px 0 10px !important;
 }
 
-.grade-line span {
-  box-shadow: none !important;
+.grade-line span.green { background: linear-gradient(90deg, rgba(126,231,135,.72), var(--eval-green)) !important; }
+.grade-line span.yellow { background: linear-gradient(90deg, rgba(242,204,96,.72), var(--eval-yellow)) !important; }
+.grade-line span.red { background: linear-gradient(90deg, rgba(255,123,114,.72), var(--eval-red)) !important; }
+.grade-line span.neutral { background: linear-gradient(90deg, rgba(121,192,255,.72), var(--eval-blue)) !important; }
+
+.grade-card strong,
+.metric-tile strong {
+  color: var(--eval-text) !important;
 }
 
-.grade-line span.green,
-.score-bar-fill.green,
-.bar-fill.green {
-  background: #166534 !important;
-  color: #166534 !important;
+.grade-description,
+.metric-tile p,
+.metric-tile small,
+.chat-bubble p,
+.plan-description,
+.plan-feature,
+.faq-card p,
+.support-card p,
+.support-note,
+.news-overall-summary,
+.news-topic-card p {
+  color: var(--eval-muted) !important;
 }
 
-.grade-line span.yellow,
-.score-bar-fill.yellow,
-.bar-fill.yellow {
-  background: #a16207 !important;
-  color: #a16207 !important;
+.metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
-.grade-line span.red,
-.score-bar-fill.red,
-.bar-fill.red {
-  background: #b91c1c !important;
-  color: #b91c1c !important;
+.metric-tile strong {
+  font-size: 23px !important;
 }
 
-.grade-line span.neutral,
-.score-bar-fill.neutral,
-.bar-fill.neutral {
-  background: #475569 !important;
-  color: #475569 !important;
+.watch-panel {
+  top: 96px !important;
+  padding: 16px !important;
+  border-radius: 28px !important;
+  max-height: calc(100dvh - 112px) !important;
 }
 
-/* Popups, chat, errors, and states remain readable on white. */
-.score-popup,
-.mini-stat-popup,
-.menu-panel,
-.dropdown-panel,
-.tooltip,
-.popover {
-  background: #ffffff !important;
-  color: #111827 !important;
-  border-color: rgba(17, 24, 39, .16) !important;
-  box-shadow: 0 20px 50px rgba(17, 24, 39, .14) !important;
+.watch-row {
+  grid-template-columns: minmax(0,1fr) 64px 36px !important;
+  border-radius: 18px !important;
+  padding: 10px !important;
+  background: rgba(255,251,242,.045) !important;
+  border-color: rgba(255,244,224,.12) !important;
 }
 
-.chat-bubble.user,
+.watch-score-ring {
+  width: 62px !important;
+  height: 62px !important;
+}
+
+.watch-score-ring strong {
+  font-size: 16px !important;
+}
+
+.dashboard-dropdown-menu,
+.eval-select-menu {
+  border: 1px solid var(--eval-line) !important;
+  background: rgba(20, 18, 14, .94) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.06) !important;
+  backdrop-filter: blur(24px) !important;
+  border-radius: 22px !important;
+}
+
+.chat-panel,
+.chat-bubble {
+  border-radius: 22px !important;
+}
+
+.chat-bubble.user {
+  background: rgba(216,166,87,.13) !important;
+  border-color: rgba(216,166,87,.25) !important;
+}
+
 .chat-bubble.assistant {
-  background: #f8fafc !important;
-  color: #111827 !important;
-  border-color: rgba(17, 24, 39, .12) !important;
+  background: rgba(255,251,242,.07) !important;
+  border-color: rgba(255,244,224,.13) !important;
 }
 
-.error-banner {
-  background: #fff1f2 !important;
-  color: #881337 !important;
-  border-color: rgba(185, 28, 28, .22) !important;
+.landing-page-clean,
+.landing-page-editorial {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(216,166,87,.20), transparent 30%),
+    radial-gradient(circle at 88% 18%, rgba(121,192,255,.10), transparent 30%),
+    linear-gradient(135deg, #0c0c09, #15130f 48%, #090908) !important;
 }
 
-.daily-change.up,
-.up,
-.positive {
-  color: #166534 !important;
+.landing-shell,
+.landing-shell-pro,
+.landing-shell-editorial {
+  max-width: 1180px !important;
+  border-radius: 36px !important;
+  border: 1px solid var(--eval-line) !important;
+  background: linear-gradient(180deg, rgba(255,251,242,.10), rgba(255,251,242,.048)) !important;
+  box-shadow: 0 36px 110px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.08) !important;
 }
 
-.daily-change.down,
-.down,
-.negative {
-  color: #b91c1c !important;
+.landing-hero,
+.landing-hero-pro,
+.landing-hero-editorial {
+  gap: 28px !important;
 }
 
-/* Any old SVG/icon strokes inherited as white become dark unless purposely in bars. */
-svg {
-  color: currentColor !important;
+.landing-copy h1,
+.landing-copy-pro h1,
+.landing-page h1,
+.clerk-access-head h1,
+.plans-page-head h2,
+.assistant-page-head h2,
+.faq-hero h1,
+.support-hero h1,
+.compare-page-head h1,
+.industry-page-head h1 {
+  color: var(--eval-text) !important;
+  letter-spacing: -0.07em !important;
 }
 
-/* Mobile stays clean and legible. */
-@media (max-width: 680px) {
+.landing-copy p,
+.landing-copy-pro p,
+.landing-story-copy p,
+.landing-footnote,
+.clerk-access-head p,
+.clerk-access-copy p {
+  color: var(--eval-muted) !important;
+}
+
+.landing-continue-btn,
+.landing-continue-mega {
+  color: #181006 !important;
+  background: linear-gradient(135deg, #fff1c2, #d8a657 48%, #b8822d) !important;
+  border-color: rgba(216,166,87,.65) !important;
+}
+
+.landing-product-card,
+.landing-feature-card,
+.landing-feature-card-editorial,
+.landing-main-terminal,
+.landing-story-grid > div,
+.landing-story-grid-editorial > div,
+.clerk-access-ready,
+.ai-rules-card,
+.faq-search-card,
+.compare-empty,
+.loading-card,
+.portrait-lock-card {
+  border: 1px solid var(--eval-line) !important;
+  background: rgba(255,251,242,.07) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 18px 48px rgba(0,0,0,.22) !important;
+}
+
+.score-popup {
+  background: rgba(20, 18, 14, .96) !important;
+  border-color: var(--eval-line-strong) !important;
+  box-shadow: 0 26px 70px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.error-banner,
+.compare-error,
+.industry-error-page {
+  border-color: rgba(255,123,114,.28) !important;
+  background: rgba(255,123,114,.10) !important;
+  color: #ffd9d6 !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell {
+    padding: 18px !important;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr !important;
+    position: relative !important;
+    padding-top: 0 !important;
+  }
+
+  .layout,
+  .hero-card,
+  .summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .watch-panel {
+    position: static !important;
+    max-height: none !important;
+    order: 0 !important;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .hero-card {
+    text-align: left !important;
+  }
+
+  .score-panel {
+    justify-self: center !important;
+  }
+}
+
+@media (max-width: 760px) {
   .app-shell {
     padding: 14px !important;
   }
 
   .brand img,
-  .landing-brand-row img,
-  .landing-brand-home img {
-    width: 72px !important;
-    height: 72px !important;
+  .landing-brand-home img,
+  .clerk-access-brand img {
+    width: 46px !important;
+    height: 46px !important;
+    border-radius: 15px !important;
   }
 
-  .brand h1,
-  .landing-brand-row h1,
-  .landing-brand-home h1 {
-    font-size: 50px !important;
-    letter-spacing: -.045em !important;
+  .brand h1 {
+    font-size: 40px !important;
+    letter-spacing: -0.06em !important;
   }
 
-  .landing-copy h2,
-  .company-panel h2,
-  .assistant-page-head h2,
-  .plans-page-head h2 {
-    font-size: 38px !important;
-    line-height: .95 !important;
+  .searchbar,
+  .compact-searchbar,
+  .eval-responsive-searchbar,
+  .eval-menu-searchbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    border-radius: 22px !important;
   }
 
-  .hero-card,
-  .watch-panel,
-  .metrics-card,
+  .searchbar input,
+  .eval-clean-ticker-input {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .searchbar button,
+  .ai-nav-btn,
+  .plans-nav-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 !important;
+  }
+
+  .hero-card {
+    padding: 18px !important;
+    gap: 18px !important;
+    border-radius: 26px !important;
+  }
+
+  .company-panel h2 {
+    font-size: clamp(34px, 12vw, 52px) !important;
+    letter-spacing: -0.055em !important;
+  }
+
+  .subline {
+    font-size: 14px !important;
+  }
+
+  .score-ring {
+    width: 172px !important;
+    height: 172px !important;
+  }
+
+  .score-core strong {
+    font-size: 58px !important;
+  }
+
+  .snapshot-grid,
+  .snapshot-grid-refined,
+  .grade-grid,
+  .metric-grid,
+  .plan-features,
+  .pro-only-features,
+  .faq-grid,
+  .support-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .watch-row {
+    grid-template-columns: minmax(0, 1fr) 60px 36px !important;
+  }
+
+  .watch-score-ring {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
   .story-card,
   .summary-card,
+  .metrics-card,
+  .empty-report,
   .assistant-shell,
-  .plans-shell,
+  .plans-shell {
+    padding: 18px !important;
+    border-radius: 24px !important;
+  }
+
   .landing-shell,
-  .searchbar {
-    border-radius: 22px !important;
+  .landing-shell-pro,
+  .landing-shell-editorial {
+    border-radius: 28px !important;
+    padding: 18px !important;
+  }
+
+  .chat-bubble {
+    max-width: 100% !important;
+  }
+}
+
+/* =========================================================
+   FINAL LIGHT PROFESSIONAL PASS — BRANDON GROTESQUE + WHITE/GRAY
+   User requested: black text, original logo, no green/blue accents,
+   darker chart colors, readable white theme.
+========================================================= */
+:root {
+  --bg: #f6f5f1 !important;
+  --panel: #ffffff !important;
+  --panel-strong: #ffffff !important;
+  --line: rgba(17, 24, 39, .14) !important;
+  --text: #111111 !important;
+  --muted: rgba(17, 17, 17, .68) !important;
+  --soft: rgba(17, 17, 17, .50) !important;
+  --green: #1f6f3d !important;
+  --yellow: #9a6a10 !important;
+  --red: #9f1d2d !important;
+  --blue: #4b5563 !important;
+  --cyan: #4b5563 !important;
+  --purple: #4b5563 !important;
+  --gold: #9a6a10 !important;
+  --gold-strong: #7c4f07 !important;
+  --shadow: 0 18px 48px rgba(17, 24, 39, .10) !important;
+}
+
+*,
+*::before,
+*::after,
+html,
+body,
+button,
+input,
+textarea,
+select {
+  font-family: "Brandon Grotesque", "Brandon Text", "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+html,
+body {
+  color: #111111 !important;
+  background: #f6f5f1 !important;
+}
+
+body::before,
+body::after,
+.landing-page-clean::before,
+.landing-page-clean::after,
+.landing-shell::before,
+.landing-shell::after,
+.plans-page::before,
+.plans-page::after,
+.plans-shell::before,
+.hero-card::before,
+.hero-card::after,
+.grade-card::before,
+.grade-card::after,
+.watch-panel::before,
+.watch-panel::after,
+.landing-product-card::before,
+.landing-product-card::after,
+.plan-card::before,
+.plan-card::after,
+.news-sentiment-card::before,
+.news-sentiment-card::after {
+  background: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Titles: Brandon Grotesque, bold, black. */
+.brand h1,
+.landing-brand-home h1,
+.landing-brand-row h1,
+.clerk-access-brand h1,
+.company-panel h2,
+.landing-copy h2,
+.landing-story-copy h2,
+.assistant-page-head h2,
+.plans-page-head h2,
+.support-page h1,
+.terms-page h1,
+.faq-page h1,
+.industry-page h1,
+.compare-page h1,
+.compare-page h2,
+.watch-panel h2,
+.panel-head h2,
+.empty-report h2 {
+  font-family: "Brandon Grotesque", "Brandon Text", "Avenir Next", Avenir, "Helvetica Neue", Arial, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  color: #111111 !important;
+  text-shadow: none !important;
+}
+
+.brand h1,
+.landing-brand-home h1,
+.landing-brand-row h1 {
+  font-weight: 1000 !important;
+  letter-spacing: -.055em !important;
+}
+
+/* Remove dashboard subtitle under Eval. */
+.brand span,
+.brand-home-btn span {
+  display: none !important;
+}
+
+/* All old white/faded text becomes black or dark gray. */
+.app-shell,
+.landing-page-clean,
+.landing-shell,
+.hero-card,
+.company-panel,
+.watch-panel,
+.grade-card,
+.metrics-card,
+.story-card,
+.summary-card,
+.empty-report,
+.assistant-shell,
+.plans-shell,
+.chat-panel,
+.news-sentiment-card,
+.news-topic-card,
+button,
+a,
+input,
+textarea,
+select,
+p,
+span,
+small,
+strong,
+b,
+h1,h2,h3,h4,h5,h6,
+li,
+label,
+div {
+  color: #111111;
+}
+
+.subline,
+.landing-copy p,
+.landing-actions span,
+.landing-feature-card p,
+.landing-story-grid p,
+.landing-footnote,
+.panel-head p,
+.grade-description,
+.metric-tile p,
+.metric-tile small,
+.mini-stat span,
+.news-overall-summary,
+.news-topic-card p,
+.chat-bubble p,
+.fineprint,
+.plans-note,
+.plan-card p {
+  color: rgba(17, 17, 17, .68) !important;
+}
+
+/* White/gray surfaces only. */
+.topbar,
+.searchbar,
+.hero-card,
+.watch-panel,
+.grade-card,
+.metrics-card,
+.metric-tile,
+.story-card,
+.summary-card,
+.empty-report,
+.assistant-shell,
+.chat-panel,
+.plans-shell,
+.plan-card,
+.landing-shell,
+.landing-product-card,
+.landing-feature-card,
+.landing-story-grid > div,
+.mini-stat,
+.compare-card,
+.industry-card,
+.support-card,
+.terms-card,
+.faq-card,
+.news-sentiment-card,
+.news-topic-card,
+.score-popup,
+.mini-stat-popup,
+.dashboard-dropdown-menu,
+.eval-select-menu {
+  background: #ffffff !important;
+  border-color: rgba(17, 24, 39, .13) !important;
+  box-shadow: 0 18px 44px rgba(17, 24, 39, .08) !important;
+  backdrop-filter: none !important;
+}
+
+.metric-tile,
+.mini-stat,
+.landing-feature-card,
+.landing-story-grid > div,
+.news-topic-card {
+  background: #fbfbf8 !important;
+}
+
+/* Neutral buttons and inputs only — no green/blue accent treatments. */
+button,
+.hero-actions a,
+.back-btn,
+.icon-btn,
+.delete-btn,
+.searchbar button,
+.watch-add button,
+.chat-input button,
+.landing-continue-btn,
+.plan-button,
+.plan-card button,
+.plan-select-btn,
+.score-metrics-jump-btn,
+.menu-trigger,
+.industry-link,
+.ticker-company-link,
+.dashboard-dropdown-menu button,
+.eval-select-menu button {
+  color: #111111 !important;
+  background: #ffffff !important;
+  border-color: rgba(17, 24, 39, .16) !important;
+  box-shadow: 0 8px 22px rgba(17, 24, 39, .07) !important;
+  text-shadow: none !important;
+}
+
+button:hover,
+.hero-actions a:hover,
+.back-btn:hover,
+.icon-btn:hover,
+.delete-btn:hover,
+.searchbar button:hover,
+.watch-add button:hover,
+.chat-input button:hover,
+.landing-continue-btn:hover,
+.plan-button:hover,
+.plan-card button:hover,
+.plan-select-btn:hover,
+.score-metrics-jump-btn:hover,
+.menu-trigger:hover,
+.industry-link:hover,
+.ticker-company-link:hover,
+.dashboard-dropdown-menu button:hover,
+.eval-select-menu button:hover {
+  color: #111111 !important;
+  background: #f1f1ee !important;
+  border-color: rgba(17, 24, 39, .24) !important;
+  box-shadow: 0 12px 28px rgba(17, 24, 39, .10) !important;
+}
+
+button::before,
+.hero-actions a::before,
+.plan-select-btn::before,
+.plan-card button::before,
+.plan-button::before {
+  display: none !important;
+}
+
+input,
+textarea,
+select,
+.searchbar input,
+.watch-add input,
+.chat-input textarea {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-color: rgba(17, 24, 39, .16) !important;
+  box-shadow: inset 0 1px 0 rgba(17, 24, 39, .03) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(17, 17, 17, .42) !important;
+}
+
+/* Keep the user's logo exactly as supplied; no glow or recolor. */
+.brand img,
+.landing-brand-home img,
+.landing-brand-row img,
+.clerk-access-brand img {
+  filter: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* Dashboard hero cleanup. */
+.hero-card.eval-clean-hero,
+.hero-card {
+  position: relative !important;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) minmax(210px, 270px) !important;
+  gap: 22px !important;
+}
+
+.company-panel {
+  position: relative !important;
+  padding-right: 58px !important;
+}
+
+.company-panel h2 {
+  font-size: clamp(30px, 4.1vw, 50px) !important;
+  line-height: 1 !important;
+  letter-spacing: -.04em !important;
+  max-width: 760px !important;
+}
+
+.hero-actions {
+  position: static !important;
+}
+
+.hero-add-corner-btn,
+.eval-hero-add-btn.hero-add-corner-btn {
+  position: absolute !important;
+  top: 18px !important;
+  right: 18px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #111111 !important;
+  z-index: 15 !important;
+}
+
+.hero-add-corner-btn svg,
+.eval-hero-add-btn.hero-add-corner-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.hero-add-corner-btn:hover,
+.eval-hero-add-btn.hero-add-corner-btn:hover {
+  background: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Eval score rating label under the big score. */
+.eval-score-rating-label {
+  margin-top: 12px !important;
+  padding: 7px 12px !important;
+  border-radius: 999px !important;
+  background: #f2f2ef !important;
+  border: 1px solid rgba(17, 24, 39, .12) !important;
+  color: #111111 !important;
+  font-weight: 900 !important;
+  font-size: 12px !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+}
+
+.eval-score-rating-label.green { color: #1f6f3d !important; }
+.eval-score-rating-label.yellow { color: #9a6a10 !important; }
+.eval-score-rating-label.red { color: #9f1d2d !important; }
+.eval-score-rating-label.neutral { color: #4b5563 !important; }
+
+/* Darker score rings and bar charts throughout the site. */
+.svg-score-ring.green,
+.score-ring.green,
+.watch-score-ring.green,
+.industry-score-pie.green,
+.compare-score-ring.green,
+.preview-score-ring.green,
+.landing-score-ring.green {
+  --svg-ring-color: #1f6f3d !important;
+  --svg-ring-glow: rgba(31, 111, 61, .10) !important;
+  --ring-bright: #1f6f3d !important;
+  --ring-glow: rgba(31, 111, 61, .10) !important;
+  --watch-ring-bright: #1f6f3d !important;
+  --watch-glow: rgba(31, 111, 61, .10) !important;
+}
+
+.svg-score-ring.yellow,
+.score-ring.yellow,
+.watch-score-ring.yellow,
+.industry-score-pie.yellow,
+.compare-score-ring.yellow,
+.preview-score-ring.yellow,
+.landing-score-ring.yellow {
+  --svg-ring-color: #9a6a10 !important;
+  --svg-ring-glow: rgba(154, 106, 16, .10) !important;
+  --ring-bright: #9a6a10 !important;
+  --ring-glow: rgba(154, 106, 16, .10) !important;
+  --watch-ring-bright: #9a6a10 !important;
+  --watch-glow: rgba(154, 106, 16, .10) !important;
+}
+
+.svg-score-ring.red,
+.score-ring.red,
+.watch-score-ring.red,
+.industry-score-pie.red,
+.compare-score-ring.red,
+.preview-score-ring.red,
+.landing-score-ring.red {
+  --svg-ring-color: #9f1d2d !important;
+  --svg-ring-glow: rgba(159, 29, 45, .10) !important;
+  --ring-bright: #9f1d2d !important;
+  --ring-glow: rgba(159, 29, 45, .10) !important;
+  --watch-ring-bright: #9f1d2d !important;
+  --watch-glow: rgba(159, 29, 45, .10) !important;
+}
+
+.svg-score-ring.neutral,
+.score-ring.neutral,
+.watch-score-ring.neutral,
+.industry-score-pie.neutral,
+.compare-score-ring.neutral,
+.preview-score-ring.neutral,
+.landing-score-ring.neutral {
+  --svg-ring-color: #4b5563 !important;
+  --svg-ring-glow: rgba(75, 85, 99, .10) !important;
+  --ring-bright: #4b5563 !important;
+  --ring-glow: rgba(75, 85, 99, .10) !important;
+  --watch-ring-bright: #4b5563 !important;
+  --watch-glow: rgba(75, 85, 99, .10) !important;
+}
+
+.svg-ring-track {
+  stroke: #deded8 !important;
+}
+
+.svg-ring-progress {
+  stroke: var(--svg-ring-color) !important;
+  filter: none !important;
+}
+
+.svg-ring-inner {
+  fill: #ffffff !important;
+  stroke: rgba(17, 24, 39, .08) !important;
+}
+
+.svg-score-ring::before {
+  background: #ffffff !important;
+  border: 1px solid rgba(17, 24, 39, .10) !important;
+  box-shadow: none !important;
+}
+
+.svg-score-ring::after {
+  border-color: rgba(17, 24, 39, .08) !important;
+}
+
+.svg-score-ring strong {
+  color: #111111 !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+}
+
+.grade-line {
+  background: #e8e6df !important;
+  border-color: rgba(17, 24, 39, .08) !important;
+  box-shadow: none !important;
+}
+
+.grade-line span.green,
+.score-bar-fill.green,
+.bar-fill.green,
+.news-score-pill.green,
+b.green,
+strong.green {
+  background: #1f6f3d !important;
+  color: #1f6f3d !important;
+  box-shadow: none !important;
+}
+
+.grade-line span.yellow,
+.score-bar-fill.yellow,
+.bar-fill.yellow,
+.news-score-pill.yellow,
+b.yellow,
+strong.yellow {
+  background: #9a6a10 !important;
+  color: #9a6a10 !important;
+  box-shadow: none !important;
+}
+
+.grade-line span.red,
+.score-bar-fill.red,
+.bar-fill.red,
+.news-score-pill.red,
+b.red,
+strong.red {
+  background: #9f1d2d !important;
+  color: #9f1d2d !important;
+  box-shadow: none !important;
+}
+
+.grade-card strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  background: transparent !important;
+  color: #111111 !important;
+}
+
+/* News sentiment must be white, readable, and neutral. */
+.news-sentiment-card,
+.news-topic-card,
+.news-topic-list article {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-color: rgba(17, 24, 39, .12) !important;
+  box-shadow: 0 16px 40px rgba(17, 24, 39, .07) !important;
+}
+
+.news-section-title,
+.news-section-title small,
+.news-topic-head span,
+.news-topic-head h3,
+.news-topic-card p,
+.news-topic-card a,
+.news-overall-summary {
+  color: #111111 !important;
+}
+
+.news-section-title small,
+.news-topic-head span,
+.news-overall-summary,
+.news-topic-card p {
+  color: rgba(17, 17, 17, .68) !important;
+}
+
+.news-score-pill {
+  background: #f2f2ef !important;
+  border: 1px solid rgba(17, 24, 39, .12) !important;
+  color: #111111 !important;
+}
+
+.news-score-pill.green { color: #1f6f3d !important; }
+.news-score-pill.yellow { color: #9a6a10 !important; }
+.news-score-pill.red { color: #9f1d2d !important; }
+
+/* Remove blue/green/purple accent visuals across landing, radar, compare, and industry areas. */
+.landing-kicker,
+.landing-status-pill,
+.landing-feature-icon,
+.plans-kicker,
+.assistant-kicker,
+.eyebrow,
+.section-title,
+.preview-topline,
+.industry-medal,
+.radar-legend i,
+.compare-radar-legend i,
+.industry-radar-legend i {
+  background: #f2f2ef !important;
+  color: #111111 !important;
+  border-color: rgba(17, 24, 39, .12) !important;
+  box-shadow: none !important;
+}
+
+.landing-status-pill span,
+.landing-terminal-lines i,
+.preview-mini-grid i,
+.radar-dot,
+.compare-radar-dot,
+.industry-radar-dot,
+.industry-radar-legend i,
+.compare-radar-legend i {
+  background: #777777 !important;
+  color: #777777 !important;
+  fill: #777777 !important;
+  box-shadow: none !important;
+}
+
+.radar-line,
+.compare-radar-line,
+.industry-radar-line,
+.radar-polygon,
+.compare-radar-polygon,
+.industry-radar-polygon {
+  stroke: #777777 !important;
+  fill: rgba(17, 24, 39, .04) !important;
+}
+
+/* Plan button gold/gradient removed to match neutral white/gray theme. */
+.plans-nav-btn,
+.plan-card:nth-child(2) button,
+.plan-card:nth-child(2) .plan-button,
+.pro-only-card .plan-select-btn {
+  background: #111111 !important;
+  color: #ffffff !important;
+  border-color: #111111 !important;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, .12) !important;
+}
+
+.plans-nav-btn svg,
+.plan-card:nth-child(2) button svg,
+.plan-card:nth-child(2) .plan-button svg,
+.pro-only-card .plan-select-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Responsive cleanup. */
+@media (max-width: 1180px) {
+  .hero-card.eval-clean-hero,
+  .hero-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  .company-panel {
+    padding-right: 0 !important;
+  }
+
+  .hero-add-corner-btn,
+  .eval-hero-add-btn.hero-add-corner-btn {
+    top: 16px !important;
+    right: 16px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .company-panel h2 {
+    font-size: 32px !important;
+  }
+
+  .eval-score-rating-label {
+    font-size: 11px !important;
   }
 }
