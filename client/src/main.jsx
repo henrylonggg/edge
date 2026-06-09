@@ -1742,7 +1742,7 @@ function LandingPage({ onContinue }) {
       <section className="landing-shell landing-shell-static">
         <header className="landing-brand-row landing-brand-row-static">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
-            <img src="/apple-touch-icon.png" alt="Eval logo" />
+            <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
 
