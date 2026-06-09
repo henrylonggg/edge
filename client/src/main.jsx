@@ -636,7 +636,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell eval-claude-app">
 
       <div className="portrait-lock-overlay" aria-hidden="true">
         <div className="portrait-lock-card">
@@ -657,6 +657,7 @@ function App() {
           <img src="/stock-edge-ai-logo.png" alt="Eval AI logo" />
           <div>
             <h1>Eval</h1>
+            <span>Company intelligence, simplified</span>
           </div>
         </button>
 
@@ -726,9 +727,9 @@ function App() {
           />
         </main>
       ) : (
-        <section className="layout">
-          <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
+        <section className="layout dashboard-main eval-dashboard-grid">
+          <div className="content dashboard-content">
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-clean-searchbar eval-safe-searchbar eval-responsive-searchbar eval-menu-searchbar dashboard-search-row">
               <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
@@ -8089,7 +8090,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
   return (
     <>
-      <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
+      <section className={`hero-card eval-clean-hero eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
           <ScoreRingSvg
             value={edge}
@@ -8481,11 +8482,16 @@ function Metric({ label, item, help }) {
 
 function EmptyReport() {
   return (
-    <div className="empty-report">
+    <div className="empty-report empty-report-card empty-state">
       <div className="center">
         <Activity size={26} />
-        <h2>No stock report loaded yet</h2>
-        <p>Search a ticker above to generate an Eval report.</p>
+        <h2>Start with one ticker.</h2>
+        <p>Search a symbol to generate a clean Eval report with score, risk, category grades, news sentiment, and watchlist tools.</p>
+        <div className="empty-state-chips" aria-label="Example tickers">
+          <span>AAPL</span>
+          <span>NVDA</span>
+          <span>MSFT</span>
+        </div>
       </div>
     </div>
   );
