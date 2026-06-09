@@ -1506,12 +1506,10 @@ function LandingPage({ onContinue }) {
               <Sparkles size={16} /> Built for fast, clean stock research
             </div>
 
-            <h2>Understand a company in minutes, not tabs.</h2>
+            <h2>No digging. Just the numbers that matter.</h2>
 
             <p>
-              Eval turns ticker research into one focused report: company score, category ratings,
-              risk, recent news, watchlist ranking, and AI explanations in a clean interface that works
-              on desktop and mobile.
+              Eval turns ticker research into one focused report: company score, category ratings, risk, recent news, watchlist ranking, and AI explanations without digging through endless tabs.
             </p>
 
             <div className="landing-actions landing-actions-pro">
@@ -7568,9 +7566,9 @@ function Watchlist({
             Your watchlist is empty. Add a ticker above to start building your own list.
           </div>
         ) : (
-          items.map((item) => (
+          items.map((item, index) => (
             <div className="watch-row" key={item.symbol}>
-              <span className="watch-rank-number" aria-hidden="true" />
+              <span className={`watch-rank-number ${index < 3 ? "top-rank" : ""}`} aria-label={`Rank ${index + 1}`}>{index + 1}</span>
               <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
                 <strong>{item.symbol}</strong>
                 <div className="row-sw watch-row-sw">
@@ -8081,6 +8079,35 @@ function Report({ data, onAdd, onOpenIndustry }) {
     <>
       <section className={`hero-card eval-clean-hero eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
         <div className="score-panel">
+          <div className="score-company-heading">
+            <h2>{data.profile?.name || data.symbol}</h2>
+            <p className="subline score-company-subline">
+              {(data.profile?.weburl || data.profile?.website || data.profile?.site) ? (
+                <a
+                  href={data.profile?.weburl || data.profile?.website || data.profile?.site}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ticker-company-link"
+                  title={`Open ${data.symbol} company website`}
+                >
+                  {data.symbol}
+                </a>
+              ) : (
+                <span className="ticker-company-link is-disabled">{data.symbol}</span>
+              )}
+              <span> · </span>
+              <button
+                type="button"
+                className="industry-link"
+                onClick={openIndustryPopup}
+                disabled={!industryName || industryName === "Public company"}
+                title={`View top Eval stocks in ${industryName}`}
+              >
+                {industryName}
+              </button>
+            </p>
+          </div>
+
           <ScoreRingSvg
             value={edge}
             className="score-ring"
