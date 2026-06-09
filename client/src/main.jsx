@@ -1473,91 +1473,67 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
 function LandingPage({ onContinue }) {
   const featureCards = [
     {
-      icon: <Gauge size={22} />,
-      title: "One clean Eval Score",
-      text: "A 0.0–10.0 score blends growth, profitability, financial health, valuation, momentum, pullback, risk, and news sentiment.",
+      icon: <Gauge size={20} />,
+      title: "Score",
+      text: "A clear 0.0–10.0 company-quality score with the exact categories behind it.",
     },
     {
-      icon: <BrainCircuit size={22} />,
-      title: "Smarter Eval AI",
-      text: "Ask about FAQs, navigation, metrics, watchlist stocks, company tickers, key products, and what companies actually do.",
+      icon: <Search size={20} />,
+      title: "Search",
+      text: "Type a ticker, load the report, and get the important numbers without digging.",
     },
     {
-      icon: <Search size={22} />,
-      title: "5,200-company knowledge base",
-      text: "Eval AI can answer company-to-ticker, ticker-to-company, company description, and product questions from the embedded CSV universe.",
+      icon: <Star size={20} />,
+      title: "Watchlist",
+      text: "Save stocks, refresh rankings, and compare the names you actually care about.",
     },
     {
-      icon: <ShieldCheck size={22} />,
-      title: "Provider fallback engine",
-      text: "Finnhub, Massive, FMP, OpenAI, and cached last-valid reports work together so missing data is not treated like zero.",
-    },
-    {
-      icon: <Star size={22} />,
-      title: "Ranked watchlist",
-      text: "Save up to 15 tickers and rank them by Eval Score with clean rings, refresh controls, and direct compare support.",
-    },
-    {
-      icon: <Scale size={22} />,
-      title: "2–5 stock radar compare",
-      text: "Select watchlist stocks and compare all seven categories with clickable radar labels and side-by-side score rings.",
-    },
-    {
-      icon: <Newspaper size={22} />,
-      title: "AI news sentiment",
-      text: "Recent articles are summarized, scored, and turned into a fast positive, neutral, or negative company read.",
-    },
-    {
-      icon: <LineChart size={22} />,
-      title: "Smarter caching",
-      text: "Fundamentals can stay cached for months, valuation for one month, news/risk for seven days, and market data for one day.",
+      icon: <BrainCircuit size={20} />,
+      title: "Ask",
+      text: "Use Eval AI to explain the report, the company, and how the dashboard works.",
     },
   ];
-return (
-    <main className="landing-page-clean">
 
-      <section className="landing-shell landing-shell-pro landing-shell-extreme">
-        <header className="landing-brand-row landing-brand-row-pro">
+  return (
+    <main className="landing-page-clean landing-page-editorial">
+      <section className="landing-shell landing-shell-pro landing-shell-editorial">
+        <header className="landing-brand-row landing-brand-row-pro landing-brand-editorial">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
             <img src="/stock-edge-ai-logo.png" alt="Eval logo" />
             <h1>Eval</h1>
           </button>
 
           <div className="landing-status-pill landing-status-live">
-            <span /> AI stock evaluation + company intelligence engine
+            <span /> AI stock evaluation dashboard
           </div>
         </header>
 
-        <section className="landing-hero landing-hero-pro landing-hero-extreme">
+        <section className="landing-hero landing-hero-pro landing-hero-editorial">
           <div className="landing-copy landing-copy-pro">
             <div className="landing-kicker landing-kicker-glow">
-              <Sparkles size={16} /> Eval Score, AI support, company intelligence, and clean stock comparisons
+              <Sparkles size={16} /> Built for fast, clean stock research
             </div>
 
-            <h2>
-              The fastest way to understand a stock before you waste time digging.
-            </h2>
+            <h2>Understand a company in minutes, not tabs.</h2>
 
             <p>
-              Eval turns stock data into a cinematic dashboard: Eval Score, seven category ratings,
-              risk, AI news sentiment, watchlist rankings, 2–5 stock radar comparisons, and an
-              assistant that now understands FAQs, company tickers, key products, and what companies do.
+              Eval turns ticker research into one focused report: company score, category ratings,
+              risk, recent news, watchlist ranking, and AI explanations in a clean interface that works
+              on desktop and mobile.
             </p>
 
             <div className="landing-actions landing-actions-pro">
               <button type="button" className="landing-continue-btn landing-continue-mega" onClick={onContinue}>
-                Launch Dashboard <ArrowRight size={20} />
+                Open dashboard <ArrowRight size={20} />
               </button>
-              <span>Score. Rank. Compare. Ask AI. Understand the company.</span>
+              <span>No trading noise. Just the numbers that matter.</span>
             </div>
-
           </div>
 
-          <div className="landing-product-stage landing-product-stage-extreme" aria-label="Eval product preview">
-
+          <div className="landing-product-stage landing-product-stage-editorial" aria-label="Eval product preview">
             <div className="landing-product-card main landing-main-terminal">
               <div className="preview-topline">
-                <span>Eval stock report</span>
+                <span>Eval report</span>
                 <b>NVDA</b>
               </div>
 
@@ -1583,35 +1559,17 @@ return (
               </div>
 
               <div className="landing-terminal-lines">
-                <span><i /> News sentiment: bullish</span>
-                <span><i /> Company products: AI chips</span>
-                <span><i /> Cache + fallback protected</span>
+                <span><i /> Score-backed report</span>
+                <span><i /> Watchlist ready</span>
+                <span><i /> AI explanation built in</span>
               </div>
-            </div>
-
-            <div className="landing-product-card floating watch landing-float-card-one">
-              <span>Watchlist</span>
-              <strong>#1 NVDA</strong>
-              <p>Score-ranked instantly</p>
-            </div>
-
-            <div className="landing-product-card floating radar landing-float-card-two">
-              <span>Compare</span>
-              <strong>Radar chart</strong>
-              <p>7-metric matchup</p>
-            </div>
-
-            <div className="landing-product-card floating ai landing-float-card-three">
-              <span>Eval AI</span>
-              <strong>FAQs + tickers</strong>
-              <p>Products, scores, support</p>
             </div>
           </div>
         </section>
 
-        <section className="landing-feature-strip landing-feature-strip-extreme">
+        <section className="landing-feature-strip landing-feature-strip-editorial">
           {featureCards.map((item) => (
-            <article className="landing-feature-card landing-feature-card-extreme" key={item.title}>
+            <article className="landing-feature-card landing-feature-card-editorial" key={item.title}>
               <div className="landing-feature-icon">{item.icon}</div>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
@@ -1619,31 +1577,21 @@ return (
           ))}
         </section>
 
-        <section className="landing-scroll-story landing-scroll-story-extreme">
+        <section className="landing-scroll-story landing-scroll-story-editorial">
           <div className="landing-story-copy">
             <div className="landing-kicker">
-              <LineChart size={16} /> What users get
+              <LineChart size={16} /> Workflow
             </div>
-            <h2>Built to feel like a premium Bloomberg-style dashboard, with AI that explains the app, the company, and the report.</h2>
+            <h2>Search a ticker, review the score, check the weak spots, save it, then compare it later.</h2>
           </div>
 
-          <div className="landing-story-grid landing-story-grid-extreme">
-            <div><b>01</b><span>Eval Score</span><p>A clean 0.0–10.0 rating backed by seven major scoring categories.</p></div>
-            <div><b>02</b><span>Company Intelligence</span><p>Ask Eval AI for tickers, products, descriptions, and what a company sells or does.</p></div>
-            <div><b>03</b><span>Protected Data Engine</span><p>Provider fallbacks and component caching help avoid fake broken scores from missing data.</p></div>
-            <div><b>04</b><span>Compare + Industry</span><p>Compare 2–5 watchlist stocks and review industry leaders with radar charts.</p></div>
+          <div className="landing-story-grid landing-story-grid-editorial">
+            <div><b>01</b><span>Search</span><p>Enter a ticker and load the company report.</p></div>
+            <div><b>02</b><span>Evaluate</span><p>Read the score, price, risk, and seven category ratings.</p></div>
+            <div><b>03</b><span>Explain</span><p>Use popups and Eval AI to understand what moved the score.</p></div>
+            <div><b>04</b><span>Track</span><p>Save stocks to your watchlist and compare them side by side.</p></div>
           </div>
         </section>
-
-        <div className="landing-bottom-strip landing-bottom-strip-pro">
-          <span>Eval Score</span>
-          <span>5,200 Companies</span>
-          <span>AI FAQs</span>
-          <span>Provider Fallbacks</span>
-          <span>Watchlist</span>
-          <span>Radar Compare</span>
-          <span>Eval AI</span>
-</div>
 
         <p className="landing-footnote">
           Eval is for educational stock evaluation only and is not financial advice.
