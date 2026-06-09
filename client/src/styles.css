@@ -23038,3 +23038,357 @@ body {
   letter-spacing: .04em;
   box-shadow: 0 0 22px rgba(133,255,71,.24), inset 0 1px 0 rgba(255,255,255,.2);
 }
+
+/* =========================================================
+   EVAL VISUAL UPGRADE — JUNE 2026
+   Drop at the bottom of styles.css
+========================================================= */
+
+/* ── Body: deeper, more saturated background ── */
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 8%, rgba(0, 210, 255, .16), transparent),
+    radial-gradient(ellipse 70% 55% at 88% 20%, rgba(100, 255, 60, .13), transparent),
+    radial-gradient(ellipse 65% 50% at 70% 88%, rgba(140, 80, 255, .18), transparent),
+    linear-gradient(160deg, #010610 0%, #030c1a 35%, #040712 65%, #010509 100%) !important;
+}
+
+/* ── Score ring: glass plate effect ── */
+.svg-score-ring {
+  filter: drop-shadow(0 0 28px var(--svg-ring-glow, rgba(114,255,65,.30))) !important;
+}
+
+.svg-ring-track {
+  stroke: rgba(255,255,255,.09) !important;
+  stroke-width: 11 !important;
+}
+
+.svg-ring-progress {
+  stroke-width: 11 !important;
+  filter: drop-shadow(0 0 6px currentColor) !important;
+}
+
+.svg-ring-inner {
+  fill: rgba(255,255,255,.018) !important;
+  stroke: rgba(255,255,255,.055) !important;
+}
+
+.svg-score-ring::before {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255,255,255,.10), transparent 35%),
+    radial-gradient(circle at 50% 50%, rgba(0,0,0,.08) 0%, rgba(4,10,18,.96) 100%) !important;
+  box-shadow:
+    inset 0 0 38px rgba(0,0,0,.85),
+    inset 0 0 0 1px rgba(255,255,255,.06) !important;
+}
+
+.svg-score-ring strong {
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -.055em !important;
+}
+
+/* ── Hero card: richer gradient, real depth ── */
+.hero-card {
+  background:
+    radial-gradient(ellipse 90% 70% at 18% 0%, rgba(0,210,255,.095), transparent 52%),
+    radial-gradient(ellipse 75% 55% at 88% 8%, rgba(100,255,60,.07), transparent 48%),
+    radial-gradient(ellipse 60% 50% at 72% 100%, rgba(140,80,255,.10), transparent 52%),
+    rgba(255,255,255,.068) !important;
+  border-color: rgba(255,255,255,.115) !important;
+  box-shadow:
+    0 32px 90px rgba(0,0,0,.42),
+    0 0 0 1px rgba(255,255,255,.06),
+    inset 0 1px 0 rgba(255,255,255,.09) !important;
+}
+
+/* ── Grade cards: glass depth + hover lift ── */
+.grade-card {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(255,255,255,.065), transparent 55%),
+    rgba(255,255,255,.058) !important;
+  border-color: rgba(255,255,255,.095) !important;
+  box-shadow:
+    0 18px 48px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+  transition:
+    transform .22s cubic-bezier(.16,1,.3,1),
+    border-color .22s ease,
+    box-shadow .22s ease !important;
+}
+
+.grade-card:hover {
+  transform: translateY(-5px) !important;
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow:
+    0 28px 68px rgba(0,0,0,.38),
+    0 0 38px rgba(21,231,255,.06),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+/* ── Grade bars: lit end-cap + glass track ── */
+.grade-line {
+  height: 10px !important;
+  background: rgba(255,255,255,.075) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(0,0,0,.45),
+    inset 0 -1px 0 rgba(255,255,255,.04) !important;
+  border: none !important;
+}
+
+.grade-line span {
+  position: relative !important;
+  box-shadow: none !important;
+}
+
+/* Lit leading dot on every bar */
+.grade-line span::after {
+  content: "" !important;
+  position: absolute !important;
+  right: -1px !important;
+  top: 50% !important;
+  width: 11px !important;
+  height: 11px !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  transform: translateY(-50%) !important;
+  box-shadow: 0 0 12px 3px currentColor !important;
+  opacity: .9 !important;
+  display: block !important;
+}
+
+.grade-line span.green  { color: #72ff41 !important; }
+.grade-line span.yellow { color: #ffe35f !important; }
+.grade-line span.red    { color: #ff5570 !important; }
+
+/* Score number white regardless of tone */
+.grade-score-row strong {
+  color: #fff !important;
+  font-size: 36px !important;
+  font-variant-numeric: tabular-nums !important;
+  text-shadow: 0 0 22px rgba(255,255,255,.20) !important;
+}
+
+/* ── Watch panel: glass card upgrade ── */
+.watch-panel {
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(255,255,255,.065), transparent 55%),
+    rgba(255,255,255,.068) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow:
+    0 22px 60px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+/* Gold / silver / bronze ring glows */
+.watch-panel .watch-row:nth-child(1) .svg-score-ring {
+  filter: drop-shadow(0 0 18px rgba(255,210,60,.50)) !important;
+}
+
+.watch-panel .watch-row:nth-child(2) .svg-score-ring {
+  filter: drop-shadow(0 0 16px rgba(210,220,235,.42)) !important;
+}
+
+.watch-panel .watch-row:nth-child(3) .svg-score-ring {
+  filter: drop-shadow(0 0 14px rgba(195,115,40,.42)) !important;
+}
+
+/* Watch row hover */
+.watch-row {
+  transition: background .18s ease, border-color .18s ease !important;
+}
+
+.watch-row:hover {
+  background: rgba(255,255,255,.075) !important;
+  border-color: rgba(255,255,255,.14) !important;
+}
+
+/* ── Topbar brand glow ── */
+.brand img {
+  filter:
+    drop-shadow(0 0 32px rgba(100,255,60,.28))
+    drop-shadow(0 0 14px rgba(21,231,255,.18)) !important;
+}
+
+.brand h1 {
+  background: linear-gradient(165deg, #ffffff 0%, #d0ffe0 40%, #a0f0ff 75%, #e8d0ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* ── Profile bubble accent ring ── */
+.profile-bubble {
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,.14), transparent 36%),
+    rgba(255,255,255,.07) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,.28) !important;
+}
+
+/* ── Searchbar: tighter glass pill ── */
+.eval-menu-searchbar,
+.searchbar.compact-searchbar {
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+
+.eval-clean-ticker-input {
+  background: rgba(0,0,0,.22) !important;
+  border-color: rgba(255,255,255,.09) !important;
+}
+
+.eval-clean-ticker-input:focus {
+  border-color: rgba(100,255,60,.40) !important;
+  box-shadow: 0 0 0 3px rgba(100,255,60,.10) !important;
+  outline: none !important;
+}
+
+/* ── News sentiment card ── */
+.news-sentiment-card {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(21,231,255,.08), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 88% 20%, rgba(100,255,60,.06), transparent 48%),
+    rgba(255,255,255,.060) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  box-shadow:
+    0 22px 58px rgba(0,0,0,.26),
+    inset 0 1px 0 rgba(255,255,255,.07) !important;
+}
+
+.news-topic-card {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  transition: transform .18s ease, border-color .18s ease !important;
+}
+
+.news-topic-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+/* ── Compare page cards ── */
+.compare-score-card {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(255,255,255,.07), transparent 55%),
+    rgba(255,255,255,.050) !important;
+  border-color: rgba(255,255,255,.10) !important;
+}
+
+/* ── Industry leader cards ── */
+.industry-leader-card {
+  transition:
+    transform .22s cubic-bezier(.16,1,.3,1),
+    border-color .22s ease,
+    box-shadow .22s ease !important;
+}
+
+.industry-leader-card:hover {
+  transform: translateY(-6px) scale(1.015) !important;
+  box-shadow: 0 28px 72px rgba(0,0,0,.42) !important;
+}
+
+/* ── Dropdown menu: crisper glass ── */
+.eval-select-menu {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(255,255,255,.055), transparent 50%),
+    rgba(6, 11, 20, .98) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.70) !important;
+}
+
+/* ── Popup cards ── */
+.score-popup,
+.score-insight-popup {
+  border-color: rgba(255,255,255,.14) !important;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(21,231,255,.09), transparent 45%),
+    rgba(4, 9, 18, .97) !important;
+  box-shadow: 0 22px 60px rgba(0,0,0,.58) !important;
+}
+
+/* ── Page transitions: soft fade on inner shell ── */
+.app-shell {
+  animation: evalAppIn .45s ease both !important;
+}
+
+@keyframes evalAppIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Buttons: shine sweep on hover ── */
+button:not(.score-help-btn):not(.popup-close-btn):not(.delete-btn):not(.icon-btn) {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+button:not(.score-help-btn):not(.popup-close-btn):not(.delete-btn):not(.icon-btn)::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -80% !important;
+  width: 55% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.22),
+    transparent
+  ) !important;
+  transform: skewX(-18deg) !important;
+  transition: left .55s ease !important;
+  pointer-events: none !important;
+}
+
+button:not(.score-help-btn):not(.popup-close-btn):not(.delete-btn):not(.icon-btn):hover::after {
+  left: 120% !important;
+}
+
+/* ── Landing page hero headline gradient ── */
+.landing-copy-pro h2,
+.landing-copy h2 {
+  background: linear-gradient(140deg, #fff 0%, #d8ffea 32%, #a0f2ff 60%, #e0ccff 88%, #fff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+/* ── FAQ card: cleaner expand state ── */
+.faq-card[open] {
+  border-color: rgba(100,255,60,.18) !important;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(100,255,60,.06), transparent 50%),
+    rgba(255,255,255,.055) !important;
+}
+
+.faq-card summary:hover {
+  background: rgba(255,255,255,.028) !important;
+}
+
+/* ── Mobile: tighten grade grid spacing ── */
+@media (max-width: 680px) {
+  .grade-grid {
+    gap: 10px !important;
+  }
+
+  .grade-card {
+    padding: 14px !important;
+  }
+
+  .news-topic-list {
+    gap: 10px !important;
+  }
+}
+
+/* ── Reduced motion: cut animations ── */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
