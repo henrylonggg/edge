@@ -169,7 +169,8 @@ function installClerkResend60Guard() {
   setTimeout(update, 1200);
 }
 
-installClerkResend60Guard();
+// Disabled: this MutationObserver/textContent guard can freeze Clerk verification screens.
+// installClerkResend60Guard();
 
 /*
   HARD-CODED RENDER BACKEND URL
@@ -1978,12 +1979,16 @@ function ClerkAccessPage({ onBack, onSuccess }) {
                     appearance={clerkAppearance}
                     routing="hash"
                     signUpUrl="#sign-up"
+                    forceRedirectUrl="/"
+                    fallbackRedirectUrl="/"
                   />
                 ) : (
                   <SignUp
                     appearance={clerkAppearance}
                     routing="hash"
                     signInUrl="#sign-in"
+                    forceRedirectUrl="/"
+                    fallbackRedirectUrl="/"
                   />
                 )}
               </div>
@@ -8784,7 +8789,12 @@ function Root() {
   }
 
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+    >
       <App />
     </ClerkProvider>
   );
