@@ -8442,9 +8442,6 @@ function Report({ data, onAdd, onOpenIndustry }) {
           <div className="section-title news-section-title">
             <Newspaper size={17} />
             News Sentiment
-            <span className={`news-score-pill ${scoreTone(data.newsSentiment?.score)}`}>
-              {scoreText(data.newsSentiment?.score)}
-            </span>
             <small>{data.newsSentiment?.label || "Recent news"}</small>
           </div>
 
