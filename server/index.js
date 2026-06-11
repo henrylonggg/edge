@@ -1,4 +1,4 @@
-// Eval update: FMP 6000 stock ticker/company lookup rout
+// Eval update: FMP 6000 stock ticker/company lookup route.
 // Eval update: AI assistant expanded as support agent.
 import express from "express";
 import cors from "cors";
@@ -57,29 +57,52 @@ function fallbackAiScoreSummaryFromReport(report = {}) {
   const strongest = categoryEntries[0];
   const weakest = categoryEntries[categoryEntries.length - 1];
 
+  const supportPoints = [];
+  const holdBackPoints = [];
+
+  const roe = metricLineLocal("ROE", metrics.roe, "%");
+  const margin = metricLineLocal("Net margin", metrics.netMargin, "%");
+  const revenueGrowth = metricLineLocal("Revenue growth", metrics.revenueGrowth, "%");
+  const pe = metricLineLocal("P/E", metrics.peRatio);
+  const debt = metricLineLocal("Debt/equity", metrics.debtToEquity);
+  const currentRatio = metricLineLocal("Current ratio", metrics.currentRatio);
+
+  if (strongest) {
+    supportPoints.push({
+      title: `${strongest.key} is the strongest category`,
+      explanation: `${strongest.key} scored ${strongest.value.toFixed(1)} because the available category inputs look stronger than the rest of the report. This supports the Eval view because stronger categories usually point to better business quality, better recent execution, or healthier stock behavior.`,
+      metrics: [roe, margin, revenueGrowth].filter(Boolean),
+    });
+  }
+
+  supportPoints.push({
+    title: "Profitability and operating quality matter most",
+    explanation: `${roe} shows how efficiently the company turns shareholder capital into profit, while ${margin} shows how much profit it keeps from revenue. Strong readings here usually support a higher-quality company profile because the business is proving it can convert sales into real earnings.`,
+    metrics: [roe, margin],
+  });
+
+  if (weakest) {
+    holdBackPoints.push({
+      title: `${weakest.key} is the main weak spot`,
+      explanation: `${weakest.key} scored ${weakest.value.toFixed(1)}, which means this part of the report is limiting the overall profile. A weaker category does not automatically make the company bad, but it tells users where to look closer before trusting the headline score.`,
+      metrics: [pe, debt, currentRatio].filter(Boolean),
+    });
+  }
+
+  holdBackPoints.push({
+    title: "Valuation and balance-sheet risk can limit the score",
+    explanation: `${pe} compares the stock price with earnings, so a high P/E means investors are paying more for each dollar of profit. ${debt} shows how much debt the company uses compared with shareholder capital, and ${currentRatio} helps show whether short-term assets comfortably cover short-term liabilities.`,
+    metrics: [pe, debt, currentRatio],
+  });
+
   return {
     source: "fallback score breakdown",
-    verdict: `${name} has an Eval Score of ${scoreTextLocal(score)}. The score is based on category grades, business quality, valuation, price action, balance-sheet strength, and recent news context.`,
-    simpleTakeaway: `In plain English, Eval is showing how strong the business looks compared with how attractive or risky the stock currently appears. Strong categories help the score, while expensive valuation, weaker financial health, poor momentum, or negative news can hold it back.`,
-    positives: strongest
-      ? [`The strongest area is ${strongest.key}, which scored ${strongest.value.toFixed(1)} and helped support the overall Eval Score.`]
-      : ["The strongest category could not be identified because category data is limited."],
-    concerns: weakest
-      ? [`The weakest area is ${weakest.key}, which scored ${weakest.value.toFixed(1)} and held back the overall Eval Score.`]
-      : ["The weakest category could not be identified because category data is limited."],
-    metricBreakdown: [
-      `${metricLineLocal("P/E", metrics.peRatio)}. P/E compares the stock price with earnings; a lower number can mean cheaper valuation, while a high number means investors are paying more for each dollar of profit.`,
-      `${metricLineLocal("ROE", metrics.roe, "%")}. ROE shows how efficiently the company turns shareholder equity into profit.`,
-      `${metricLineLocal("Margin", metrics.netMargin, "%")}. Margin shows how much profit the company keeps from its revenue.`,
-      `${metricLineLocal("Debt/Equity", metrics.debtToEquity)}. Debt-to-equity shows how heavily the company relies on debt compared with shareholder capital.`,
-      `${metricLineLocal("Revenue Growth", metrics.revenueGrowth, "%")}. Revenue growth shows whether the business is expanding or slowing down.`,
-    ],
-    companyContext: `${name} operates in ${industry}. Industry context matters because some sectors naturally trade at higher valuations, carry more debt, or grow faster than others.`,
-    categoryExplanations: categoryEntries.slice(0, 7).map((entry) => ({
-      label: entry.key,
-      score: Number(entry.value.toFixed(1)),
-      explanation: `${entry.key} scored ${entry.value.toFixed(1)}, which means this area had a ${entry.value >= 7.5 ? "positive" : entry.value >= 6.5 ? "mixed" : "weaker"} impact on the overall Eval Score.`,
-    })),
+    summary: `${name} operates in ${industry}. This breakdown explains the score by connecting the strongest and weakest categories with the actual metrics behind them, so users can see what is helping the report and what is limiting it.` ,
+    supports: supportPoints.slice(0, 4),
+    holdsBack: holdBackPoints.slice(0, 4),
+    positives: supportPoints.map((point) => point.explanation),
+    concerns: holdBackPoints.map((point) => point.explanation),
+    takeaway: `Read this as an educational company-quality explanation, not a buy or sell signal. The most useful parts are the specific metrics because they show why the score moved instead of just showing a number.`,
   };
 }
 
@@ -159,11 +182,11 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
           {
             role: "system",
             content:
-              "You write clear stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Explain what the metrics mean in plain English and connect them to the specific company and industry context. Do not include a separate newsConnection field.",
+              "You write clear stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Do not create a newsConnection section. Every point must explain WHY the score area is strong or weak using actual metrics from the report, and explain what those metrics mean in plain English.",
           },
           {
             role: "user",
-            content: `Create an easy-to-understand but comprehensive score breakdown from this report. Required JSON keys: verdict string, simpleTakeaway string, positives array of strings, concerns array of strings, metricBreakdown array of strings, companyContext string, categoryExplanations array of objects with label score explanation. Do not include newsConnection. Data: ${JSON.stringify(payload)}`,
+            content: `Create an easy-to-read but comprehensive on-demand score breakdown for this stock report. Required JSON keys: summary string, supports array, holdsBack array, takeaway string. The supports array and holdsBack array must each contain 3-5 objects with: title string, explanation string, metrics array of strings. Each explanation should be 2-4 clear sentences and must include specific metric values when available, such as P/E, ROE, net margin, revenue growth, EPS growth, debt/equity, current ratio, beta, momentum, pullback, or news sentiment. Explain what the metric means before saying why it helps or hurts. Do not lead with or repeat the overall Eval Score. Do not include a big verdict, rating-only language, or any buy/sell/hold advice. Data: ${JSON.stringify(payload)}`,
           },
         ],
       }),
@@ -178,15 +201,21 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
     const parsed = extractJsonObjectLocal(json?.choices?.[0]?.message?.content);
     if (!parsed || typeof parsed !== "object") return fallback;
 
+    const supports = Array.isArray(parsed.supports) && parsed.supports.length
+      ? parsed.supports.slice(0, 5)
+      : fallback.supports;
+    const holdsBack = Array.isArray(parsed.holdsBack) && parsed.holdsBack.length
+      ? parsed.holdsBack.slice(0, 5)
+      : fallback.holdsBack;
+
     return {
       source: "OpenAI score breakdown",
-      verdict: parsed.verdict || fallback.verdict,
-      simpleTakeaway: parsed.simpleTakeaway || fallback.simpleTakeaway,
-      positives: Array.isArray(parsed.positives) && parsed.positives.length ? parsed.positives.slice(0, 5) : fallback.positives,
-      concerns: Array.isArray(parsed.concerns) && parsed.concerns.length ? parsed.concerns.slice(0, 5) : fallback.concerns,
-      metricBreakdown: Array.isArray(parsed.metricBreakdown) && parsed.metricBreakdown.length ? parsed.metricBreakdown.slice(0, 8) : fallback.metricBreakdown,
-      companyContext: parsed.companyContext || fallback.companyContext,
-      categoryExplanations: Array.isArray(parsed.categoryExplanations) && parsed.categoryExplanations.length ? parsed.categoryExplanations.slice(0, 8) : fallback.categoryExplanations,
+      summary: parsed.summary || fallback.summary,
+      supports,
+      holdsBack,
+      positives: supports.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
+      concerns: holdsBack.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
+      takeaway: parsed.takeaway || fallback.takeaway,
     };
   } catch (error) {
     console.warn("Score breakdown fallback used:", error?.message || error);
