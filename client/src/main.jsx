@@ -8103,83 +8103,89 @@ className="chat-panel">
 }
 
 
-function EvalAiScoreSummaryCard({ summary, edge }) {
-  const breakdown = Array.isArray(summary?.metricBreakdown)
-    ? summary.metricBreakdown.filter((item) => item && item.category).slice(0, 7)
-    : [];
-  const [activeIndex, setActiveIndex] = useState(0);
-  const active = breakdown[activeIndex] || breakdown[0] || null;
-  const positives = Array.isArray(summary?.positives) ? summary.positives.slice(0, 4) : [];
-  const concerns = Array.isArray(summary?.concerns) ? summary.concerns.slice(0, 4) : [];
+function EvalAiScoreSummaryCard({ summary }) {
+  const normalizePoint = (point, index, fallbackTitle) => {
+    if (typeof point === "string") {
+      return {
+        title: fallbackTitle || `Point ${index + 1}`,
+        explanation: point,
+        metrics: [],
+      };
+    }
 
-  const sourceLabel = summary?.source === "OpenAI score summary" ? "OpenAI Breakdown" : "Score Breakdown";
+    return {
+      title: point?.title || fallbackTitle || `Point ${index + 1}`,
+      explanation: point?.explanation || point?.text || point?.why || "No explanation available yet.",
+      metrics: Array.isArray(point?.metrics) ? point.metrics.filter(Boolean).slice(0, 5) : [],
+    };
+  };
+
+  const supports = Array.isArray(summary?.supports) && summary.supports.length
+    ? summary.supports.map((point, index) => normalizePoint(point, index, "What supports the score"))
+    : Array.isArray(summary?.positives)
+      ? summary.positives.map((point, index) => normalizePoint(point, index, "What supports the score"))
+      : [];
+
+  const holdsBack = Array.isArray(summary?.holdsBack) && summary.holdsBack.length
+    ? summary.holdsBack.map((point, index) => normalizePoint(point, index, "What holds it back"))
+    : Array.isArray(summary?.concerns)
+      ? summary.concerns.map((point, index) => normalizePoint(point, index, "What holds it back"))
+      : [];
 
   return (
-    <section className="ai-score-summary-card">
+    <section className="ai-score-summary-card ai-score-summary-card-simple">
       <div className="ai-score-glow" />
 
-      <div className="ai-score-summary-head">
-        <div>
-          <div className="section-title ai-score-title">
-            <BrainCircuit size={18} />
-            {sourceLabel}
-            <small>Why the Eval Score is {scoreText(edge)}</small>
-          </div>
-          <h3>{summary?.verdict || "Eval Score Summary"}</h3>
-        </div>
-
-        <div className={`ai-score-pill ${scoreTone(edge)}`}>
-          <span>Eval</span>
-          <b>{scoreText(edge)}</b>
+      <div className="ai-score-summary-head simple">
+        <div className="section-title ai-score-title">
+          <BrainCircuit size={18} />
+          Score Breakdown
+          <small>Generated only when clicked</small>
         </div>
       </div>
 
-      {summary?.headline && <p className="ai-score-headline">{summary.headline}</p>}
-      {summary?.summary && <p className="ai-score-body">{summary.summary}</p>}
+      {summary?.summary && <p className="ai-score-body ai-score-body-large">{summary.summary}</p>}
 
-      {breakdown.length > 0 && (
-        <div className="ai-score-breakdown-shell">
-          <div className="ai-score-tabs" role="tablist" aria-label="AI score summary categories">
-            {breakdown.map((item, index) => (
-              <button
-                type="button"
-                key={`${item.category}-${index}`}
-                className={`ai-score-tab ${index === activeIndex ? "active" : ""} ${item.tone || scoreTone(item.score)}`}
-                onClick={() => setActiveIndex(index)}
-              >
-                <span>{item.category}</span>
-                <b>{scoreText(item.score)}</b>
-              </button>
-            ))}
-          </div>
-
-          {active && (
-            <div className={`ai-score-detail ${active.tone || scoreTone(active.score)}`}>
-              <div>
-                <span>Selected metric area</span>
-                <h4>{active.category}</h4>
+      <div className="ai-score-two-column-grid">
+        <div className="ai-score-points positive ai-score-point-section">
+          <span>What supports the score</span>
+          {supports.length > 0 ? (
+            supports.map((point, index) => (
+              <div className="ai-score-point-card" key={`support-${index}`}>
+                <h4>{point.title}</h4>
+                <p>{point.explanation}</p>
+                {point.metrics.length > 0 && (
+                  <div className="ai-score-metric-chips">
+                    {point.metrics.map((metric, metricIndex) => (
+                      <b key={`support-${index}-metric-${metricIndex}`}>{metric}</b>
+                    ))}
+                  </div>
+                )}
               </div>
-              <b>{scoreText(active.score)}</b>
-              <p>{active.why}</p>
-            </div>
+            ))
+          ) : (
+            <p>Eval could not generate specific support points yet because the available metrics are limited.</p>
           )}
         </div>
-      )}
 
-      <div className="ai-score-bottom-grid">
-        <div className="ai-score-points-grid">
-          {positives.length > 0 && (
-            <div className="ai-score-points positive">
-              <span>What supports the score</span>
-              {positives.map((point, index) => <p key={`positive-${index}`}>{point}</p>)}
-            </div>
-          )}
-
-          {concerns.length > 0 && (
-            <div className="ai-score-points concern">
-              <span>What holds it back</span>
-              {concerns.map((point, index) => <p key={`concern-${index}`}>{point}</p>)}
-            </div>
+        <div className="ai-score-points concern ai-score-point-section">
+          <span>What holds it back</span>
+          {holdsBack.length > 0 ? (
+            holdsBack.map((point, index) => (
+              <div className="ai-score-point-card" key={`holdback-${index}`}>
+                <h4>{point.title}</h4>
+                <p>{point.explanation}</p>
+                {point.metrics.length > 0 && (
+                  <div className="ai-score-metric-chips">
+                    {point.metrics.map((metric, metricIndex) => (
+                      <b key={`holdback-${index}-metric-${metricIndex}`}>{metric}</b>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>Eval could not generate specific hold-back points yet because the available metrics are limited.</p>
           )}
         </div>
       </div>
@@ -8591,7 +8597,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
           )}
 
           {scoreBreakdownSummary && (
-            <EvalAiScoreSummaryCard summary={scoreBreakdownSummary} edge={edge} />
+            <EvalAiScoreSummaryCard summary={scoreBreakdownSummary} />
           )}
         </section>
       )}
