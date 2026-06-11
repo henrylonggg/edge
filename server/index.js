@@ -67,6 +67,7 @@ const lastValidAnalysisCache = new Map();
 const industryCache = new Map();
 const tickerLookupCache = { savedAt: 0, data: [] };
 const TICKER_LOOKUP_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours for CSV company universe
+const INDUSTRY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // industry ranking cache: 24 hours
 
 const INDUSTRY_UNIVERSES = {
   Technology: ["AAPL", "MSFT", "ORCL", "CRM", "ADBE", "NOW", "INTU", "IBM", "SHOP", "SNOW", "DDOG", "PLTR"],
@@ -796,7 +797,7 @@ function updatedComponentSavedAt(previous = {}, plan = {}) {
   };
 }
 
-async function getCachedAnalysis(symbol) {
+async function getCachedAnalysis(symbol, options = {}) {
   const clean = cleanTicker(symbol);
   if (!clean) throw new Error("Missing ticker symbol.");
 
@@ -820,6 +821,7 @@ async function getCachedAnalysis(symbol) {
       refreshNews: plan.refreshNews,
       refreshRisk: plan.refreshRisk,
       refreshProfile: plan.refreshProfile,
+      includeAiScoreSummary: options.includeAiScoreSummary !== false,
     });
 
     const merged = cachedReport ? mergeByTtl(cachedReport, data, plan) : data;
@@ -964,7 +966,8 @@ app.get("/api/ticker-lookup", async (req, res) => {
 app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
-    const data = await getCachedAnalysis(symbol);
+    const includeAiScoreSummary = String(req.query.summary || "1") !== "0";
+    const data = await getCachedAnalysis(symbol, { includeAiScoreSummary });
     res.json(data);
   } catch (error) {
     console.error("Analyze route failed:", error?.stack || error?.message || error);
@@ -983,7 +986,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
     const cacheKey = `${industryKey}:${symbol}`;
 
     const cached = industryCache.get(cacheKey);
-    if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) {
+    if (cached && Date.now() - cached.savedAt < INDUSTRY_CACHE_TTL_MS) {
       return res.json({
         ...cached.data,
         cache: { hit: true, ttlHours: 24 },
@@ -995,7 +998,7 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
     for (const ticker of universe) {
       try {
-        const analysis = await getCachedAnalysis(ticker);
+        const analysis = await getCachedAnalysis(ticker, { includeAiScoreSummary: false });
         const score = Number(analysis?.grades?.edgeScore);
 
         if (Number.isFinite(score)) {
