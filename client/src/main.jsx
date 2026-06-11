@@ -8167,13 +8167,6 @@ function EvalAiScoreSummaryCard({ summary, edge }) {
       )}
 
       <div className="ai-score-bottom-grid">
-        {summary?.newsConnection && (
-          <div className="ai-score-news-link">
-            <span><Newspaper size={15} /> News connection</span>
-            <p>{summary.newsConnection}</p>
-          </div>
-        )}
-
         <div className="ai-score-points-grid">
           {positives.length > 0 && (
             <div className="ai-score-points positive">
@@ -8219,7 +8212,45 @@ function Report({ data, onAdd, onOpenIndustry }) {
   const newsTopics = Array.isArray(data.newsSentiment?.topics)
     ? data.newsSentiment.topics.slice(0, 3)
     : [];
-  const aiScoreSummary = data.aiScoreSummary || null;
+  const [scoreBreakdownOpen, setScoreBreakdownOpen] = useState(false);
+  const [scoreBreakdownLoading, setScoreBreakdownLoading] = useState(false);
+  const [scoreBreakdownError, setScoreBreakdownError] = useState("");
+  const [scoreBreakdownSummary, setScoreBreakdownSummary] = useState(null);
+
+  useEffect(() => {
+    setScoreBreakdownOpen(false);
+    setScoreBreakdownLoading(false);
+    setScoreBreakdownError("");
+    setScoreBreakdownSummary(null);
+  }, [data.symbol]);
+
+  async function openScoreBreakdownDashboard() {
+    const nextOpen = !scoreBreakdownOpen;
+    setScoreBreakdownOpen(nextOpen);
+
+    if (!nextOpen || scoreBreakdownSummary || scoreBreakdownLoading) return;
+
+    setScoreBreakdownLoading(true);
+    setScoreBreakdownError("");
+
+    try {
+      const res = await fetch(`${API}/api/score-breakdown/${encodeURIComponent(data.symbol)}`, {
+        headers: { Accept: "application/json" },
+      });
+
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(payload?.error || "Could not generate the score breakdown.");
+      }
+
+      setScoreBreakdownSummary(payload?.aiScoreSummary || payload?.summary || null);
+    } catch (error) {
+      setScoreBreakdownError(error?.message || "Could not generate the score breakdown.");
+    } finally {
+      setScoreBreakdownLoading(false);
+    }
+  }
 
   async function openIndustryPopup() {
     if (!industryName || industryName === "Public company") return;
@@ -8457,6 +8488,16 @@ function Report({ data, onAdd, onOpenIndustry }) {
             >
               Metrics
             </button>
+
+            <button
+              type="button"
+              className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`}
+              onClick={openScoreBreakdownDashboard}
+              title="Generate AI score breakdown"
+              aria-label="Generate AI score breakdown"
+            >
+              Score Breakdown
+            </button>
           </div>
         </div>
 
@@ -8516,8 +8557,43 @@ function Report({ data, onAdd, onOpenIndustry }) {
 
       </section>
 
-      {aiScoreSummary && (
-        <EvalAiScoreSummaryCard summary={aiScoreSummary} edge={edge} />
+      {scoreBreakdownOpen && (
+        <section className="score-breakdown-dashboard-shell">
+          <div className="score-breakdown-dashboard-head">
+            <div className="section-title ai-score-title">
+              <BrainCircuit size={18} />
+              AI Score Breakdown
+              <small>Generated only when requested</small>
+            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setScoreBreakdownOpen(false)}
+              aria-label="Close score breakdown"
+              title="Close score breakdown"
+            >
+              ×
+            </button>
+          </div>
+
+          {scoreBreakdownLoading && (
+            <div className="score-breakdown-loading">
+              <RefreshCw className="spin" size={20} />
+              <span>Generating a company-specific score breakdown...</span>
+            </div>
+          )}
+
+          {scoreBreakdownError && (
+            <div className="score-breakdown-error">
+              <AlertTriangle size={18} />
+              <span>{scoreBreakdownError}</span>
+            </div>
+          )}
+
+          {scoreBreakdownSummary && (
+            <EvalAiScoreSummaryCard summary={scoreBreakdownSummary} edge={edge} />
+          )}
+        </section>
       )}
 
       {newsTopics.length > 0 && (
