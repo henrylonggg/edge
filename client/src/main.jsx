@@ -666,29 +666,13 @@ function App() {
         throw new Error(json?.error || "Could not load industry leaders.");
       }
 
-      const rawLeaders = Array.isArray(json?.leaders) ? json.leaders.slice(0, 5) : [];
+      const leaders = Array.isArray(json?.leaders) ? json.leaders.slice(0, 5) : [];
 
-      const enrichedLeaders = await Promise.all(
-        rawLeaders.map(async (leader) => {
-          try {
-            const report = await analyze(null, leader.symbol, { silent: true, skipState: true });
-            return {
-              ...leader,
-              score: Number(report?.grades?.edgeScore ?? leader.score),
-              categories: report?.grades?.categories || leader.categories || {},
-              riskLabel: report?.grades?.riskLabel || leader.riskLabel || "",
-              name: report?.profile?.name || leader.name || leader.symbol,
-              industry: report?.profile?.finnhubIndustry || leader.industry || cleanIndustry,
-            };
-          } catch {
-            return leader;
-          }
-        })
-      );
-
+      // Do not re-analyze every industry leader on the frontend.
+      // The backend already ranks and caches leaders, so this avoids duplicate provider calls.
       setIndustryPage({
         industry: json?.industry || cleanIndustry,
-        leaders: enrichedLeaders,
+        leaders,
         sourceSymbol,
         cachedForHours: json?.cachedForHours || 24,
       });
@@ -721,7 +705,7 @@ function App() {
 
     for (const item of items) {
       try {
-        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}`, {
+        const res = await fetch(`${API}/api/analyze/${encodeURIComponent(item.symbol)}?summary=0&source=watchlist-refresh`, {
           method: "GET",
           mode: "cors",
           headers: {
@@ -758,8 +742,8 @@ function App() {
     );
 
     setWatchlist(saved);
-    // Default stock preload removed; ticker input starts empty.
-    refreshWatchlistItems(saved);
+    // Watchlist scores now stay exactly as saved on load.
+    // They only update when the user presses the Watchlist refresh button.
   }, []);
 
   useEffect(() => {
