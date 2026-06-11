@@ -7,6 +7,16 @@ const FMP_LEGACY_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
+const CATEGORY_LABELS = {
+  growth: "Growth",
+  profitability: "Profitability",
+  financialHealth: "Financial Health",
+  valuation: "Valuation",
+  momentum: "Momentum",
+  reversal: "Pullback",
+  newsSentiment: "News Sentiment",
+};
+
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
 const MASSIVE_429_COOLDOWN_MS = Number(process.env.MASSIVE_429_COOLDOWN_MS || 10 * 60 * 1000);
 let massiveCooldownUntil = 0;
