@@ -5,7 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { buildStockAnalysis } from "./score.js";
+import { buildStockAnalysis, buildAiScoreSummaryFromReport } from "./score.js";
 
 dotenv.config();
 
@@ -876,7 +876,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/industry-top/:industry"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -966,7 +966,7 @@ app.get("/api/ticker-lookup", async (req, res) => {
 app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
-    const includeAiScoreSummary = String(req.query.summary || "1") !== "0";
+    const includeAiScoreSummary = String(req.query.summary || "0") === "1";
     const data = await getCachedAnalysis(symbol, { includeAiScoreSummary });
     res.json(data);
   } catch (error) {
@@ -974,6 +974,27 @@ app.get("/api/analyze/:symbol", async (req, res) => {
     res.status(500).json({
       error: error?.message || "Could not analyze this stock.",
       route: "api/analyze",
+    });
+  }
+});
+
+app.get("/api/score-breakdown/:symbol", async (req, res) => {
+  try {
+    const symbol = cleanTicker(req.params.symbol);
+    const data = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
+    const aiScoreSummary = await buildAiScoreSummaryFromReport(data);
+
+    res.json({
+      symbol,
+      aiScoreSummary,
+      generatedAt: new Date().toISOString(),
+      source: aiScoreSummary?.source || "OpenAI score summary",
+    });
+  } catch (error) {
+    console.error("Score breakdown route failed:", error?.stack || error?.message || error);
+    res.status(500).json({
+      error: error?.message || "Could not generate this score breakdown.",
+      route: "api/score-breakdown",
     });
   }
 });
