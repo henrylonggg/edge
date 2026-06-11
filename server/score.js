@@ -1,5 +1,5 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
-// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
+// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const MASSIVE_BASE_URL = "https://api.massive.com";
 const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
