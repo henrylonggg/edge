@@ -8118,6 +8118,100 @@ className="chat-panel">
   );
 }
 
+
+function EvalAiScoreSummaryCard({ summary, edge }) {
+  const breakdown = Array.isArray(summary?.metricBreakdown)
+    ? summary.metricBreakdown.filter((item) => item && item.category).slice(0, 7)
+    : [];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = breakdown[activeIndex] || breakdown[0] || null;
+  const positives = Array.isArray(summary?.positives) ? summary.positives.slice(0, 4) : [];
+  const concerns = Array.isArray(summary?.concerns) ? summary.concerns.slice(0, 4) : [];
+
+  const sourceLabel = summary?.source === "OpenAI score summary" ? "OpenAI Breakdown" : "Score Breakdown";
+
+  return (
+    <section className="ai-score-summary-card">
+      <div className="ai-score-glow" />
+
+      <div className="ai-score-summary-head">
+        <div>
+          <div className="section-title ai-score-title">
+            <BrainCircuit size={18} />
+            {sourceLabel}
+            <small>Why the Eval Score is {scoreText(edge)}</small>
+          </div>
+          <h3>{summary?.verdict || "Eval Score Summary"}</h3>
+        </div>
+
+        <div className={`ai-score-pill ${scoreTone(edge)}`}>
+          <span>Eval</span>
+          <b>{scoreText(edge)}</b>
+        </div>
+      </div>
+
+      {summary?.headline && <p className="ai-score-headline">{summary.headline}</p>}
+      {summary?.summary && <p className="ai-score-body">{summary.summary}</p>}
+
+      {breakdown.length > 0 && (
+        <div className="ai-score-breakdown-shell">
+          <div className="ai-score-tabs" role="tablist" aria-label="AI score summary categories">
+            {breakdown.map((item, index) => (
+              <button
+                type="button"
+                key={`${item.category}-${index}`}
+                className={`ai-score-tab ${index === activeIndex ? "active" : ""} ${item.tone || scoreTone(item.score)}`}
+                onClick={() => setActiveIndex(index)}
+              >
+                <span>{item.category}</span>
+                <b>{scoreText(item.score)}</b>
+              </button>
+            ))}
+          </div>
+
+          {active && (
+            <div className={`ai-score-detail ${active.tone || scoreTone(active.score)}`}>
+              <div>
+                <span>Selected metric area</span>
+                <h4>{active.category}</h4>
+              </div>
+              <b>{scoreText(active.score)}</b>
+              <p>{active.why}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="ai-score-bottom-grid">
+        {summary?.newsConnection && (
+          <div className="ai-score-news-link">
+            <span><Newspaper size={15} /> News connection</span>
+            <p>{summary.newsConnection}</p>
+          </div>
+        )}
+
+        <div className="ai-score-points-grid">
+          {positives.length > 0 && (
+            <div className="ai-score-points positive">
+              <span>What supports the score</span>
+              {positives.map((point, index) => <p key={`positive-${index}`}>{point}</p>)}
+            </div>
+          )}
+
+          {concerns.length > 0 && (
+            <div className="ai-score-points concern">
+              <span>What holds it back</span>
+              {concerns.map((point, index) => <p key={`concern-${index}`}>{point}</p>)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {summary?.takeaway && <div className="ai-score-takeaway">{summary.takeaway}</div>}
+    </section>
+  );
+}
+
 function Report({ data, onAdd, onOpenIndustry }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
@@ -8141,6 +8235,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
   const newsTopics = Array.isArray(data.newsSentiment?.topics)
     ? data.newsSentiment.topics.slice(0, 3)
     : [];
+  const aiScoreSummary = data.aiScoreSummary || null;
 
   async function openIndustryPopup() {
     if (!industryName || industryName === "Public company") return;
@@ -8436,6 +8531,10 @@ function Report({ data, onAdd, onOpenIndustry }) {
         </div>
 
       </section>
+
+      {aiScoreSummary && (
+        <EvalAiScoreSummaryCard summary={aiScoreSummary} edge={edge} />
+      )}
 
       {newsTopics.length > 0 && (
         <section className="news-sentiment-card">
