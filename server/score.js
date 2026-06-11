@@ -1,11 +1,19 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
-// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by
+// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const MASSIVE_BASE_URL = "https://api.massive.com";
 const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
 const FMP_LEGACY_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
+
+const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
+const MASSIVE_429_COOLDOWN_MS = Number(process.env.MASSIVE_429_COOLDOWN_MS || 10 * 60 * 1000);
+let massiveCooldownUntil = 0;
+
+function fmpFundamentalsEnabled() {
+  return String(process.env.ENABLE_FMP_FUNDAMENTALS || "").toLowerCase() === "true";
+}
 
 function safeNumber(value) {
   const number = Number(value);
@@ -109,12 +117,20 @@ async function fetchFinnhubOptional(path, params = {}) {
 }
 
 async function fetchJsonOptional(url, providerName) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       console.warn(`${providerName} request failed: ${response.status} ${url.pathname || ""}`);
+
+      if (providerName === "Massive" && response.status === 429) {
+        massiveCooldownUntil = Date.now() + MASSIVE_429_COOLDOWN_MS;
+      }
+
       return null;
     }
 
@@ -125,14 +141,21 @@ async function fetchJsonOptional(url, providerName) {
 
     return data;
   } catch (error) {
-    console.warn(`${providerName} optional fetch failed:`, error?.message || error);
+    const message = error?.name === "AbortError" ? "timed out" : error?.message || error;
+    console.warn(`${providerName} optional fetch failed:`, message);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
-
 async function fetchMassiveOptional(path, params = {}) {
   const apiKey = process.env.MASSIVE_API_KEY;
   if (!apiKey) return null;
+
+  if (massiveCooldownUntil && Date.now() < massiveCooldownUntil) {
+    console.warn("Massive skipped: temporary 429 cooldown active.");
+    return null;
+  }
 
   const url = new URL(`${MASSIVE_BASE_URL}${path}`);
   Object.entries({ ...params, apiKey }).forEach(([key, value]) => {
@@ -145,6 +168,8 @@ async function fetchMassiveOptional(path, params = {}) {
 }
 
 async function fetchFmpStableOptional(path, params = {}) {
+  if (!fmpFundamentalsEnabled()) return null;
+
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) return null;
 
@@ -159,6 +184,8 @@ async function fetchFmpStableOptional(path, params = {}) {
 }
 
 async function fetchFmpLegacyOptional(path, params = {}) {
+  if (!fmpFundamentalsEnabled()) return null;
+
   const apiKey = process.env.FMP_API_KEY;
   if (!apiKey) return null;
 
@@ -202,6 +229,10 @@ function fmpPercent(value) {
 }
 
 async function fetchFmpFundamentals(symbol) {
+  if (!fmpFundamentalsEnabled()) {
+    return { metrics: {}, profile: null, source: "FMP disabled" };
+  }
+
   if (!process.env.FMP_API_KEY) {
     return { metrics: {}, profile: null, source: "FMP unavailable" };
   }
@@ -1183,6 +1214,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
   try {
     const response = await fetch(OPENAI_CHAT_URL, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${openAiKey}`,
         "Content-Type": "application/json",
@@ -1210,6 +1242,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
       }),
     });
 
+    clearTimeout(timeout);
     const json = await response.json().catch(() => null);
     if (!response.ok) {
       console.warn("OpenAI news sentiment failed:", response.status, json?.error?.message || "");
@@ -1360,6 +1393,10 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
   const openAiKey = process.env.OPENAI_API_KEY;
   if (!openAiKey) return fallback;
 
+  const timeoutMs = Math.max(1200, Number(process.env.OPENAI_SCORE_SUMMARY_TIMEOUT_MS || 3500));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   const payload = {
     symbol,
     companyName: profile?.name || symbol,
@@ -1400,6 +1437,7 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
   try {
     const response = await fetch(OPENAI_CHAT_URL, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${openAiKey}`,
@@ -1407,7 +1445,7 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       body: JSON.stringify({
         model: process.env.OPENAI_SCORE_SUMMARY_MODEL || NEWS_SENTIMENT_MODEL,
         temperature: 0.25,
-        max_tokens: 900,
+        max_tokens: 520,
         messages: [
           {
             role: "system",
@@ -1426,6 +1464,7 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       }),
     });
 
+    clearTimeout(timeout);
     const json = await response.json().catch(() => null);
     if (!response.ok) {
       console.warn("OpenAI score summary failed:", response.status, json?.error?.message || "");
@@ -1452,7 +1491,8 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       concerns: Array.isArray(parsed.concerns) ? parsed.concerns.slice(0, 4).map(String) : fallback.concerns,
     };
   } catch (error) {
-    console.warn("AI score summary generation failed:", error?.message || error);
+    clearTimeout(timeout);
+    console.warn("AI score summary generation failed:", error?.name === "AbortError" ? "OpenAI summary timed out" : error?.message || error);
     return fallback;
   }
 }
@@ -1469,6 +1509,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const refreshValuation = options?.refreshValuation ?? refreshFundamentals;
   const refreshMarket = options?.refreshMarket ?? true;
   const refreshNews = options?.refreshNews ?? true;
+  const includeAiScoreSummary = options?.includeAiScoreSummary !== false;
 
   const shouldFetchFundamentalMetrics = refreshFundamentals || refreshValuation;
 
@@ -1484,10 +1525,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
     refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
     refreshMarket ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
     shouldFetchFundamentalMetrics ? fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }) : null,
-    refreshFundamentals && !process.env.FMP_API_KEY ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
+    refreshFundamentals && !fmpFundamentalsEnabled() ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
     refreshMarket ? fetchMassiveMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Massive cached" },
     shouldFetchFundamentalMetrics ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, profile: null, source: "FMP cached" },
-    refreshMarket ? fetchFmpQuoteOptional(cleanSymbol) : null,
+    refreshMarket && fmpFundamentalsEnabled() ? fetchFmpQuoteOptional(cleanSymbol) : null,
   ]);
 
   const cachedProfile = cachedReport?.profile || {};
@@ -1798,7 +1839,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
       newsSentiment: metric(newsSentimentScore, "", newsSentiment?.source || "OpenAI + Finnhub news", "Weighted AI score from the latest 3 stock news articles"),
     };
 
-  const aiScoreSummary = await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore);
+  const aiScoreSummary = includeAiScoreSummary
+    ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore)
+    : fallbackScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore);
 
   return {
     symbol: cleanSymbol,
