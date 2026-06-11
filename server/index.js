@@ -41,68 +41,176 @@ function metricLineLocal(label, metric, suffix = "") {
   return `${label}: ${Number(value).toFixed(Math.abs(value) < 10 ? 2 : 1)}${unit}`;
 }
 
+const SCORE_CATEGORY_LABELS_LOCAL = {
+  growth: "Growth",
+  profitability: "Profitability",
+  financialHealth: "Financial Health",
+  valuation: "Valuation",
+  momentum: "Momentum",
+  reversal: "Pullback",
+  newsSentiment: "News Sentiment",
+};
+
+const SCORE_CATEGORY_USED_METRICS_LOCAL = {
+  growth: ["revenueGrowth", "revenueGrowthQuarterly", "revenueGrowth3Y", "revenueGrowth5Y", "epsGrowth", "epsGrowth3Y", "epsGrowth5Y", "netIncomeGrowth3Y"],
+  profitability: ["operatingMargin", "netMargin", "roe", "roa", "roicCalculated", "freeCashFlowPerShare"],
+  financialHealth: ["debtToEquity", "longTermDebtToEquity", "currentRatio", "quickRatio", "cashRatio", "interestCoverage", "cashFlowToDebt"],
+  valuation: ["peRatio", "forwardPe", "priceToSales", "priceToBook", "priceToCashFlow", "priceToFreeCashFlow", "pegRatio", "marketCapM"],
+  momentum: ["priceReturn4Week", "priceReturn13Week", "priceReturn26Week", "priceReturn52Week", "dayChangePercent", "beta"],
+  reversal: ["pullbackFromHigh", "distanceFrom52WeekLow"],
+  newsSentiment: ["newsSentiment"],
+};
+
+const SCORE_METRIC_LABELS_LOCAL = {
+  revenueGrowth: "Revenue growth",
+  revenueGrowthQuarterly: "Quarterly revenue growth",
+  revenueGrowth3Y: "3-year revenue growth",
+  revenueGrowth5Y: "5-year revenue growth",
+  epsGrowth: "EPS growth",
+  epsGrowth3Y: "3-year EPS growth",
+  epsGrowth5Y: "5-year EPS growth",
+  netIncomeGrowth3Y: "3-year net income growth",
+  operatingMargin: "Operating margin",
+  netMargin: "Net margin",
+  roe: "ROE",
+  roa: "ROA",
+  roicCalculated: "ROIC",
+  freeCashFlowPerShare: "Free cash flow/share",
+  debtToEquity: "Debt/equity",
+  longTermDebtToEquity: "Long-term debt/equity",
+  currentRatio: "Current ratio",
+  quickRatio: "Quick ratio",
+  cashRatio: "Cash ratio",
+  interestCoverage: "Interest coverage",
+  cashFlowToDebt: "Cash flow/debt",
+  peRatio: "P/E",
+  forwardPe: "Forward P/E",
+  priceToSales: "Price/sales",
+  priceToBook: "Price/book",
+  priceToCashFlow: "Price/cash flow",
+  priceToFreeCashFlow: "Price/free cash flow",
+  pegRatio: "PEG ratio",
+  marketCapM: "Market cap",
+  priceReturn4Week: "4-week return",
+  priceReturn13Week: "13-week return",
+  priceReturn26Week: "26-week return",
+  priceReturn52Week: "52-week return",
+  dayChangePercent: "Daily change",
+  beta: "Beta",
+  pullbackFromHigh: "Pullback from 52-week high",
+  distanceFrom52WeekLow: "Distance from 52-week low",
+  newsSentiment: "News sentiment",
+};
+
+function formatScoreMetricLocal(key, metric) {
+  const value = metricValueLocal(metric);
+  if (value === null) return null;
+  const label = SCORE_METRIC_LABELS_LOCAL[key] || key;
+  const unit = metric?.suffix || "";
+  const digits = Math.abs(value) >= 100 ? 1 : Math.abs(value) >= 10 ? 1 : 2;
+  return `${label}: ${Number(value).toFixed(digits)}${unit}`;
+}
+
+function getUsedScoreMetricsLocal(metrics = {}, categories = {}) {
+  const used = [];
+  for (const [category, keys] of Object.entries(SCORE_CATEGORY_USED_METRICS_LOCAL)) {
+    if (scoreValueLocal(categories?.[category]) === null) continue;
+    for (const key of keys) {
+      const formatted = formatScoreMetricLocal(key, metrics?.[key]);
+      if (!formatted) continue;
+      used.push({
+        key,
+        category,
+        categoryLabel: SCORE_CATEGORY_LABELS_LOCAL[category] || category,
+        label: SCORE_METRIC_LABELS_LOCAL[key] || key,
+        value: metricValueLocal(metrics?.[key]),
+        suffix: metrics?.[key]?.suffix || "",
+        text: formatted,
+        meaning: metrics?.[key]?.formula || "",
+      });
+    }
+  }
+
+  const seen = new Set();
+  return used.filter((metric) => {
+    if (seen.has(metric.key)) return false;
+    seen.add(metric.key);
+    return true;
+  });
+}
+
+function buildMetricChipListLocal(metrics = {}, categories = {}, preferredKeys = [], limit = 5) {
+  const used = getUsedScoreMetricsLocal(metrics, categories);
+  const byKey = new Map(used.map((metric) => [metric.key, metric.text]));
+  const chosen = [];
+  for (const key of preferredKeys) {
+    if (byKey.has(key)) chosen.push(byKey.get(key));
+  }
+  for (const metric of used) {
+    if (chosen.length >= limit) break;
+    if (!chosen.includes(metric.text)) chosen.push(metric.text);
+  }
+  return chosen.slice(0, limit);
+}
+
 function fallbackAiScoreSummaryFromReport(report = {}) {
   const categories = report?.grades?.categories || {};
   const metrics = report?.metrics || {};
   const profile = report?.profile || {};
-  const score = report?.grades?.edgeScore;
   const name = profile?.name || report?.symbol || "This company";
   const industry = profile?.finnhubIndustry || "its industry";
 
   const categoryEntries = Object.entries(categories)
-    .map(([key, value]) => ({ key, value: scoreValueLocal(value) }))
+    .map(([key, value]) => ({ key, label: SCORE_CATEGORY_LABELS_LOCAL[key] || key, value: scoreValueLocal(value) }))
     .filter((entry) => entry.value !== null)
     .sort((a, b) => b.value - a.value);
 
   const strongest = categoryEntries[0];
+  const secondStrongest = categoryEntries[1];
   const weakest = categoryEntries[categoryEntries.length - 1];
+  const secondWeakest = categoryEntries[categoryEntries.length - 2];
+
+  const profitChips = buildMetricChipListLocal(metrics, categories, ["roe", "netMargin", "operatingMargin", "roa", "freeCashFlowPerShare"], 5);
+  const growthChips = buildMetricChipListLocal(metrics, categories, ["revenueGrowth", "revenueGrowth3Y", "epsGrowth", "epsGrowth3Y", "netIncomeGrowth3Y"], 5);
+  const valuationChips = buildMetricChipListLocal(metrics, categories, ["peRatio", "forwardPe", "priceToSales", "priceToBook", "pegRatio", "priceToFreeCashFlow"], 5);
+  const healthChips = buildMetricChipListLocal(metrics, categories, ["debtToEquity", "currentRatio", "quickRatio", "interestCoverage", "cashFlowToDebt"], 5);
+  const marketChips = buildMetricChipListLocal(metrics, categories, ["priceReturn13Week", "priceReturn52Week", "pullbackFromHigh", "beta", "newsSentiment"], 5);
 
   const supportPoints = [];
   const holdBackPoints = [];
 
-  const roe = metricLineLocal("ROE", metrics.roe, "%");
-  const margin = metricLineLocal("Net margin", metrics.netMargin, "%");
-  const revenueGrowth = metricLineLocal("Revenue growth", metrics.revenueGrowth, "%");
-  const pe = metricLineLocal("P/E", metrics.peRatio);
-  const debt = metricLineLocal("Debt/equity", metrics.debtToEquity);
-  const currentRatio = metricLineLocal("Current ratio", metrics.currentRatio);
-
-  if (strongest) {
-    supportPoints.push({
-      title: `${strongest.key} is the strongest category`,
-      explanation: `${strongest.key} scored ${strongest.value.toFixed(1)} because the available category inputs look stronger than the rest of the report. This supports the Eval view because stronger categories usually point to better business quality, better recent execution, or healthier stock behavior.`,
-      metrics: [roe, margin, revenueGrowth].filter(Boolean),
-    });
-  }
-
   supportPoints.push({
-    title: "Profitability and operating quality matter most",
-    explanation: `${roe} shows how efficiently the company turns shareholder capital into profit, while ${margin} shows how much profit it keeps from revenue. Strong readings here usually support a higher-quality company profile because the business is proving it can convert sales into real earnings.`,
-    metrics: [roe, margin],
+    title: strongest ? `${strongest.label} is carrying the profile` : `${name}'s strongest inputs are supporting the profile`,
+    explanation: `${name} is being helped most by ${strongest ? strongest.label.toLowerCase() : "its strongest measurable areas"}${secondStrongest ? ` and ${secondStrongest.label.toLowerCase()}` : ""}. These areas show where the company is performing better relative to the rest of its report, whether that comes from growth, profitability, balance-sheet strength, valuation, momentum, pullback setup, or recent news. The metric chips below are the numbers Eval is using in the score calculation, so users can see the evidence behind the explanation.`,
+    metrics: [...profitChips, ...growthChips, ...marketChips].slice(0, 5),
   });
 
-  if (weakest) {
-    holdBackPoints.push({
-      title: `${weakest.key} is the main weak spot`,
-      explanation: `${weakest.key} scored ${weakest.value.toFixed(1)}, which means this part of the report is limiting the overall profile. A weaker category does not automatically make the company bad, but it tells users where to look closer before trusting the headline score.`,
-      metrics: [pe, debt, currentRatio].filter(Boolean),
-    });
-  }
+  supportPoints.push({
+    title: `Business quality signals for ${name}`,
+    explanation: `Profitability metrics such as margins and returns show how efficiently ${name} turns sales and capital into profit. Growth metrics show whether the business is expanding or slowing, and momentum/news inputs show whether the market is currently rewarding or questioning that performance. Stronger readings in these used inputs give the report more support because they point to a business with more durable execution instead of a score based only on price movement.`,
+    metrics: [...profitChips, ...growthChips].slice(0, 5),
+  });
 
   holdBackPoints.push({
-    title: "Valuation and balance-sheet risk can limit the score",
-    explanation: `${pe} compares the stock price with earnings, so a high P/E means investors are paying more for each dollar of profit. ${debt} shows how much debt the company uses compared with shareholder capital, and ${currentRatio} helps show whether short-term assets comfortably cover short-term liabilities.`,
-    metrics: [pe, debt, currentRatio],
+    title: weakest ? `${weakest.label} is the main drag` : `${name}'s weaker inputs are limiting the profile`,
+    explanation: `${name} is being held back most by ${weakest ? weakest.label.toLowerCase() : "the weakest part of its report"}${secondWeakest ? ` and ${secondWeakest.label.toLowerCase()}` : ""}. This matters because the overall Eval view is built from several categories, so one weaker area can keep the stock from looking fully balanced even when other parts are strong. The metrics below are the specific inputs behind that drag, not extra unrelated data.`,
+    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
+  });
+
+  holdBackPoints.push({
+    title: `Where users should look closer`,
+    explanation: `Valuation metrics explain how much investors are paying for the company's earnings, sales, book value, or cash flow. Financial-health metrics show how much flexibility the company has through debt, liquidity, and coverage, while market metrics show whether the stock has already run hard or pulled back sharply. These inputs do not make an automatic buy or sell call; they explain why the score is not higher and what is keeping the report from looking cleaner.`,
+    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
   });
 
   return {
     source: "fallback score breakdown",
-    summary: `${name} operates in ${industry}. This breakdown explains the score by connecting the strongest and weakest categories with the actual metrics behind them, so users can see what is helping the report and what is limiting it.` ,
+    summary: `${name} is a ${industry} company, and this breakdown connects the score to the actual calculation inputs instead of just repeating ratings. The main idea is to show which used metrics are supporting the company profile and which used metrics are holding it back.`,
     supports: supportPoints.slice(0, 4),
     holdsBack: holdBackPoints.slice(0, 4),
     positives: supportPoints.map((point) => point.explanation),
     concerns: holdBackPoints.map((point) => point.explanation),
-    takeaway: `Read this as an educational company-quality explanation, not a buy or sell signal. The most useful parts are the specific metrics because they show why the score moved instead of just showing a number.`,
+    takeaway: `Use this as a plain-English explanation of the score drivers. It is educational company research, not a buy or sell signal.`,
   };
 }
 
@@ -136,34 +244,33 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
     const metrics = report?.metrics || {};
     const news = report?.newsSentiment || {};
 
+    const usedMetrics = getUsedScoreMetricsLocal(metrics, categories);
+    const categoryScores = Object.entries(categories || {})
+      .map(([key, value]) => ({ key, label: SCORE_CATEGORY_LABELS_LOCAL[key] || key, score: scoreValueLocal(value) }))
+      .filter((entry) => entry.score !== null);
+
     const payload = {
       symbol: report?.symbol,
       companyName: profile?.name,
       industry: profile?.finnhubIndustry,
-      evalScore: report?.grades?.edgeScore,
-      grade: report?.grades?.grade,
-      riskLabel: report?.grades?.riskLabel,
-      categories,
-      keyMetrics: {
-        peRatio: metrics?.peRatio,
-        priceToSales: metrics?.priceToSales,
-        priceToBook: metrics?.priceToBook,
-        roe: metrics?.roe,
-        netMargin: metrics?.netMargin,
-        revenueGrowth: metrics?.revenueGrowth,
-        epsGrowth: metrics?.epsGrowth,
-        debtToEquity: metrics?.debtToEquity,
-        currentRatio: metrics?.currentRatio,
-        beta: metrics?.beta,
-        marketCapM: metrics?.marketCapM,
-        momentum1M: metrics?.momentum1M,
-        momentum3M: metrics?.momentum3M,
-        pullbackFromHigh: metrics?.pullbackFromHigh,
+      companyContext: {
+        name: profile?.name,
+        ticker: report?.symbol,
+        industry: profile?.finnhubIndustry,
+        exchange: profile?.exchange,
+        country: profile?.country,
       },
+      categoryScores,
+      usedCalculationMetrics: usedMetrics,
       strengths: report?.strengths || [],
       weaknesses: report?.weaknesses || [],
       newsSummary: news?.summary || news?.overallSummary || "",
-      newsArticles: Array.isArray(news?.articles) ? news.articles.slice(0, 3) : [],
+      newsArticles: Array.isArray(news?.articles) ? news.articles.slice(0, 3).map((article) => ({
+        title: article?.title,
+        summary: article?.summary,
+        score: article?.score,
+        weight: article?.weight,
+      })) : [],
     };
 
     const response = await fetch(OPENAI_CHAT_URL, {
@@ -182,11 +289,22 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
           {
             role: "system",
             content:
-              "You write clear stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Do not create a newsConnection section. Every point must explain WHY the score area is strong or weak using actual metrics from the report, and explain what those metrics mean in plain English.",
+              "You write clear, company-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Do not mention missing, unavailable, limited, or inaccessible data. Do not talk about metrics that are not included in usedCalculationMetrics. Do not create a newsConnection section. Every point must explain WHY the score is supported or held back using only actual calculation metrics from the payload, and explain what those metrics mean in plain English.",
           },
           {
             role: "user",
-            content: `Create an easy-to-read but comprehensive on-demand score breakdown for this stock report. Required JSON keys: summary string, supports array, holdsBack array, takeaway string. The supports array and holdsBack array must each contain 3-5 objects with: title string, explanation string, metrics array of strings. Each explanation should be 2-4 clear sentences and must include specific metric values when available, such as P/E, ROE, net margin, revenue growth, EPS growth, debt/equity, current ratio, beta, momentum, pullback, or news sentiment. Explain what the metric means before saying why it helps or hurts. Do not lead with or repeat the overall Eval Score. Do not include a big verdict, rating-only language, or any buy/sell/hold advice. Data: ${JSON.stringify(payload)}`,
+            content: `Create a stock-specific, easy-to-read, comprehensive score breakdown for this Eval report. Required JSON keys: summary string, supports array, holdsBack array, takeaway string. The supports array and holdsBack array must each contain 3-5 objects with: title string, explanation string, metrics array of strings.
+
+Rules:
+- ONLY mention metrics listed in usedCalculationMetrics. Do not mention any unavailable or missing metric, provider, API, data gap, fallback, or limitation.
+- Do not repeat the overall Eval Score or use rating-only language. If you mention a category score, immediately explain why using exact metric values from usedCalculationMetrics.
+- Make it stock specific: connect the company's industry/business context and recent article context to the actual metrics, but do not create a separate news connection section.
+- Every explanation should be 3-5 short, readable sentences. Explain what the metric means first, then why it supports or holds back this specific company.
+- Metrics arrays should contain exact metric chips copied from usedCalculationMetrics.text, not invented metrics.
+- Keep wording confident and clean. Never say "data is unavailable", "limited data", "when available", "cannot get", or anything that makes the report look incomplete.
+- Do not give buy/sell/hold advice.
+
+Data: ${JSON.stringify(payload)}`,
           },
         ],
       }),
