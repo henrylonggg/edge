@@ -181,7 +181,7 @@ const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const STORAGE_KEY = "edge-watchlist-v8";
 const TERMS_VERSION = "2026-05-30";
-const MAX_WATCHLIST_ITEMS = 15;
+const MAX_WATCHLIST_ITEMS = 10;
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -784,8 +784,19 @@ function App() {
     return <LoadingScreen />;
   }
 
+  function openDashboardFromLanding() {
+    const nextView = isSignedIn ? "dashboard" : "account";
+    setView(nextView);
+
+    if (nextView === "dashboard") {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      });
+    }
+  }
+
   if (view === "landing") {
-    return <LandingPage onContinue={() => setView(isSignedIn ? "dashboard" : "account")} />;
+    return <LandingPage onContinue={openDashboardFromLanding} />;
   }
 
   if (view === "account") {
@@ -978,7 +989,7 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("watchlist")}>
+                      <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
 
@@ -1750,10 +1761,7 @@ function LandingPage({ onContinue }) {
               Eval gives them a fast company-quality read they can understand in minutes.
             </p>
 
-            <div className="landing-action-row-static">
-              <button type="button" className="landing-continue-btn" onClick={onContinue}>
-                Launch dashboard <ArrowRight size={20} />
-              </button>
+            <div className="landing-action-row-static landing-action-row-static-copy-only">
               <span>Built for quick research, watchlist ranking, and easier company comparison.</span>
             </div>
           </div>
@@ -7777,7 +7785,7 @@ function Watchlist({
           <h2>
             <Star size={18} /> Watchlist
           </h2>
-          <p>Max 15 stocks</p>
+          <p>Max 10 stocks</p>
         </div>
 
         <button
