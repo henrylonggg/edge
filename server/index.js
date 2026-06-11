@@ -5,9 +5,197 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { buildStockAnalysis, buildAiScoreSummaryFromReport } from "./score.js";
+import { buildStockAnalysis } from "./score.js";
 
 dotenv.config();
+
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+const SCORE_BREAKDOWN_MODEL = process.env.OPENAI_SCORE_SUMMARY_MODEL || process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
+const SCORE_BREAKDOWN_TIMEOUT_MS = Number(process.env.OPENAI_SCORE_SUMMARY_TIMEOUT_MS || 6000);
+
+function safeNumberLocal(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function scoreValueLocal(value) {
+  const number = safeNumberLocal(value);
+  if (number === null) return null;
+  return number <= 10 ? number : number / 10;
+}
+
+function scoreTextLocal(value) {
+  const number = scoreValueLocal(value);
+  return number === null ? "N/A" : number.toFixed(1);
+}
+
+function metricValueLocal(metric) {
+  if (!metric || typeof metric !== "object") return null;
+  return safeNumberLocal(metric.value);
+}
+
+function metricLineLocal(label, metric, suffix = "") {
+  const value = metricValueLocal(metric);
+  if (value === null) return `${label}: N/A`;
+  const unit = metric?.suffix || suffix || "";
+  return `${label}: ${Number(value).toFixed(Math.abs(value) < 10 ? 2 : 1)}${unit}`;
+}
+
+function fallbackAiScoreSummaryFromReport(report = {}) {
+  const categories = report?.grades?.categories || {};
+  const metrics = report?.metrics || {};
+  const profile = report?.profile || {};
+  const score = report?.grades?.edgeScore;
+  const name = profile?.name || report?.symbol || "This company";
+  const industry = profile?.finnhubIndustry || "its industry";
+
+  const categoryEntries = Object.entries(categories)
+    .map(([key, value]) => ({ key, value: scoreValueLocal(value) }))
+    .filter((entry) => entry.value !== null)
+    .sort((a, b) => b.value - a.value);
+
+  const strongest = categoryEntries[0];
+  const weakest = categoryEntries[categoryEntries.length - 1];
+
+  return {
+    source: "fallback score breakdown",
+    verdict: `${name} has an Eval Score of ${scoreTextLocal(score)}. The score is based on category grades, business quality, valuation, price action, balance-sheet strength, and recent news context.`,
+    simpleTakeaway: `In plain English, Eval is showing how strong the business looks compared with how attractive or risky the stock currently appears. Strong categories help the score, while expensive valuation, weaker financial health, poor momentum, or negative news can hold it back.`,
+    positives: strongest
+      ? [`The strongest area is ${strongest.key}, which scored ${strongest.value.toFixed(1)} and helped support the overall Eval Score.`]
+      : ["The strongest category could not be identified because category data is limited."],
+    concerns: weakest
+      ? [`The weakest area is ${weakest.key}, which scored ${weakest.value.toFixed(1)} and held back the overall Eval Score.`]
+      : ["The weakest category could not be identified because category data is limited."],
+    metricBreakdown: [
+      `${metricLineLocal("P/E", metrics.peRatio)}. P/E compares the stock price with earnings; a lower number can mean cheaper valuation, while a high number means investors are paying more for each dollar of profit.`,
+      `${metricLineLocal("ROE", metrics.roe, "%")}. ROE shows how efficiently the company turns shareholder equity into profit.`,
+      `${metricLineLocal("Margin", metrics.netMargin, "%")}. Margin shows how much profit the company keeps from its revenue.`,
+      `${metricLineLocal("Debt/Equity", metrics.debtToEquity)}. Debt-to-equity shows how heavily the company relies on debt compared with shareholder capital.`,
+      `${metricLineLocal("Revenue Growth", metrics.revenueGrowth, "%")}. Revenue growth shows whether the business is expanding or slowing down.`,
+    ],
+    companyContext: `${name} operates in ${industry}. Industry context matters because some sectors naturally trade at higher valuations, carry more debt, or grow faster than others.`,
+    categoryExplanations: categoryEntries.slice(0, 7).map((entry) => ({
+      label: entry.key,
+      score: Number(entry.value.toFixed(1)),
+      explanation: `${entry.key} scored ${entry.value.toFixed(1)}, which means this area had a ${entry.value >= 7.5 ? "positive" : entry.value >= 6.5 ? "mixed" : "weaker"} impact on the overall Eval Score.`,
+    })),
+  };
+}
+
+function extractJsonObjectLocal(text = "") {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {}
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try {
+      return JSON.parse(raw.slice(start, end + 1));
+    } catch {}
+  }
+  return null;
+}
+
+async function buildAiScoreSummaryFromReportLocal(report = {}) {
+  const fallback = fallbackAiScoreSummaryFromReport(report);
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return fallback;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SCORE_BREAKDOWN_TIMEOUT_MS);
+
+  try {
+    const profile = report?.profile || {};
+    const categories = report?.grades?.categories || {};
+    const metrics = report?.metrics || {};
+    const news = report?.newsSentiment || {};
+
+    const payload = {
+      symbol: report?.symbol,
+      companyName: profile?.name,
+      industry: profile?.finnhubIndustry,
+      evalScore: report?.grades?.edgeScore,
+      grade: report?.grades?.grade,
+      riskLabel: report?.grades?.riskLabel,
+      categories,
+      keyMetrics: {
+        peRatio: metrics?.peRatio,
+        priceToSales: metrics?.priceToSales,
+        priceToBook: metrics?.priceToBook,
+        roe: metrics?.roe,
+        netMargin: metrics?.netMargin,
+        revenueGrowth: metrics?.revenueGrowth,
+        epsGrowth: metrics?.epsGrowth,
+        debtToEquity: metrics?.debtToEquity,
+        currentRatio: metrics?.currentRatio,
+        beta: metrics?.beta,
+        marketCapM: metrics?.marketCapM,
+        momentum1M: metrics?.momentum1M,
+        momentum3M: metrics?.momentum3M,
+        pullbackFromHigh: metrics?.pullbackFromHigh,
+      },
+      strengths: report?.strengths || [],
+      weaknesses: report?.weaknesses || [],
+      newsSummary: news?.summary || news?.overallSummary || "",
+      newsArticles: Array.isArray(news?.articles) ? news.articles.slice(0, 3) : [],
+    };
+
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: SCORE_BREAKDOWN_MODEL,
+        temperature: 0.35,
+        max_tokens: 900,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You write clear stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Explain what the metrics mean in plain English and connect them to the specific company and industry context. Do not include a separate newsConnection field.",
+          },
+          {
+            role: "user",
+            content: `Create an easy-to-understand but comprehensive score breakdown from this report. Required JSON keys: verdict string, simpleTakeaway string, positives array of strings, concerns array of strings, metricBreakdown array of strings, companyContext string, categoryExplanations array of objects with label score explanation. Do not include newsConnection. Data: ${JSON.stringify(payload)}`,
+          },
+        ],
+      }),
+    });
+
+    const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.warn("OpenAI score breakdown failed:", response.status, json?.error?.message || "");
+      return fallback;
+    }
+
+    const parsed = extractJsonObjectLocal(json?.choices?.[0]?.message?.content);
+    if (!parsed || typeof parsed !== "object") return fallback;
+
+    return {
+      source: "OpenAI score breakdown",
+      verdict: parsed.verdict || fallback.verdict,
+      simpleTakeaway: parsed.simpleTakeaway || fallback.simpleTakeaway,
+      positives: Array.isArray(parsed.positives) && parsed.positives.length ? parsed.positives.slice(0, 5) : fallback.positives,
+      concerns: Array.isArray(parsed.concerns) && parsed.concerns.length ? parsed.concerns.slice(0, 5) : fallback.concerns,
+      metricBreakdown: Array.isArray(parsed.metricBreakdown) && parsed.metricBreakdown.length ? parsed.metricBreakdown.slice(0, 8) : fallback.metricBreakdown,
+      companyContext: parsed.companyContext || fallback.companyContext,
+      categoryExplanations: Array.isArray(parsed.categoryExplanations) && parsed.categoryExplanations.length ? parsed.categoryExplanations.slice(0, 8) : fallback.categoryExplanations,
+    };
+  } catch (error) {
+    console.warn("Score breakdown fallback used:", error?.message || error);
+    return fallback;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 
 const EVAL_FAQ_KNOWLEDGE = "Eval FAQ knowledge base summary:\n- Eval is a stock-evaluation dashboard, not financial advice.\n- Users search tickers, use Ticker Lookup, save Watchlist stocks, compare 2-5 watchlist stocks, read industry rankings, and ask Eval AI support questions.\n- The backend company universe uses the CSV company universe cached by the backend. It lets users type company names, see tickers on the right, and click a ticker to load the Analyze dashboard.\n- Eval Score is 0.0-10.0 and blends Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment.\n- Green/yellow/red indicate stronger/mixed/weaker score ranges. Score numbers are educational and not buy/sell/hold recommendations.\n- Metric cards are bar charts from 0-10. Popups/question marks explain category inputs and can be closed with the X button.\n- Price, Momentum, and Pullback use Massive and cache about 1 day.\n- Growth, Profitability, and Financial Health use light FMP/Finnhub fallback and cache about 4 months.\n- Valuation caches about 1 month.\n- Risk and News Sentiment cache about 7 days.\n- Finnhub is used for profile/news and fallback metrics. FMP is used lightly for fundamentals. Massive is used for market data. the embedded CSV company universe is used for ticker/company lookup. OpenAI summarizes/explains support and news.\n- If providers fail, Eval should use fallback providers, cached categories, or the last valid report instead of scoring missing metrics as zero.\n- Watchlist stores saved tickers and powers Compare and stock-specific Eval AI questions.\n- Compare requires 2-5 watchlist stocks and includes clickable radar labels to hide/show tickers.\n- Industry pages show Top 5 peers and use the same cached analysis for each stock. Industry radar labels are clickable.\n- Eval AI should answer all FAQ-style questions about app navigation, dashboard sections, dropdown menu, ticker/company lookup, score rings, metrics, caching, data sources, watchlist, compare, industry rankings, news sentiment, troubleshooting, profile/sign-in basics, terms/contact/support, and loaded/watchlist stocks.\n- Eval AI should not answer unrelated questions outside Eval. Stock-specific questions require the ticker to be loaded on dashboard or saved in watchlist.";
 
@@ -982,7 +1170,7 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
     const data = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
-    const aiScoreSummary = await buildAiScoreSummaryFromReport(data);
+    const aiScoreSummary = await buildAiScoreSummaryFromReportLocal(data);
 
     res.json({
       symbol,
