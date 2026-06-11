@@ -8115,7 +8115,7 @@ function EvalAiScoreSummaryCard({ summary }) {
 
     return {
       title: point?.title || fallbackTitle || `Point ${index + 1}`,
-      explanation: point?.explanation || point?.text || point?.why || "No explanation available yet.",
+      explanation: point?.explanation || point?.text || point?.why || "Explanation is being prepared.",
       metrics: Array.isArray(point?.metrics) ? point.metrics.filter(Boolean).slice(0, 5) : [],
     };
   };
@@ -8140,7 +8140,7 @@ function EvalAiScoreSummaryCard({ summary }) {
         <div className="section-title ai-score-title">
           <BrainCircuit size={18} />
           Score Breakdown
-          <small>Generated only when clicked</small>
+          <small>Company-specific breakdown</small>
         </div>
       </div>
 
@@ -8164,7 +8164,7 @@ function EvalAiScoreSummaryCard({ summary }) {
               </div>
             ))
           ) : (
-            <p>Eval could not generate specific support points yet because the available metrics are limited.</p>
+            <p>Open Score Breakdown again to regenerate the support points.</p>
           )}
         </div>
 
@@ -8185,7 +8185,7 @@ function EvalAiScoreSummaryCard({ summary }) {
               </div>
             ))
           ) : (
-            <p>Eval could not generate specific hold-back points yet because the available metrics are limited.</p>
+            <p>Open Score Breakdown again to regenerate the hold-back points.</p>
           )}
         </div>
       </div>
@@ -8569,7 +8569,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
             <div className="section-title ai-score-title">
               <BrainCircuit size={18} />
               AI Score Breakdown
-              <small>Generated only when requested</small>
+              <small>Runs only when clicked</small>
             </div>
             <button
               type="button"
