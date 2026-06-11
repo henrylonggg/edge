@@ -24403,3 +24403,88 @@ body:has(.landing-page-static) .landing-shell-static {
     font-size: 21px;
   }
 }
+
+/* Update: longer AI news summaries should read cleanly as 5-7 sentences. */
+.news-overall-summary {
+  color: rgba(226,234,242,.78) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  line-height: 1.62 !important;
+  max-width: 1040px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Update: AI score breakdown now opens only after the user clicks the Score Breakdown button. */
+.score-metrics-jump-btn.active {
+  border-color: rgba(21,231,255,.34) !important;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(21,231,255,.18), transparent 34%),
+    rgba(255,255,255,.12) !important;
+  color: #fff !important;
+  box-shadow: 0 0 22px rgba(21,231,255,.12) !important;
+}
+
+.score-breakdown-dashboard-shell {
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 32px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.13), transparent 34%),
+    radial-gradient(circle at 84% 4%, rgba(159,92,255,.16), transparent 32%),
+    linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.045));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    0 24px 80px rgba(0,0,0,.30),
+    0 0 44px rgba(21,231,255,.08);
+  backdrop-filter: blur(20px);
+}
+
+.score-breakdown-dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.score-breakdown-dashboard-shell .ai-score-summary-card {
+  margin-top: 0;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(159,92,255,.14), transparent 35%),
+    radial-gradient(circle at 84% 6%, rgba(21,231,255,.10), transparent 31%),
+    linear-gradient(145deg, rgba(0,0,0,.18), rgba(255,255,255,.045));
+}
+
+.score-breakdown-loading,
+.score-breakdown-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 17px 18px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.45;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.20);
+  color: rgba(248,251,255,.80);
+}
+
+.score-breakdown-error {
+  border-color: rgba(255,95,115,.30);
+  background: rgba(255,95,115,.10);
+  color: #ffd9df;
+}
+
+@media (max-width: 640px) {
+  .score-breakdown-dashboard-shell {
+    padding: 14px;
+    border-radius: 26px;
+  }
+
+  .score-breakdown-dashboard-head {
+    align-items: flex-start;
+  }
+}
