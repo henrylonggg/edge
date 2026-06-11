@@ -1255,6 +1255,208 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
 }
 
 
+
+function categoryTone(score) {
+  const n = safeNumber(score);
+  if (n === null) return "neutral";
+  if (n >= 7.5) return "strong";
+  if (n >= 6.5) return "mixed";
+  return "weak";
+}
+
+function simpleMetricText(value, suffix = "") {
+  const n = safeNumber(value);
+  if (n === null) return "N/A";
+  return `${n.toFixed(Math.abs(n) >= 100 ? 0 : 1)}${suffix}`;
+}
+
+function metricsFromReportValues(reportMetrics = {}) {
+  const out = {};
+  for (const [key, item] of Object.entries(reportMetrics || {})) {
+    const value = safeNumber(item?.value);
+    if (value !== null) out[key] = value;
+  }
+  return out;
+}
+
+function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore) {
+  const entries = Object.entries(categories || {})
+    .filter(([, value]) => safeNumber(value) !== null)
+    .sort((a, b) => safeNumber(b[1]) - safeNumber(a[1]));
+  const strongest = entries[0];
+  const weakest = entries[entries.length - 1];
+  const companyName = profile?.name || symbol;
+  const strongestLabel = strongest ? CATEGORY_LABELS[strongest[0]] || strongest[0] : "available metrics";
+  const weakestLabel = weakest ? CATEGORY_LABELS[weakest[0]] || weakest[0] : "limited data";
+
+  return {
+    source: "Local fallback",
+    generatedAt: new Date().toISOString(),
+    headline: `${companyName} scores ${scoreText(edgeScore)} because ${strongestLabel.toLowerCase()} is the clearest support while ${weakestLabel.toLowerCase()} is the main drag.`,
+    verdict: safeNumber(edgeScore) >= 7.5 ? "Strong company profile" : safeNumber(edgeScore) >= 6.5 ? "Mixed but usable profile" : "Needs stronger data support",
+    summary: `${companyName}'s Eval Score blends company fundamentals, market behavior, valuation, and recent news. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
+    metricBreakdown: [
+      {
+        category: "Growth",
+        score: safeNumber(categories?.growth),
+        tone: categoryTone(categories?.growth),
+        why: `Growth looks at sales and EPS expansion. Revenue growth is ${simpleMetricText(metrics?.revenueGrowth, "%")} and EPS growth is ${simpleMetricText(metrics?.epsGrowth, "%")}.`,
+      },
+      {
+        category: "Profitability",
+        score: safeNumber(categories?.profitability),
+        tone: categoryTone(categories?.profitability),
+        why: `Profitability shows how efficiently the company turns business activity into profit. ROE is ${simpleMetricText(metrics?.roe, "%")} and net margin is ${simpleMetricText(metrics?.netMargin, "%")}.`,
+      },
+      {
+        category: "Financial Health",
+        score: safeNumber(categories?.financialHealth),
+        tone: categoryTone(categories?.financialHealth),
+        why: `Financial health checks balance-sheet stability. Debt-to-equity is ${simpleMetricText(metrics?.debtToEquity)} and current ratio is ${simpleMetricText(metrics?.currentRatio)}.`,
+      },
+      {
+        category: "Valuation",
+        score: safeNumber(categories?.valuation),
+        tone: categoryTone(categories?.valuation),
+        why: `Valuation compares the stock price to fundamentals. P/E is ${simpleMetricText(metrics?.peRatio)} and price-to-sales is ${simpleMetricText(metrics?.priceToSales)}.`,
+      },
+      {
+        category: "Momentum",
+        score: safeNumber(categories?.momentum),
+        tone: categoryTone(categories?.momentum),
+        why: `Momentum measures recent market strength. The 52-week return is ${simpleMetricText(metrics?.priceReturn52Week, "%")} and beta is ${simpleMetricText(metrics?.beta)}.`,
+      },
+      {
+        category: "News Sentiment",
+        score: safeNumber(categories?.newsSentiment),
+        tone: categoryTone(categories?.newsSentiment),
+        why: newsSentiment?.summary || "Recent news is included as a smaller part of the Eval Score so headlines can support or pressure the final rating.",
+      },
+    ].filter((item) => safeNumber(item.score) !== null),
+    newsConnection: newsSentiment?.summary || "News data was limited, so the summary leans more on financial metrics.",
+    positives: strongest ? [`Best category: ${strongestLabel} at ${scoreText(strongest[1])}/10`] : [],
+    concerns: weakest ? [`Weakest category: ${weakestLabel} at ${scoreText(weakest[1])}/10`] : [],
+    takeaway: "Use this as an educational company-quality summary, not a buy or sell recommendation.",
+  };
+}
+
+function parseScoreSummaryJson(content) {
+  if (!content || typeof content !== "string") return null;
+  try {
+    return JSON.parse(content);
+  } catch {
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function generateScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore) {
+  const fallback = fallbackScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore);
+  const openAiKey = process.env.OPENAI_API_KEY;
+  if (!openAiKey) return fallback;
+
+  const payload = {
+    symbol,
+    companyName: profile?.name || symbol,
+    industry: profile?.finnhubIndustry || "Public company",
+    evalScore: safeNumber(edgeScore),
+    categories,
+    metrics: {
+      revenueGrowth: metrics?.revenueGrowth,
+      epsGrowth: metrics?.epsGrowth,
+      roe: metrics?.roe,
+      netMargin: metrics?.netMargin,
+      operatingMargin: metrics?.operatingMargin,
+      debtToEquity: metrics?.debtToEquity,
+      currentRatio: metrics?.currentRatio,
+      peRatio: metrics?.peRatio,
+      priceToSales: metrics?.priceToSales,
+      priceToBook: metrics?.priceToBook,
+      beta: metrics?.beta,
+      priceReturn52Week: metrics?.priceReturn52Week,
+      pullbackFromHigh: metrics?.pullbackFromHigh,
+    },
+    news: {
+      score: safeNumber(newsSentiment?.score),
+      label: newsSentiment?.label || "Recent news",
+      summary: newsSentiment?.summary || "",
+      topics: Array.isArray(newsSentiment?.topics)
+        ? newsSentiment.topics.slice(0, 3).map((topic) => ({
+            title: topic?.title || "",
+            score: safeNumber(topic?.score),
+            weight: safeNumber(topic?.weight),
+            impact: topic?.impact || "",
+            summary: topic?.summary || "",
+          }))
+        : [],
+    },
+  };
+
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openAiKey}`,
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_SCORE_SUMMARY_MODEL || NEWS_SENTIMENT_MODEL,
+        temperature: 0.25,
+        max_tokens: 900,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You generate clear stock score explanations for Eval. Use only the provided data. Explain why the Eval Score is where it is, connect the metrics to recent news, and avoid buy/sell/hold advice. Return only valid JSON.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              instructions:
+                "Return JSON with keys: headline, verdict, summary, metricBreakdown, newsConnection, positives, concerns, takeaway. metricBreakdown must be 5-7 objects with category, score, tone, why. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
+              data: payload,
+            }),
+          },
+        ],
+      }),
+    });
+
+    const json = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.warn("OpenAI score summary failed:", response.status, json?.error?.message || "");
+      return fallback;
+    }
+
+    const parsed = parseScoreSummaryJson(json?.choices?.[0]?.message?.content);
+    if (!parsed || typeof parsed !== "object") return fallback;
+
+    return {
+      ...fallback,
+      ...parsed,
+      source: "OpenAI score summary",
+      generatedAt: new Date().toISOString(),
+      metricBreakdown: Array.isArray(parsed.metricBreakdown) && parsed.metricBreakdown.length
+        ? parsed.metricBreakdown.slice(0, 7).map((item) => ({
+            category: String(item?.category || "Metric"),
+            score: safeNumber(item?.score),
+            tone: ["strong", "mixed", "weak", "neutral"].includes(item?.tone) ? item.tone : categoryTone(item?.score),
+            why: String(item?.why || "This category helps explain the final Eval Score."),
+          }))
+        : fallback.metricBreakdown,
+      positives: Array.isArray(parsed.positives) ? parsed.positives.slice(0, 4).map(String) : fallback.positives,
+      concerns: Array.isArray(parsed.concerns) ? parsed.concerns.slice(0, 4).map(String) : fallback.concerns,
+    };
+  } catch (error) {
+    console.warn("AI score summary generation failed:", error?.message || error);
+    return fallback;
+  }
+}
+
 export async function buildStockAnalysis(symbol, options = {}) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
   if (!cleanSymbol) throw new Error("Missing ticker symbol.");
@@ -1530,59 +1732,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const riskLabel = getRiskLabel(extracted, healthScore);
   const sw = strongestWeakest(categories);
 
-  return {
-    symbol: cleanSymbol,
-    profile: {
-      ...profile,
-      ticker: profile.ticker || cleanSymbol,
-      name: profile.name || cleanSymbol,
-      finnhubIndustry: profile.finnhubIndustry || "Public company",
-    },
-    quote: {
-      c: safeNumber(quote?.c),
-      d: safeNumber(quote?.d),
-      dp: safeNumber(quote?.dp),
-      h: safeNumber(quote?.h),
-      l: safeNumber(quote?.l),
-      o: safeNumber(quote?.o),
-      pc: safeNumber(quote?.pc),
-    },
-    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${
-      profile.finnhubIndustry || "market"
-    } industry.`,
-    evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
-      1
-    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment.`,
-    strengths: [sw.strongest],
-    weaknesses: [sw.weakest],
-    grades: {
-      edgeScore,
-      grade: gradeFrom10(edgeScore),
-      riskLabel,
-      categories,
-      context: {
-        marketCapM: extracted.marketCapM,
-      },
-      dataQuality: {
-        validCategoryCount,
-        minRequiredCategories: 5,
-        validInputCounts,
-        providerStatus: {
-          massiveKey: Boolean(process.env.MASSIVE_API_KEY),
-          fmpKey: Boolean(process.env.FMP_API_KEY),
-          finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
-          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change with Massive then FMP then cache as backups; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
-        },
-        sources: {
-          price: hasUsableQuote(finnhubQuote) ? "Finnhub" : hasUsableQuote(massiveMarket?.quote) ? "Massive" : hasUsableQuote(fmpQuote) ? "FMP" : cachedReport?.quote ? "Cached" : "Unavailable",
-          marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
-          fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
-          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
-          news: recentNews.length ? "Finnhub + OpenAI" : "Cached/neutral fallback",
-        },
-      },
-    },
-    metrics: {
+
+  const reportMetrics = {
       revenueGrowth: metric(extracted.revenueGrowth, "%", "FMP", "Revenue growth YoY"),
       revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", "FMP", "Quarterly revenue growth YoY"),
       revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", "FMP", "3-year revenue growth"),
@@ -1645,7 +1796,64 @@ export async function buildStockAnalysis(symbol, options = {}) {
       dcfGrowthRate: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
 
       newsSentiment: metric(newsSentimentScore, "", newsSentiment?.source || "OpenAI + Finnhub news", "Weighted AI score from the latest 3 stock news articles"),
+    };
+
+  const aiScoreSummary = await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore);
+
+  return {
+    symbol: cleanSymbol,
+    profile: {
+      ...profile,
+      ticker: profile.ticker || cleanSymbol,
+      name: profile.name || cleanSymbol,
+      finnhubIndustry: profile.finnhubIndustry || "Public company",
     },
+    quote: {
+      c: safeNumber(quote?.c),
+      d: safeNumber(quote?.d),
+      dp: safeNumber(quote?.dp),
+      h: safeNumber(quote?.h),
+      l: safeNumber(quote?.l),
+      o: safeNumber(quote?.o),
+      pc: safeNumber(quote?.pc),
+    },
+    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${
+      profile.finnhubIndustry || "market"
+    } industry.`,
+    evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
+      1
+    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment.`,
+    strengths: [sw.strongest],
+    weaknesses: [sw.weakest],
+    grades: {
+      edgeScore,
+      grade: gradeFrom10(edgeScore),
+      riskLabel,
+      categories,
+      context: {
+        marketCapM: extracted.marketCapM,
+      },
+      dataQuality: {
+        validCategoryCount,
+        minRequiredCategories: 5,
+        validInputCounts,
+        providerStatus: {
+          massiveKey: Boolean(process.env.MASSIVE_API_KEY),
+          fmpKey: Boolean(process.env.FMP_API_KEY),
+          finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change with Massive then FMP then cache as backups; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
+        },
+        sources: {
+          price: hasUsableQuote(finnhubQuote) ? "Finnhub" : hasUsableQuote(massiveMarket?.quote) ? "Massive" : hasUsableQuote(fmpQuote) ? "FMP" : cachedReport?.quote ? "Cached" : "Unavailable",
+          marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
+          fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
+          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
+          news: recentNews.length ? "Finnhub + OpenAI" : "Cached/neutral fallback",
+        },
+      },
+    },
+    metrics: reportMetrics,
+    aiScoreSummary,
     newsSentiment,
   };
 }
