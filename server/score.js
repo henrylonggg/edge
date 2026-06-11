@@ -1170,14 +1170,24 @@ async function fetchRecentNews(symbol) {
     }));
 }
 
+function buildFallbackNewsOverallSummary(news = []) {
+  if (!Array.isArray(news) || !news.length) {
+    return "No recent company news was available from the data provider. Because no current articles were available, the news sentiment score stays neutral and has limited effect on the final Eval Score. The rest of the stock report is still based on available company metrics, market data, valuation inputs, and financial-health signals. When new articles become available, Eval can use them to explain whether the latest headlines support or pressure the score. This section is educational and should be read as context, not as a buy or sell signal.";
+  }
+
+  const titles = news.slice(0, 3).map((item, index) => item?.title || `article ${index + 1}`);
+  const first = titles[0] || "the first article";
+  const second = titles[1] || "the second article";
+  const third = titles[2] || "the third article";
+
+  return `The latest news set includes ${first}, ${second}, and ${third}. AI scoring is unavailable right now, so Eval is using a neutral placeholder instead of pretending the articles have a precise positive or negative impact. The articles are still shown below so users can read the actual headlines and summaries behind the news section. Since the news score is neutral, it should not be treated as the main reason the Eval Score moved higher or lower. The company’s fundamentals, valuation, market behavior, and financial-health data carry more weight until AI news scoring is available again. Add OPENAI_API_KEY in Render to turn this into a weighted AI summary of the three articles.`;
+}
+
 function fallbackNewsSentiment(news = []) {
   return {
     score: 5.0,
     label: "Neutral",
-    summary:
-      news.length > 0
-        ? "AI news scoring is unavailable right now, so this is a neutral placeholder. The articles still appear below when available. Add OPENAI_API_KEY in Render to turn on weighted AI scoring."
-        : "No recent company news was available from the data provider. This is a neutral placeholder so the report can still load. News sentiment has limited effect when article data is missing.",
+    summary: buildFallbackNewsOverallSummary(news),
     topics: news.map((item, index) => ({
       title: item.title || `News article ${index + 1}`,
       summary: item.summary || "No summary was available for this article.",
@@ -1221,6 +1231,10 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
     return fallbackNewsSentiment(news);
   }
 
+  const timeoutMs = Math.max(2000, Number(process.env.OPENAI_NEWS_TIMEOUT_MS || 6000));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(OPENAI_CHAT_URL, {
       method: "POST",
@@ -1232,13 +1246,13 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
       body: JSON.stringify({
         model: NEWS_SENTIMENT_MODEL,
         temperature: 0.12,
-        max_tokens: 750,
+        max_tokens: 1100,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "You are a stock-news sentiment rater. Analyze exactly the latest 3 news articles provided. Return only valid JSON with keys score, label, summary, topics. score must be a 0.0-10.0 number to one decimal where 0.0 is very bad for the stock, 5.0 is neutral, and 10.0 is very good. label must be Bullish, Neutral, or Bearish. summary must be brief and easy to understand, explaining why the overall score got that number. topics must be an array of 3 objects. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences. Each topic score must be 0.0-10.0 to one decimal. Weight each topic by importance/stock impact, and weights should total 100. Do not give buy/sell advice.",
+              "You are a stock-news sentiment rater for Eval. Analyze exactly the latest 3 company news articles provided. Return only valid JSON with keys score, label, summary, topics. score must be a 0.0-10.0 number to one decimal where 0.0 is very bad for the stock, 5.0 is neutral, and 10.0 is very good. label must be Bullish, Neutral, or Bearish. summary must be 5-7 clear sentences that summarize all three articles together, explain the common theme, and explain why the overall news score got that number. topics must be an array of 3 objects. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences. Each topic score must be 0.0-10.0 to one decimal. Weight each topic by importance/stock impact, and weights should total 100. Do not give buy/sell advice.",
           },
           {
             role: "user",
@@ -1285,14 +1299,15 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
       label: parsed.label || (finalScore >= 7 ? "Bullish" : finalScore <= 4 ? "Bearish" : "Neutral"),
       summary:
         String(parsed.summary || "").trim() ||
-        `The latest 3 articles create a ${finalScore.toFixed(1)} out of 10 news sentiment score based on weighted impact.`,
+        buildFallbackNewsOverallSummary(news),
       topics,
       articleCount: topics.length,
       source: "OpenAI weighted top 3 news articles",
       model: NEWS_SENTIMENT_MODEL,
     };
   } catch (error) {
-    console.warn("AI news sentiment scoring failed:", error?.message || error);
+    clearTimeout(timeout);
+    console.warn("AI news sentiment scoring failed:", error?.name === "AbortError" ? "OpenAI news sentiment timed out" : error?.message || error);
     return fallbackNewsSentiment(news);
   }
 }
@@ -1376,7 +1391,6 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
         why: newsSentiment?.summary || "Recent news is included as a smaller part of the Eval Score so headlines can support or pressure the final rating.",
       },
     ].filter((item) => safeNumber(item.score) !== null),
-    newsConnection: newsSentiment?.summary || "News data was limited, so the summary leans more on financial metrics.",
     positives: strongest ? [`Best category: ${strongestLabel} at ${scoreText(strongest[1])}/10`] : [],
     concerns: weakest ? [`Weakest category: ${weakestLabel} at ${scoreText(weakest[1])}/10`] : [],
     takeaway: "Use this as an educational company-quality summary, not a buy or sell recommendation.",
@@ -1455,18 +1469,18 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       body: JSON.stringify({
         model: process.env.OPENAI_SCORE_SUMMARY_MODEL || NEWS_SENTIMENT_MODEL,
         temperature: 0.25,
-        max_tokens: 520,
+        max_tokens: 900,
         messages: [
           {
             role: "system",
             content:
-              "You generate clear stock score explanations for Eval. Use only the provided data. Explain why the Eval Score is where it is, connect the metrics to recent news, and avoid buy/sell/hold advice. Return only valid JSON.",
+              "You generate clear stock score explanations for Eval. Use only the provided company data, metrics, category scores, profile/industry context, and recent news summaries. Explain why the Eval Score is where it is, explain what each metric means in beginner-friendly language, and connect the score to real-world company context without giving buy/sell/hold advice. Return only valid JSON.",
           },
           {
             role: "user",
             content: JSON.stringify({
               instructions:
-                "Return JSON with keys: headline, verdict, summary, metricBreakdown, newsConnection, positives, concerns, takeaway. metricBreakdown must be 5-7 objects with category, score, tone, why. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
+                "Return JSON with keys: headline, verdict, summary, metricBreakdown, positives, concerns, takeaway. Do not include a newsConnection key. summary must be 4-6 polished sentences explaining the company-specific reason for the Eval Score using the metrics, industry context, and relevant recent news context. metricBreakdown must be 5-7 objects with category, score, tone, why. Each why must explain what that metric/category means, cite the specific provided metric values when available, and explain why it helps or hurts this specific company. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
               data: payload,
             }),
           },
@@ -1484,9 +1498,11 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
     const parsed = parseScoreSummaryJson(json?.choices?.[0]?.message?.content);
     if (!parsed || typeof parsed !== "object") return fallback;
 
+    const { newsConnection: _removedNewsConnection, ...cleanParsed } = parsed;
+
     return {
       ...fallback,
-      ...parsed,
+      ...cleanParsed,
       source: "OpenAI score summary",
       generatedAt: new Date().toISOString(),
       metricBreakdown: Array.isArray(parsed.metricBreakdown) && parsed.metricBreakdown.length
@@ -1505,6 +1521,19 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
     console.warn("AI score summary generation failed:", error?.name === "AbortError" ? "OpenAI summary timed out" : error?.message || error);
     return fallback;
   }
+}
+
+export async function buildAiScoreSummaryFromReport(report = {}) {
+  const symbol = String(report?.symbol || report?.profile?.ticker || "").trim().toUpperCase();
+  if (!symbol) throw new Error("Missing ticker symbol for score breakdown.");
+
+  const profile = report?.profile || { ticker: symbol, name: symbol, finnhubIndustry: "Public company" };
+  const categories = report?.grades?.categories || {};
+  const metrics = metricsFromReportValues(report?.metrics || {});
+  const newsSentiment = report?.newsSentiment || null;
+  const edgeScore = report?.grades?.edgeScore;
+
+  return generateScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore);
 }
 
 export async function buildStockAnalysis(symbol, options = {}) {
@@ -1851,7 +1880,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
 
   const aiScoreSummary = includeAiScoreSummary
     ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore)
-    : fallbackScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore);
+    : null;
 
   return {
     symbol: cleanSymbol,
