@@ -1,4 +1,4 @@
-// Eval update: FMP 6000 stock ticker/company lookup route.
+// Eval update: FMP 6000 stock ticker/company lookup rout
 // Eval update: AI assistant expanded as support agent.
 import express from "express";
 import cors from "cors";
