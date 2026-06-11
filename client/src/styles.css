@@ -24579,3 +24579,27 @@ body:has(.landing-page-static) .landing-shell-static {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   FINAL WATCHLIST MENU DESKTOP CLEANUP
+   Desktop keeps watchlist panel/sidebar, but removes Watchlist from dropdown.
+   Mobile/tablet keeps Watchlist inside dropdown.
+========================================================= */
+
+@media (min-width: 1181px) {
+  .dashboard-dropdown-mobile.eval-select-menu,
+  .dashboard-dropdown-mobile {
+    display: none !important;
+  }
+
+  .dropdown-mobile-watchlist-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .dropdown-mobile-watchlist-only {
+    display: flex !important;
+  }
+}
