@@ -880,7 +880,7 @@ function App() {
       )}
 
       {view === "portfolio" ? (
-        <PortfolioBuilderPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <PortfolioPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
@@ -965,7 +965,7 @@ function App() {
                         AI Assistant
                       </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio Builder
+                        Portfolio
                       </button>
                       <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
@@ -992,7 +992,7 @@ function App() {
                         AI Assistant
                       </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio Builder
+                        Portfolio
                       </button>
                       <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
@@ -1727,88 +1727,84 @@ function PortfolioValueChart({ points = [] }) {
   );
 }
 
-function PortfolioBuilderPage({ onBack, onAnalyze }) {
-  const [amount, setAmount] = useState("25000");
-  const [size, setSize] = useState(25);
-  const [riskMode, setRiskMode] = useState("balanced");
+function PortfolioPage({ onBack, onAnalyze }) {
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function buildPortfolio(event) {
-    event?.preventDefault();
-    const dollars = Number(String(amount).replace(/[^0-9.]/g, ""));
-    if (!Number.isFinite(dollars) || dollars < 100) {
-      setError("Enter an investment amount of at least $100.");
-      return;
-    }
+  async function loadPortfolio(force = false) {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API}/api/portfolio-builder`, {
-        method: "POST",
+      const response = await fetch(`${API}/api/portfolio${force ? "?refresh=1" : ""}`, {
+        method: "GET",
         mode: "cors",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ amount: dollars, size, riskMode }),
+        headers: { Accept: "application/json" },
       });
       const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not build the portfolio.");
+      if (!response.ok) throw new Error(json?.error || "Could not load the Eval Portfolio.");
       setResult(json);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err?.message || "Could not build the portfolio.");
+      setError(err?.message || "Could not load the Eval Portfolio.");
     } finally {
       setLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadPortfolio(false);
+  }, []);
+
   return (
-    <main className="portfolio-builder-page">
+    <main className="portfolio-builder-page portfolio-follow-page">
       <div className="portfolio-builder-head">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
         <div>
-          <span className="assistant-kicker"><Sparkles size={16}/> Eval Portfolio Builder</span>
-          <h2>Build a smarter, diversified model portfolio</h2>
-          <p>Eval screens a broad stock universe, ranks companies with the Eval system, applies diversification rules, and models historical YTD performance.</p>
+          <span className="assistant-kicker"><Sparkles size={16}/> Eval Portfolio</span>
+          <h2>Follow the official $1,000,000 Eval Portfolio</h2>
+          <p>This is one diversified model portfolio selected using Eval Scores, valuation, growth, profitability, financial health, risk controls, and industry balance. It is built to be followed over time—not rebuilt for every user.</p>
         </div>
       </div>
 
-      <form className="portfolio-builder-controls" onSubmit={buildPortfolio}>
-        <label><span>Investment amount</span><div className="portfolio-money-input"><b>$</b><input value={amount} onChange={(e)=>setAmount(e.target.value)} inputMode="decimal" placeholder="25,000" /></div></label>
-        <label><span>Number of stocks</span><select value={size} onChange={(e)=>setSize(Number(e.target.value))}><option value={20}>20 stocks</option><option value={25}>25 stocks</option><option value={30}>30 stocks</option></select></label>
-        <label><span>Portfolio style</span><select value={riskMode} onChange={(e)=>setRiskMode(e.target.value)}><option value="conservative">Conservative</option><option value="balanced">Balanced growth</option><option value="growth">Growth</option></select></label>
-        <button type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={18}/> Building portfolio...</> : <><Sparkles size={18}/> Build portfolio</>}</button>
-      </form>
-
       {error && <div className="error-banner"><AlertTriangle size={18}/>{error}</div>}
-      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Eval is ranking and diversifying stocks</h3><p>The first build can take longer while uncached companies are evaluated. Future builds reuse your existing metric cache schedules.</p></div>}
+      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Loading the Eval Portfolio</h3><p>Eval is loading the official holdings and calculating their day-to-day historical YTD value from the original $1,000,000 model investment.</p></div>}
 
       {result && !loading && (
         <section className="portfolio-results">
+          <article className="portfolio-method-card portfolio-follow-intro">
+            <div>
+              <span className="section-title"><Target size={17}/> Official model portfolio</span>
+              <h3>One portfolio. Transparent holdings. Trackable performance.</h3>
+              <p>The portfolio is selected once and then tracked using the same share quantities. Prices move the portfolio value naturally; holdings are not silently rebuilt each time someone opens the page. Any future rebalance should be clearly dated and disclosed.</p>
+            </div>
+            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio(true)} title="Refresh current portfolio data"><RefreshCw size={18}/></button>
+          </article>
+
           <div className="portfolio-summary-grid">
-            <article><span>Starting amount</span><strong>{money(result.summary?.startingValue)}</strong></article>
-            <article><span>Historical value now</span><strong>{money(result.summary?.currentHistoricalValue)}</strong></article>
+            <article><span>Starting investment</span><strong>{money(result.summary?.startingValue)}</strong></article>
+            <article><span>Current modeled value</span><strong>{money(result.summary?.currentHistoricalValue)}</strong></article>
             <article className={Number(result.summary?.ytdPercent)>=0 ? "positive" : "negative"}><span>Historical YTD</span><strong>{signedPercent(result.summary?.ytdPercent)}</strong></article>
             <article><span>Average Eval Score</span><strong>{scoreText(result.summary?.averageEvalScore)}</strong></article>
             <article><span>Industries</span><strong>{result.summary?.industryCount}</strong></article>
           </div>
 
           <article className="portfolio-chart-card">
-            <div className="portfolio-section-head"><div><span className="section-title"><LineChart size={17}/> Historical YTD simulation</span><h3>Day-to-day portfolio value</h3></div><b>{signedPercent(result.summary?.ytdPercent)}</b></div>
+            <div className="portfolio-section-head"><div><span className="section-title"><LineChart size={17}/> Historical YTD performance</span><h3>Day-to-day value of the $1,000,000 portfolio</h3></div><b>{signedPercent(result.summary?.ytdPercent)}</b></div>
             <PortfolioValueChart points={result.history || []}/>
-            <p className="portfolio-chart-note">Models how the selected allocation would have changed from the first available trading day of the current year.</p>
+            <p className="portfolio-chart-note">Historical simulation based on the official holdings and fixed starting share quantities from the first available trading day of the year.</p>
           </article>
 
           <article className="portfolio-ai-card">
-            <span className="section-title"><BrainCircuit size={17}/> AI portfolio explanation</span>
+            <span className="section-title"><BrainCircuit size={17}/> Why these holdings work together</span>
             <p>{result.explanation}</p>
           </article>
 
           <div className="portfolio-results-grid">
             <article className="portfolio-holdings-card">
-              <div className="portfolio-section-head"><div><span className="section-title"><BarChart3 size={17}/> Holdings</span><h3>{result.holdings?.length} selected stocks</h3></div></div>
+              <div className="portfolio-section-head"><div><span className="section-title"><BarChart3 size={17}/> Official holdings</span><h3>{result.holdings?.length} stocks in the Eval Portfolio</h3></div></div>
               <div className="portfolio-holdings-table">
-                <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>Weight</span><span>Allocation</span><span>Shares</span></div>
+                <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>Weight</span><span>Starting allocation</span><span>Shares</span></div>
                 {(result.holdings || []).map((holding)=><button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={()=>onAnalyze?.(holding.symbol)}>
                   <span><b>{holding.symbol}</b><small>{holding.name}</small></span><span>{holding.sector}</span><span>{scoreText(holding.edgeScore)}</span><span>{holding.weightPercent.toFixed(2)}%</span><span>{money(holding.allocation)}</span><span>{holding.shares.toLocaleString(undefined,{maximumFractionDigits:4})}</span>
                 </button>)}
@@ -1820,6 +1816,7 @@ function PortfolioBuilderPage({ onBack, onAnalyze }) {
               <div className="portfolio-industry-list">{(result.allocationByIndustry || []).map((item)=><div key={item.industry}><div><span>{item.industry}</span><b>{item.weight.toFixed(1)}%</b></div><div className="portfolio-industry-bar"><span style={{width:`${Math.min(100,item.weight*4)}%`}}/></div></div>)}</div>
             </article>
           </div>
+
           <p className="portfolio-disclaimer">{result.disclaimer}</p>
         </section>
       )}
