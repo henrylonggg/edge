@@ -24840,3 +24840,75 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   .portfolio-summary-grid { grid-template-columns:1fr; }
   .portfolio-chart-card,.portfolio-ai-card,.portfolio-holdings-card,.portfolio-industry-card { padding:18px; }
 }
+
+/* Portfolio builder: exact holding count and selection methodology */
+.portfolio-count-input {
+  display: grid;
+  gap: 7px;
+}
+
+.portfolio-count-input input {
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 15px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 16px;
+  background: rgba(0,0,0,.24);
+  color: var(--text);
+  outline: none;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.portfolio-count-input small {
+  color: var(--soft);
+  font-size: 11px;
+}
+
+.portfolio-method-card {
+  padding: 22px 24px;
+  border: 1px solid rgba(21,231,255,.20);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,231,255,.10), transparent 38%),
+    rgba(255,255,255,.065);
+  box-shadow: var(--shadow);
+}
+
+.portfolio-method-card p {
+  margin: 12px 0 0;
+  color: rgba(248,251,255,.80);
+  line-height: 1.7;
+}
+
+.portfolio-method-card strong {
+  color: #fff;
+}
+
+/* Official Eval Portfolio tracking page */
+.portfolio-follow-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.portfolio-follow-intro h3 {
+  margin: 12px 0 8px;
+  font-size: 24px;
+}
+
+.portfolio-follow-intro p {
+  margin: 0;
+  max-width: 980px;
+}
+
+.portfolio-refresh-btn {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .portfolio-follow-intro {
+    flex-direction: column;
+  }
+}
