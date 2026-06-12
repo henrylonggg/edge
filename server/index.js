@@ -495,7 +495,7 @@ const SCORE_METRIC_LABELS_LOCAL = {
 
 function formatScoreMetricLocal(key, metric) {
   const value = metricValueLocal(metric);
-  if (value === null) return null;
+  if (value === null || value === 0) return null;
   const label = SCORE_METRIC_LABELS_LOCAL[key] || key;
   const unit = metric?.suffix || "";
   const digits = Math.abs(value) >= 100 ? 1 : Math.abs(value) >= 10 ? 1 : 2;
@@ -547,61 +547,34 @@ function buildMetricChipListLocal(metrics = {}, categories = {}, preferredKeys =
 function fallbackAiScoreSummaryFromReport(report = {}) {
   const categories = report?.grades?.categories || {};
   const metrics = report?.metrics || {};
-  const profile = report?.profile || {};
-  const name = profile?.name || report?.symbol || "This company";
-  const industry = profile?.finnhubIndustry || "its industry";
+  const symbol = String(report?.symbol || "This stock").toUpperCase();
+  const usedMetrics = getUsedScoreMetricsLocal(metrics, categories).filter((metric) => {
+    const value = Number(metric?.value);
+    return Number.isFinite(value) && value !== 0;
+  });
 
   const categoryEntries = Object.entries(categories)
     .map(([key, value]) => ({ key, label: SCORE_CATEGORY_LABELS_LOCAL[key] || key, value: scoreValueLocal(value) }))
-    .filter((entry) => entry.value !== null)
+    .filter((entry) => entry.value !== null && entry.value !== 0)
     .sort((a, b) => b.value - a.value);
 
-  const strongest = categoryEntries[0];
-  const secondStrongest = categoryEntries[1];
-  const weakest = categoryEntries[categoryEntries.length - 1];
-  const secondWeakest = categoryEntries[categoryEntries.length - 2];
+  const strongest = categoryEntries.slice(0, 2).map((entry) => entry.label.toLowerCase());
+  const weakest = categoryEntries.slice(-2).reverse().map((entry) => entry.label.toLowerCase());
+  const metricText = usedMetrics.slice(0, 8).map((metric) => metric.text);
+  const firstHalf = metricText.slice(0, 4).join(", ");
+  const secondHalf = metricText.slice(4, 8).join(", ");
 
-  const profitChips = buildMetricChipListLocal(metrics, categories, ["roe", "netMargin", "operatingMargin", "roa", "freeCashFlowPerShare"], 5);
-  const growthChips = buildMetricChipListLocal(metrics, categories, ["revenueGrowth", "revenueGrowth3Y", "epsGrowth", "epsGrowth3Y", "netIncomeGrowth3Y"], 5);
-  const valuationChips = buildMetricChipListLocal(metrics, categories, ["peRatio", "forwardPe", "priceToSales", "priceToBook", "pegRatio", "priceToFreeCashFlow"], 5);
-  const healthChips = buildMetricChipListLocal(metrics, categories, ["debtToEquity", "currentRatio", "quickRatio", "interestCoverage", "cashFlowToDebt"], 5);
-  const marketChips = buildMetricChipListLocal(metrics, categories, ["priceReturn13Week", "priceReturn52Week", "pullbackFromHigh", "beta", "newsSentiment"], 5);
+  const prosSummary = `${symbol} is supported most by ${strongest.join(" and ") || "its strongest operating categories"}. ${firstHalf ? `Key calculation inputs include ${firstHalf}. ` : ""}These figures matter because they show how effectively the business is growing, producing profit, maintaining financial stability, or receiving support from recent market performance. Together, the stronger inputs explain why ${symbol} earns support in the Eval model without relying on any zero-value metric.`;
 
-  const supportPoints = [];
-  const holdBackPoints = [];
-
-  supportPoints.push({
-    title: strongest ? `${strongest.label} is carrying the profile` : `${name}'s strongest inputs are supporting the profile`,
-    explanation: `${name} is being helped most by ${strongest ? strongest.label.toLowerCase() : "its strongest measurable areas"}${secondStrongest ? ` and ${secondStrongest.label.toLowerCase()}` : ""}. These areas show where the company is performing better relative to the rest of its report, whether that comes from growth, profitability, balance-sheet strength, valuation, momentum, pullback setup, or recent news. The metric chips below are the numbers Eval is using in the score calculation, so users can see the evidence behind the explanation.`,
-    metrics: [...profitChips, ...growthChips, ...marketChips].slice(0, 5),
-  });
-
-  supportPoints.push({
-    title: `Business quality signals for ${name}`,
-    explanation: `Profitability metrics such as margins and returns show how efficiently ${name} turns sales and capital into profit. Growth metrics show whether the business is expanding or slowing, and momentum/news inputs show whether the market is currently rewarding or questioning that performance. Stronger readings in these used inputs give the report more support because they point to a business with more durable execution instead of a score based only on price movement.`,
-    metrics: [...profitChips, ...growthChips].slice(0, 5),
-  });
-
-  holdBackPoints.push({
-    title: weakest ? `${weakest.label} is the main drag` : `${name}'s weaker inputs are limiting the profile`,
-    explanation: `${name} is being held back most by ${weakest ? weakest.label.toLowerCase() : "the weakest part of its report"}${secondWeakest ? ` and ${secondWeakest.label.toLowerCase()}` : ""}. This matters because the overall Eval view is built from several categories, so one weaker area can keep the stock from looking fully balanced even when other parts are strong. The metrics below are the specific inputs behind that drag, not extra unrelated data.`,
-    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
-  });
-
-  holdBackPoints.push({
-    title: `Where users should look closer`,
-    explanation: `Valuation metrics explain how much investors are paying for the company's earnings, sales, book value, or cash flow. Financial-health metrics show how much flexibility the company has through debt, liquidity, and coverage, while market metrics show whether the stock has already run hard or pulled back sharply. These inputs do not make an automatic buy or sell call; they explain why the score is not higher and what is keeping the report from looking cleaner.`,
-    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
-  });
+  const consSummary = `${symbol} is held back most by ${weakest.join(" and ") || "its weaker scoring categories"}. ${secondHalf ? `The main calculation inputs to watch are ${secondHalf}. ` : ""}These measures matter because they show where valuation, balance-sheet flexibility, growth consistency, or market strength may be less favorable than the rest of the report. Those weaker inputs keep the overall profile from looking more complete, while avoiding any metric with a value of zero.`;
 
   return {
     source: "fallback score breakdown",
-    summary: `${name} is a ${industry} company, and this breakdown connects the score to the actual calculation inputs instead of just repeating ratings. The main idea is to show which used metrics are supporting the company profile and which used metrics are holding it back.`,
-    supports: supportPoints.slice(0, 4),
-    holdsBack: holdBackPoints.slice(0, 4),
-    positives: supportPoints.map((point) => point.explanation),
-    concerns: holdBackPoints.map((point) => point.explanation),
-    takeaway: `Use this as a plain-English explanation of the score drivers. It is educational company research, not a buy or sell signal.`,
+    symbol,
+    prosSummary,
+    consSummary,
+    supportSummary: prosSummary,
+    holdbackSummary: consSummary,
   };
 }
 
@@ -680,19 +653,22 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
           {
             role: "system",
             content:
-              "You write clear, company-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Do not mention missing, unavailable, limited, or inaccessible data. Do not talk about metrics that are not included in usedCalculationMetrics. Do not create a newsConnection section. Every point must explain WHY the score is supported or held back using only actual calculation metrics from the payload, and explain what those metrics mean in plain English.",
+              "You write clear, ticker-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Use the ticker symbol instead of the company name. Never mention missing data, unavailable data, providers, APIs, fallbacks, limitations in data access, or any metric with a numeric value of 0. Only use metrics included in usedCalculationMetrics. Explain each key metric naturally inside the prose and state what it means for this specific stock.",
           },
           {
             role: "user",
-            content: `Create a stock-specific, easy-to-read, comprehensive score breakdown for this Eval report. Required JSON keys: summary string, supports array, holdsBack array, takeaway string. The supports array and holdsBack array must each contain 3-5 objects with: title string, explanation string, metrics array of strings.
+            content: `Create exactly two polished summaries for ${report?.symbol}: one Pros summary and one Cons summary. Return JSON with only these keys: prosSummary string, consSummary string.
 
 Rules:
-- ONLY mention metrics listed in usedCalculationMetrics. Do not mention any unavailable or missing metric, provider, API, data gap, fallback, or limitation.
-- Do not repeat the overall Eval Score or use rating-only language. If you mention a category score, immediately explain why using exact metric values from usedCalculationMetrics.
-- Make it stock specific: connect the company's industry/business context and recent article context to the actual metrics, but do not create a separate news connection section.
-- Every explanation should be 3-5 short, readable sentences. Explain what the metric means first, then why it supports or holds back this specific company.
-- Metrics arrays should contain exact metric chips copied from usedCalculationMetrics.text, not invented metrics.
-- Keep wording confident and clean. Never say "data is unavailable", "limited data", "when available", "cannot get", or anything that makes the report look incomplete.
+- Use the ticker ${report?.symbol} instead of the company name throughout.
+- Each summary should be one substantial, easy-to-read paragraph of about 5-8 sentences.
+- The Pros paragraph must explain the strongest parts of the stock's Eval calculation.
+- The Cons paragraph must explain the weakest parts of the stock's Eval calculation.
+- Mention several important calculation metrics directly inside each paragraph, including their exact non-zero values, and explain in plain English what each metric means and why it helps or hurts ${report?.symbol}.
+- ONLY use metrics in usedCalculationMetrics, and completely ignore every metric whose value is 0, null, missing, non-numeric, or unavailable.
+- Do not create bullet points, arrays, metric chips, headings, a takeaway, a news section, or a separate overall summary.
+- Do not mention the company name, missing data, data quality, providers, APIs, fallbacks, or incomplete coverage.
+- Do not repeat category ratings unless you immediately explain them with exact non-zero metric values.
 - Do not give buy/sell/hold advice.
 
 Data: ${JSON.stringify(payload)}`,
@@ -710,21 +686,16 @@ Data: ${JSON.stringify(payload)}`,
     const parsed = extractJsonObjectLocal(json?.choices?.[0]?.message?.content);
     if (!parsed || typeof parsed !== "object") return fallback;
 
-    const supports = Array.isArray(parsed.supports) && parsed.supports.length
-      ? parsed.supports.slice(0, 5)
-      : fallback.supports;
-    const holdsBack = Array.isArray(parsed.holdsBack) && parsed.holdsBack.length
-      ? parsed.holdsBack.slice(0, 5)
-      : fallback.holdsBack;
+    const prosSummary = String(parsed.prosSummary || parsed.supportSummary || fallback.prosSummary || "").trim();
+    const consSummary = String(parsed.consSummary || parsed.holdbackSummary || fallback.consSummary || "").trim();
 
     return {
       source: "OpenAI score breakdown",
-      summary: parsed.summary || fallback.summary,
-      supports,
-      holdsBack,
-      positives: supports.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
-      concerns: holdsBack.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
-      takeaway: parsed.takeaway || fallback.takeaway,
+      symbol: String(report?.symbol || "").toUpperCase(),
+      prosSummary: prosSummary || fallback.prosSummary,
+      consSummary: consSummary || fallback.consSummary,
+      supportSummary: prosSummary || fallback.prosSummary,
+      holdbackSummary: consSummary || fallback.consSummary,
     };
   } catch (error) {
     console.warn("Score breakdown fallback used:", error?.message || error);
