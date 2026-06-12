@@ -1,5 +1,5 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
-// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by
+// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const MASSIVE_BASE_URL = "https://api.massive.com";
 const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
@@ -1144,7 +1144,66 @@ function labelCategory(key) {
 }
 
 
-async function fetchRecentNews(symbol) {
+
+function compactNewsText(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9$\.\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function companyNewsAliases(symbol, profile = {}) {
+  const aliases = new Set();
+  const cleanSymbol = String(symbol || "").toUpperCase().trim();
+  if (cleanSymbol) aliases.add(cleanSymbol.toLowerCase());
+  if (cleanSymbol.includes(".")) aliases.add(cleanSymbol.split(".")[0].toLowerCase());
+
+  const name = String(profile?.name || profile?.ticker || "").trim();
+  if (name) {
+    aliases.add(compactNewsText(name));
+    const simplified = compactNewsText(
+      name
+        .replace(/\b(incorporated|inc\.?|corp\.?|corporation|company|co\.?|ltd\.?|limited|plc|holdings?|group|class a|class b|ordinary shares|common stock|adr|ads)\b/gi, " ")
+        .trim()
+    );
+    if (simplified) aliases.add(simplified);
+
+    const words = simplified.split(" ").filter((word) => word.length > 2 && !["the", "and", "for", "with"].includes(word));
+    if (words.length >= 2) aliases.add(words.slice(0, 2).join(" "));
+    if (words.length >= 1 && words[0].length >= 5) aliases.add(words[0]);
+  }
+
+  return Array.from(aliases).filter(Boolean);
+}
+
+function newsSpecificityScore(item = {}, symbol, profile = {}) {
+  const aliases = companyNewsAliases(symbol, profile);
+  const cleanSymbol = String(symbol || "").toUpperCase().trim();
+  const text = compactNewsText(`${item?.headline || item?.title || ""} ${item?.summary || ""} ${item?.url || ""}`);
+  const headline = compactNewsText(item?.headline || item?.title || "");
+
+  let score = 0;
+  for (const alias of aliases) {
+    if (!alias) continue;
+    const cleanAlias = compactNewsText(alias);
+    if (!cleanAlias) continue;
+    if (headline.includes(cleanAlias)) score += 6;
+    else if (text.includes(cleanAlias)) score += 3;
+  }
+
+  if (cleanSymbol && new RegExp(`(^|[^a-z0-9])${cleanSymbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").toLowerCase()}([^a-z0-9]|$)`).test(text)) {
+    score += 8;
+  }
+
+  const broadOnlyTerms = ["s&p", "sp500", "nasdaq", "dow", "market movers", "top gainers", "top losers", "session", "watchlist"];
+  if (broadOnlyTerms.some((term) => text.includes(term)) && score < 8) score -= 4;
+
+  return score;
+}
+
+async function fetchRecentNews(symbol, profile = {}) {
   const to = new Date();
   const from = new Date(Date.now() - 1000 * 60 * 60 * 24 * 21);
 
@@ -1156,23 +1215,35 @@ async function fetchRecentNews(symbol) {
 
   if (!Array.isArray(news)) return [];
 
-  return news
+  const mapped = news
     .filter((item) => item?.headline || item?.title || item?.summary)
-    .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0))
+    .map((item) => ({
+      ...item,
+      __specificity: newsSpecificityScore(item, symbol, profile),
+      __datetime: Number(item.datetime || 0),
+    }))
+    .sort((a, b) => (b.__specificity - a.__specificity) || (b.__datetime - a.__datetime));
+
+  const highlyRelevant = mapped.filter((item) => item.__specificity >= 3);
+  const selected = (highlyRelevant.length >= 3 ? highlyRelevant : mapped)
     .slice(0, 3)
-    .map((item, index) => ({
-      n: index + 1,
-      title: item.headline || item.title || `News article ${index + 1}`,
-      summary: item.summary || "",
-      source: item.source || "",
-      url: item.url || "",
-      datetime: item.datetime || null,
-    }));
+    .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0));
+
+  return selected.map((item, index) => ({
+    n: index + 1,
+    title: item.headline || item.title || `News article ${index + 1}`,
+    summary: item.summary || "",
+    source: item.source || "",
+    url: item.url || "",
+    datetime: item.datetime || null,
+    relevanceScore: item.__specificity,
+  }));
 }
+
 
 function buildFallbackNewsOverallSummary(news = []) {
   if (!Array.isArray(news) || !news.length) {
-    return "No recent company news was available from the data provider. Because no current articles were available, the news sentiment score stays neutral and has limited effect on the final Eval Score. The rest of the stock report is still based on available company metrics, market data, valuation inputs, and financial-health signals. When new articles become available, Eval can use them to explain whether the latest headlines support or pressure the score. This section is educational and should be read as context, not as a buy or sell signal.";
+    return "No recent ticker-specific company news was available from Finnhub. Eval keeps the news score neutral when there are no usable recent articles, so the overall score is not pushed higher or lower by missing headlines. The rest of the Eval Score still comes from company metrics, valuation, market behavior, and financial-health signals. When new ticker-specific articles become available, Eval will summarize them and give the news section a weighted score. This section is educational and should be read as context, not as a buy or sell signal.";
   }
 
   const titles = news.slice(0, 3).map((item, index) => item?.title || `article ${index + 1}`);
@@ -1180,7 +1251,7 @@ function buildFallbackNewsOverallSummary(news = []) {
   const second = titles[1] || "the second article";
   const third = titles[2] || "the third article";
 
-  return `The latest news set includes ${first}, ${second}, and ${third}. AI scoring is unavailable right now, so Eval is using a neutral placeholder instead of pretending the articles have a precise positive or negative impact. The articles are still shown below so users can read the actual headlines and summaries behind the news section. Since the news score is neutral, it should not be treated as the main reason the Eval Score moved higher or lower. The company’s fundamentals, valuation, market behavior, and financial-health data carry more weight until AI news scoring is available again. Add OPENAI_API_KEY in Render to turn this into a weighted AI summary of the three articles.`;
+  return `The latest ticker-specific news set includes ${first}, ${second}, and ${third}. AI scoring is temporarily unavailable, so Eval is using a neutral 5.0 placeholder instead of inventing a precise news impact. The articles are still shown below so users can read the actual headlines and summaries behind the news section. Because the news score is neutral, it should not be treated as the main reason the Eval Score moved higher or lower. The company’s fundamentals, valuation, market behavior, and financial-health data carry more weight until AI news scoring is available again. Once OpenAI responds successfully, this section will become a weighted AI summary of the three Finnhub articles.`;
 }
 
 function fallbackNewsSentiment(news = []) {
@@ -1198,6 +1269,7 @@ function fallbackNewsSentiment(news = []) {
       impact: "Neutral impact.",
     })),
     articleCount: news.length,
+    articles: news,
     source: "Fallback",
   };
 }
@@ -1205,23 +1277,33 @@ function fallbackNewsSentiment(news = []) {
 function normalizeTopicWeights(topics) {
   if (!Array.isArray(topics) || !topics.length) return [];
 
+  const defaults = [45, 35, 20];
   const cleaned = topics.slice(0, 3).map((topic, index) => ({
     title: String(topic?.title || `News article ${index + 1}`).trim(),
     summary: String(topic?.summary || "No summary available.").trim(),
     url: String(topic?.url || "").trim(),
     source: String(topic?.source || "").trim(),
     score: Number((clamp(topic?.score, 0, 10) ?? 5).toFixed(1)),
-    weight: Math.max(0, Math.min(100, safeNumber(topic?.weight) ?? (index === 0 ? 45 : index === 1 ? 35 : 20))),
+    weight: Math.max(0, Math.min(100, safeNumber(topic?.weight) ?? defaults[index] ?? 20)),
     impact: String(topic?.impact || "").trim(),
   }));
 
   const total = cleaned.reduce((sum, topic) => sum + topic.weight, 0);
-  if (total <= 0) return cleaned;
+  if (total <= 0) return cleaned.map((topic, index) => ({ ...topic, weight: defaults[index] ?? 0 }));
 
-  return cleaned.map((topic) => ({
+  let normalized = cleaned.map((topic) => ({
     ...topic,
     weight: Number(((topic.weight / total) * 100).toFixed(0)),
   }));
+
+  const normalizedTotal = normalized.reduce((sum, topic) => sum + topic.weight, 0);
+  const diff = 100 - normalizedTotal;
+  if (normalized.length && diff !== 0) {
+    const maxIndex = normalized.reduce((best, topic, index, arr) => topic.weight > arr[best].weight ? index : best, 0);
+    normalized[maxIndex] = { ...normalized[maxIndex], weight: Math.max(0, normalized[maxIndex].weight + diff) };
+  }
+
+  return normalized;
 }
 
 async function scoreNewsSentiment(symbol, profile, news = []) {
@@ -1246,13 +1328,13 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
       body: JSON.stringify({
         model: NEWS_SENTIMENT_MODEL,
         temperature: 0.12,
-        max_tokens: 1100,
+        max_tokens: 1450,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "You are a stock-news sentiment rater for Eval. Analyze exactly the latest 3 company news articles provided. Return only valid JSON with keys score, label, summary, topics. score must be a 0.0-10.0 number to one decimal where 0.0 is very bad for the stock, 5.0 is neutral, and 10.0 is very good. label must be Bullish, Neutral, or Bearish. summary must be 5-7 clear sentences that summarize all three articles together, explain the common theme, and explain why the overall news score got that number. topics must be an array of 3 objects. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences. Each topic score must be 0.0-10.0 to one decimal. Weight each topic by importance/stock impact, and weights should total 100. Do not give buy/sell advice.",
+              "You are Eval's stock-specific news sentiment rater. Analyze only the latest Finnhub company-news articles provided for the requested ticker. Return only valid JSON with keys score, label, summary, topics. score must be a precise 0.0-10.0 number to one decimal, not a whole-number placeholder, where 0.0 is very negative for this stock, 5.0 is neutral, and 10.0 is very positive for this stock. label must be Bullish, Neutral, or Bearish. summary must be 5-7 clear sentences that summarize all three articles together, explain the shared theme, mention why the news matters for this specific company, and explain why the weighted news score received that exact decimal score. topics must be exactly 3 objects when 3 articles are provided. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences: what happened, why it matters for this company/ticker, and whether it helps or hurts the stock context. Each topic score must be a precise decimal to one tenth such as 2.1, 5.3, or 6.7. Weight each topic by actual stock impact, company specificity, recency, and importance; weights must total 100. If an article is broad market/peer news and only weakly related to the ticker, give it lower weight and explain that. Do not give buy/sell advice.",
           },
           {
             role: "user",
@@ -1292,7 +1374,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
     topics = normalizeTopicWeights(topics);
     const totalWeight = topics.reduce((sum, topic) => sum + topic.weight, 0) || 100;
     const weightedScore = topics.reduce((sum, topic) => sum + topic.score * (topic.weight / totalWeight), 0);
-    const finalScore = Number((clamp(parsed.score, 0, 10) ?? weightedScore).toFixed(1));
+    const finalScore = Number((clamp(weightedScore, 0, 10) ?? 5).toFixed(1));
 
     return {
       score: finalScore,
@@ -1302,7 +1384,8 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
         buildFallbackNewsOverallSummary(news),
       topics,
       articleCount: topics.length,
-      source: "OpenAI weighted top 3 news articles",
+      articles: news,
+      source: "OpenAI weighted top 3 Finnhub company-news articles",
       model: NEWS_SENTIMENT_MODEL,
     };
   } catch (error) {
@@ -1719,7 +1802,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     scoreInputNumber(extracted.freeCashFlow) !== null
       ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
       : null;
-  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol) : [];
+  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol, profile) : [];
   const newsSentiment = refreshNews
     ? await scoreNewsSentiment(cleanSymbol, profile, recentNews)
     : (cachedReport?.newsSentiment || fallbackNewsSentiment([]));
