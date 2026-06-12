@@ -8260,94 +8260,44 @@ className="chat-panel">
 }
 
 
-function EvalAiScoreSummaryCard({ summary }) {
-  const normalizePoint = (point, index, fallbackTitle) => {
-    if (typeof point === "string") {
-      return {
-        title: fallbackTitle || `Point ${index + 1}`,
-        explanation: point,
-        metrics: [],
-      };
-    }
-
-    return {
-      title: point?.title || fallbackTitle || `Point ${index + 1}`,
-      explanation: point?.explanation || point?.text || point?.why || "Explanation is being prepared.",
-      metrics: Array.isArray(point?.metrics) ? point.metrics.filter(Boolean).slice(0, 5) : [],
-    };
-  };
-
-  const supports = Array.isArray(summary?.supports) && summary.supports.length
-    ? summary.supports.map((point, index) => normalizePoint(point, index, "What supports the score"))
-    : Array.isArray(summary?.positives)
-      ? summary.positives.map((point, index) => normalizePoint(point, index, "What supports the score"))
-      : [];
-
-  const holdsBack = Array.isArray(summary?.holdsBack) && summary.holdsBack.length
-    ? summary.holdsBack.map((point, index) => normalizePoint(point, index, "What holds it back"))
-    : Array.isArray(summary?.concerns)
-      ? summary.concerns.map((point, index) => normalizePoint(point, index, "What holds it back"))
-      : [];
+function EvalAiScoreSummaryCard({ summary, ticker }) {
+  const symbol = String(ticker || summary?.symbol || "This stock").toUpperCase();
+  const prosSummary = String(
+    summary?.prosSummary ||
+    summary?.supportSummary ||
+    summary?.supports?.map((item) => item?.explanation || item?.text || item).filter(Boolean).join(" ") ||
+    "The strongest parts of this Eval report are being summarized."
+  ).trim();
+  const consSummary = String(
+    summary?.consSummary ||
+    summary?.holdbackSummary ||
+    summary?.holdsBack?.map((item) => item?.explanation || item?.text || item).filter(Boolean).join(" ") ||
+    "The main limits in this Eval report are being summarized."
+  ).trim();
 
   return (
-    <section className="ai-score-summary-card ai-score-summary-card-simple">
+    <section className="ai-score-summary-card ai-score-summary-card-simple ai-score-pros-cons-card">
       <div className="ai-score-glow" />
 
-      <div className="ai-score-summary-head simple">
-        <div className="section-title ai-score-title">
-          <BrainCircuit size={18} />
-          Score Breakdown
-          <small>Company-specific breakdown</small>
-        </div>
+      <div className="ai-score-two-column-grid ai-score-pros-cons-grid">
+        <article className="ai-score-long-summary ai-score-pros-panel">
+          <div className="ai-score-panel-kicker">
+            <span className="ai-score-panel-dot" />
+            PROS
+          </div>
+          <h3>{symbol} strengths</h3>
+          <p>{prosSummary}</p>
+        </article>
+
+        <article className="ai-score-long-summary ai-score-cons-panel">
+          <div className="ai-score-panel-kicker">
+            <span className="ai-score-panel-dot" />
+            CONS
+          </div>
+          <h3>{symbol} limitations</h3>
+          <p>{consSummary}</p>
+        </article>
       </div>
-
-      {summary?.summary && <p className="ai-score-body ai-score-body-large">{summary.summary}</p>}
-
-      <div className="ai-score-two-column-grid">
-        <div className="ai-score-points positive ai-score-point-section">
-          <span>What supports the score</span>
-          {supports.length > 0 ? (
-            supports.map((point, index) => (
-              <div className="ai-score-point-card" key={`support-${index}`}>
-                <h4>{point.title}</h4>
-                <p>{point.explanation}</p>
-                {point.metrics.length > 0 && (
-                  <div className="ai-score-metric-chips">
-                    {point.metrics.map((metric, metricIndex) => (
-                      <b key={`support-${index}-metric-${metricIndex}`}>{metric}</b>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>Open Score Breakdown again to regenerate the support points.</p>
-          )}
-        </div>
-
-        <div className="ai-score-points concern ai-score-point-section">
-          <span>What holds it back</span>
-          {holdsBack.length > 0 ? (
-            holdsBack.map((point, index) => (
-              <div className="ai-score-point-card" key={`holdback-${index}`}>
-                <h4>{point.title}</h4>
-                <p>{point.explanation}</p>
-                {point.metrics.length > 0 && (
-                  <div className="ai-score-metric-chips">
-                    {point.metrics.map((metric, metricIndex) => (
-                      <b key={`holdback-${index}-metric-${metricIndex}`}>{metric}</b>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>Open Score Breakdown again to regenerate the hold-back points.</p>
-          )}
-        </div>
-      </div>
-
-      {summary?.takeaway && <div className="ai-score-takeaway">{summary.takeaway}</div>}
     </section>
   );
 }
@@ -8754,7 +8704,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
           )}
 
           {scoreBreakdownSummary && (
-            <EvalAiScoreSummaryCard summary={scoreBreakdownSummary} />
+            <EvalAiScoreSummaryCard summary={scoreBreakdownSummary} ticker={data.symbol} />
           )}
         </section>
       )}
