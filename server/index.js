@@ -13,6 +13,245 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SCORE_BREAKDOWN_MODEL = process.env.OPENAI_SCORE_SUMMARY_MODEL || process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 const SCORE_BREAKDOWN_TIMEOUT_MS = Number(process.env.OPENAI_SCORE_SUMMARY_TIMEOUT_MS || 6000);
 
+const PORTFOLIO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const portfolioCache = new Map();
+
+const PORTFOLIO_UNIVERSE = {
+  "Technology": ["MSFT","ORCL","CRM","NOW","ADBE","INTU","IBM","ACN","PANW","CRWD"],
+  "Semiconductors": ["NVDA","AVGO","AMD","MU","QCOM","TXN","AMAT","LRCX","KLAC","ADI"],
+  "Communication Services": ["GOOGL","META","NFLX","TMUS","VZ","T","DIS","CHTR"],
+  "Consumer Discretionary": ["AMZN","TSLA","HD","LOW","MCD","SBUX","BKNG","TJX","NKE","ORLY"],
+  "Consumer Staples": ["WMT","COST","PG","KO","PEP","PM","MO","CL","MDLZ","KMB"],
+  "Financials": ["JPM","BAC","WFC","GS","MS","AXP","V","MA","BLK","SPGI"],
+  "Healthcare": ["LLY","UNH","JNJ","ABBV","MRK","TMO","ABT","ISRG","DHR","SYK"],
+  "Industrials": ["GE","CAT","DE","HON","RTX","LMT","ETN","PH","UNP","UPS"],
+  "Energy": ["XOM","CVX","COP","EOG","SLB","MPC","PSX","OXY"],
+  "Utilities": ["NEE","SO","DUK","AEP","SRE","EXC","XEL","D"],
+  "Real Estate": ["PLD","AMT","EQIX","WELL","O","SPG","DLR","PSA"],
+  "Materials": ["LIN","SHW","FCX","NEM","APD","ECL","NUE","VMC"]
+};
+
+function clampPortfolio(value, min, max) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : min;
+}
+
+function portfolioScore10(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return n <= 10 ? n : n / 10;
+}
+
+function portfolioFit(report, riskMode = "balanced") {
+  const categories = report?.grades?.categories || {};
+  const overall = portfolioScore10(report?.grades?.edgeScore);
+  if (overall === null) return null;
+  const c = (key) => portfolioScore10(categories?.[key]) ?? 5;
+  const beta = Number(report?.metrics?.beta?.value);
+  const riskPenalty = Number.isFinite(beta) ? Math.max(0, beta - 1) : 0;
+  const weights = riskMode === "growth"
+    ? { overall:.30, growth:.25, profitability:.14, financialHealth:.10, valuation:.06, momentum:.10, newsSentiment:.05, riskPenalty:.35 }
+    : riskMode === "conservative"
+      ? { overall:.32, growth:.10, profitability:.18, financialHealth:.22, valuation:.08, momentum:.03, newsSentiment:.03, riskPenalty:.75 }
+      : { overall:.35, growth:.18, profitability:.15, financialHealth:.14, valuation:.08, momentum:.05, newsSentiment:.05, riskPenalty:.50 };
+  const fit = overall*weights.overall + c("growth")*weights.growth + c("profitability")*weights.profitability +
+    c("financialHealth")*weights.financialHealth + c("valuation")*weights.valuation + c("momentum")*weights.momentum +
+    c("newsSentiment")*weights.newsSentiment - riskPenalty*weights.riskPenalty;
+  return Number(clampPortfolio(fit, 0, 10).toFixed(2));
+}
+
+function fallbackPortfolioCandidates(size = 25) {
+  const sectors = Object.entries(PORTFOLIO_UNIVERSE);
+  const target = Math.min(40, Math.max(size + 8, 30));
+  const chosen = [];
+  let round = 0;
+  while (chosen.length < target && round < 12) {
+    for (const [, tickers] of sectors) {
+      const ticker = tickers[round];
+      if (ticker && !chosen.includes(ticker)) chosen.push(ticker);
+      if (chosen.length >= target) break;
+    }
+    round += 1;
+  }
+  return chosen;
+}
+
+async function choosePortfolioCandidatesWithAi(size, riskMode) {
+  const fallback = fallbackPortfolioCandidates(size);
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return fallback;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: process.env.OPENAI_PORTFOLIO_MODEL || "gpt-4.1-nano",
+        response_format: { type: "json_object" },
+        temperature: 0.15,
+        max_tokens: 500,
+        messages: [
+          { role: "system", content: "Select a diversified candidate list only from the supplied ticker universe. Return JSON only as {\"tickers\":[...]}. Use 30-40 liquid companies across at least 9 industries. Do not invent tickers." },
+          { role: "user", content: JSON.stringify({ requestedHoldings:size, riskMode, universe:PORTFOLIO_UNIVERSE }) }
+        ]
+      })
+    });
+    if (!response.ok) throw new Error(`OpenAI candidate selection failed: ${response.status}`);
+    const payload = await response.json();
+    const parsed = JSON.parse(payload?.choices?.[0]?.message?.content || "{}");
+    const allowed = new Set(Object.values(PORTFOLIO_UNIVERSE).flat());
+    const tickers = Array.isArray(parsed?.tickers) ? parsed.tickers.map((x)=>String(x).toUpperCase()).filter((x)=>allowed.has(x)) : [];
+    const unique = [...new Set(tickers)];
+    return unique.length >= size ? unique.slice(0, 40) : fallback;
+  } catch (error) {
+    console.warn("Portfolio AI candidate selection fallback:", error?.message || error);
+    return fallback;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function run() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      try { results[index] = await worker(items[index], index); } catch { results[index] = null; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
+  return results;
+}
+
+function selectDiversifiedPortfolio(scored, size) {
+  const selected = [];
+  const sectorCounts = new Map();
+  const maxPerSector = Math.max(2, Math.ceil(size * 0.16));
+  for (const item of scored) {
+    const sector = item.sector || "Other";
+    if ((sectorCounts.get(sector) || 0) >= maxPerSector) continue;
+    selected.push(item);
+    sectorCounts.set(sector, (sectorCounts.get(sector) || 0) + 1);
+    if (selected.length >= size) break;
+  }
+  if (selected.length < size) {
+    for (const item of scored) {
+      if (selected.some((x)=>x.symbol===item.symbol)) continue;
+      selected.push(item);
+      if (selected.length >= size) break;
+    }
+  }
+  return selected;
+}
+
+function assignPortfolioWeights(items, riskMode) {
+  const maxWeight = riskMode === "growth" ? 0.06 : riskMode === "conservative" ? 0.05 : 0.055;
+  const minWeight = 0.02;
+  let weights = items.map((item) => Math.max(0.1, item.fitScore));
+  for (let pass=0; pass<8; pass++) {
+    const total = weights.reduce((a,b)=>a+b,0) || 1;
+    weights = weights.map((w)=>Math.min(maxWeight, Math.max(minWeight, w/total)));
+    const sum = weights.reduce((a,b)=>a+b,0);
+    const diff = 1-sum;
+    if (Math.abs(diff) < 0.0001) break;
+    const adjustable = weights.map((w,i)=>({w,i})).filter(({w})=>diff>0 ? w<maxWeight : w>minWeight);
+    if (!adjustable.length) break;
+    const add = diff/adjustable.length;
+    for (const {i} of adjustable) weights[i] = Math.min(maxWeight, Math.max(minWeight, weights[i]+add));
+  }
+  const sum = weights.reduce((a,b)=>a+b,0) || 1;
+  return items.map((item,i)=>({ ...item, weight: weights[i]/sum }));
+}
+
+async function fetchPortfolioHistory(symbol) {
+  const apiKey = process.env.MASSIVE_API_KEY;
+  if (!apiKey) return [];
+  const now = new Date();
+  const from = `${now.getUTCFullYear()}-01-01`;
+  const to = now.toISOString().slice(0,10);
+  const url = new URL(`https://api.massive.com/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/1/day/${from}/${to}`);
+  url.searchParams.set("adjusted", "true");
+  url.searchParams.set("sort", "asc");
+  url.searchParams.set("limit", "5000");
+  url.searchParams.set("apiKey", apiKey);
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 5000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return [];
+    const json = await response.json();
+    return (Array.isArray(json?.results) ? json.results : []).map((row)=>({ date:new Date(row.t).toISOString().slice(0,10), close:Number(row.c) })).filter((row)=>Number.isFinite(row.close));
+  } catch { return []; } finally { clearTimeout(timeout); }
+}
+
+function buildPortfolioHistory(holdings, histories, amount) {
+  const maps = new Map();
+  const allDates = new Set();
+  holdings.forEach((holding, index) => {
+    const rows = histories[index] || [];
+    const map = new Map(rows.map((r)=>[r.date,r.close]));
+    maps.set(holding.symbol, map);
+    rows.forEach((r)=>allDates.add(r.date));
+  });
+  const dates = [...allDates].sort();
+  const firstPrices = {};
+  for (const holding of holdings) {
+    const map = maps.get(holding.symbol);
+    const first = dates.find((date)=>Number.isFinite(map?.get(date)));
+    if (first) firstPrices[holding.symbol] = map.get(first);
+  }
+  const shares = {};
+  for (const holding of holdings) {
+    const first = firstPrices[holding.symbol];
+    if (Number.isFinite(first) && first > 0) shares[holding.symbol] = amount * holding.weight / first;
+  }
+  const last = {};
+  const series = [];
+  for (const date of dates) {
+    let value = 0;
+    let covered = 0;
+    for (const holding of holdings) {
+      const close = maps.get(holding.symbol)?.get(date);
+      if (Number.isFinite(close)) last[holding.symbol] = close;
+      if (Number.isFinite(last[holding.symbol]) && Number.isFinite(shares[holding.symbol])) {
+        value += shares[holding.symbol] * last[holding.symbol];
+        covered += holding.weight;
+      }
+    }
+    if (covered > 0.75) series.push({ date, value:Number(value.toFixed(2)) });
+  }
+  if (!series.length) return { series:[], currentValue:amount, ytdPercent:0 };
+  const startValue = series[0].value;
+  const currentValue = series[series.length-1].value;
+  return { series, currentValue, ytdPercent:Number((((currentValue-startValue)/startValue)*100).toFixed(2)) };
+}
+
+async function buildPortfolioExplanation(payload) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const fallback = `This model portfolio spreads capital across ${payload.industryCount} industries and emphasizes companies with stronger Eval profiles while limiting concentration in any one holding. The allocation combines growth-oriented businesses with profitable, financially healthier companies so the portfolio is not dependent on one theme. Historical YTD performance is a simulation based on the selected holdings and their assigned starting weights, not a guarantee of future results.`;
+  if (!apiKey) return fallback;
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 6000);
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${apiKey}`},
+      signal:controller.signal,
+      body:JSON.stringify({model:process.env.OPENAI_PORTFOLIO_MODEL||"gpt-4.1-nano",temperature:.2,max_tokens:500,messages:[
+        {role:"system",content:"Explain an educational model portfolio in clear language. Discuss diversification, growth drivers, risk controls, and major risks. Do not give personalized financial advice or promise returns."},
+        {role:"user",content:JSON.stringify(payload)}
+      ]})
+    });
+    if (!response.ok) return fallback;
+    const json=await response.json();
+    return String(json?.choices?.[0]?.message?.content||fallback).trim();
+  } catch { return fallback; } finally { clearTimeout(timeout); }
+}
+
+
 function safeNumberLocal(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
@@ -104,7 +343,7 @@ const SCORE_METRIC_LABELS_LOCAL = {
 
 function formatScoreMetricLocal(key, metric) {
   const value = metricValueLocal(metric);
-  if (value === null || value === 0) return null;
+  if (value === null) return null;
   const label = SCORE_METRIC_LABELS_LOCAL[key] || key;
   const unit = metric?.suffix || "";
   const digits = Math.abs(value) >= 100 ? 1 : Math.abs(value) >= 10 ? 1 : 2;
@@ -153,23 +392,6 @@ function buildMetricChipListLocal(metrics = {}, categories = {}, preferredKeys =
   return chosen.slice(0, limit);
 }
 
-function metricSentenceListLocal(metrics = [], preferredKeys = [], limit = 5) {
-  const byKey = new Map(metrics.map((metric) => [metric.key, metric]));
-  const chosen = [];
-
-  for (const key of preferredKeys) {
-    const metric = byKey.get(key);
-    if (metric && !chosen.some((item) => item.key === metric.key)) chosen.push(metric);
-  }
-
-  for (const metric of metrics) {
-    if (chosen.length >= limit) break;
-    if (!chosen.some((item) => item.key === metric.key)) chosen.push(metric);
-  }
-
-  return chosen.slice(0, limit).map((metric) => metric.text);
-}
-
 function fallbackAiScoreSummaryFromReport(report = {}) {
   const categories = report?.grades?.categories || {};
   const metrics = report?.metrics || {};
@@ -177,10 +399,9 @@ function fallbackAiScoreSummaryFromReport(report = {}) {
   const name = profile?.name || report?.symbol || "This company";
   const industry = profile?.finnhubIndustry || "its industry";
 
-  const usedMetrics = getUsedScoreMetricsLocal(metrics, categories);
   const categoryEntries = Object.entries(categories)
     .map(([key, value]) => ({ key, label: SCORE_CATEGORY_LABELS_LOCAL[key] || key, value: scoreValueLocal(value) }))
-    .filter((entry) => entry.value !== null && entry.value !== 0)
+    .filter((entry) => entry.value !== null)
     .sort((a, b) => b.value - a.value);
 
   const strongest = categoryEntries[0];
@@ -188,37 +409,50 @@ function fallbackAiScoreSummaryFromReport(report = {}) {
   const weakest = categoryEntries[categoryEntries.length - 1];
   const secondWeakest = categoryEntries[categoryEntries.length - 2];
 
-  const supportMetrics = metricSentenceListLocal(
-    usedMetrics,
-    ["roe", "netMargin", "operatingMargin", "revenueGrowth", "epsGrowth", "priceReturn13Week", "priceReturn52Week", "newsSentiment"],
-    6
-  );
+  const profitChips = buildMetricChipListLocal(metrics, categories, ["roe", "netMargin", "operatingMargin", "roa", "freeCashFlowPerShare"], 5);
+  const growthChips = buildMetricChipListLocal(metrics, categories, ["revenueGrowth", "revenueGrowth3Y", "epsGrowth", "epsGrowth3Y", "netIncomeGrowth3Y"], 5);
+  const valuationChips = buildMetricChipListLocal(metrics, categories, ["peRatio", "forwardPe", "priceToSales", "priceToBook", "pegRatio", "priceToFreeCashFlow"], 5);
+  const healthChips = buildMetricChipListLocal(metrics, categories, ["debtToEquity", "currentRatio", "quickRatio", "interestCoverage", "cashFlowToDebt"], 5);
+  const marketChips = buildMetricChipListLocal(metrics, categories, ["priceReturn13Week", "priceReturn52Week", "pullbackFromHigh", "beta", "newsSentiment"], 5);
 
-  const holdbackMetrics = metricSentenceListLocal(
-    usedMetrics,
-    ["peRatio", "forwardPe", "priceToSales", "priceToBook", "debtToEquity", "currentRatio", "pullbackFromHigh", "beta"],
-    6
-  );
+  const supportPoints = [];
+  const holdBackPoints = [];
 
-  const supportMetricText = supportMetrics.length ? supportMetrics.join(", ") : "the strongest category inputs in the report";
-  const holdbackMetricText = holdbackMetrics.length ? holdbackMetrics.join(", ") : "the weaker category inputs in the report";
+  supportPoints.push({
+    title: strongest ? `${strongest.label} is carrying the profile` : `${name}'s strongest inputs are supporting the profile`,
+    explanation: `${name} is being helped most by ${strongest ? strongest.label.toLowerCase() : "its strongest measurable areas"}${secondStrongest ? ` and ${secondStrongest.label.toLowerCase()}` : ""}. These areas show where the company is performing better relative to the rest of its report, whether that comes from growth, profitability, balance-sheet strength, valuation, momentum, pullback setup, or recent news. The metric chips below are the numbers Eval is using in the score calculation, so users can see the evidence behind the explanation.`,
+    metrics: [...profitChips, ...growthChips, ...marketChips].slice(0, 5),
+  });
 
-  const supportSummary = `${name}'s profile is supported most by ${strongest ? strongest.label.toLowerCase() : "its stronger calculation areas"}${secondStrongest ? ` and ${secondStrongest.label.toLowerCase()}` : ""}. For a ${industry} company, these areas matter because they show whether the business is expanding, converting sales into profit, staying financially flexible, and getting rewarded by the market. The key inputs behind the support side include ${supportMetricText}. Profitability inputs such as margins and ROE show how efficiently the company turns revenue and shareholder capital into earnings, while growth inputs show whether the business is still expanding instead of standing still. Market and news inputs help explain whether investors are currently confirming that business performance through price action and recent stock-specific headlines.`;
+  supportPoints.push({
+    title: `Business quality signals for ${name}`,
+    explanation: `Profitability metrics such as margins and returns show how efficiently ${name} turns sales and capital into profit. Growth metrics show whether the business is expanding or slowing, and momentum/news inputs show whether the market is currently rewarding or questioning that performance. Stronger readings in these used inputs give the report more support because they point to a business with more durable execution instead of a score based only on price movement.`,
+    metrics: [...profitChips, ...growthChips].slice(0, 5),
+  });
 
-  const holdbackSummary = `${name}'s profile is held back most by ${weakest ? weakest.label.toLowerCase() : "its weaker calculation areas"}${secondWeakest ? ` and ${secondWeakest.label.toLowerCase()}` : ""}. These areas matter because a strong company can still look less balanced if investors are paying a high price for earnings or sales, if debt/liquidity inputs reduce flexibility, or if recent price action is not confirming the business story. The key inputs behind the hold-back side include ${holdbackMetricText}. Valuation metrics such as P/E, price/sales, or price/book show how much the market is paying for the company's results, so expensive readings can limit the score even when the company is high quality. Financial-health and market metrics explain whether the company has enough balance-sheet strength and whether the stock has become stretched, weak, or volatile relative to the rest of the report.`;
+  holdBackPoints.push({
+    title: weakest ? `${weakest.label} is the main drag` : `${name}'s weaker inputs are limiting the profile`,
+    explanation: `${name} is being held back most by ${weakest ? weakest.label.toLowerCase() : "the weakest part of its report"}${secondWeakest ? ` and ${secondWeakest.label.toLowerCase()}` : ""}. This matters because the overall Eval view is built from several categories, so one weaker area can keep the stock from looking fully balanced even when other parts are strong. The metrics below are the specific inputs behind that drag, not extra unrelated data.`,
+    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
+  });
+
+  holdBackPoints.push({
+    title: `Where users should look closer`,
+    explanation: `Valuation metrics explain how much investors are paying for the company's earnings, sales, book value, or cash flow. Financial-health metrics show how much flexibility the company has through debt, liquidity, and coverage, while market metrics show whether the stock has already run hard or pulled back sharply. These inputs do not make an automatic buy or sell call; they explain why the score is not higher and what is keeping the report from looking cleaner.`,
+    metrics: [...valuationChips, ...healthChips, ...marketChips].slice(0, 5),
+  });
 
   return {
     source: "fallback score breakdown",
-    summary: `${name} is being explained through the strongest and weakest inputs in the Eval calculation, with the focus on what supports the profile and what keeps it from looking cleaner.`,
-    supportSummary,
-    holdbackSummary,
-    supports: [{ title: "What supports the score", explanation: supportSummary, metrics: [] }],
-    holdsBack: [{ title: "What holds it back", explanation: holdbackSummary, metrics: [] }],
-    positives: [supportSummary],
-    concerns: [holdbackSummary],
-    takeaway: "This is an educational explanation of the score drivers, not a buy or sell signal.",
+    summary: `${name} is a ${industry} company, and this breakdown connects the score to the actual calculation inputs instead of just repeating ratings. The main idea is to show which used metrics are supporting the company profile and which used metrics are holding it back.`,
+    supports: supportPoints.slice(0, 4),
+    holdsBack: holdBackPoints.slice(0, 4),
+    positives: supportPoints.map((point) => point.explanation),
+    concerns: holdBackPoints.map((point) => point.explanation),
+    takeaway: `Use this as a plain-English explanation of the score drivers. It is educational company research, not a buy or sell signal.`,
   };
 }
+
 function extractJsonObjectLocal(text = "") {
   const raw = String(text || "").trim();
   if (!raw) return null;
@@ -249,11 +483,10 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
     const metrics = report?.metrics || {};
     const news = report?.newsSentiment || {};
 
-    const usedMetrics = getUsedScoreMetricsLocal(metrics, categories).filter((metric) => metric.value !== null && metric.value !== 0);
-    const allowedMetricTexts = usedMetrics.map((metric) => metric.text);
+    const usedMetrics = getUsedScoreMetricsLocal(metrics, categories);
     const categoryScores = Object.entries(categories || {})
       .map(([key, value]) => ({ key, label: SCORE_CATEGORY_LABELS_LOCAL[key] || key, score: scoreValueLocal(value) }))
-      .filter((entry) => entry.score !== null && entry.score !== 0);
+      .filter((entry) => entry.score !== null);
 
     const payload = {
       symbol: report?.symbol,
@@ -268,7 +501,6 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
       },
       categoryScores,
       usedCalculationMetrics: usedMetrics,
-      allowedMetricTexts,
       strengths: report?.strengths || [],
       weaknesses: report?.weaknesses || [],
       newsSummary: news?.summary || news?.overallSummary || "",
@@ -290,28 +522,26 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
       body: JSON.stringify({
         model: SCORE_BREAKDOWN_MODEL,
         temperature: 0.35,
-        max_tokens: 850,
+        max_tokens: 900,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
             content:
-              "You write clean, company-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Never mention missing, unavailable, limited, inaccessible, provider, API, fallback, null, zero, or incomplete data. Only mention metric text that appears exactly in allowedMetricTexts. Do not create metric chips, bullet lists, or extra sections. The answer must be two long readable summaries: one pros/support summary and one cons/holdback summary. Explain what the key metrics mean inside the writing before explaining why they help or hurt this specific stock.",
+              "You write clear, company-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Do not hype the stock. Do not mention missing, unavailable, limited, or inaccessible data. Do not talk about metrics that are not included in usedCalculationMetrics. Do not create a newsConnection section. Every point must explain WHY the score is supported or held back using only actual calculation metrics from the payload, and explain what those metrics mean in plain English.",
           },
           {
             role: "user",
-            content: `Create a stock-specific, easy-to-read Score Breakdown for this Eval report. Required JSON keys only: summary string, supportSummary string, holdbackSummary string, takeaway string.
+            content: `Create a stock-specific, easy-to-read, comprehensive score breakdown for this Eval report. Required JSON keys: summary string, supports array, holdsBack array, takeaway string. The supports array and holdsBack array must each contain 3-5 objects with: title string, explanation string, metrics array of strings.
 
 Rules:
-- The final display is two long summaries, not metric bubbles or bullet chips.
-- supportSummary should be one clear paragraph of 7-10 sentences explaining the pros/support side.
-- holdbackSummary should be one clear paragraph of 7-10 sentences explaining the cons/holdback side.
-- ONLY mention exact metrics from allowedMetricTexts. Do not mention any metric value that is 0, null, missing, unavailable, or not listed.
-- Do not say "missing data", "limited data", "not available", "provider", "API", "fallback", "zero", "null", or anything that makes users think the report is incomplete.
-- Explain what each key metric means in simple terms inside the paragraph. Example: "P/E shows how much investors are paying for each dollar of earnings..."
-- Make it specific to this company and industry. Connect the business context and recent relevant news context only when it helps explain the calculation metrics.
-- Do not just say a category is good or bad. Explain why using exact metric values from allowedMetricTexts.
-- Do not repeat the overall Eval Score and do not give buy/sell/hold advice.
+- ONLY mention metrics listed in usedCalculationMetrics. Do not mention any unavailable or missing metric, provider, API, data gap, fallback, or limitation.
+- Do not repeat the overall Eval Score or use rating-only language. If you mention a category score, immediately explain why using exact metric values from usedCalculationMetrics.
+- Make it stock specific: connect the company's industry/business context and recent article context to the actual metrics, but do not create a separate news connection section.
+- Every explanation should be 3-5 short, readable sentences. Explain what the metric means first, then why it supports or holds back this specific company.
+- Metrics arrays should contain exact metric chips copied from usedCalculationMetrics.text, not invented metrics.
+- Keep wording confident and clean. Never say "data is unavailable", "limited data", "when available", "cannot get", or anything that makes the report look incomplete.
+- Do not give buy/sell/hold advice.
 
 Data: ${JSON.stringify(payload)}`,
           },
@@ -328,22 +558,20 @@ Data: ${JSON.stringify(payload)}`,
     const parsed = extractJsonObjectLocal(json?.choices?.[0]?.message?.content);
     if (!parsed || typeof parsed !== "object") return fallback;
 
-    const supportSummary = typeof parsed.supportSummary === "string" && parsed.supportSummary.trim()
-      ? parsed.supportSummary.trim()
-      : fallback.supportSummary;
-    const holdbackSummary = typeof parsed.holdbackSummary === "string" && parsed.holdbackSummary.trim()
-      ? parsed.holdbackSummary.trim()
-      : fallback.holdbackSummary;
+    const supports = Array.isArray(parsed.supports) && parsed.supports.length
+      ? parsed.supports.slice(0, 5)
+      : fallback.supports;
+    const holdsBack = Array.isArray(parsed.holdsBack) && parsed.holdsBack.length
+      ? parsed.holdsBack.slice(0, 5)
+      : fallback.holdsBack;
 
     return {
       source: "OpenAI score breakdown",
       summary: parsed.summary || fallback.summary,
-      supportSummary,
-      holdbackSummary,
-      supports: [{ title: "What supports the score", explanation: supportSummary, metrics: [] }],
-      holdsBack: [{ title: "What holds it back", explanation: holdbackSummary, metrics: [] }],
-      positives: [supportSummary],
-      concerns: [holdbackSummary],
+      supports,
+      holdsBack,
+      positives: supports.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
+      concerns: holdsBack.map((point) => typeof point === "string" ? point : point?.explanation).filter(Boolean),
       takeaway: parsed.takeaway || fallback.takeaway,
     };
   } catch (error) {
@@ -1222,7 +1450,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio-builder"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -1411,6 +1639,72 @@ app.get("/api/industry-top/:industry", async (req, res) => {
   }
 });
 
+
+
+
+app.post("/api/portfolio-builder", async (req, res) => {
+  try {
+    const amount = clampPortfolio(req.body?.amount, 100, 100000000);
+    const size = [20,25,30].includes(Number(req.body?.size)) ? Number(req.body.size) : 25;
+    const riskMode = ["conservative","balanced","growth"].includes(String(req.body?.riskMode)) ? String(req.body.riskMode) : "balanced";
+    const cacheKey = `${riskMode}:${size}:${Math.round(amount)}`;
+    const cached = portfolioCache.get(cacheKey);
+    if (cached && Date.now()-cached.savedAt < PORTFOLIO_CACHE_TTL_MS) return res.json({ ...cached.data, cache:{hit:true,ttlHours:24} });
+
+    const candidates = await choosePortfolioCandidatesWithAi(size, riskMode);
+    const reports = await mapWithConcurrency(candidates, 3, async (ticker) => {
+      const report = await getCachedAnalysis(ticker, { includeAiScoreSummary:false });
+      const fitScore = portfolioFit(report, riskMode);
+      if (fitScore === null) return null;
+      const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+      const price = Number(report?.quote?.c);
+      if (!Number.isFinite(price) || price <= 0) return null;
+      return {
+        symbol:ticker,
+        name:report?.profile?.name||ticker,
+        sector:report?.profile?.finnhubIndustry||"Other",
+        edgeScore:Number(edgeScore.toFixed(1)),
+        fitScore,
+        price,
+        riskLabel:report?.grades?.riskLabel||"N/A",
+        categories:report?.grades?.categories||{}
+      };
+    });
+    const ranked = reports.filter(Boolean).sort((a,b)=>b.fitScore-a.fitScore || b.edgeScore-a.edgeScore);
+    if (ranked.length < Math.min(12,size)) throw new Error("Not enough valid stock reports were available to build the portfolio.");
+    const selected = assignPortfolioWeights(selectDiversifiedPortfolio(ranked, Math.min(size, ranked.length)), riskMode);
+    const holdings = selected.map((item)=>({
+      ...item,
+      weightPercent:Number((item.weight*100).toFixed(2)),
+      allocation:Number((amount*item.weight).toFixed(2)),
+      shares:Number(((amount*item.weight)/item.price).toFixed(4))
+    }));
+    const histories = await mapWithConcurrency(holdings, 2, (holding)=>fetchPortfolioHistory(holding.symbol));
+    const historical = buildPortfolioHistory(holdings, histories, amount);
+    const industryCount = new Set(holdings.map((h)=>h.sector)).size;
+    const averageEvalScore = Number((holdings.reduce((sum,h)=>sum+h.edgeScore,0)/holdings.length).toFixed(1));
+    const allocationByIndustry = Object.entries(holdings.reduce((acc,h)=>{acc[h.sector]=(acc[h.sector]||0)+h.weightPercent;return acc;},{})).map(([industry,weight])=>({industry,weight:Number(weight.toFixed(2))})).sort((a,b)=>b.weight-a.weight);
+    const explanation = await buildPortfolioExplanation({riskMode,size:holdings.length,industryCount,averageEvalScore,ytdPercent:historical.ytdPercent,holdings:holdings.map(({symbol,name,sector,weightPercent,edgeScore,riskLabel})=>({symbol,name,sector,weightPercent,edgeScore,riskLabel}))});
+    const payload = {
+      amount,
+      requestedSize:size,
+      riskMode,
+      holdings,
+      summary:{startingValue:amount,currentHistoricalValue:historical.currentValue,ytdPercent:historical.ytdPercent,averageEvalScore,industryCount,holdingCount:holdings.length},
+      history:historical.series,
+      allocationByIndustry,
+      explanation,
+      generatedAt:new Date().toISOString(),
+      disclaimer:"Educational model portfolio only. Historical YTD performance is simulated and does not guarantee future results.",
+      cache:{hit:false,ttlHours:24}
+    };
+    portfolioCache.set(cacheKey,{savedAt:Date.now(),data:payload});
+    res.json(payload);
+  } catch (error) {
+    console.error("Portfolio builder failed:", error?.stack || error?.message || error);
+    res.status(500).json({error:error?.message||"Could not build the portfolio.",route:"api/portfolio-builder"});
+  }
+});
 
 app.post("/api/assistant", async (req, res) => {
   try {
