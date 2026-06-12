@@ -13,8 +13,21 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SCORE_BREAKDOWN_MODEL = process.env.OPENAI_SCORE_SUMMARY_MODEL || process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 const SCORE_BREAKDOWN_TIMEOUT_MS = Number(process.env.OPENAI_SCORE_SUMMARY_TIMEOUT_MS || 6000);
 
-const PORTFOLIO_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const PORTFOLIO_CACHE_TTL_MS = 15 * 60 * 1000;
+const OFFICIAL_PORTFOLIO_AMOUNT = 1_000_000;
+const OFFICIAL_PORTFOLIO_SIZE = 30;
+const OFFICIAL_PORTFOLIO_RISK_MODE = "balanced";
+const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";
 const portfolioCache = new Map();
+let officialPortfolioDefinition = null;
+const PORTFOLIO_MAX_ANALYSES_PER_BUILD = Math.max(
+  55,
+  Math.min(110, Number(process.env.PORTFOLIO_MAX_ANALYSES_PER_BUILD || 84))
+);
+const PORTFOLIO_ROTATION_DAYS = Math.max(
+  1,
+  Math.min(14, Number(process.env.PORTFOLIO_ROTATION_DAYS || 1))
+);
 
 const PORTFOLIO_UNIVERSE = {
   "Technology": ["MSFT","ORCL","CRM","NOW","ADBE","INTU","IBM","ACN","PANW","CRWD"],
@@ -126,25 +139,164 @@ async function mapWithConcurrency(items, limit, worker) {
   return results;
 }
 
-function selectDiversifiedPortfolio(scored, size) {
-  const selected = [];
-  const sectorCounts = new Map();
-  const maxPerSector = Math.max(2, Math.ceil(size * 0.16));
-  for (const item of scored) {
-    const sector = item.sector || "Other";
-    if ((sectorCounts.get(sector) || 0) >= maxPerSector) continue;
-    selected.push(item);
-    sectorCounts.set(sector, (sectorCounts.get(sector) || 0) + 1);
-    if (selected.length >= size) break;
+
+function stableTickerHash(value) {
+  let hash = 2166136261;
+  for (const char of String(value || "")) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
   }
+  return Math.abs(hash >>> 0);
+}
+
+function getExpandedPortfolioUniverse() {
+  const merged = new Map();
+  const add = (industry, tickers) => {
+    const label = String(industry || "Other");
+    if (!merged.has(label)) merged.set(label, []);
+    const current = merged.get(label);
+    for (const ticker of Array.isArray(tickers) ? tickers : []) {
+      const clean = cleanTicker(ticker);
+      if (clean && !current.includes(clean)) current.push(clean);
+    }
+  };
+
+  for (const [industry, tickers] of Object.entries(PORTFOLIO_UNIVERSE)) add(industry, tickers);
+  for (const [industry, tickers] of Object.entries(INDUSTRY_UNIVERSES)) add(industry, tickers);
+
+  return Object.fromEntries(
+    [...merged.entries()]
+      .filter(([, tickers]) => tickers.length >= 3)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+}
+
+function cachedPortfolioReport(ticker) {
+  const clean = cleanTicker(ticker);
+  const cached = analysisCache.get(clean);
+  if (!cached?.data) return null;
+  const plan = getRefreshPlan(cached.componentSavedAt || {});
+  return allComponentsFresh(plan) ? cached.data : null;
+}
+
+function choosePortfolioScreeningBatch({ size, riskMode }) {
+  const universe = getExpandedPortfolioUniverse();
+  const industryEntries = Object.entries(universe);
+  const dayBucket = Math.floor(Date.now() / (PORTFOLIO_ROTATION_DAYS * DAY_MS));
+  const seed = stableTickerHash(`${dayBucket}:${riskMode}:${size}`);
+
+  const cached = [];
+  const uncachedByIndustry = [];
+
+  for (const [industry, originalTickers] of industryEntries) {
+    const tickers = [...new Set(originalTickers)];
+    const freshCached = tickers.filter((ticker) => cachedPortfolioReport(ticker));
+    cached.push(...freshCached);
+
+    const uncached = tickers.filter((ticker) => !freshCached.includes(ticker));
+    if (!uncached.length) continue;
+
+    const offset = (seed + stableTickerHash(industry)) % uncached.length;
+    const rotated = [...uncached.slice(offset), ...uncached.slice(0, offset)];
+    uncachedByIndustry.push({ industry, tickers: rotated });
+  }
+
+  const selected = [...new Set(cached)];
+  let round = 0;
+  while (selected.length < PORTFOLIO_MAX_ANALYSES_PER_BUILD && round < 30) {
+    let added = false;
+    for (const group of uncachedByIndustry) {
+      const ticker = group.tickers[round];
+      if (ticker && !selected.includes(ticker)) {
+        selected.push(ticker);
+        added = true;
+      }
+      if (selected.length >= PORTFOLIO_MAX_ANALYSES_PER_BUILD) break;
+    }
+    if (!added) break;
+    round += 1;
+  }
+
+  return {
+    tickers: selected,
+    totalUniverseSize: new Set(Object.values(universe).flat()).size,
+    representedIndustries: industryEntries.length,
+    freshCachedCount: new Set(cached).size,
+    maxAnalyzedThisBuild: PORTFOLIO_MAX_ANALYSES_PER_BUILD,
+  };
+}
+
+function valuationScoreFromReport(report) {
+  return portfolioScore10(report?.grades?.categories?.valuation);
+}
+
+function selectIndustryLeaders(scored, size) {
+  const grouped = new Map();
+
+  for (const item of scored) {
+    const industry = item.sector || "Other";
+    if (!grouped.has(industry)) grouped.set(industry, []);
+    grouped.get(industry).push(item);
+  }
+
+  // First identify each industry's five strongest companies by overall Eval Score.
+  // Inside that elite five, prioritize the company with the strongest Valuation score.
+  const industryPools = [...grouped.entries()].map(([industry, items]) => {
+    const topFiveByEval = [...items]
+      .sort((a, b) => b.edgeScore - a.edgeScore || b.fitScore - a.fitScore)
+      .slice(0, 5)
+      .sort((a, b) =>
+        (b.valuationScore ?? -1) - (a.valuationScore ?? -1) ||
+        b.edgeScore - a.edgeScore ||
+        b.fitScore - a.fitScore
+      );
+    return { industry, candidates: topFiveByEval };
+  }).filter((pool) => pool.candidates.length);
+
+  // Industries with stronger top-five groups are considered first, while selection
+  // remains round-robin so the portfolio is genuinely diversified.
+  industryPools.sort((a, b) => {
+    const aBest = a.candidates[0];
+    const bBest = b.candidates[0];
+    return bBest.edgeScore - aBest.edgeScore ||
+      (bBest.valuationScore ?? -1) - (aBest.valuationScore ?? -1);
+  });
+
+  const selected = [];
+  const maxPerIndustry = Math.min(5, Math.max(2, Math.ceil(size * 0.15)));
+  let round = 0;
+
+  while (selected.length < size && round < 5) {
+    for (const pool of industryPools) {
+      if (selected.length >= size) break;
+      if (round >= maxPerIndustry) continue;
+      const candidate = pool.candidates[round];
+      if (candidate && !selected.some((item) => item.symbol === candidate.symbol)) {
+        selected.push(candidate);
+      }
+    }
+    round += 1;
+  }
+
+  // If the requested count is still not reached, fill only from the remaining
+  // industry top-five candidates, preserving valuation and Eval quality.
   if (selected.length < size) {
-    for (const item of scored) {
-      if (selected.some((x)=>x.symbol===item.symbol)) continue;
+    const remaining = industryPools
+      .flatMap((pool) => pool.candidates)
+      .filter((item) => !selected.some((chosen) => chosen.symbol === item.symbol))
+      .sort((a, b) =>
+        b.fitScore - a.fitScore ||
+        b.edgeScore - a.edgeScore ||
+        (b.valuationScore ?? -1) - (a.valuationScore ?? -1)
+      );
+
+    for (const item of remaining) {
       selected.push(item);
       if (selected.length >= size) break;
     }
   }
-  return selected;
+
+  return selected.slice(0, size);
 }
 
 function assignPortfolioWeights(items, riskMode) {
@@ -1450,7 +1602,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio-builder"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -1642,67 +1794,108 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
 
 
-app.post("/api/portfolio-builder", async (req, res) => {
+app.get("/api/portfolio", async (req, res) => {
   try {
-    const amount = clampPortfolio(req.body?.amount, 100, 100000000);
-    const size = [20,25,30].includes(Number(req.body?.size)) ? Number(req.body.size) : 25;
-    const riskMode = ["conservative","balanced","growth"].includes(String(req.body?.riskMode)) ? String(req.body.riskMode) : "balanced";
-    const cacheKey = `${riskMode}:${size}:${Math.round(amount)}`;
+    const forceRefresh = String(req.query?.refresh || "") === "1";
+    const cacheKey = `official:${OFFICIAL_PORTFOLIO_VERSION}`;
     const cached = portfolioCache.get(cacheKey);
-    if (cached && Date.now()-cached.savedAt < PORTFOLIO_CACHE_TTL_MS) return res.json({ ...cached.data, cache:{hit:true,ttlHours:24} });
+    if (!forceRefresh && cached && Date.now() - cached.savedAt < PORTFOLIO_CACHE_TTL_MS) {
+      return res.json({ ...cached.data, cache: { hit: true, ttlMinutes: 15 } });
+    }
 
-    const candidates = await choosePortfolioCandidatesWithAi(size, riskMode);
-    const reports = await mapWithConcurrency(candidates, 3, async (ticker) => {
-      const report = await getCachedAnalysis(ticker, { includeAiScoreSummary:false });
-      const fitScore = portfolioFit(report, riskMode);
-      if (fitScore === null) return null;
-      const edgeScore = portfolioScore10(report?.grades?.edgeScore);
-      const price = Number(report?.quote?.c);
-      if (!Number.isFinite(price) || price <= 0) return null;
+    if (!officialPortfolioDefinition) {
+      const screening = choosePortfolioScreeningBatch({ size: OFFICIAL_PORTFOLIO_SIZE, riskMode: OFFICIAL_PORTFOLIO_RISK_MODE });
+      const reports = await mapWithConcurrency(screening.tickers, 2, async (ticker) => {
+        const report = await getCachedAnalysis(ticker, { includeAiScoreSummary: false });
+        const fitScore = portfolioFit(report, OFFICIAL_PORTFOLIO_RISK_MODE);
+        const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+        const valuationScore = valuationScoreFromReport(report);
+        const price = Number(report?.quote?.c);
+        if (fitScore === null || edgeScore === null || edgeScore < 6.0) return null;
+        if (!Number.isFinite(price) || price <= 0) return null;
+        return {
+          symbol: ticker,
+          name: report?.profile?.name || ticker,
+          sector: report?.profile?.finnhubIndustry || "Other",
+          edgeScore: Number(edgeScore.toFixed(1)),
+          valuationScore: valuationScore === null ? null : Number(valuationScore.toFixed(1)),
+          fitScore,
+          price,
+          riskLabel: report?.grades?.riskLabel || "N/A",
+          categories: report?.grades?.categories || {},
+        };
+      });
+
+      const ranked = reports.filter(Boolean).sort((a, b) => b.edgeScore - a.edgeScore || b.fitScore - a.fitScore);
+      if (ranked.length < OFFICIAL_PORTFOLIO_SIZE) {
+        throw new Error(`Only ${ranked.length} qualifying stocks are currently available for the official Eval Portfolio.`);
+      }
+      const industrySelected = selectIndustryLeaders(ranked, OFFICIAL_PORTFOLIO_SIZE);
+      if (industrySelected.length < OFFICIAL_PORTFOLIO_SIZE) {
+        throw new Error("Not enough qualifying diversified industry leaders are available for the official Eval Portfolio.");
+      }
+      officialPortfolioDefinition = assignPortfolioWeights(industrySelected, OFFICIAL_PORTFOLIO_RISK_MODE).map((item) => ({ ...item }));
+    }
+
+    const holdingsBase = officialPortfolioDefinition;
+    const histories = await mapWithConcurrency(holdingsBase, 2, (holding) => fetchPortfolioHistory(holding.symbol));
+    const historical = buildPortfolioHistory(holdingsBase, histories, OFFICIAL_PORTFOLIO_AMOUNT);
+
+    const holdings = holdingsBase.map((item, index) => {
+      const firstPrice = histories[index]?.find((row) => Number.isFinite(row?.close))?.close;
+      const allocation = OFFICIAL_PORTFOLIO_AMOUNT * item.weight;
+      const shares = Number.isFinite(firstPrice) && firstPrice > 0 ? allocation / firstPrice : allocation / item.price;
       return {
-        symbol:ticker,
-        name:report?.profile?.name||ticker,
-        sector:report?.profile?.finnhubIndustry||"Other",
-        edgeScore:Number(edgeScore.toFixed(1)),
-        fitScore,
-        price,
-        riskLabel:report?.grades?.riskLabel||"N/A",
-        categories:report?.grades?.categories||{}
+        ...item,
+        weightPercent: Number((item.weight * 100).toFixed(2)),
+        allocation: Number(allocation.toFixed(2)),
+        shares: Number(shares.toFixed(4)),
       };
     });
-    const ranked = reports.filter(Boolean).sort((a,b)=>b.fitScore-a.fitScore || b.edgeScore-a.edgeScore);
-    if (ranked.length < Math.min(12,size)) throw new Error("Not enough valid stock reports were available to build the portfolio.");
-    const selected = assignPortfolioWeights(selectDiversifiedPortfolio(ranked, Math.min(size, ranked.length)), riskMode);
-    const holdings = selected.map((item)=>({
-      ...item,
-      weightPercent:Number((item.weight*100).toFixed(2)),
-      allocation:Number((amount*item.weight).toFixed(2)),
-      shares:Number(((amount*item.weight)/item.price).toFixed(4))
-    }));
-    const histories = await mapWithConcurrency(holdings, 2, (holding)=>fetchPortfolioHistory(holding.symbol));
-    const historical = buildPortfolioHistory(holdings, histories, amount);
-    const industryCount = new Set(holdings.map((h)=>h.sector)).size;
-    const averageEvalScore = Number((holdings.reduce((sum,h)=>sum+h.edgeScore,0)/holdings.length).toFixed(1));
-    const allocationByIndustry = Object.entries(holdings.reduce((acc,h)=>{acc[h.sector]=(acc[h.sector]||0)+h.weightPercent;return acc;},{})).map(([industry,weight])=>({industry,weight:Number(weight.toFixed(2))})).sort((a,b)=>b.weight-a.weight);
-    const explanation = await buildPortfolioExplanation({riskMode,size:holdings.length,industryCount,averageEvalScore,ytdPercent:historical.ytdPercent,holdings:holdings.map(({symbol,name,sector,weightPercent,edgeScore,riskLabel})=>({symbol,name,sector,weightPercent,edgeScore,riskLabel}))});
+
+    const industryCount = new Set(holdings.map((h) => h.sector)).size;
+    const averageEvalScore = Number((holdings.reduce((sum, h) => sum + h.edgeScore, 0) / holdings.length).toFixed(1));
+    const allocationByIndustry = Object.entries(holdings.reduce((acc, h) => {
+      acc[h.sector] = (acc[h.sector] || 0) + h.weightPercent;
+      return acc;
+    }, {})).map(([industry, weight]) => ({ industry, weight: Number(weight.toFixed(2)) })).sort((a, b) => b.weight - a.weight);
+
+    const explanation = await buildPortfolioExplanation({
+      riskMode: OFFICIAL_PORTFOLIO_RISK_MODE,
+      size: holdings.length,
+      industryCount,
+      averageEvalScore,
+      ytdPercent: historical.ytdPercent,
+      holdings: holdings.map(({ symbol, name, sector, weightPercent, edgeScore, riskLabel }) => ({ symbol, name, sector, weightPercent, edgeScore, riskLabel })),
+    });
+
     const payload = {
-      amount,
-      requestedSize:size,
-      riskMode,
+      portfolioName: "Eval Portfolio",
+      portfolioVersion: OFFICIAL_PORTFOLIO_VERSION,
+      amount: OFFICIAL_PORTFOLIO_AMOUNT,
+      riskMode: OFFICIAL_PORTFOLIO_RISK_MODE,
       holdings,
-      summary:{startingValue:amount,currentHistoricalValue:historical.currentValue,ytdPercent:historical.ytdPercent,averageEvalScore,industryCount,holdingCount:holdings.length},
-      history:historical.series,
+      summary: {
+        startingValue: OFFICIAL_PORTFOLIO_AMOUNT,
+        currentHistoricalValue: historical.currentValue,
+        ytdPercent: historical.ytdPercent,
+        averageEvalScore,
+        industryCount,
+        holdingCount: holdings.length,
+      },
+      history: historical.series,
       allocationByIndustry,
       explanation,
-      generatedAt:new Date().toISOString(),
-      disclaimer:"Educational model portfolio only. Historical YTD performance is simulated and does not guarantee future results.",
-      cache:{hit:false,ttlHours:24}
+      generatedAt: new Date().toISOString(),
+      disclaimer: "Educational model portfolio only. Historical YTD performance is simulated and does not guarantee future results. Eval does not provide personalized investment advice.",
+      cache: { hit: false, ttlMinutes: 15 },
     };
-    portfolioCache.set(cacheKey,{savedAt:Date.now(),data:payload});
+
+    portfolioCache.set(cacheKey, { savedAt: Date.now(), data: payload });
     res.json(payload);
   } catch (error) {
-    console.error("Portfolio builder failed:", error?.stack || error?.message || error);
-    res.status(500).json({error:error?.message||"Could not build the portfolio.",route:"api/portfolio-builder"});
+    console.error("Official portfolio route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not load the Eval Portfolio.", route: "api/portfolio" });
   }
 });
 
