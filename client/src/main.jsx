@@ -8112,90 +8112,42 @@ className="chat-panel">
 
 
 function EvalAiScoreSummaryCard({ summary }) {
-  const normalizePoint = (point, index, fallbackTitle) => {
-    if (typeof point === "string") {
-      return {
-        title: fallbackTitle || `Point ${index + 1}`,
-        explanation: point,
-        metrics: [],
-      };
-    }
+  const supportSummary =
+    summary?.supportSummary ||
+    summary?.supports?.[0]?.explanation ||
+    summary?.positives?.[0] ||
+    "Score support summary is being prepared.";
 
-    return {
-      title: point?.title || fallbackTitle || `Point ${index + 1}`,
-      explanation: point?.explanation || point?.text || point?.why || "Explanation is being prepared.",
-      metrics: Array.isArray(point?.metrics) ? point.metrics.filter(Boolean).slice(0, 5) : [],
-    };
-  };
-
-  const supports = Array.isArray(summary?.supports) && summary.supports.length
-    ? summary.supports.map((point, index) => normalizePoint(point, index, "What supports the score"))
-    : Array.isArray(summary?.positives)
-      ? summary.positives.map((point, index) => normalizePoint(point, index, "What supports the score"))
-      : [];
-
-  const holdsBack = Array.isArray(summary?.holdsBack) && summary.holdsBack.length
-    ? summary.holdsBack.map((point, index) => normalizePoint(point, index, "What holds it back"))
-    : Array.isArray(summary?.concerns)
-      ? summary.concerns.map((point, index) => normalizePoint(point, index, "What holds it back"))
-      : [];
+  const holdbackSummary =
+    summary?.holdbackSummary ||
+    summary?.holdsBack?.[0]?.explanation ||
+    summary?.concerns?.[0] ||
+    "Score hold-back summary is being prepared.";
 
   return (
-    <section className="ai-score-summary-card ai-score-summary-card-simple">
+    <section className="ai-score-summary-card ai-score-summary-card-simple ai-score-summary-pro-con">
       <div className="ai-score-glow" />
 
       <div className="ai-score-summary-head simple">
         <div className="section-title ai-score-title">
           <BrainCircuit size={18} />
           Score Breakdown
-          <small>Company-specific breakdown</small>
+          <small>Company-specific pros and cons</small>
         </div>
       </div>
 
       {summary?.summary && <p className="ai-score-body ai-score-body-large">{summary.summary}</p>}
 
-      <div className="ai-score-two-column-grid">
-        <div className="ai-score-points positive ai-score-point-section">
+      <div className="ai-score-two-column-grid ai-score-pro-con-grid">
+        <article className="ai-score-pro-con-panel pro">
           <span>What supports the score</span>
-          {supports.length > 0 ? (
-            supports.map((point, index) => (
-              <div className="ai-score-point-card" key={`support-${index}`}>
-                <h4>{point.title}</h4>
-                <p>{point.explanation}</p>
-                {point.metrics.length > 0 && (
-                  <div className="ai-score-metric-chips">
-                    {point.metrics.map((metric, metricIndex) => (
-                      <b key={`support-${index}-metric-${metricIndex}`}>{metric}</b>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>Open Score Breakdown again to regenerate the support points.</p>
-          )}
-        </div>
+          <p>{supportSummary}</p>
+        </article>
 
-        <div className="ai-score-points concern ai-score-point-section">
+        <article className="ai-score-pro-con-panel con">
           <span>What holds it back</span>
-          {holdsBack.length > 0 ? (
-            holdsBack.map((point, index) => (
-              <div className="ai-score-point-card" key={`holdback-${index}`}>
-                <h4>{point.title}</h4>
-                <p>{point.explanation}</p>
-                {point.metrics.length > 0 && (
-                  <div className="ai-score-metric-chips">
-                    {point.metrics.map((metric, metricIndex) => (
-                      <b key={`holdback-${index}-metric-${metricIndex}`}>{metric}</b>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>Open Score Breakdown again to regenerate the hold-back points.</p>
-          )}
-        </div>
+          <p>{holdbackSummary}</p>
+        </article>
       </div>
 
       {summary?.takeaway && <div className="ai-score-takeaway">{summary.takeaway}</div>}
