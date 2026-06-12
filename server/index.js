@@ -564,9 +564,9 @@ function fallbackAiScoreSummaryFromReport(report = {}) {
   const firstHalf = metricText.slice(0, 4).join(", ");
   const secondHalf = metricText.slice(4, 8).join(", ");
 
-  const prosSummary = `${symbol} is supported most by ${strongest.join(" and ") || "its strongest operating categories"}. ${firstHalf ? `Key calculation inputs include ${firstHalf}. ` : ""}These figures matter because they show how effectively the business is growing, producing profit, maintaining financial stability, or receiving support from recent market performance. Together, the stronger inputs explain why ${symbol} earns support in the Eval model without relying on any zero-value metric.`;
+  const prosSummary = `${symbol} is supported most by ${strongest.join(" and ") || "its strongest operating categories"}. ${firstHalf ? `Key calculation inputs include ${firstHalf}. ` : ""}These figures matter because they show how effectively the business is growing, producing profit, maintaining financial stability, or receiving support from recent market performance. Together, the stronger inputs explain why ${symbol} receives support in the Eval model.`;
 
-  const consSummary = `${symbol} is held back most by ${weakest.join(" and ") || "its weaker scoring categories"}. ${secondHalf ? `The main calculation inputs to watch are ${secondHalf}. ` : ""}These measures matter because they show where valuation, balance-sheet flexibility, growth consistency, or market strength may be less favorable than the rest of the report. Those weaker inputs keep the overall profile from looking more complete, while avoiding any metric with a value of zero.`;
+  const consSummary = `${symbol} is held back most by ${weakest.join(" and ") || "its weaker scoring categories"}. ${secondHalf ? `The main calculation inputs to watch are ${secondHalf}. ` : ""}These measures matter because they show where valuation, balance-sheet flexibility, growth consistency, or market strength may be less favorable than the rest of the report. Those weaker inputs keep the overall profile from looking stronger.`;
 
   return {
     source: "fallback score breakdown",
@@ -653,7 +653,7 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
           {
             role: "system",
             content:
-              "You write clear, ticker-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Use the ticker symbol instead of the company name. Never mention missing data, unavailable data, providers, APIs, fallbacks, limitations in data access, or any metric with a numeric value of 0. Only use metrics included in usedCalculationMetrics. Explain each key metric naturally inside the prose and state what it means for this specific stock.",
+              "You write clear, ticker-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Use the ticker symbol instead of the company name. Never mention missing data, unavailable data, providers, APIs, fallbacks, limitations in data access, filtering, excluded metrics, or the number zero. Silently ignore metrics that are not supplied. Only use metrics included in usedCalculationMetrics. Explain each key metric naturally inside the prose and state what it means for this specific stock.",
           },
           {
             role: "user",
@@ -664,11 +664,11 @@ Rules:
 - Each summary should be one substantial, easy-to-read paragraph of about 5-8 sentences.
 - The Pros paragraph must explain the strongest parts of the stock's Eval calculation.
 - The Cons paragraph must explain the weakest parts of the stock's Eval calculation.
-- Mention several important calculation metrics directly inside each paragraph, including their exact non-zero values, and explain in plain English what each metric means and why it helps or hurts ${report?.symbol}.
-- ONLY use metrics in usedCalculationMetrics, and completely ignore every metric whose value is 0, null, missing, non-numeric, or unavailable.
+- Mention several important calculation metrics directly inside each paragraph, including their exact values, and explain in plain English what each metric means and why it helps or hurts ${report?.symbol}.
+- ONLY use metrics in usedCalculationMetrics. Silently ignore anything else without discussing why it was omitted.
 - Do not create bullet points, arrays, metric chips, headings, a takeaway, a news section, or a separate overall summary.
-- Do not mention the company name, missing data, data quality, providers, APIs, fallbacks, or incomplete coverage.
-- Do not repeat category ratings unless you immediately explain them with exact non-zero metric values.
+- Do not mention the company name, missing data, data quality, providers, APIs, fallbacks, incomplete coverage, excluded metrics, filtering, or zero values.
+- Do not repeat category ratings unless you immediately explain them with exact metric values.
 - Do not give buy/sell/hold advice.
 
 Data: ${JSON.stringify(payload)}`,
@@ -1765,107 +1765,129 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
 
 
+function cachedStockRows() {
+  return [...analysisCache.entries()]
+    .map(([symbol, cached]) => {
+      const report = cached?.data;
+      const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+      if (!report || edgeScore === null) return null;
+      const categories = report?.grades?.categories || {};
+      const category = (key) => portfolioScore10(categories?.[key]);
+      return {
+        symbol,
+        name: report?.profile?.name || symbol,
+        industry: report?.profile?.finnhubIndustry || "Other",
+        edgeScore: Number(edgeScore.toFixed(1)),
+        growth: category("growth"),
+        valuation: category("valuation"),
+        momentum: category("momentum"),
+        profitability: category("profitability"),
+        financialHealth: category("financialHealth"),
+        newsSentiment: category("newsSentiment"),
+        riskLabel: report?.grades?.riskLabel || "N/A",
+        cachedAt: cached?.savedAt || null,
+        aiContext: [
+          report?.profile?.name,
+          report?.profile?.finnhubIndustry,
+          report?.companyDescription,
+          report?.evaluationSummary,
+          report?.newsSentiment?.summary,
+        ].filter(Boolean).join(" "),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.edgeScore - a.edgeScore || a.symbol.localeCompare(b.symbol));
+}
+
+function cachedAiIntegrationScore(stock) {
+  const text = String(stock?.aiContext || "").toLowerCase();
+  const strongAiTickers = new Set(["NVDA","MSFT","GOOGL","META","AMZN","AVGO","AMD","MU","ORCL","CRM","NOW","ADBE","IBM","ACN","PLTR","CRWD","PANW"]);
+  const terms = ["artificial intelligence"," ai ","machine learning","generative ai","data center","accelerator","gpu","cloud ai","copilot","automation","analytics","semiconductor"];
+  let score = strongAiTickers.has(stock?.symbol) ? 8 : 4.5;
+  score += terms.reduce((sum, term) => sum + (text.includes(term) ? 0.45 : 0), 0);
+  return Number(Math.min(10, score).toFixed(1));
+}
+
+function cachedPortfolioFit(stock) {
+  const value = (key, fallback = 5) => {
+    const n = Number(stock?.[key]);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+  const aiIntegration = cachedAiIntegrationScore(stock);
+  const fit =
+    value("edgeScore") * 0.28 +
+    aiIntegration * 0.22 +
+    value("growth") * 0.20 +
+    value("valuation") * 0.16 +
+    value("momentum") * 0.14;
+  return { aiIntegration, fitScore: Number(fit.toFixed(2)) };
+}
+
+function selectCachedPortfolio(stocks, target = 20) {
+  const qualified = stocks
+    .filter((stock) => Number(stock.edgeScore) >= 6)
+    .map((stock) => ({ ...stock, ...cachedPortfolioFit(stock) }))
+    .sort((a, b) => b.fitScore - a.fitScore || b.edgeScore - a.edgeScore);
+
+  const selected = [];
+  const industryCounts = new Map();
+  const maxPerIndustry = 3;
+
+  for (const stock of qualified) {
+    const count = industryCounts.get(stock.industry) || 0;
+    if (count >= maxPerIndustry) continue;
+    selected.push(stock);
+    industryCounts.set(stock.industry, count + 1);
+    if (selected.length >= target) break;
+  }
+
+  if (selected.length < target) {
+    for (const stock of qualified) {
+      if (selected.some((item) => item.symbol === stock.symbol)) continue;
+      selected.push(stock);
+      if (selected.length >= target) break;
+    }
+  }
+
+  const rawTotal = selected.reduce((sum, stock) => sum + stock.fitScore, 0) || 1;
+  return selected.map((stock) => ({
+    ...stock,
+    weightPercent: Number(((stock.fitScore / rawTotal) * 100).toFixed(2)),
+  }));
+}
+
 app.get("/api/portfolio", async (req, res) => {
   try {
-    const forceRefresh = String(req.query?.refresh || "") === "1";
-    const cacheKey = `official:${OFFICIAL_PORTFOLIO_VERSION}`;
-    const cached = portfolioCache.get(cacheKey);
-    if (!forceRefresh && cached && Date.now() - cached.savedAt < PORTFOLIO_CACHE_TTL_MS) {
-      return res.json({ ...cached.data, cache: { hit: true, ttlMinutes: 15 } });
+    const suppliedPassword = String(req.headers["x-eval-portfolio-password"] || req.query?.password || "");
+    const requiredPassword = String(process.env.EVAL_PORTFOLIO_PASSWORD || "111805");
+    if (suppliedPassword !== requiredPassword) {
+      return res.status(401).json({ error: "Incorrect portfolio password.", route: "api/portfolio" });
     }
 
-    if (!officialPortfolioDefinition) {
-      const screening = choosePortfolioScreeningBatch({ size: OFFICIAL_PORTFOLIO_SIZE, riskMode: OFFICIAL_PORTFOLIO_RISK_MODE });
-      const reports = await mapWithConcurrency(screening.tickers, 2, async (ticker) => {
-        const report = await getCachedAnalysis(ticker, { includeAiScoreSummary: false });
-        const fitScore = portfolioFit(report, OFFICIAL_PORTFOLIO_RISK_MODE);
-        const edgeScore = portfolioScore10(report?.grades?.edgeScore);
-        const valuationScore = valuationScoreFromReport(report);
-        const price = Number(report?.quote?.c);
-        if (fitScore === null || edgeScore === null || edgeScore < 6.0) return null;
-        if (!Number.isFinite(price) || price <= 0) return null;
-        return {
-          symbol: ticker,
-          name: report?.profile?.name || ticker,
-          sector: report?.profile?.finnhubIndustry || "Other",
-          edgeScore: Number(edgeScore.toFixed(1)),
-          valuationScore: valuationScore === null ? null : Number(valuationScore.toFixed(1)),
-          fitScore,
-          price,
-          riskLabel: report?.grades?.riskLabel || "N/A",
-          categories: report?.grades?.categories || {},
-        };
-      });
+    const cachedStocks = cachedStockRows();
+    const holdings = selectCachedPortfolio(cachedStocks, 20);
+    const industryCount = new Set(holdings.map((stock) => stock.industry)).size;
+    const averageEvalScore = holdings.length
+      ? Number((holdings.reduce((sum, stock) => sum + stock.edgeScore, 0) / holdings.length).toFixed(1))
+      : null;
 
-      const ranked = reports.filter(Boolean).sort((a, b) => b.edgeScore - a.edgeScore || b.fitScore - a.fitScore);
-      if (ranked.length < OFFICIAL_PORTFOLIO_SIZE) {
-        throw new Error(`Only ${ranked.length} qualifying stocks are currently available for the official Eval Portfolio.`);
-      }
-      const industrySelected = selectIndustryLeaders(ranked, OFFICIAL_PORTFOLIO_SIZE);
-      if (industrySelected.length < OFFICIAL_PORTFOLIO_SIZE) {
-        throw new Error("Not enough qualifying diversified industry leaders are available for the official Eval Portfolio.");
-      }
-      officialPortfolioDefinition = assignPortfolioWeights(industrySelected, OFFICIAL_PORTFOLIO_RISK_MODE).map((item) => ({ ...item }));
-    }
-
-    const holdingsBase = officialPortfolioDefinition;
-    const histories = await mapWithConcurrency(holdingsBase, 2, (holding) => fetchPortfolioHistory(holding.symbol));
-    const historical = buildPortfolioHistory(holdingsBase, histories, OFFICIAL_PORTFOLIO_AMOUNT);
-
-    const holdings = holdingsBase.map((item, index) => {
-      const firstPrice = histories[index]?.find((row) => Number.isFinite(row?.close))?.close;
-      const allocation = OFFICIAL_PORTFOLIO_AMOUNT * item.weight;
-      const shares = Number.isFinite(firstPrice) && firstPrice > 0 ? allocation / firstPrice : allocation / item.price;
-      return {
-        ...item,
-        weightPercent: Number((item.weight * 100).toFixed(2)),
-        allocation: Number(allocation.toFixed(2)),
-        shares: Number(shares.toFixed(4)),
-      };
-    });
-
-    const industryCount = new Set(holdings.map((h) => h.sector)).size;
-    const averageEvalScore = Number((holdings.reduce((sum, h) => sum + h.edgeScore, 0) / holdings.length).toFixed(1));
-    const allocationByIndustry = Object.entries(holdings.reduce((acc, h) => {
-      acc[h.sector] = (acc[h.sector] || 0) + h.weightPercent;
-      return acc;
-    }, {})).map(([industry, weight]) => ({ industry, weight: Number(weight.toFixed(2)) })).sort((a, b) => b.weight - a.weight);
-
-    const explanation = await buildPortfolioExplanation({
-      riskMode: OFFICIAL_PORTFOLIO_RISK_MODE,
-      size: holdings.length,
-      industryCount,
-      averageEvalScore,
-      ytdPercent: historical.ytdPercent,
-      holdings: holdings.map(({ symbol, name, sector, weightPercent, edgeScore, riskLabel }) => ({ symbol, name, sector, weightPercent, edgeScore, riskLabel })),
-    });
-
-    const payload = {
+    res.json({
       portfolioName: "Eval Portfolio",
-      portfolioVersion: OFFICIAL_PORTFOLIO_VERSION,
-      amount: OFFICIAL_PORTFOLIO_AMOUNT,
-      riskMode: OFFICIAL_PORTFOLIO_RISK_MODE,
-      holdings,
+      methodology: "Ranks the current cached stock library using Eval Score, AI integration, Growth, Valuation, and Momentum, then applies industry limits to create a diversified 20-stock model portfolio.",
+      cachedStocks: cachedStocks.map(({ aiContext, ...stock }) => stock),
+      holdings: holdings.map(({ aiContext, ...stock }) => stock),
       summary: {
-        startingValue: OFFICIAL_PORTFOLIO_AMOUNT,
-        currentHistoricalValue: historical.currentValue,
-        ytdPercent: historical.ytdPercent,
-        averageEvalScore,
-        industryCount,
+        cachedStockCount: cachedStocks.length,
+        qualifyingStockCount: cachedStocks.filter((stock) => Number(stock.edgeScore) >= 6).length,
         holdingCount: holdings.length,
+        industryCount,
+        averageEvalScore,
       },
-      history: historical.series,
-      allocationByIndustry,
-      explanation,
       generatedAt: new Date().toISOString(),
-      disclaimer: "Educational model portfolio only. Historical YTD performance is simulated and does not guarantee future results. Eval does not provide personalized investment advice.",
-      cache: { hit: false, ttlMinutes: 15 },
-    };
-
-    portfolioCache.set(cacheKey, { savedAt: Date.now(), data: payload });
-    res.json(payload);
+      disclaimer: "Educational model portfolio only. It is generated from stocks currently cached by Eval and is not personalized investment advice.",
+    });
   } catch (error) {
-    console.error("Official portfolio route failed:", error?.stack || error?.message || error);
+    console.error("Cached portfolio route failed:", error?.stack || error?.message || error);
     res.status(500).json({ error: error?.message || "Could not load the Eval Portfolio.", route: "api/portfolio" });
   }
 });
