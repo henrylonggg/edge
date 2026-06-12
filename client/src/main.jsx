@@ -1728,24 +1728,33 @@ function PortfolioValueChart({ points = [] }) {
 }
 
 function PortfolioPage({ onBack, onAnalyze }) {
+  const [password, setPassword] = useState(() => sessionStorage.getItem("eval-portfolio-access") || "");
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem("eval-portfolio-access") === "111805");
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function loadPortfolio(force = false) {
+  async function loadPortfolio(accessCode = password) {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API}/api/portfolio${force ? "?refresh=1" : ""}`, {
+      const response = await fetch(`${API}/api/portfolio`, {
         method: "GET",
         mode: "cors",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          "x-eval-portfolio-password": accessCode,
+        },
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not load the Eval Portfolio.");
+      sessionStorage.setItem("eval-portfolio-access", accessCode);
+      setUnlocked(true);
       setResult(json);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
+      setUnlocked(false);
+      sessionStorage.removeItem("eval-portfolio-access");
       setError(err?.message || "Could not load the Eval Portfolio.");
     } finally {
       setLoading(false);
@@ -1753,69 +1762,119 @@ function PortfolioPage({ onBack, onAnalyze }) {
   }
 
   useEffect(() => {
-    loadPortfolio(false);
+    if (unlocked && password) loadPortfolio(password);
   }, []);
 
+  function submitPassword(event) {
+    event.preventDefault();
+    loadPortfolio(password.trim());
+  }
+
+  if (!unlocked) {
+    return (
+      <main className="portfolio-builder-page portfolio-access-page">
+        <div className="portfolio-builder-head">
+          <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
+          <div>
+            <span className="assistant-kicker"><LockKeyhole size={16}/> Private preview</span>
+            <h2>Portfolio</h2>
+            <p>This page is currently restricted while the Eval Portfolio is being developed and tested.</p>
+          </div>
+        </div>
+
+        <form className="portfolio-password-card" onSubmit={submitPassword}>
+          <div className="portfolio-password-icon"><LockKeyhole size={28}/></div>
+          <h3>Enter access password</h3>
+          <p>Use the private access code to open the cached-stock portfolio dashboard.</p>
+          <input
+            type="password"
+            inputMode="numeric"
+            value={password}
+            onChange={(event) => setPassword(event.target.value.slice(0, 12))}
+            placeholder="Password"
+            autoComplete="off"
+          />
+          <button type="submit" disabled={loading || !password.trim()}>
+            {loading ? <RefreshCw className="spin" size={18}/> : <ArrowRight size={18}/>} Open Portfolio
+          </button>
+          {error && <div className="portfolio-password-error"><AlertTriangle size={16}/>{error}</div>}
+        </form>
+      </main>
+    );
+  }
+
   return (
-    <main className="portfolio-builder-page portfolio-follow-page">
+    <main className="portfolio-builder-page portfolio-cache-page">
       <div className="portfolio-builder-head">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
         <div>
           <span className="assistant-kicker"><Sparkles size={16}/> Eval Portfolio</span>
-          <h2>Follow the official $1,000,000 Eval Portfolio</h2>
-          <p>This is one diversified model portfolio selected using Eval Scores, valuation, growth, profitability, financial health, risk controls, and industry balance. It is built to be followed over time—not rebuilt for every user.</p>
+          <h2>Portfolio</h2>
+          <p>A focused 20-stock model built entirely from Eval reports already stored in the backend cache.</p>
         </div>
       </div>
 
       {error && <div className="error-banner"><AlertTriangle size={18}/>{error}</div>}
-      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Loading the Eval Portfolio</h3><p>Eval is loading the official holdings and calculating their day-to-day historical YTD value from the original $1,000,000 model investment.</p></div>}
+      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Ranking cached stocks</h3><p>Eval is comparing the current cached stock library across AI integration, Growth, Valuation, Momentum, and overall Eval Score.</p></div>}
 
       {result && !loading && (
-        <section className="portfolio-results">
-          <article className="portfolio-method-card portfolio-follow-intro">
+        <section className="portfolio-results portfolio-cache-results">
+          <article className="portfolio-method-card portfolio-cache-intro">
             <div>
-              <span className="section-title"><Target size={17}/> Official model portfolio</span>
-              <h3>One portfolio. Transparent holdings. Trackable performance.</h3>
-              <p>The portfolio is selected once and then tracked using the same share quantities. Prices move the portfolio value naturally; holdings are not silently rebuilt each time someone opens the page. Any future rebalance should be clearly dated and disclosed.</p>
+              <span className="section-title"><Target size={17}/> Current selection model</span>
+              <h3>Best-fit stocks from the live Eval cache</h3>
+              <p>{result.methodology}</p>
             </div>
-            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio(true)} title="Refresh current portfolio data"><RefreshCw size={18}/></button>
+            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio(password)} title="Refresh cached portfolio"><RefreshCw size={18}/></button>
           </article>
 
-          <div className="portfolio-summary-grid">
-            <article><span>Starting investment</span><strong>{money(result.summary?.startingValue)}</strong></article>
-            <article><span>Current modeled value</span><strong>{money(result.summary?.currentHistoricalValue)}</strong></article>
-            <article className={Number(result.summary?.ytdPercent)>=0 ? "positive" : "negative"}><span>Historical YTD</span><strong>{signedPercent(result.summary?.ytdPercent)}</strong></article>
+          <div className="portfolio-summary-grid portfolio-cache-summary">
+            <article><span>Cached stocks</span><strong>{result.summary?.cachedStockCount ?? 0}</strong></article>
+            <article><span>Portfolio holdings</span><strong>{result.summary?.holdingCount ?? 0}</strong></article>
+            <article><span>Industries</span><strong>{result.summary?.industryCount ?? 0}</strong></article>
             <article><span>Average Eval Score</span><strong>{scoreText(result.summary?.averageEvalScore)}</strong></article>
-            <article><span>Industries</span><strong>{result.summary?.industryCount}</strong></article>
           </div>
 
-          <article className="portfolio-chart-card">
-            <div className="portfolio-section-head"><div><span className="section-title"><LineChart size={17}/> Historical YTD performance</span><h3>Day-to-day value of the $1,000,000 portfolio</h3></div><b>{signedPercent(result.summary?.ytdPercent)}</b></div>
-            <PortfolioValueChart points={result.history || []}/>
-            <p className="portfolio-chart-note">Historical simulation based on the official holdings and fixed starting share quantities from the first available trading day of the year.</p>
-          </article>
-
-          <article className="portfolio-ai-card">
-            <span className="section-title"><BrainCircuit size={17}/> Why these holdings work together</span>
-            <p>{result.explanation}</p>
-          </article>
-
-          <div className="portfolio-results-grid">
-            <article className="portfolio-holdings-card">
-              <div className="portfolio-section-head"><div><span className="section-title"><BarChart3 size={17}/> Official holdings</span><h3>{result.holdings?.length} stocks in the Eval Portfolio</h3></div></div>
-              <div className="portfolio-holdings-table">
-                <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>Weight</span><span>Starting allocation</span><span>Shares</span></div>
-                {(result.holdings || []).map((holding)=><button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={()=>onAnalyze?.(holding.symbol)}>
-                  <span><b>{holding.symbol}</b><small>{holding.name}</small></span><span>{holding.sector}</span><span>{scoreText(holding.edgeScore)}</span><span>{holding.weightPercent.toFixed(2)}%</span><span>{money(holding.allocation)}</span><span>{holding.shares.toLocaleString(undefined,{maximumFractionDigits:4})}</span>
-                </button>)}
+          <article className="portfolio-holdings-card portfolio-featured-holdings">
+            <div className="portfolio-section-head">
+              <div>
+                <span className="section-title"><Crown size={17}/> 20-stock Eval Portfolio</span>
+                <h3>Growth-focused, valuation-aware, and momentum-supported</h3>
               </div>
-            </article>
+            </div>
+            <div className="portfolio-holdings-table portfolio-cache-table">
+              <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>AI fit</span><span>Growth</span><span>Valuation</span><span>Momentum</span><span>Weight</span></div>
+              {(result.holdings || []).map((holding) => (
+                <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                  <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                  <span>{holding.industry}</span>
+                  <span>{scoreText(holding.edgeScore)}</span>
+                  <span>{scoreText(holding.aiIntegration)}</span>
+                  <span>{scoreText(holding.growth)}</span>
+                  <span>{scoreText(holding.valuation)}</span>
+                  <span>{scoreText(holding.momentum)}</span>
+                  <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
+                </button>
+              ))}
+            </div>
+          </article>
 
-            <article className="portfolio-industry-card">
-              <span className="section-title"><Building2 size={17}/> Industry allocation</span>
-              <div className="portfolio-industry-list">{(result.allocationByIndustry || []).map((item)=><div key={item.industry}><div><span>{item.industry}</span><b>{item.weight.toFixed(1)}%</b></div><div className="portfolio-industry-bar"><span style={{width:`${Math.min(100,item.weight*4)}%`}}/></div></div>)}</div>
-            </article>
-          </div>
+          <article className="portfolio-holdings-card portfolio-cache-library">
+            <div className="portfolio-section-head">
+              <div>
+                <span className="section-title"><Activity size={17}/> Cached stock library</span>
+                <h3>Every stock currently available to the portfolio model</h3>
+              </div>
+            </div>
+            <div className="portfolio-cache-stock-grid">
+              {(result.cachedStocks || []).map((stock) => (
+                <button type="button" key={stock.symbol} onClick={() => onAnalyze?.(stock.symbol)}>
+                  <div><b>{stock.symbol}</b><span>{stock.industry}</span></div>
+                  <strong>{scoreText(stock.edgeScore)}</strong>
+                </button>
+              ))}
+            </div>
+          </article>
 
           <p className="portfolio-disclaimer">{result.disclaimer}</p>
         </section>
