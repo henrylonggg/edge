@@ -879,7 +879,9 @@ function App() {
         </div>
       )}
 
-      {view === "assistant" ? (
+      {view === "portfolio" ? (
+        <PortfolioBuilderPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+      ) : view === "assistant" ? (
         <AssistantPage
           current={data}
           watchlist={watchlist}
@@ -962,6 +964,9 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
                       </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
+                        Portfolio Builder
+                      </button>
                       <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
                       </button>
@@ -985,6 +990,9 @@ function App() {
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
                       <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
                         AI Assistant
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
+                        Portfolio Builder
                       </button>
                       <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
                         Compare
@@ -1672,6 +1680,150 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
         )}
       </div>
     </section>
+  );
+}
+
+
+
+function PortfolioValueChart({ points = [] }) {
+  const width = 900;
+  const height = 300;
+  const pad = 28;
+  if (!points.length) {
+    return <div className="portfolio-chart-empty">Historical YTD data will appear after the portfolio is built.</div>;
+  }
+  const values = points.map((p) => Number(p.value)).filter(Number.isFinite);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = Math.max(1, max - min);
+  const coords = points.map((point, index) => {
+    const x = pad + (index / Math.max(1, points.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((Number(point.value) - min) / spread) * (height - pad * 2);
+    return { x, y };
+  });
+  const path = coords.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${path} L${coords[coords.length - 1].x.toFixed(1)},${height-pad} L${coords[0].x.toFixed(1)},${height-pad} Z`;
+  const start = points[0];
+  const end = points[points.length - 1];
+  return (
+    <div className="portfolio-chart-wrap">
+      <div className="portfolio-chart-labels">
+        <span>{new Date(start.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+        <strong>{money(end.value)}</strong>
+        <span>{new Date(end.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+      </div>
+      <svg className="portfolio-value-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Historical YTD portfolio value">
+        <defs>
+          <linearGradient id="portfolioArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity=".30" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+          <filter id="portfolioGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <path className="portfolio-chart-area" d={area} fill="url(#portfolioArea)" />
+        <path className="portfolio-chart-line" d={path} filter="url(#portfolioGlow)" />
+      </svg>
+    </div>
+  );
+}
+
+function PortfolioBuilderPage({ onBack, onAnalyze }) {
+  const [amount, setAmount] = useState("25000");
+  const [size, setSize] = useState(25);
+  const [riskMode, setRiskMode] = useState("balanced");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function buildPortfolio(event) {
+    event?.preventDefault();
+    const dollars = Number(String(amount).replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(dollars) || dollars < 100) {
+      setError("Enter an investment amount of at least $100.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${API}/api/portfolio-builder`, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ amount: dollars, size, riskMode }),
+      });
+      const json = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(json?.error || "Could not build the portfolio.");
+      setResult(json);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err?.message || "Could not build the portfolio.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="portfolio-builder-page">
+      <div className="portfolio-builder-head">
+        <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
+        <div>
+          <span className="assistant-kicker"><Sparkles size={16}/> Eval Portfolio Builder</span>
+          <h2>Build a smarter, diversified model portfolio</h2>
+          <p>Eval screens a broad stock universe, ranks companies with the Eval system, applies diversification rules, and models historical YTD performance.</p>
+        </div>
+      </div>
+
+      <form className="portfolio-builder-controls" onSubmit={buildPortfolio}>
+        <label><span>Investment amount</span><div className="portfolio-money-input"><b>$</b><input value={amount} onChange={(e)=>setAmount(e.target.value)} inputMode="decimal" placeholder="25,000" /></div></label>
+        <label><span>Number of stocks</span><select value={size} onChange={(e)=>setSize(Number(e.target.value))}><option value={20}>20 stocks</option><option value={25}>25 stocks</option><option value={30}>30 stocks</option></select></label>
+        <label><span>Portfolio style</span><select value={riskMode} onChange={(e)=>setRiskMode(e.target.value)}><option value="conservative">Conservative</option><option value="balanced">Balanced growth</option><option value="growth">Growth</option></select></label>
+        <button type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={18}/> Building portfolio...</> : <><Sparkles size={18}/> Build portfolio</>}</button>
+      </form>
+
+      {error && <div className="error-banner"><AlertTriangle size={18}/>{error}</div>}
+      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Eval is ranking and diversifying stocks</h3><p>The first build can take longer while uncached companies are evaluated. Future builds reuse your existing metric cache schedules.</p></div>}
+
+      {result && !loading && (
+        <section className="portfolio-results">
+          <div className="portfolio-summary-grid">
+            <article><span>Starting amount</span><strong>{money(result.summary?.startingValue)}</strong></article>
+            <article><span>Historical value now</span><strong>{money(result.summary?.currentHistoricalValue)}</strong></article>
+            <article className={Number(result.summary?.ytdPercent)>=0 ? "positive" : "negative"}><span>Historical YTD</span><strong>{signedPercent(result.summary?.ytdPercent)}</strong></article>
+            <article><span>Average Eval Score</span><strong>{scoreText(result.summary?.averageEvalScore)}</strong></article>
+            <article><span>Industries</span><strong>{result.summary?.industryCount}</strong></article>
+          </div>
+
+          <article className="portfolio-chart-card">
+            <div className="portfolio-section-head"><div><span className="section-title"><LineChart size={17}/> Historical YTD simulation</span><h3>Day-to-day portfolio value</h3></div><b>{signedPercent(result.summary?.ytdPercent)}</b></div>
+            <PortfolioValueChart points={result.history || []}/>
+            <p className="portfolio-chart-note">Models how the selected allocation would have changed from the first available trading day of the current year.</p>
+          </article>
+
+          <article className="portfolio-ai-card">
+            <span className="section-title"><BrainCircuit size={17}/> AI portfolio explanation</span>
+            <p>{result.explanation}</p>
+          </article>
+
+          <div className="portfolio-results-grid">
+            <article className="portfolio-holdings-card">
+              <div className="portfolio-section-head"><div><span className="section-title"><BarChart3 size={17}/> Holdings</span><h3>{result.holdings?.length} selected stocks</h3></div></div>
+              <div className="portfolio-holdings-table">
+                <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>Weight</span><span>Allocation</span><span>Shares</span></div>
+                {(result.holdings || []).map((holding)=><button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={()=>onAnalyze?.(holding.symbol)}>
+                  <span><b>{holding.symbol}</b><small>{holding.name}</small></span><span>{holding.sector}</span><span>{scoreText(holding.edgeScore)}</span><span>{holding.weightPercent.toFixed(2)}%</span><span>{money(holding.allocation)}</span><span>{holding.shares.toLocaleString(undefined,{maximumFractionDigits:4})}</span>
+                </button>)}
+              </div>
+            </article>
+
+            <article className="portfolio-industry-card">
+              <span className="section-title"><Building2 size={17}/> Industry allocation</span>
+              <div className="portfolio-industry-list">{(result.allocationByIndustry || []).map((item)=><div key={item.industry}><div><span>{item.industry}</span><b>{item.weight.toFixed(1)}%</b></div><div className="portfolio-industry-bar"><span style={{width:`${Math.min(100,item.weight*4)}%`}}/></div></div>)}</div>
+            </article>
+          </div>
+          <p className="portfolio-disclaimer">{result.disclaimer}</p>
+        </section>
+      )}
+    </main>
   );
 }
 
@@ -8112,42 +8264,90 @@ className="chat-panel">
 
 
 function EvalAiScoreSummaryCard({ summary }) {
-  const supportSummary =
-    summary?.supportSummary ||
-    summary?.supports?.[0]?.explanation ||
-    summary?.positives?.[0] ||
-    "Score support summary is being prepared.";
+  const normalizePoint = (point, index, fallbackTitle) => {
+    if (typeof point === "string") {
+      return {
+        title: fallbackTitle || `Point ${index + 1}`,
+        explanation: point,
+        metrics: [],
+      };
+    }
 
-  const holdbackSummary =
-    summary?.holdbackSummary ||
-    summary?.holdsBack?.[0]?.explanation ||
-    summary?.concerns?.[0] ||
-    "Score hold-back summary is being prepared.";
+    return {
+      title: point?.title || fallbackTitle || `Point ${index + 1}`,
+      explanation: point?.explanation || point?.text || point?.why || "Explanation is being prepared.",
+      metrics: Array.isArray(point?.metrics) ? point.metrics.filter(Boolean).slice(0, 5) : [],
+    };
+  };
+
+  const supports = Array.isArray(summary?.supports) && summary.supports.length
+    ? summary.supports.map((point, index) => normalizePoint(point, index, "What supports the score"))
+    : Array.isArray(summary?.positives)
+      ? summary.positives.map((point, index) => normalizePoint(point, index, "What supports the score"))
+      : [];
+
+  const holdsBack = Array.isArray(summary?.holdsBack) && summary.holdsBack.length
+    ? summary.holdsBack.map((point, index) => normalizePoint(point, index, "What holds it back"))
+    : Array.isArray(summary?.concerns)
+      ? summary.concerns.map((point, index) => normalizePoint(point, index, "What holds it back"))
+      : [];
 
   return (
-    <section className="ai-score-summary-card ai-score-summary-card-simple ai-score-summary-pro-con">
+    <section className="ai-score-summary-card ai-score-summary-card-simple">
       <div className="ai-score-glow" />
 
       <div className="ai-score-summary-head simple">
         <div className="section-title ai-score-title">
           <BrainCircuit size={18} />
           Score Breakdown
-          <small>Company-specific pros and cons</small>
+          <small>Company-specific breakdown</small>
         </div>
       </div>
 
       {summary?.summary && <p className="ai-score-body ai-score-body-large">{summary.summary}</p>}
 
-      <div className="ai-score-two-column-grid ai-score-pro-con-grid">
-        <article className="ai-score-pro-con-panel pro">
+      <div className="ai-score-two-column-grid">
+        <div className="ai-score-points positive ai-score-point-section">
           <span>What supports the score</span>
-          <p>{supportSummary}</p>
-        </article>
+          {supports.length > 0 ? (
+            supports.map((point, index) => (
+              <div className="ai-score-point-card" key={`support-${index}`}>
+                <h4>{point.title}</h4>
+                <p>{point.explanation}</p>
+                {point.metrics.length > 0 && (
+                  <div className="ai-score-metric-chips">
+                    {point.metrics.map((metric, metricIndex) => (
+                      <b key={`support-${index}-metric-${metricIndex}`}>{metric}</b>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>Open Score Breakdown again to regenerate the support points.</p>
+          )}
+        </div>
 
-        <article className="ai-score-pro-con-panel con">
+        <div className="ai-score-points concern ai-score-point-section">
           <span>What holds it back</span>
-          <p>{holdbackSummary}</p>
-        </article>
+          {holdsBack.length > 0 ? (
+            holdsBack.map((point, index) => (
+              <div className="ai-score-point-card" key={`holdback-${index}`}>
+                <h4>{point.title}</h4>
+                <p>{point.explanation}</p>
+                {point.metrics.length > 0 && (
+                  <div className="ai-score-metric-chips">
+                    {point.metrics.map((metric, metricIndex) => (
+                      <b key={`holdback-${index}-metric-${metricIndex}`}>{metric}</b>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>Open Score Breakdown again to regenerate the hold-back points.</p>
+          )}
+        </div>
       </div>
 
       {summary?.takeaway && <div className="ai-score-takeaway">{summary.takeaway}</div>}
