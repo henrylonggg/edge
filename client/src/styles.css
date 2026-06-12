@@ -24912,3 +24912,154 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     flex-direction: column;
   }
 }
+
+/* =========================================================
+   SCORE BREAKDOWN — PREMIUM PROS / CONS SUMMARY PANELS
+========================================================= */
+.ai-score-pros-cons-card {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.ai-score-pros-cons-grid {
+  gap: 18px !important;
+  margin-top: 0 !important;
+}
+
+.ai-score-long-summary {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  padding: 28px;
+  border-radius: 28px;
+  isolation: isolate;
+  box-shadow:
+    0 28px 72px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+.ai-score-long-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.ai-score-long-summary::after {
+  content: "";
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  right: -80px;
+  top: -100px;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: .78;
+  pointer-events: none;
+}
+
+.ai-score-pros-panel {
+  border: 1px solid rgba(114,255,65,.34);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(114,255,65,.22), transparent 36%),
+    radial-gradient(circle at 92% 100%, rgba(21,231,255,.10), transparent 42%),
+    linear-gradient(145deg, rgba(7,45,24,.78), rgba(2,15,12,.94));
+  box-shadow:
+    0 28px 72px rgba(0,0,0,.40),
+    0 0 48px rgba(114,255,65,.13),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.ai-score-pros-panel::before {
+  background:
+    linear-gradient(125deg, rgba(255,255,255,.10), transparent 28%, transparent 72%, rgba(114,255,65,.08)),
+    repeating-linear-gradient(135deg, transparent 0 22px, rgba(255,255,255,.018) 22px 23px);
+}
+
+.ai-score-pros-panel::after {
+  background: radial-gradient(circle, rgba(114,255,65,.42), transparent 66%);
+}
+
+.ai-score-cons-panel {
+  border: 1px solid rgba(255,85,112,.36);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255,85,112,.22), transparent 36%),
+    radial-gradient(circle at 92% 100%, rgba(159,92,255,.10), transparent 42%),
+    linear-gradient(145deg, rgba(55,10,24,.80), rgba(18,4,12,.95));
+  box-shadow:
+    0 28px 72px rgba(0,0,0,.40),
+    0 0 48px rgba(255,85,112,.13),
+    inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.ai-score-cons-panel::before {
+  background:
+    linear-gradient(125deg, rgba(255,255,255,.10), transparent 28%, transparent 72%, rgba(255,85,112,.08)),
+    repeating-linear-gradient(135deg, transparent 0 22px, rgba(255,255,255,.018) 22px 23px);
+}
+
+.ai-score-cons-panel::after {
+  background: radial-gradient(circle, rgba(255,85,112,.42), transparent 66%);
+}
+
+.ai-score-panel-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 1000;
+  letter-spacing: .13em;
+  color: #fff;
+}
+
+.ai-score-panel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 18px currentColor;
+}
+
+.ai-score-pros-panel .ai-score-panel-kicker { color: #9dff79; }
+.ai-score-cons-panel .ai-score-panel-kicker { color: #ff8297; }
+
+.ai-score-long-summary h3 {
+  margin: 0 0 18px;
+  color: #fff;
+  font-size: clamp(25px, 2.5vw, 36px);
+  line-height: 1.05;
+  letter-spacing: -1.2px;
+  font-weight: 1000;
+}
+
+.ai-score-long-summary p {
+  margin: 0;
+  color: rgba(248,251,255,.87);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.78;
+}
+
+@media (max-width: 980px) {
+  .ai-score-long-summary {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .ai-score-long-summary {
+    padding: 22px;
+    border-radius: 24px;
+  }
+
+  .ai-score-long-summary p {
+    font-size: 14px;
+    line-height: 1.72;
+  }
+}
