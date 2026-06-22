@@ -25065,201 +25065,210 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 }
 
 /* =========================================================
-   PRIVATE CACHED PORTFOLIO DASHBOARD
+   PRIVATE PORTFOLIO CSV SCORER
 ========================================================= */
-.portfolio-access-page {
-  min-height: 72vh;
+.portfolio-csv-dashboard {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
-.portfolio-password-card {
-  width: min(520px, 100%);
-  margin: 48px auto 0;
-  padding: 34px;
-  text-align: center;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 32px;
+.portfolio-csv-drop {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+  padding: 24px;
+  border-radius: 30px;
+  border: 1px dashed rgba(21,231,255,.35);
   background:
-    radial-gradient(circle at 18% 0%, rgba(21,231,255,.18), transparent 35%),
-    radial-gradient(circle at 88% 100%, rgba(159,92,255,.22), transparent 42%),
-    linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.045));
-  box-shadow: 0 30px 80px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.12);
+    radial-gradient(circle at 12% 8%, rgba(21,231,255,.18), transparent 34%),
+    radial-gradient(circle at 92% 84%, rgba(133,255,71,.12), transparent 36%),
+    rgba(255,255,255,.07);
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.34),
+    inset 0 1px 0 rgba(255,255,255,.11);
+  overflow: hidden;
 }
 
-.portfolio-password-icon {
-  width: 68px;
-  height: 68px;
-  margin: 0 auto 18px;
+.portfolio-csv-drop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,.08), transparent 32%, rgba(255,255,255,.035));
+}
+
+.portfolio-csv-drop > * {
+  position: relative;
+  z-index: 1;
+}
+
+.portfolio-csv-drop.drag-active {
+  border-color: rgba(133,255,71,.68);
+  box-shadow:
+    0 0 42px rgba(133,255,71,.18),
+    0 24px 70px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.13);
+}
+
+.portfolio-csv-icon {
+  width: 66px;
+  height: 66px;
   border-radius: 22px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, rgba(21,231,255,.22), rgba(159,92,255,.20));
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 35% 18%, rgba(255,255,255,.25), transparent 24%),
+    linear-gradient(135deg, rgba(21,231,255,.28), rgba(133,255,71,.16));
   border: 1px solid rgba(255,255,255,.15);
-  box-shadow: 0 0 34px rgba(21,231,255,.14);
+  box-shadow: 0 0 28px rgba(21,231,255,.14);
 }
 
-.portfolio-password-card h3 {
-  margin: 0 0 10px;
-  font-size: 30px;
-  color: #fff;
+.portfolio-csv-drop h3,
+.portfolio-upload-results h3 {
+  margin: 9px 0 8px;
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1;
+  letter-spacing: -1.6px;
+  color: #ffffff;
+  font-weight: 800;
 }
 
-.portfolio-password-card p {
-  margin: 0 auto 22px;
-  max-width: 410px;
-  color: var(--muted);
+.portfolio-csv-drop p,
+.portfolio-upload-results p {
+  margin: 0;
+  color: rgba(248,251,255,.76);
   line-height: 1.6;
+  max-width: 840px;
 }
 
-.portfolio-password-card input {
-  width: 100%;
-  padding: 16px 18px;
-  border-radius: 17px;
-  border: 1px solid rgba(255,255,255,.13);
-  background: rgba(0,0,0,.28);
-  color: #fff;
-  outline: none;
-  text-align: center;
-  letter-spacing: .18em;
-  font-size: 20px;
-  font-weight: 800;
+.portfolio-csv-drop small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(248,251,255,.52);
+  line-height: 1.45;
 }
 
-.portfolio-password-card input:focus {
-  border-color: rgba(21,231,255,.54);
-  box-shadow: 0 0 0 4px rgba(21,231,255,.08), 0 0 28px rgba(21,231,255,.10);
-}
-
-.portfolio-password-card > button {
-  width: 100%;
-  min-height: 56px;
-  margin-top: 14px;
-  border-radius: 17px;
-  border: 1px solid rgba(133,255,71,.32);
-  color: #041009;
-  font-weight: 800;
+.portfolio-csv-upload-btn {
+  min-width: 150px;
+  min-height: 54px;
+  border-radius: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  background: linear-gradient(135deg, #dffff0, #85ff47);
-  box-shadow: 0 0 30px rgba(133,255,71,.18);
+  padding: 0 18px;
+  color: #071018;
+  font-weight: 800;
+  background: linear-gradient(135deg, #efffff, #15e7ff 46%, #85ff47);
+  border: 1px solid rgba(255,255,255,.34);
+  box-shadow: 0 0 28px rgba(21,231,255,.22), inset 0 1px 0 rgba(255,255,255,.48);
+  cursor: pointer;
 }
 
-.portfolio-password-error {
+.portfolio-csv-upload-btn input {
+  display: none;
+}
+
+.portfolio-upload-results {
+  padding: 24px;
+  border-radius: 32px;
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(133,255,71,.13), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(21,231,255,.12), transparent 32%),
+    rgba(255,255,255,.07);
+  box-shadow: var(--shadow);
+}
+
+.portfolio-upload-score-row {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.portfolio-upload-score {
+  height: 190px;
+  border-radius: 32px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.13);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.12), transparent 34%),
+    rgba(0,0,0,.20);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 18px 44px rgba(0,0,0,.26);
+}
+
+.portfolio-upload-score.green {
+  box-shadow: 0 0 36px rgba(133,255,71,.18), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.portfolio-upload-score.yellow {
+  box-shadow: 0 0 36px rgba(255,214,107,.18), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.portfolio-upload-score.red {
+  box-shadow: 0 0 36px rgba(255,95,115,.18), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.portfolio-upload-score span {
+  color: rgba(248,251,255,.64);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.portfolio-upload-score strong {
+  display: block;
+  margin-top: 8px;
+  color: #ffffff;
+  font-size: 76px;
+  line-height: .9;
+  letter-spacing: -3px;
+  text-shadow: 0 0 28px rgba(255,255,255,.16);
+}
+
+.portfolio-upload-summary {
+  margin: 16px 0 18px;
+}
+
+.portfolio-upload-table {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.portfolio-skipped-note {
   margin-top: 14px;
   padding: 12px 14px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #ffd8df;
-  background: rgba(255,79,103,.11);
-  border: 1px solid rgba(255,79,103,.28);
-}
-
-.portfolio-cache-intro {
-  background:
-    radial-gradient(circle at 10% 20%, rgba(21,231,255,.14), transparent 35%),
-    radial-gradient(circle at 90% 80%, rgba(133,255,71,.11), transparent 35%),
-    rgba(255,255,255,.065) !important;
-}
-
-.portfolio-cache-summary {
-  grid-template-columns: repeat(4, minmax(0,1fr));
-}
-
-.portfolio-featured-holdings {
-  border-color: rgba(133,255,71,.18) !important;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(133,255,71,.10), transparent 32%),
-    radial-gradient(circle at 94% 100%, rgba(21,231,255,.10), transparent 36%),
-    rgba(255,255,255,.06) !important;
-}
-
-.portfolio-cache-table .portfolio-holding-row {
-  grid-template-columns: 1.25fr 1.1fr .55fr .55fr .55fr .65fr .65fr .55fr;
-}
-
-.portfolio-cache-library {
-  padding: 24px;
-}
-
-.portfolio-cache-stock-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.portfolio-cache-stock-grid button {
-  min-width: 0;
-  padding: 15px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.18);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  text-align: left;
+  color: rgba(248,251,255,.72);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
+  line-height: 1.5;
 }
 
-.portfolio-cache-stock-grid button:hover {
-  border-color: rgba(21,231,255,.28) !important;
+.portfolio-loading-card.compact {
+  min-height: auto;
+  padding: 18px;
 }
 
-.portfolio-cache-stock-grid button div {
-  min-width: 0;
-}
-
-.portfolio-cache-stock-grid b {
-  display: block;
-  font-size: 18px;
-}
-
-.portfolio-cache-stock-grid span {
-  display: block;
-  margin-top: 4px;
-  color: var(--soft);
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.portfolio-cache-stock-grid strong {
-  font-size: 20px;
-  color: #fff;
-}
-
-@media (max-width: 1180px) {
-  .portfolio-cache-summary {
-    grid-template-columns: repeat(2, minmax(0,1fr));
-  }
-
-  .portfolio-cache-stock-grid {
-    grid-template-columns: repeat(3, minmax(0,1fr));
-  }
-
-  .portfolio-cache-table {
-    overflow-x: auto;
-  }
-
-  .portfolio-cache-table .portfolio-holding-row {
-    min-width: 980px;
-  }
-}
-
-@media (max-width: 680px) {
-  .portfolio-password-card {
-    padding: 24px;
-    margin-top: 24px;
-  }
-
-  .portfolio-cache-summary,
-  .portfolio-cache-stock-grid {
+@media (max-width: 900px) {
+  .portfolio-csv-drop,
+  .portfolio-upload-score-row {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-csv-upload-btn {
+    width: 100%;
+  }
+
+  .portfolio-upload-score {
+    height: 160px;
   }
 }
