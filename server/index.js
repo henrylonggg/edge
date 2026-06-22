@@ -739,7 +739,7 @@ app.use(
       return callback(null, true);
     },
     methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Eval-Portfolio-Password", "x-eval-portfolio-password"],
   })
 );
 
@@ -1766,16 +1766,6 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
 
 
-function validatePortfolioAccess(req, res) {
-  const suppliedPassword = String(req.headers["x-eval-portfolio-password"] || req.query?.password || "");
-  const requiredPassword = String(process.env.EVAL_PORTFOLIO_PASSWORD || "111805");
-  if (suppliedPassword !== requiredPassword) {
-    res.status(401).json({ error: "Incorrect portfolio password.", route: req.path });
-    return false;
-  }
-  return true;
-}
-
 function cachedStockRows() {
   return [...analysisCache.entries()]
     .map(([symbol, cached]) => {
@@ -1869,8 +1859,6 @@ function selectCachedPortfolio(stocks, target = 20) {
 
 app.get("/api/portfolio", async (req, res) => {
   try {
-    if (!validatePortfolioAccess(req, res)) return;
-
     const cachedStocks = cachedStockRows();
     const holdings = selectCachedPortfolio(cachedStocks, 20);
     const industryCount = new Set(holdings.map((stock) => stock.industry)).size;
@@ -1905,10 +1893,76 @@ function cleanSubmittedWeight(value) {
   return number <= 1 ? number * 100 : number;
 }
 
+
+const PORTFOLIO_CATEGORY_KEYS = [
+  "growth",
+  "profitability",
+  "financialHealth",
+  "valuation",
+  "momentum",
+  "newsSentiment",
+];
+
+function isSupportedPortfolioStock(report, symbol) {
+  const profile = report?.profile || {};
+  const name = String(profile?.name || symbol || "").toLowerCase();
+  const industry = String(profile?.finnhubIndustry || "").toLowerCase();
+  const exchange = String(profile?.exchange || "").toLowerCase();
+  const currency = String(profile?.currency || "").toUpperCase();
+  const country = String(profile?.country || "").toLowerCase();
+
+  const fundLike = [
+    "etf",
+    "fund",
+    "trust",
+    "spdr",
+    "ishares",
+    "vanguard",
+    "invesco qqq",
+    "proshares",
+    "direxion",
+    "ark innovation",
+  ];
+
+  const isFundLike = fundLike.some((term) => name.includes(term) || industry.includes(term));
+  if (isFundLike) return false;
+
+  if (currency && currency !== "USD") return false;
+  if (country && !["us", "usa", "united states", "united states of america"].includes(country)) return false;
+
+  // If Finnhub gives an exchange, keep common U.S.-listed exchanges and OTC; skip clearly foreign exchanges.
+  if (exchange) {
+    const usExchangeHints = ["nasdaq", "nyse", "amex", "arca", "bats", "otc", "new york", "nms", "ngs", "global select", "capital market"];
+    const foreignHints = ["london", "toronto", "hong kong", "shanghai", "shenzhen", "tokyo", "frankfurt", "paris", "milan", "australia", "tsx", "lse", "xetra", "sse", "hkex", "japan"];
+    if (foreignHints.some((hint) => exchange.includes(hint)) && !usExchangeHints.some((hint) => exchange.includes(hint))) return false;
+  }
+
+  return true;
+}
+
+function weightedCategoryScoresFromHoldings(holdings) {
+  const result = {};
+
+  for (const key of PORTFOLIO_CATEGORY_KEYS) {
+    let weightedTotal = 0;
+    let weightTotal = 0;
+
+    for (const holding of holdings) {
+      const score = Number(holding?.[key]);
+      const weight = Number(holding?.weightPercent);
+      if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(weight) || weight <= 0) continue;
+      weightedTotal += score * weight;
+      weightTotal += weight;
+    }
+
+    result[key] = weightTotal > 0 ? Number((weightedTotal / weightTotal).toFixed(1)) : null;
+  }
+
+  return result;
+}
+
 app.post("/api/portfolio-csv", async (req, res) => {
   try {
-    if (!validatePortfolioAccess(req, res)) return;
-
     const rows = Array.isArray(req.body?.holdings) ? req.body.holdings : [];
     const merged = new Map();
     for (const row of rows.slice(0, 250)) {
@@ -1930,8 +1984,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
         const report = await getCachedAnalysis(row.symbol, { includeAiScoreSummary: false });
         const edgeScore = portfolioScore10(report?.grades?.edgeScore);
         const price = Number(report?.quote?.c);
-        if (edgeScore === null) {
-          return { skipped: true, symbol: row.symbol, reason: "No Eval Score available." };
+        if (edgeScore === null || !isSupportedPortfolioStock(report, row.symbol)) {
+          return { skipped: true, symbol: row.symbol, reason: "Unsupported or unscored holding." };
         }
         const categories = report?.grades?.categories || {};
         const category = (key) => {
@@ -1977,6 +2031,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
       .sort((a, b) => b.weightPercent - a.weightPercent);
 
     const portfolioEvalScore = Number(holdings.reduce((sum, row) => sum + row.weightedContribution, 0).toFixed(1));
+    const weightedCategoryScores = weightedCategoryScoresFromHoldings(holdings);
     const industryCount = new Set(holdings.map((row) => row.industry)).size;
 
     res.json({
@@ -1985,14 +2040,16 @@ app.post("/api/portfolio-csv", async (req, res) => {
       skipped,
       summary: {
         portfolioEvalScore,
+        weightedCategoryScores,
         submittedHoldingCount: submitted.length,
         scoredHoldingCount: holdings.length,
+        voidedHoldingCount: skipped.length,
         submittedWeightPercent: Number(submittedWeightPercent.toFixed(2)),
         scoredWeightPercent: Number(scoredWeightRaw.toFixed(2)),
         industryCount,
       },
       generatedAt: new Date().toISOString(),
-      disclaimer: "Educational portfolio score only. The weighted Eval Portfolio Score is based on the uploaded holding percentages and each ticker's Eval Score.",
+      disclaimer: "Educational portfolio score only. Unsupported holdings are excluded, and the weighted Eval Portfolio Score is based on the remaining scorable U.S. stock holdings.",
     });
   } catch (error) {
     console.error("Portfolio CSV route failed:", error?.stack || error?.message || error);
