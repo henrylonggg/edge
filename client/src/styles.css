@@ -25372,3 +25372,205 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   PORTFOLIO UPLOAD ONLY — TEMPLATE + SCORE RING + INDUSTRY GROUPS
+========================================================= */
+.portfolio-upload-only-page .portfolio-builder-head p {
+  max-width: 880px;
+}
+
+.portfolio-csv-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.portfolio-template-btn {
+  min-width: 170px;
+  min-height: 54px;
+  border-radius: 18px !important;
+  padding: 0 18px !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  background:
+    radial-gradient(circle at 22% 8%, rgba(255,255,255,.20), transparent 26%),
+    linear-gradient(135deg, rgba(159,92,255,.26), rgba(21,231,255,.16)),
+    rgba(255,255,255,.08) !important;
+  box-shadow: 0 0 28px rgba(159,92,255,.14), inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+.portfolio-upload-results-v2 {
+  padding: 28px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,231,255,.16), transparent 32%),
+    radial-gradient(circle at 90% 8%, rgba(159,92,255,.15), transparent 34%),
+    radial-gradient(circle at 54% 100%, rgba(133,255,71,.10), transparent 40%),
+    rgba(255,255,255,.072);
+}
+
+.portfolio-upload-hero {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 26px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.portfolio-score-ring {
+  width: 220px !important;
+  height: 220px !important;
+  justify-self: center;
+}
+
+.portfolio-score-ring .score-core strong {
+  font-size: 78px !important;
+}
+
+.portfolio-upload-summary-clean {
+  margin: 20px 0;
+}
+
+.portfolio-upload-summary-clean article {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.11), transparent 36%),
+    rgba(0,0,0,.20);
+}
+
+.portfolio-weighted-metrics-card-pop {
+  border-color: rgba(255,255,255,.15);
+}
+
+.portfolio-weighted-metric-grid article.green,
+.portfolio-weighted-metric-grid article.yellow,
+.portfolio-weighted-metric-grid article.red,
+.portfolio-weighted-metric-grid article.neutral {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255,255,255,.15);
+  box-shadow:
+    0 18px 42px rgba(0,0,0,.24),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.portfolio-weighted-metric-grid article.green {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(255,255,255,.24), transparent 30%),
+    linear-gradient(145deg, rgba(133,255,71,.42), rgba(19,85,36,.42)),
+    rgba(10,35,20,.68);
+}
+
+.portfolio-weighted-metric-grid article.yellow {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(255,255,255,.28), transparent 30%),
+    linear-gradient(145deg, rgba(255,228,95,.46), rgba(117,80,15,.46)),
+    rgba(48,35,8,.72);
+}
+
+.portfolio-weighted-metric-grid article.red {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(255,255,255,.20), transparent 30%),
+    linear-gradient(145deg, rgba(255,79,103,.44), rgba(95,18,30,.48)),
+    rgba(45,8,14,.74);
+}
+
+.portfolio-weighted-metric-grid article.neutral {
+  background:
+    radial-gradient(circle at 16% 10%, rgba(255,255,255,.20), transparent 30%),
+    linear-gradient(145deg, rgba(21,231,255,.30), rgba(42,57,140,.38)),
+    rgba(8,21,45,.72);
+}
+
+.portfolio-weighted-metric-grid article small {
+  display: inline-flex;
+  margin-top: 11px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.portfolio-industry-results {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.portfolio-industry-block {
+  border: 1px solid rgba(255,255,255,.115);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,231,255,.09), transparent 30%),
+    rgba(0,0,0,.18);
+  overflow: hidden;
+  box-shadow: 0 20px 54px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.portfolio-industry-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.10), rgba(255,255,255,.035)) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.portfolio-industry-head span {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.4px;
+}
+
+.portfolio-industry-head strong {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #061018;
+  background: linear-gradient(135deg, #efffff, #15e7ff 48%, #85ff47);
+  box-shadow: 0 0 22px rgba(21,231,255,.16);
+}
+
+.portfolio-industry-table {
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.portfolio-industry-table .portfolio-holding-row {
+  grid-template-columns: minmax(170px, 1.3fr) repeat(7, minmax(96px, .8fr));
+}
+
+@media (max-width: 980px) {
+  .portfolio-upload-hero,
+  .portfolio-csv-drop {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-csv-actions {
+    justify-content: stretch;
+  }
+
+  .portfolio-template-btn,
+  .portfolio-csv-upload-btn {
+    width: 100%;
+  }
+
+  .portfolio-score-ring {
+    width: 190px !important;
+    height: 190px !important;
+  }
+
+  .portfolio-score-ring .score-core strong {
+    font-size: 68px !important;
+  }
+}
