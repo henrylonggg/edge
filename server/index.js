@@ -17,7 +17,7 @@ const PORTFOLIO_CACHE_TTL_MS = 15 * 60 * 1000;
 const OFFICIAL_PORTFOLIO_AMOUNT = 1_000_000;
 const OFFICIAL_PORTFOLIO_SIZE = 30;
 const OFFICIAL_PORTFOLIO_RISK_MODE = "balanced";
-const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";
+const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";a
 const portfolioCache = new Map();
 let officialPortfolioDefinition = null;
 const PORTFOLIO_MAX_ANALYSES_PER_BUILD = Math.max(
@@ -1892,6 +1892,7 @@ const PORTFOLIO_CATEGORY_KEYS = [
   "financialHealth",
   "valuation",
   "momentum",
+  "reversal",
   "newsSentiment",
 ];
 
@@ -2026,6 +2027,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
           momentum: category("momentum"),
           profitability: category("profitability"),
           financialHealth: category("financialHealth"),
+          reversal: category("reversal"),
           newsSentiment: category("newsSentiment"),
           riskLabel: report?.grades?.riskLabel || "N/A",
         };
@@ -2072,8 +2074,19 @@ app.post("/api/portfolio-csv", async (req, res) => {
           industryWeightPercent: totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null,
         }))
         .sort((a, b) => b.weightPercent - a.weightPercent);
+
+      const industryEvalScore = totalWeightPercent > 0
+        ? Number(decorated.reduce((sum, row) => {
+            const score = Number(row.edgeScore);
+            const industryWeight = Number(row.industryWeightPercent);
+            if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(industryWeight) || industryWeight <= 0) return sum;
+            return sum + score * (industryWeight / 100);
+          }, 0).toFixed(1))
+        : null;
+
       return {
         industry,
+        industryEvalScore,
         totalWeightPercent: Number(totalWeightPercent.toFixed(2)),
         totalHoldingDollars: totalHoldingDollars > 0 ? Number(totalHoldingDollars.toFixed(2)) : null,
         holdings: decorated,
