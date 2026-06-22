@@ -1798,8 +1798,6 @@ function parsePortfolioCsv(text) {
 }
 
 function PortfolioPage({ onBack, onAnalyze }) {
-  const [password, setPassword] = useState(() => sessionStorage.getItem("eval-portfolio-access") || "");
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem("eval-portfolio-access") === "111805");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1809,7 +1807,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
-  async function loadPortfolio(accessCode = password) {
+  async function loadPortfolio() {
     setLoading(true);
     setError("");
     try {
@@ -1818,18 +1816,13 @@ function PortfolioPage({ onBack, onAnalyze }) {
         mode: "cors",
         headers: {
           Accept: "application/json",
-          "x-eval-portfolio-password": accessCode,
         },
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not load the Eval Portfolio.");
-      sessionStorage.setItem("eval-portfolio-access", accessCode);
-      setUnlocked(true);
       setResult(json);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setUnlocked(false);
-      sessionStorage.removeItem("eval-portfolio-access");
       setError(err?.message || "Could not load the Eval Portfolio.");
     } finally {
       setLoading(false);
@@ -1837,13 +1830,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
   }
 
   useEffect(() => {
-    if (unlocked && password) loadPortfolio(password);
+    loadPortfolio();
   }, []);
-
-  function submitPassword(event) {
-    event.preventDefault();
-    loadPortfolio(password.trim());
-  }
 
   async function analyzeCsvHoldings(holdings, fileName = "portfolio.csv") {
     setCsvLoading(true);
@@ -1857,7 +1845,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          "x-eval-portfolio-password": password,
         },
         body: JSON.stringify({ holdings }),
       });
@@ -1885,39 +1872,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
       setCsvAnalysis(null);
       setCsvError(err?.message || "Could not read that CSV file.");
     }
-  }
-
-  if (!unlocked) {
-    return (
-      <main className="portfolio-builder-page portfolio-access-page">
-        <div className="portfolio-builder-head">
-          <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
-          <div>
-            <span className="assistant-kicker"><LockKeyhole size={16}/> Private preview</span>
-            <h2>Portfolio</h2>
-            <p>This page is currently restricted while the Eval Portfolio and CSV scoring tools are being tested.</p>
-          </div>
-        </div>
-
-        <form className="portfolio-password-card" onSubmit={submitPassword}>
-          <div className="portfolio-password-icon"><LockKeyhole size={28}/></div>
-          <h3>Enter access password</h3>
-          <p>Use the private access code to open the portfolio dashboard.</p>
-          <input
-            type="password"
-            inputMode="numeric"
-            value={password}
-            onChange={(event) => setPassword(event.target.value.slice(0, 12))}
-            placeholder="Password"
-            autoComplete="off"
-          />
-          <button type="submit" disabled={loading || !password.trim()}>
-            {loading ? <RefreshCw className="spin" size={18}/> : <ArrowRight size={18}/>} Open Portfolio
-          </button>
-          {error && <div className="portfolio-password-error"><AlertTriangle size={16}/>{error}</div>}
-        </form>
-      </main>
-    );
   }
 
   return (
@@ -1979,8 +1933,28 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <article><span>Total submitted weight</span><strong>{Number(csvAnalysis.summary?.submittedWeightPercent || 0).toFixed(1)}%</strong></article>
               <article><span>Scored weight</span><strong>{Number(csvAnalysis.summary?.scoredWeightPercent || 0).toFixed(1)}%</strong></article>
               <article><span>Holdings scored</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
-              <article><span>Skipped rows</span><strong>{csvAnalysis.skipped?.length || 0}</strong></article>
+              <article><span>Voided holdings</span><strong>{csvAnalysis.summary?.voidedHoldingCount || csvAnalysis.skipped?.length || 0}</strong></article>
             </div>
+
+            {csvAnalysis.summary?.weightedCategoryScores && (
+              <div className="portfolio-weighted-metrics-card">
+                <div>
+                  <span className="section-title"><Gauge size={17}/> Weighted metric scores</span>
+                  <h3>Portfolio score by category</h3>
+                  <p>Each category score is weighted by the holding percentage of every scorable stock in the uploaded CSV.</p>
+                </div>
+                <div className="portfolio-weighted-metric-grid">
+                  {Object.entries(csvAnalysis.summary.weightedCategoryScores)
+                    .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
+                    .map(([key, value]) => (
+                      <article key={key} className={scoreTone(value)}>
+                        <span>{categoryLabel(key)}</span>
+                        <strong>{scoreText(value)}</strong>
+                      </article>
+                    ))}
+                </div>
+              </div>
+            )}
 
             <div className="portfolio-holdings-table portfolio-upload-table">
               <div className="portfolio-holding-row header"><span>Stock</span><span>Holding</span><span>Eval</span><span>Weighted impact</span><span>Industry</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
@@ -2015,7 +1989,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <h3>Best-fit stocks from the live Eval cache</h3>
               <p>{result.methodology}</p>
             </div>
-            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio(password)} title="Refresh cached portfolio"><RefreshCw size={18}/></button>
+            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio()} title="Refresh cached portfolio"><RefreshCw size={18}/></button>
           </article>
 
           <div className="portfolio-summary-grid portfolio-cache-summary">
