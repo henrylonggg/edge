@@ -1858,39 +1858,31 @@ function selectCachedPortfolio(stocks, target = 20) {
 }
 
 app.get("/api/portfolio", async (req, res) => {
-  try {
-    const cachedStocks = cachedStockRows();
-    const holdings = selectCachedPortfolio(cachedStocks, 20);
-    const industryCount = new Set(holdings.map((stock) => stock.industry)).size;
-    const averageEvalScore = holdings.length
-      ? Number((holdings.reduce((sum, stock) => sum + stock.edgeScore, 0) / holdings.length).toFixed(1))
-      : null;
-
-    res.json({
-      portfolioName: "Eval Portfolio",
-      methodology: "Ranks the current cached stock library using Eval Score, AI integration, Growth, Valuation, and Momentum, then applies industry limits to create a diversified 20-stock model portfolio.",
-      cachedStocks: cachedStocks.map(({ aiContext, ...stock }) => stock),
-      holdings: holdings.map(({ aiContext, ...stock }) => stock),
-      summary: {
-        cachedStockCount: cachedStocks.length,
-        qualifyingStockCount: cachedStocks.filter((stock) => Number(stock.edgeScore) >= 6).length,
-        holdingCount: holdings.length,
-        industryCount,
-        averageEvalScore,
-      },
-      generatedAt: new Date().toISOString(),
-      disclaimer: "Educational model portfolio only. It is generated from stocks currently cached by Eval and is not personalized investment advice.",
-    });
-  } catch (error) {
-    console.error("Cached portfolio route failed:", error?.stack || error?.message || error);
-    res.status(500).json({ error: error?.message || "Could not load the Eval Portfolio.", route: "api/portfolio" });
-  }
+  res.json({
+    portfolioName: "Portfolio Upload",
+    methodology: "Upload a CSV with U.S. stock tickers and holding sizes to calculate a weighted Eval Portfolio Score.",
+    holdings: [],
+    summary: {
+      cachedStockCount: 0,
+      holdingCount: 0,
+      industryCount: 0,
+      averageEvalScore: null,
+    },
+    generatedAt: new Date().toISOString(),
+    disclaimer: "Educational portfolio scoring only. Upload a portfolio CSV to calculate results.",
+  });
 });
 
 function cleanSubmittedWeight(value) {
   const number = Number(value);
   if (!Number.isFinite(number) || number <= 0) return null;
   return number <= 1 ? number * 100 : number;
+}
+
+function cleanSubmittedDollars(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return null;
+  return number;
 }
 
 
@@ -1964,21 +1956,50 @@ function weightedCategoryScoresFromHoldings(holdings) {
 app.post("/api/portfolio-csv", async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.holdings) ? req.body.holdings : [];
+    const submittedPortfolioName = String(req.body?.portfolioName || "Uploaded Portfolio").slice(0, 80);
     const merged = new Map();
+
     for (const row of rows.slice(0, 250)) {
       const symbol = cleanTicker(row?.symbol || row?.ticker);
       const weightPercent = cleanSubmittedWeight(row?.weightPercent ?? row?.weight ?? row?.holdingPercent ?? row?.holding);
-      if (!symbol || weightPercent === null) continue;
+      const holdingDollars = cleanSubmittedDollars(row?.holdingDollars ?? row?.dollars ?? row?.amount ?? row?.marketValue ?? row?.value);
+      if (!symbol) continue;
       if (!/^[A-Z][A-Z0-9.]{0,7}$/.test(symbol)) continue;
-      merged.set(symbol, (merged.get(symbol) || 0) + weightPercent);
+      if (weightPercent === null && holdingDollars === null) continue;
+      const previous = merged.get(symbol) || { symbol, weightPercent: 0, holdingDollars: 0 };
+      merged.set(symbol, {
+        symbol,
+        weightPercent: previous.weightPercent + (weightPercent || 0),
+        holdingDollars: previous.holdingDollars + (holdingDollars || 0),
+      });
     }
 
-    const submitted = [...merged.entries()].map(([symbol, weightPercent]) => ({ symbol, weightPercent }));
+    let submitted = [...merged.values()].map((row) => ({
+      symbol: row.symbol,
+      weightPercent: row.weightPercent > 0 ? row.weightPercent : null,
+      holdingDollars: row.holdingDollars > 0 ? row.holdingDollars : null,
+    }));
+
     if (!submitted.length) {
-      return res.status(400).json({ error: "No valid ticker and holding-percentage rows were found.", route: "api/portfolio-csv" });
+      return res.status(400).json({ error: "No valid ticker and holding rows were found.", route: "api/portfolio-csv" });
     }
 
-    const submittedWeightPercent = submitted.reduce((sum, row) => sum + row.weightPercent, 0);
+    const totalSubmittedDollars = submitted.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
+    const hasAnyPercent = submitted.some((row) => Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0);
+
+    if (!hasAnyPercent && totalSubmittedDollars > 0) {
+      submitted = submitted.map((row) => ({
+        ...row,
+        weightPercent: Number((((Number(row.holdingDollars) || 0) / totalSubmittedDollars) * 100).toFixed(6)),
+      }));
+    }
+
+    submitted = submitted.filter((row) => Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0);
+
+    if (!submitted.length) {
+      return res.status(400).json({ error: "The CSV needs Holding % values or Holding ($) values so Eval can calculate portfolio weights.", route: "api/portfolio-csv" });
+    }
+
     const analyzed = await mapWithConcurrency(submitted, 2, async (row) => {
       try {
         const report = await getCachedAnalysis(row.symbol, { includeAiScoreSummary: false });
@@ -1990,13 +2011,14 @@ app.post("/api/portfolio-csv", async (req, res) => {
         const categories = report?.grades?.categories || {};
         const category = (key) => {
           const score = portfolioScore10(categories?.[key]);
-          return score === null ? null : Number(score.toFixed(1));
+          return score === null || score <= 0 ? null : Number(score.toFixed(1));
         };
         return {
           symbol: row.symbol,
           name: report?.profile?.name || row.symbol,
           industry: report?.profile?.finnhubIndustry || "Other",
-          inputWeightPercent: Number(row.weightPercent.toFixed(4)),
+          inputWeightPercent: Number(Number(row.weightPercent).toFixed(4)),
+          holdingDollars: Number.isFinite(Number(row.holdingDollars)) && Number(row.holdingDollars) > 0 ? Number(Number(row.holdingDollars).toFixed(2)) : null,
           edgeScore: Number(edgeScore.toFixed(1)),
           price: Number.isFinite(price) && price > 0 ? Number(price.toFixed(2)) : null,
           growth: category("growth"),
@@ -2014,29 +2036,56 @@ app.post("/api/portfolio-csv", async (req, res) => {
 
     const valid = analyzed.filter((row) => row && !row.skipped);
     const skipped = analyzed.filter((row) => row?.skipped);
-    const scoredWeightRaw = valid.reduce((sum, row) => sum + row.inputWeightPercent, 0);
-    if (!valid.length || scoredWeightRaw <= 0) {
+    const validInputWeightRaw = valid.reduce((sum, row) => sum + row.inputWeightPercent, 0);
+    if (!valid.length || validInputWeightRaw <= 0) {
       return res.status(400).json({ error: "None of the uploaded holdings could be scored yet.", skipped, route: "api/portfolio-csv" });
     }
 
+    const validHoldingDollars = valid.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
     const holdings = valid
       .map((row) => {
-        const normalizedWeight = row.inputWeightPercent / scoredWeightRaw;
+        const normalizedWeight = row.inputWeightPercent / validInputWeightRaw;
         return {
           ...row,
           weightPercent: Number((normalizedWeight * 100).toFixed(2)),
           weightedContribution: Number((row.edgeScore * normalizedWeight).toFixed(2)),
         };
       })
-      .sort((a, b) => b.weightPercent - a.weightPercent);
+      .sort((a, b) => String(a.industry || "").localeCompare(String(b.industry || "")) || b.weightPercent - a.weightPercent);
 
     const portfolioEvalScore = Number(holdings.reduce((sum, row) => sum + row.weightedContribution, 0).toFixed(1));
     const weightedCategoryScores = weightedCategoryScoresFromHoldings(holdings);
-    const industryCount = new Set(holdings.map((row) => row.industry)).size;
+
+    const industryMap = new Map();
+    for (const holding of holdings) {
+      const industry = holding.industry || "Other";
+      if (!industryMap.has(industry)) industryMap.set(industry, []);
+      industryMap.get(industry).push(holding);
+    }
+
+    const industryGroups = [...industryMap.entries()].map(([industry, groupHoldings]) => {
+      const totalWeightPercent = groupHoldings.reduce((sum, row) => sum + row.weightPercent, 0);
+      const totalHoldingDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
+      const decorated = groupHoldings
+        .map((row) => ({
+          ...row,
+          industryWeightPercent: totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null,
+        }))
+        .sort((a, b) => b.weightPercent - a.weightPercent);
+      return {
+        industry,
+        totalWeightPercent: Number(totalWeightPercent.toFixed(2)),
+        totalHoldingDollars: totalHoldingDollars > 0 ? Number(totalHoldingDollars.toFixed(2)) : null,
+        holdings: decorated,
+      };
+    }).sort((a, b) => b.totalWeightPercent - a.totalWeightPercent);
+
+    const industryCount = industryGroups.length;
 
     res.json({
-      portfolioName: "Uploaded Portfolio",
+      portfolioName: submittedPortfolioName,
       holdings,
+      industryGroups,
       skipped,
       summary: {
         portfolioEvalScore,
@@ -2044,8 +2093,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
         submittedHoldingCount: submitted.length,
         scoredHoldingCount: holdings.length,
         voidedHoldingCount: skipped.length,
-        submittedWeightPercent: Number(submittedWeightPercent.toFixed(2)),
-        scoredWeightPercent: Number(scoredWeightRaw.toFixed(2)),
+        totalHoldingDollars: validHoldingDollars > 0 ? Number(validHoldingDollars.toFixed(2)) : (totalSubmittedDollars > 0 ? Number(totalSubmittedDollars.toFixed(2)) : null),
         industryCount,
       },
       generatedAt: new Date().toISOString(),
