@@ -564,9 +564,9 @@ function fallbackAiScoreSummaryFromReport(report = {}) {
   const firstHalf = metricText.slice(0, 4).join(", ");
   const secondHalf = metricText.slice(4, 8).join(", ");
 
-  const prosSummary = `${symbol} is supported most by ${strongest.join(" and ") || "its strongest operating categories"}. ${firstHalf ? `Key calculation inputs include ${firstHalf}. ` : ""}These figures matter because they show how effectively the business is growing, producing profit, maintaining financial stability, or receiving support from recent market performance. Together, the stronger inputs explain why ${symbol} receives support in the Eval model.`;
+  const prosSummary = `${symbol} is supported most by ${strongest.join(" and ") || "its strongest operating categories"}. ${firstHalf ? `Key calculation inputs include ${firstHalf}. ` : ""}These figures matter because they show how effectively the business is growing, producing profit, maintaining financial stability, or receiving support from recent market performance. Together, the stronger inputs explain why ${symbol} earns support in the Eval model without relying on any zero-value metric.`;
 
-  const consSummary = `${symbol} is held back most by ${weakest.join(" and ") || "its weaker scoring categories"}. ${secondHalf ? `The main calculation inputs to watch are ${secondHalf}. ` : ""}These measures matter because they show where valuation, balance-sheet flexibility, growth consistency, or market strength may be less favorable than the rest of the report. Those weaker inputs keep the overall profile from looking stronger.`;
+  const consSummary = `${symbol} is held back most by ${weakest.join(" and ") || "its weaker scoring categories"}. ${secondHalf ? `The main calculation inputs to watch are ${secondHalf}. ` : ""}These measures matter because they show where valuation, balance-sheet flexibility, growth consistency, or market strength may be less favorable than the rest of the report. Those weaker inputs keep the overall profile from looking more complete, while avoiding any metric with a value of zero.`;
 
   return {
     source: "fallback score breakdown",
@@ -653,7 +653,7 @@ async function buildAiScoreSummaryFromReportLocal(report = {}) {
           {
             role: "system",
             content:
-              "You write clear, ticker-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Use the ticker symbol instead of the company name. Never mention missing data, unavailable data, providers, APIs, fallbacks, limitations in data access, filtering, excluded metrics, or the number zero. Silently ignore metrics that are not supplied. Only use metrics included in usedCalculationMetrics. Explain each key metric naturally inside the prose and state what it means for this specific stock.",
+              "You write clear, ticker-specific stock-score explanations for Eval. Return only valid JSON. Do not give buy/sell/hold advice. Use the ticker symbol instead of the company name. Never mention missing data, unavailable data, providers, APIs, fallbacks, limitations in data access, or any metric with a numeric value of 0. Only use metrics included in usedCalculationMetrics. Explain each key metric naturally inside the prose and state what it means for this specific stock.",
           },
           {
             role: "user",
@@ -664,11 +664,11 @@ Rules:
 - Each summary should be one substantial, easy-to-read paragraph of about 5-8 sentences.
 - The Pros paragraph must explain the strongest parts of the stock's Eval calculation.
 - The Cons paragraph must explain the weakest parts of the stock's Eval calculation.
-- Mention several important calculation metrics directly inside each paragraph, including their exact values, and explain in plain English what each metric means and why it helps or hurts ${report?.symbol}.
-- ONLY use metrics in usedCalculationMetrics. Silently ignore anything else without discussing why it was omitted.
+- Mention several important calculation metrics directly inside each paragraph, including their exact non-zero values, and explain in plain English what each metric means and why it helps or hurts ${report?.symbol}.
+- ONLY use metrics in usedCalculationMetrics, and completely ignore every metric whose value is 0, null, missing, non-numeric, or unavailable.
 - Do not create bullet points, arrays, metric chips, headings, a takeaway, a news section, or a separate overall summary.
-- Do not mention the company name, missing data, data quality, providers, APIs, fallbacks, incomplete coverage, excluded metrics, filtering, or zero values.
-- Do not repeat category ratings unless you immediately explain them with exact metric values.
+- Do not mention the company name, missing data, data quality, providers, APIs, fallbacks, or incomplete coverage.
+- Do not repeat category ratings unless you immediately explain them with exact non-zero metric values.
 - Do not give buy/sell/hold advice.
 
 Data: ${JSON.stringify(payload)}`,
@@ -1573,7 +1573,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -1765,6 +1765,17 @@ app.get("/api/industry-top/:industry", async (req, res) => {
 
 
 
+
+function validatePortfolioAccess(req, res) {
+  const suppliedPassword = String(req.headers["x-eval-portfolio-password"] || req.query?.password || "");
+  const requiredPassword = String(process.env.EVAL_PORTFOLIO_PASSWORD || "111805");
+  if (suppliedPassword !== requiredPassword) {
+    res.status(401).json({ error: "Incorrect portfolio password.", route: req.path });
+    return false;
+  }
+  return true;
+}
+
 function cachedStockRows() {
   return [...analysisCache.entries()]
     .map(([symbol, cached]) => {
@@ -1801,8 +1812,8 @@ function cachedStockRows() {
 
 function cachedAiIntegrationScore(stock) {
   const text = String(stock?.aiContext || "").toLowerCase();
-  const strongAiTickers = new Set(["NVDA","MSFT","GOOGL","META","AMZN","AVGO","AMD","MU","ORCL","CRM","NOW","ADBE","IBM","ACN","PLTR","CRWD","PANW"]);
-  const terms = ["artificial intelligence"," ai ","machine learning","generative ai","data center","accelerator","gpu","cloud ai","copilot","automation","analytics","semiconductor"];
+  const strongAiTickers = new Set(["NVDA","MSFT","GOOGL","META","AMZN","AVGO","AMD","MU","ORCL","CRM","NOW","ADBE","IBM","ACN","PLTR","CRWD","PANW","TSM","ASML","SNOW","DDOG","NET","ANET"]);
+  const terms = ["artificial intelligence"," ai ","machine learning","generative ai","data center","accelerator","gpu","cloud ai","copilot","automation","analytics","semiconductor","model training","inference"];
   let score = strongAiTickers.has(stock?.symbol) ? 8 : 4.5;
   score += terms.reduce((sum, term) => sum + (text.includes(term) ? 0.45 : 0), 0);
   return Number(Math.min(10, score).toFixed(1));
@@ -1858,11 +1869,7 @@ function selectCachedPortfolio(stocks, target = 20) {
 
 app.get("/api/portfolio", async (req, res) => {
   try {
-    const suppliedPassword = String(req.headers["x-eval-portfolio-password"] || req.query?.password || "");
-    const requiredPassword = String(process.env.EVAL_PORTFOLIO_PASSWORD || "111805");
-    if (suppliedPassword !== requiredPassword) {
-      return res.status(401).json({ error: "Incorrect portfolio password.", route: "api/portfolio" });
-    }
+    if (!validatePortfolioAccess(req, res)) return;
 
     const cachedStocks = cachedStockRows();
     const holdings = selectCachedPortfolio(cachedStocks, 20);
@@ -1889,6 +1896,107 @@ app.get("/api/portfolio", async (req, res) => {
   } catch (error) {
     console.error("Cached portfolio route failed:", error?.stack || error?.message || error);
     res.status(500).json({ error: error?.message || "Could not load the Eval Portfolio.", route: "api/portfolio" });
+  }
+});
+
+function cleanSubmittedWeight(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return null;
+  return number <= 1 ? number * 100 : number;
+}
+
+app.post("/api/portfolio-csv", async (req, res) => {
+  try {
+    if (!validatePortfolioAccess(req, res)) return;
+
+    const rows = Array.isArray(req.body?.holdings) ? req.body.holdings : [];
+    const merged = new Map();
+    for (const row of rows.slice(0, 250)) {
+      const symbol = cleanTicker(row?.symbol || row?.ticker);
+      const weightPercent = cleanSubmittedWeight(row?.weightPercent ?? row?.weight ?? row?.holdingPercent ?? row?.holding);
+      if (!symbol || weightPercent === null) continue;
+      if (!/^[A-Z][A-Z0-9.]{0,7}$/.test(symbol)) continue;
+      merged.set(symbol, (merged.get(symbol) || 0) + weightPercent);
+    }
+
+    const submitted = [...merged.entries()].map(([symbol, weightPercent]) => ({ symbol, weightPercent }));
+    if (!submitted.length) {
+      return res.status(400).json({ error: "No valid ticker and holding-percentage rows were found.", route: "api/portfolio-csv" });
+    }
+
+    const submittedWeightPercent = submitted.reduce((sum, row) => sum + row.weightPercent, 0);
+    const analyzed = await mapWithConcurrency(submitted, 2, async (row) => {
+      try {
+        const report = await getCachedAnalysis(row.symbol, { includeAiScoreSummary: false });
+        const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+        const price = Number(report?.quote?.c);
+        if (edgeScore === null) {
+          return { skipped: true, symbol: row.symbol, reason: "No Eval Score available." };
+        }
+        const categories = report?.grades?.categories || {};
+        const category = (key) => {
+          const score = portfolioScore10(categories?.[key]);
+          return score === null ? null : Number(score.toFixed(1));
+        };
+        return {
+          symbol: row.symbol,
+          name: report?.profile?.name || row.symbol,
+          industry: report?.profile?.finnhubIndustry || "Other",
+          inputWeightPercent: Number(row.weightPercent.toFixed(4)),
+          edgeScore: Number(edgeScore.toFixed(1)),
+          price: Number.isFinite(price) && price > 0 ? Number(price.toFixed(2)) : null,
+          growth: category("growth"),
+          valuation: category("valuation"),
+          momentum: category("momentum"),
+          profitability: category("profitability"),
+          financialHealth: category("financialHealth"),
+          newsSentiment: category("newsSentiment"),
+          riskLabel: report?.grades?.riskLabel || "N/A",
+        };
+      } catch (error) {
+        return { skipped: true, symbol: row.symbol, reason: error?.message || "Could not analyze ticker." };
+      }
+    });
+
+    const valid = analyzed.filter((row) => row && !row.skipped);
+    const skipped = analyzed.filter((row) => row?.skipped);
+    const scoredWeightRaw = valid.reduce((sum, row) => sum + row.inputWeightPercent, 0);
+    if (!valid.length || scoredWeightRaw <= 0) {
+      return res.status(400).json({ error: "None of the uploaded holdings could be scored yet.", skipped, route: "api/portfolio-csv" });
+    }
+
+    const holdings = valid
+      .map((row) => {
+        const normalizedWeight = row.inputWeightPercent / scoredWeightRaw;
+        return {
+          ...row,
+          weightPercent: Number((normalizedWeight * 100).toFixed(2)),
+          weightedContribution: Number((row.edgeScore * normalizedWeight).toFixed(2)),
+        };
+      })
+      .sort((a, b) => b.weightPercent - a.weightPercent);
+
+    const portfolioEvalScore = Number(holdings.reduce((sum, row) => sum + row.weightedContribution, 0).toFixed(1));
+    const industryCount = new Set(holdings.map((row) => row.industry)).size;
+
+    res.json({
+      portfolioName: "Uploaded Portfolio",
+      holdings,
+      skipped,
+      summary: {
+        portfolioEvalScore,
+        submittedHoldingCount: submitted.length,
+        scoredHoldingCount: holdings.length,
+        submittedWeightPercent: Number(submittedWeightPercent.toFixed(2)),
+        scoredWeightPercent: Number(scoredWeightRaw.toFixed(2)),
+        industryCount,
+      },
+      generatedAt: new Date().toISOString(),
+      disclaimer: "Educational portfolio score only. The weighted Eval Portfolio Score is based on the uploaded holding percentages and each ticker's Eval Score.",
+    });
+  } catch (error) {
+    console.error("Portfolio CSV route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not score uploaded portfolio.", route: "api/portfolio-csv" });
   }
 });
 
