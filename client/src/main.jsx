@@ -1752,12 +1752,59 @@ function splitCsvLine(line) {
   return cells;
 }
 
-function parseHoldingPercent(raw) {
+function parseHoldingNumber(raw) {
   if (raw === null || raw === undefined) return null;
   const cleaned = String(raw).replace(/[$,%]/g, "").replace(/,/g, "").trim();
   const value = Number(cleaned);
   if (!Number.isFinite(value) || value <= 0) return null;
+  return value;
+}
+
+function parseHoldingPercent(raw) {
+  const value = parseHoldingNumber(raw);
+  if (value === null) return null;
   return value <= 1 ? value * 100 : value;
+}
+
+function parseHoldingDollars(raw) {
+  const value = parseHoldingNumber(raw);
+  if (value === null) return null;
+  return value;
+}
+
+function portfolioTemplateCsv(firstName = "Your") {
+  return [
+    "1. Enter the tickers into the Stocks column for your portfolio (U.S Stocks only),,,*yellow means edit",
+    "2. Enter the $ amount you have in each stock,,",
+    "3. Save the file as a .csv file and then drop the file back into the Eval Portfolio dashboard,,",
+    ",,,",
+    "Ticker,Holding ($),Holding %,",
+    "AAPL,$1000,6.84%,",
+    "MSFT,$1250,8.55%,",
+    "META,$2000,13.68%,",
+    "NVDA,$1500,10.26%,",
+    "JPM,$1200,8.21%,",
+    "XOM,$750,5.13%,",
+    "WMT,$750,5.13%,",
+    "TSLA,$300,2.05%,",
+  ].join("\n");
+}
+
+function downloadPortfolioTemplate(firstName = "Your") {
+  const safeName = String(firstName || "Your").replace(/[^a-z0-9 _-]/gi, "").trim() || "Your";
+  const blob = new Blob([portfolioTemplateCsv(safeName)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${safeName} Portfolio.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function normalizeCsvHeader(cell) {
+  return String(cell || "").toLowerCase().replace(/^\uFEFF/, "").replace(/[^a-z0-9%$]/g, "");
 }
 
 function parsePortfolioCsv(text) {
@@ -1768,72 +1815,71 @@ function parsePortfolioCsv(text) {
 
   if (!lines.length) throw new Error("The CSV file is empty.");
 
-  const first = splitCsvLine(lines[0]).map((cell) => cell.toLowerCase().replace(/[^a-z0-9%]/g, ""));
-  const hasHeader = first.some((cell) => ["ticker", "symbol", "holding", "holdings", "weight", "portfolio", "allocation", "percent", "percentage", "holding%", "weight%"].includes(cell));
-  const headers = hasHeader ? first : [];
-  const dataLines = hasHeader ? lines.slice(1) : lines;
+  let headerLineIndex = lines.findIndex((line) => {
+    const headers = splitCsvLine(line).map(normalizeCsvHeader);
+    const hasTicker = headers.some((h) => ["ticker", "symbol", "stocksymbol"].includes(h));
+    const hasWeight = headers.some((h) => ["holding", "holdings", "holding%", "holding$", "weight", "weight%", "portfolio", "portfolio%", "allocation", "amount", "value", "marketvalue", "percent", "percentage"].includes(h));
+    return hasTicker && hasWeight;
+  });
 
-  const tickerIndex = hasHeader
-    ? Math.max(headers.findIndex((h) => ["ticker", "symbol", "stocksymbol"].includes(h)), 0)
-    : 0;
-  const weightIndex = hasHeader
-    ? headers.findIndex((h) => ["holding", "holdings", "holding%", "weight", "weight%", "portfolio", "portfolio%", "allocation", "percent", "percentage"].includes(h))
-    : 1;
+  if (headerLineIndex < 0) headerLineIndex = 0;
 
-  if (weightIndex < 0) throw new Error("Could not find a holding percentage column. Use a column like Holding %, Weight, or Portfolio %. ");
+  const headers = splitCsvLine(lines[headerLineIndex]).map(normalizeCsvHeader);
+  const dataLines = lines.slice(headerLineIndex + 1);
+
+  const tickerIndex = Math.max(headers.findIndex((h) => ["ticker", "symbol", "stocksymbol"].includes(h)), 0);
+  const percentIndex = headers.findIndex((h) => ["holding%", "weight%", "portfolio%", "percent", "percentage"].includes(h));
+  const dollarIndex = headers.findIndex((h) => ["holding$", "holding", "holdings", "amount", "value", "marketvalue", "allocation", "portfolio"].includes(h));
+
+  if (percentIndex < 0 && dollarIndex < 0) {
+    throw new Error("Could not find a holding column. Use Holding ($) and/or Holding %.");
+  }
 
   const merged = new Map();
   for (const line of dataLines) {
     const cells = splitCsvLine(line);
     const rawTicker = String(cells[tickerIndex] || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
     const ticker = rawTicker.replace("-", ".");
-    const weightPercent = parseHoldingPercent(cells[weightIndex]);
-    if (!ticker || !/^[A-Z][A-Z0-9.]{0,7}$/.test(ticker) || weightPercent === null) continue;
-    merged.set(ticker, (merged.get(ticker) || 0) + weightPercent);
+    const weightPercent = percentIndex >= 0 ? parseHoldingPercent(cells[percentIndex]) : null;
+    const holdingDollars = dollarIndex >= 0 ? parseHoldingDollars(cells[dollarIndex]) : null;
+    if (!ticker || !/^[A-Z][A-Z0-9.]{0,7}$/.test(ticker)) continue;
+    if (weightPercent === null && holdingDollars === null) continue;
+    const previous = merged.get(ticker) || { symbol: ticker, weightPercent: 0, holdingDollars: 0 };
+    merged.set(ticker, {
+      symbol: ticker,
+      weightPercent: previous.weightPercent + (weightPercent || 0),
+      holdingDollars: previous.holdingDollars + (holdingDollars || 0),
+    });
   }
 
-  const holdings = [...merged.entries()].map(([symbol, weightPercent]) => ({ symbol, weightPercent: Number(weightPercent.toFixed(4)) }));
-  if (!holdings.length) throw new Error("No valid ticker and holding-percent rows were found.");
-  return holdings;
+  const rows = [...merged.values()]
+    .map((row) => ({
+      symbol: row.symbol,
+      weightPercent: row.weightPercent > 0 ? Number(row.weightPercent.toFixed(4)) : null,
+      holdingDollars: row.holdingDollars > 0 ? Number(row.holdingDollars.toFixed(2)) : null,
+    }))
+    .filter((row) => row.weightPercent !== null || row.holdingDollars !== null);
+
+  if (!rows.length) throw new Error("No valid ticker and holding rows were found.");
+  return rows;
 }
 
 function PortfolioPage({ onBack, onAnalyze }) {
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { user } = useUser();
+  const firstName =
+    user?.firstName ||
+    user?.fullName?.split(" ")?.[0] ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
+    "Your";
+  const portfolioTitle = `${firstName}'s Portfolio`;
+
   const [csvName, setCsvName] = useState("");
   const [csvAnalysis, setCsvAnalysis] = useState(null);
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
 
-  async function loadPortfolio() {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await fetch(`${API}/api/portfolio`, {
-        method: "GET",
-        mode: "cors",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-      const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not load the Eval Portfolio.");
-      setResult(json);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err) {
-      setError(err?.message || "Could not load the Eval Portfolio.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadPortfolio();
-  }, []);
-
-  async function analyzeCsvHoldings(holdings, fileName = "portfolio.csv") {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`) {
     setCsvLoading(true);
     setCsvError("");
     setCsvAnalysis(null);
@@ -1846,11 +1892,12 @@ function PortfolioPage({ onBack, onAnalyze }) {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ holdings }),
+        body: JSON.stringify({ holdings, portfolioName: portfolioTitle }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio CSV.");
       setCsvAnalysis(json);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setCsvError(err?.message || "Could not analyze this portfolio CSV.");
     } finally {
@@ -1874,19 +1921,21 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
+  const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
+    .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
+
+  const industryGroups = csvAnalysis?.industryGroups || [];
+
   return (
-    <main className="portfolio-builder-page portfolio-cache-page">
+    <main className="portfolio-builder-page portfolio-cache-page portfolio-upload-only-page">
       <div className="portfolio-builder-head">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
         <div>
-          <span className="assistant-kicker"><Sparkles size={16}/> Eval Portfolio</span>
+          <span className="assistant-kicker"><Sparkles size={16}/> Portfolio upload</span>
           <h2>Portfolio</h2>
-          <p>Upload a CSV to calculate a weighted Eval Portfolio Score, or view the current 20-stock model generated from the backend cache.</p>
+          <p>Upload your portfolio CSV and Eval will score the U.S. stocks it can analyze, weight each score by your holdings, and organize the results by industry.</p>
         </div>
       </div>
-
-      {error && <div className="error-banner"><AlertTriangle size={18}/>{error}</div>}
-      {loading && <div className="portfolio-loading-card"><BrainCircuit size={30}/><h3>Ranking cached stocks</h3><p>Eval is comparing the current cached stock library across AI integration, Growth, Valuation, Momentum, and overall Eval Score.</p></div>}
 
       <section className="portfolio-csv-dashboard">
         <article
@@ -1902,147 +1951,109 @@ function PortfolioPage({ onBack, onAnalyze }) {
           <div className="portfolio-csv-icon"><FileText size={30}/></div>
           <div>
             <span className="section-title"><BarChart3 size={17}/> CSV portfolio scorer</span>
-            <h3>Drop a portfolio CSV here</h3>
-            <p>Eval reads U.S. stock tickers and holding percentages, calculates each stock’s Eval Score, then creates one weighted average Portfolio Eval Score.</p>
-            <small>Accepted columns: <b>Ticker</b> or <b>Symbol</b>, plus <b>Holding %</b>, <b>Weight</b>, or <b>Portfolio %</b>.</small>
+            <h3>Drop {portfolioTitle} CSV here</h3>
+            <p>Use the Eval template, enter U.S. stock tickers and either holding dollars or holding percentages, then upload the CSV here.</p>
+            <small>Accepted columns: <b>Ticker</b> or <b>Symbol</b>, plus <b>Holding ($)</b> and/or <b>Holding %</b>.</small>
           </div>
-          <label className="portfolio-csv-upload-btn">
-            Choose CSV
-            <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
-          </label>
+          <div className="portfolio-csv-actions">
+            <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>
+              Download template
+            </button>
+            <label className="portfolio-csv-upload-btn">
+              Choose CSV
+              <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
+            </label>
+          </div>
         </article>
 
-        {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring uploaded portfolio</h3><p>Eval is calculating each ticker’s score and weighting it by the holding percentage.</p></div>}
+        {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring uploaded portfolio</h3><p>Eval is calculating each ticker’s score and weighting it by your holdings.</p></div>}
         {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
 
         {csvAnalysis && !csvLoading && (
-          <article className="portfolio-upload-results">
-            <div className="portfolio-upload-score-row">
-              <div className={`portfolio-upload-score ${scoreTone(csvAnalysis.summary?.portfolioEvalScore)}`}>
-                <span>Portfolio Eval Score</span>
-                <strong>{scoreText(csvAnalysis.summary?.portfolioEvalScore)}</strong>
+          <article className="portfolio-upload-results portfolio-upload-results-v2">
+            <div className="portfolio-upload-hero">
+              <div
+                className={`score-ring portfolio-score-ring ${scoreTone(csvAnalysis.summary?.portfolioEvalScore)}`}
+                style={{ "--score-angle": `${scoreDegrees(csvAnalysis.summary?.portfolioEvalScore)}deg` }}
+              >
+                <div className="score-core">
+                  <strong>{scoreText(csvAnalysis.summary?.portfolioEvalScore)}</strong>
+                </div>
               </div>
               <div>
-                <span className="section-title"><Scale size={17}/> Weighted by holdings</span>
-                <h3>{csvName || "Uploaded portfolio"}</h3>
-                <p>{csvAnalysis.summary?.scoredHoldingCount || 0} holdings scored across {csvAnalysis.summary?.industryCount || 0} industries. The score uses each holding’s percentage weight multiplied by that ticker’s Eval Score.</p>
+                <span className="section-title"><Scale size={17}/> Weighted Eval Portfolio Score</span>
+                <h3>{portfolioTitle}</h3>
+                <p>{csvAnalysis.summary?.scoredHoldingCount || 0} scorable U.S. stock holdings across {csvAnalysis.summary?.industryCount || 0} industries. Each stock’s Eval Score is multiplied by its portfolio weight to create the overall portfolio score.</p>
               </div>
             </div>
 
-            <div className="portfolio-summary-grid portfolio-upload-summary">
-              <article><span>Total submitted weight</span><strong>{Number(csvAnalysis.summary?.submittedWeightPercent || 0).toFixed(1)}%</strong></article>
-              <article><span>Scored weight</span><strong>{Number(csvAnalysis.summary?.scoredWeightPercent || 0).toFixed(1)}%</strong></article>
+            <div className="portfolio-summary-grid portfolio-upload-summary portfolio-upload-summary-clean">
+              <article><span>Total amount in holdings</span><strong>{money(csvAnalysis.summary?.totalHoldingDollars)}</strong></article>
               <article><span>Holdings scored</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
+              <article><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></article>
               <article><span>Voided holdings</span><strong>{csvAnalysis.summary?.voidedHoldingCount || csvAnalysis.skipped?.length || 0}</strong></article>
             </div>
 
-            {csvAnalysis.summary?.weightedCategoryScores && (
-              <div className="portfolio-weighted-metrics-card">
+            {!!categoryEntries.length && (
+              <div className="portfolio-weighted-metrics-card portfolio-weighted-metrics-card-pop">
                 <div>
-                  <span className="section-title"><Gauge size={17}/> Weighted metric scores</span>
-                  <h3>Portfolio score by category</h3>
-                  <p>Each category score is weighted by the holding percentage of every scorable stock in the uploaded CSV.</p>
+                  <span className="section-title"><Gauge size={17}/> Weighted category scores</span>
+                  <h3>Portfolio metrics</h3>
+                  <p>These scores show how the portfolio looks by category after each stock is weighted by its holding size.</p>
                 </div>
                 <div className="portfolio-weighted-metric-grid">
-                  {Object.entries(csvAnalysis.summary.weightedCategoryScores)
-                    .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0)
-                    .map(([key, value]) => (
-                      <article key={key} className={scoreTone(value)}>
-                        <span>{categoryLabel(key)}</span>
-                        <strong>{scoreText(value)}</strong>
-                      </article>
-                    ))}
+                  {categoryEntries.map(([key, value]) => (
+                    <article key={key} className={scoreTone(value)}>
+                      <span>{categoryLabel(key)}</span>
+                      <strong>{scoreText(value)}</strong>
+                      <small>{gradeFrom10(value)}</small>
+                    </article>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div className="portfolio-holdings-table portfolio-upload-table">
-              <div className="portfolio-holding-row header"><span>Stock</span><span>Holding</span><span>Eval</span><span>Weighted impact</span><span>Industry</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
-              {(csvAnalysis.holdings || []).map((holding) => (
-                <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
-                  <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
-                  <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
-                  <span>{scoreText(holding.edgeScore)}</span>
-                  <span>{scoreText(holding.weightedContribution)}</span>
-                  <span>{holding.industry}</span>
-                  <span>{scoreText(holding.growth)}</span>
-                  <span>{scoreText(holding.valuation)}</span>
-                  <span>{scoreText(holding.momentum)}</span>
-                </button>
+            <div className="portfolio-industry-results">
+              <div className="portfolio-section-head">
+                <div>
+                  <span className="section-title"><Activity size={17}/> Holdings by industry</span>
+                  <h3>Industry-weighted breakdown</h3>
+                </div>
+              </div>
+
+              {industryGroups.map((group) => (
+                <article className="portfolio-industry-block" key={group.industry}>
+                  <button type="button" className="portfolio-industry-head">
+                    <span>{group.industry}</span>
+                    <strong>{Number(group.totalWeightPercent || 0).toFixed(2)}%</strong>
+                  </button>
+                  <div className="portfolio-holdings-table portfolio-upload-table portfolio-industry-table">
+                    <div className="portfolio-holding-row header"><span>Stock</span><span>Portfolio weight</span><span>Within industry</span><span>Eval</span><span>Impact</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                    {(group.holdings || []).map((holding) => (
+                      <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                        <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                        <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
+                        <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
+                        <span>{scoreText(holding.edgeScore)}</span>
+                        <span>{scoreText(holding.weightedContribution)}</span>
+                        <span>{scoreText(holding.growth)}</span>
+                        <span>{scoreText(holding.valuation)}</span>
+                        <span>{scoreText(holding.momentum)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </article>
               ))}
             </div>
 
             {!!csvAnalysis.skipped?.length && (
               <div className="portfolio-skipped-note">
-                <b>Skipped:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}
+                <b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}
               </div>
             )}
           </article>
         )}
       </section>
-
-      {result && !loading && (
-        <section className="portfolio-results portfolio-cache-results">
-          <article className="portfolio-method-card portfolio-cache-intro">
-            <div>
-              <span className="section-title"><Target size={17}/> Current selection model</span>
-              <h3>Best-fit stocks from the live Eval cache</h3>
-              <p>{result.methodology}</p>
-            </div>
-            <button type="button" className="icon-btn portfolio-refresh-btn" onClick={() => loadPortfolio()} title="Refresh cached portfolio"><RefreshCw size={18}/></button>
-          </article>
-
-          <div className="portfolio-summary-grid portfolio-cache-summary">
-            <article><span>Cached stocks</span><strong>{result.summary?.cachedStockCount ?? 0}</strong></article>
-            <article><span>Portfolio holdings</span><strong>{result.summary?.holdingCount ?? 0}</strong></article>
-            <article><span>Industries</span><strong>{result.summary?.industryCount ?? 0}</strong></article>
-            <article><span>Average Eval Score</span><strong>{scoreText(result.summary?.averageEvalScore)}</strong></article>
-          </div>
-
-          <article className="portfolio-holdings-card portfolio-featured-holdings">
-            <div className="portfolio-section-head">
-              <div>
-                <span className="section-title"><Crown size={17}/> 20-stock Eval Portfolio</span>
-                <h3>Growth-focused, valuation-aware, and momentum-supported</h3>
-              </div>
-            </div>
-            <div className="portfolio-holdings-table portfolio-cache-table">
-              <div className="portfolio-holding-row header"><span>Stock</span><span>Industry</span><span>Eval</span><span>AI fit</span><span>Growth</span><span>Valuation</span><span>Momentum</span><span>Weight</span></div>
-              {(result.holdings || []).map((holding) => (
-                <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
-                  <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
-                  <span>{holding.industry}</span>
-                  <span>{scoreText(holding.edgeScore)}</span>
-                  <span>{scoreText(holding.aiIntegration)}</span>
-                  <span>{scoreText(holding.growth)}</span>
-                  <span>{scoreText(holding.valuation)}</span>
-                  <span>{scoreText(holding.momentum)}</span>
-                  <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
-                </button>
-              ))}
-            </div>
-          </article>
-
-          <article className="portfolio-holdings-card portfolio-cache-library">
-            <div className="portfolio-section-head">
-              <div>
-                <span className="section-title"><Activity size={17}/> Cached stock library</span>
-                <h3>Every stock currently available to the portfolio model</h3>
-              </div>
-            </div>
-            <div className="portfolio-cache-stock-grid">
-              {(result.cachedStocks || []).map((stock) => (
-                <button type="button" key={stock.symbol} onClick={() => onAnalyze?.(stock.symbol)}>
-                  <div><b>{stock.symbol}</b><span>{stock.industry}</span></div>
-                  <strong>{scoreText(stock.edgeScore)}</strong>
-                </button>
-              ))}
-            </div>
-          </article>
-
-          <p className="portfolio-disclaimer">{result.disclaimer}</p>
-        </section>
-      )}
     </main>
   );
 }
