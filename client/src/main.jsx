@@ -1864,6 +1864,37 @@ function parsePortfolioCsv(text) {
   return rows;
 }
 
+
+function portfolioMetricSummary(key, value) {
+  const label = categoryLabel(key);
+  const n = score10(value);
+  if (n === null) return `${label} is not included in this portfolio score yet.`;
+
+  const strength = n >= 7.5 ? "a strong contributor" : n >= 6.5 ? "a mixed but usable contributor" : "an area that weighs down the portfolio";
+  const descriptions = {
+    growth: "Growth shows whether the portfolio leans toward companies with stronger expansion profiles.",
+    profitability: "Profitability shows how much the portfolio is backed by companies that convert sales into earnings efficiently.",
+    financialHealth: "Financial Health shows whether the portfolio leans toward companies with stronger balance sheets and lower financial stress.",
+    valuation: "Valuation shows whether the portfolio's holdings look reasonably priced compared with their fundamentals.",
+    momentum: "Momentum shows whether the portfolio is tilted toward stocks with stronger recent price action.",
+    reversal: "Pullback shows whether the portfolio includes stocks that may have reset from recent highs without breaking the overall profile.",
+    newsSentiment: "News Sentiment shows how recent company-specific headlines are affecting the portfolio's current backdrop.",
+  };
+
+  return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} to the overall Portfolio Score.`;
+}
+
+function blankManualHolding() {
+  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, symbol: "", holdingDollars: "" };
+}
+
+const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v4";
+
+function portfolioStorageKeyFor(user) {
+  const id = user?.id || user?.primaryEmailAddress?.emailAddress || "local";
+  return `${PORTFOLIO_UPLOAD_STORAGE_KEY}:${id}`;
+}
+
 function PortfolioPage({ onBack, onAnalyze }) {
   const { user } = useUser();
   const firstName =
@@ -1872,18 +1903,51 @@ function PortfolioPage({ onBack, onAnalyze }) {
     user?.primaryEmailAddress?.emailAddress?.split("@")?.[0] ||
     "Your";
   const portfolioTitle = `${firstName}'s Portfolio`;
+  const storageKey = portfolioStorageKeyFor(user);
 
   const [csvName, setCsvName] = useState("");
   const [csvAnalysis, setCsvAnalysis] = useState(null);
+  const [savedHoldings, setSavedHoldings] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [entryMode, setEntryMode] = useState("csv");
+  const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`) {
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      if (!saved) return;
+      if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
+      if (saved.fileName) setCsvName(saved.fileName);
+      if (saved.analysis) setCsvAnalysis(saved.analysis);
+      if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
+    } catch {
+      // Ignore damaged local portfolio state.
+    }
+  }, [storageKey]);
+
+  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({
+        holdings: nextHoldings,
+        fileName,
+        analysis,
+        manualRows: nextManualRows,
+        savedAt: new Date().toISOString(),
+      }));
+    } catch {
+      // Local storage can fail in private browsing; the page still works for the current session.
+    }
+  }
+
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false } = {}) {
     setCsvLoading(true);
     setCsvError("");
-    setCsvAnalysis(null);
+    if (!silent) setCsvAnalysis(null);
     setCsvName(fileName);
+    setSavedHoldings(holdings);
+
     try {
       const response = await fetch(`${API}/api/portfolio-csv`, {
         method: "POST",
@@ -1897,6 +1961,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio CSV.");
       setCsvAnalysis(json);
+      persistPortfolioState(holdings, fileName, json);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setCsvError(err?.message || "Could not analyze this portfolio CSV.");
@@ -1921,25 +1986,62 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
+  function refreshSavedPortfolio() {
+    if (!savedHoldings.length) {
+      setCsvError("Upload a CSV first, then refresh will rescore the saved portfolio.");
+      return;
+    }
+    analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent: true });
+  }
+
+
+  function updateManualRow(id, field, value) {
+    setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
+  }
+
+  function addManualRow() {
+    setManualRows((rows) => [...rows, blankManualHolding()]);
+  }
+
+  function removeManualRow(id) {
+    setManualRows((rows) => rows.length <= 1 ? rows : rows.filter((row) => row.id !== id));
+  }
+
+  async function analyzeManualPortfolio() {
+    const holdings = manualRows
+      .map((row) => ({
+        symbol: String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", "."),
+        holdingDollars: parseHoldingDollars(row.holdingDollars),
+      }))
+      .filter((row) => row.symbol && row.holdingDollars !== null);
+
+    if (!holdings.length) {
+      setCsvError("Add at least one ticker and holding dollar amount before analyzing.");
+      return;
+    }
+
+    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false });
+  }
+
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
   const industryGroups = csvAnalysis?.industryGroups || [];
 
   return (
-    <main className="portfolio-builder-page portfolio-cache-page portfolio-upload-only-page">
-      <div className="portfolio-builder-head">
+    <main className="portfolio-builder-page portfolio-cache-page portfolio-upload-only-page portfolio-upload-polished-page">
+      <div className="portfolio-builder-head portfolio-upload-topbar">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
         <div>
           <span className="assistant-kicker"><Sparkles size={16}/> Portfolio upload</span>
           <h2>Portfolio</h2>
-          <p>Upload your portfolio CSV and Eval will score the U.S. stocks it can analyze, weight each score by your holdings, and organize the results by industry.</p>
+          <p>Upload a CSV of your holdings and Eval will calculate a weighted Portfolio Score, weighted category scores, and industry-level scores from the U.S. stocks it can analyze.</p>
         </div>
       </div>
 
-      <section className="portfolio-csv-dashboard">
+      <section className="portfolio-csv-dashboard portfolio-csv-dashboard-polished">
         <article
-          className={`portfolio-csv-drop ${dragActive ? "drag-active" : ""}`}
+          className={`portfolio-csv-drop portfolio-csv-drop-polished ${dragActive ? "drag-active" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={(event) => {
@@ -1963,31 +2065,76 @@ function PortfolioPage({ onBack, onAnalyze }) {
               Choose CSV
               <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
             </label>
+            <button type="button" className="portfolio-template-btn portfolio-refresh-saved-btn" onClick={refreshSavedPortfolio} disabled={!savedHoldings.length || csvLoading}>
+              <RefreshCw size={16} className={csvLoading ? "spin" : ""}/> Refresh scores
+            </button>
           </div>
         </article>
 
-        {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring uploaded portfolio</h3><p>Eval is calculating each ticker’s score and weighting it by your holdings.</p></div>}
+        <article className="portfolio-manual-card">
+          <div className="portfolio-manual-head">
+            <div>
+              <span className="section-title"><Plus size={17}/> Manual portfolio entry</span>
+              <h3>Enter holdings by hand</h3>
+              <p>Add each U.S. stock ticker and the dollar amount held. Eval will calculate weights automatically and return the same portfolio report.</p>
+            </div>
+            <button type="button" className="portfolio-template-btn" onClick={addManualRow}>
+              <Plus size={16}/> Add holding
+            </button>
+          </div>
+          <div className="portfolio-manual-table">
+            <div className="portfolio-manual-row header"><span>Ticker</span><span>Holding ($)</span><span></span></div>
+            {manualRows.map((row) => (
+              <div className="portfolio-manual-row" key={row.id}>
+                <input
+                  value={row.symbol}
+                  onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())}
+                  placeholder="AAPL"
+                  maxLength={8}
+                />
+                <input
+                  value={row.holdingDollars}
+                  onChange={(event) => updateManualRow(row.id, "holdingDollars", event.target.value)}
+                  placeholder="$5,000"
+                  inputMode="decimal"
+                />
+                <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding">
+                  <Trash2 size={15}/>
+                </button>
+              </div>
+            ))}
+          </div>
+          <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
+            <Sparkles size={16}/> Analyze manual portfolio
+          </button>
+        </article>
+
+        {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating each ticker and updating the weighted portfolio score.</p></div>}
         {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
 
         {csvAnalysis && !csvLoading && (
-          <article className="portfolio-upload-results portfolio-upload-results-v2">
-            <div className="portfolio-upload-hero">
+          <article className="portfolio-upload-results portfolio-upload-results-v2 portfolio-upload-results-premium">
+            <div className="portfolio-upload-hero portfolio-upload-hero-premium">
               <div
-                className={`score-ring portfolio-score-ring ${scoreTone(csvAnalysis.summary?.portfolioEvalScore)}`}
+                className={`score-ring portfolio-score-ring portfolio-score-ring-premium ${scoreTone(csvAnalysis.summary?.portfolioEvalScore)}`}
                 style={{ "--score-angle": `${scoreDegrees(csvAnalysis.summary?.portfolioEvalScore)}deg` }}
               >
                 <div className="score-core">
                   <strong>{scoreText(csvAnalysis.summary?.portfolioEvalScore)}</strong>
                 </div>
               </div>
-              <div>
+              <div className="portfolio-upload-hero-copy">
                 <span className="section-title"><Scale size={17}/> Weighted Eval Portfolio Score</span>
                 <h3>{portfolioTitle}</h3>
-                <p>{csvAnalysis.summary?.scoredHoldingCount || 0} scorable U.S. stock holdings across {csvAnalysis.summary?.industryCount || 0} industries. Each stock’s Eval Score is multiplied by its portfolio weight to create the overall portfolio score.</p>
+                <p>{csvAnalysis.summary?.scoredHoldingCount || 0} scorable U.S. stock holdings across {csvAnalysis.summary?.industryCount || 0} industries. Each holding is weighted by its portfolio size, so larger positions have a bigger impact on the final score.</p>
+                <div className="portfolio-saved-strip">
+                  <span>Saved in this browser</span>
+                  <b>{csvAnalysis.generatedAt ? new Date(csvAnalysis.generatedAt).toLocaleString() : "Just now"}</b>
+                </div>
               </div>
             </div>
 
-            <div className="portfolio-summary-grid portfolio-upload-summary portfolio-upload-summary-clean">
+            <div className="portfolio-summary-grid portfolio-upload-summary portfolio-upload-summary-clean portfolio-upload-summary-premium">
               <article><span>Total amount in holdings</span><strong>{money(csvAnalysis.summary?.totalHoldingDollars)}</strong></article>
               <article><span>Holdings scored</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
               <article><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></article>
@@ -1995,25 +2142,30 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
 
             {!!categoryEntries.length && (
-              <div className="portfolio-weighted-metrics-card portfolio-weighted-metrics-card-pop">
+              <div className="portfolio-weighted-metrics-card portfolio-weighted-metrics-card-pop portfolio-weighted-metrics-premium">
                 <div>
                   <span className="section-title"><Gauge size={17}/> Weighted category scores</span>
                   <h3>Portfolio metrics</h3>
-                  <p>These scores show how the portfolio looks by category after each stock is weighted by its holding size.</p>
+                  <p>These show how the portfolio looks after each stock’s category score is weighted by that holding’s size.</p>
                 </div>
-                <div className="portfolio-weighted-metric-grid">
+                <div className="portfolio-weighted-metric-grid portfolio-weighted-metric-grid-premium portfolio-metric-bar-grid">
                   {categoryEntries.map(([key, value]) => (
-                    <article key={key} className={scoreTone(value)}>
-                      <span>{categoryLabel(key)}</span>
-                      <strong>{scoreText(value)}</strong>
-                      <small>{gradeFrom10(value)}</small>
+                    <article key={key} className={`portfolio-metric-bar-card ${scoreTone(value)}`}>
+                      <div className="portfolio-metric-bar-head">
+                        <span>{categoryLabel(key)}</span>
+                        <strong>{scoreText(value)}</strong>
+                      </div>
+                      <div className="grade-line portfolio-metric-grade-line">
+                        <span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} />
+                      </div>
+                      <p>{portfolioMetricSummary(key, value)}</p>
                     </article>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="portfolio-industry-results">
+            <div className="portfolio-industry-results portfolio-industry-results-premium">
               <div className="portfolio-section-head">
                 <div>
                   <span className="section-title"><Activity size={17}/> Holdings by industry</span>
@@ -2022,13 +2174,16 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </div>
 
               {industryGroups.map((group) => (
-                <article className="portfolio-industry-block" key={group.industry}>
-                  <button type="button" className="portfolio-industry-head">
+                <article className="portfolio-industry-block portfolio-industry-block-premium" key={group.industry}>
+                  <button type="button" className="portfolio-industry-head portfolio-industry-head-premium">
                     <span>{group.industry}</span>
-                    <strong>{Number(group.totalWeightPercent || 0).toFixed(2)}%</strong>
+                    <div className="portfolio-industry-score-pills">
+                      <strong className={scoreTone(group.industryEvalScore)}>Industry Eval {scoreText(group.industryEvalScore)}</strong>
+                      <b>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio</b>
+                    </div>
                   </button>
-                  <div className="portfolio-holdings-table portfolio-upload-table portfolio-industry-table">
-                    <div className="portfolio-holding-row header"><span>Stock</span><span>Portfolio weight</span><span>Within industry</span><span>Eval</span><span>Impact</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                  <div className="portfolio-holdings-table portfolio-upload-table portfolio-industry-table portfolio-industry-table-premium">
+                    <div className="portfolio-holding-row header"><span>Stock</span><span>Portfolio weight</span><span>Industry weight</span><span>Eval</span><span>Impact</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
                     {(group.holdings || []).map((holding) => (
                       <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
