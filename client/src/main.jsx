@@ -254,12 +254,6 @@ function dailyChangeClass(value) {
   return "neutral";
 }
 
-function signedPercent(value) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "N/A";
-  const sign = num > 0 ? "+" : "";
-  return `${sign}${num.toFixed(2)}%`;
-}
 
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "N/A";
