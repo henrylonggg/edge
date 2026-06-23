@@ -1887,23 +1887,66 @@ function cleanSubmittedDollars(value) {
   return number;
 }
 
-async function fetchFinnhubPortfolioQuote(symbol) {
+const portfolioQuoteCache = new Map();
+
+function portfolioDailyPriceBucket(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const hour = Number(parts.hour);
+  const bucketDate = new Date(`${parts.year}-${parts.month}-${parts.day}T12:00:00Z`);
+  if (Number.isFinite(hour) && hour < 5) bucketDate.setUTCDate(bucketDate.getUTCDate() - 1);
+  return bucketDate.toISOString().slice(0, 10);
+}
+
+async function fetchFinnhubPortfolioQuote(symbol, options = {}) {
   const apiKey = process.env.FINNHUB_API_KEY;
-  if (!apiKey || !symbol) return null;
+  const cleanSymbol = cleanTicker(symbol);
+  if (!apiKey || !cleanSymbol) return null;
+
+  const bucket = portfolioDailyPriceBucket();
+  const key = `${cleanSymbol}:${bucket}`;
+  const cached = portfolioQuoteCache.get(key);
+  if (!options.forceRefresh && cached && Number.isFinite(Number(cached.price)) && Number(cached.price) > 0) {
+    return Number(cached.price);
+  }
+
   try {
     const url = new URL("https://finnhub.io/api/v1/quote");
-    url.searchParams.set("symbol", symbol);
+    url.searchParams.set("symbol", cleanSymbol);
     url.searchParams.set("token", apiKey);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), Number(process.env.PROVIDER_TIMEOUT_MS || 3500));
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      if (cached?.price) return Number(cached.price);
+      return null;
+    }
     const quote = await response.json();
     const current = Number(quote?.c);
-    return Number.isFinite(current) && current > 0 ? current : null;
+    if (Number.isFinite(current) && current > 0) {
+      portfolioQuoteCache.set(key, { price: current, fetchedAt: Date.now(), bucket });
+      // Keep cache compact: one daily portfolio quote per symbol is enough for the line chart.
+      if (portfolioQuoteCache.size > 1000) {
+        for (const cacheKey of portfolioQuoteCache.keys()) {
+          if (!cacheKey.endsWith(`:${bucket}`)) portfolioQuoteCache.delete(cacheKey);
+        }
+      }
+      return current;
+    }
+    return cached?.price ? Number(cached.price) : null;
   } catch {
-    return null;
+    return cached?.price ? Number(cached.price) : null;
   }
 }
 
