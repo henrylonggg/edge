@@ -2625,19 +2625,17 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 </button>
                 {isOpen && (
                   <div className="portfolio-holdings-table portfolio-industry-table-v3">
-                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Return</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Avg. cost</span><span>Value</span><span>Return</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span></div>
                     {(group.holdings || []).map((holding) => (
                       <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                        <span>{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>
                         <span>{money(holding.holdingDollars)}</span>
                         <span className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>
                         <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
                         <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
                         <span><MiniScoreRing value={holding.edgeScore} small /></span>
-                        <span>{scoreText(holding.growth)}</span>
-                        <span>{scoreText(holding.valuation)}</span>
-                        <span>{scoreText(holding.momentum)}</span>
                       </button>
                     ))}
                   </div>
