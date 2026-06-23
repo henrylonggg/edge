@@ -1752,6 +1752,7 @@ function splitCsvLine(line) {
   return cells;
 }
 
+
 function parseHoldingNumber(raw) {
   if (raw === null || raw === undefined) return null;
   const cleaned = String(raw).replace(/[$,%]/g, "").replace(/,/g, "").trim();
@@ -1774,19 +1775,19 @@ function parseHoldingDollars(raw) {
 
 function portfolioTemplateCsv(firstName = "Your") {
   return [
-    "1. Enter the tickers into the Stocks column for your portfolio (U.S Stocks only),,,*yellow means edit",
-    "2. Enter the $ amount you have in each stock,,",
-    "3. Save the file as a .csv file and then drop the file back into the Eval Portfolio dashboard,,",
-    ",,,",
-    "Ticker,Holding ($),Holding %,",
-    "AAPL,$1000,6.84%,",
-    "MSFT,$1250,8.55%,",
-    "META,$2000,13.68%,",
-    "NVDA,$1500,10.26%,",
-    "JPM,$1200,8.21%,",
-    "XOM,$750,5.13%,",
-    "WMT,$750,5.13%,",
-    "TSLA,$300,2.05%,",
+    "1. Enter U.S. stock tickers, shares, and average cost per share. Eval will use current price to calculate current holdings and portfolio weights.,,,,",
+    "2. Holding ($) and Holding % are optional. Shares + Average Cost is the preferred template format.,,,,",
+    "3. Save the file as a .csv file and upload it into the Eval Portfolio dashboard.,,,,",
+    ",,,,,",
+    "Ticker,Shares,Average Cost,Holding ($),Holding %,",
+    "AAPL,8,175,,,",
+    "MSFT,5,390,,,",
+    "NVDA,12,105,,,",
+    "META,4,485,,,",
+    "JPM,7,195,,,",
+    "XOM,6,113,,,",
+    "WMT,10,62,,,",
+    "TSLA,3,210,,,",
   ].join("\n");
 }
 
@@ -1817,9 +1818,9 @@ function parsePortfolioCsv(text) {
 
   let headerLineIndex = lines.findIndex((line) => {
     const headers = splitCsvLine(line).map(normalizeCsvHeader);
-    const hasTicker = headers.some((h) => ["ticker", "symbol", "stocksymbol"].includes(h));
-    const hasWeight = headers.some((h) => ["holding", "holdings", "holding%", "holding$", "weight", "weight%", "portfolio", "portfolio%", "allocation", "amount", "value", "marketvalue", "percent", "percentage"].includes(h));
-    return hasTicker && hasWeight;
+    const hasTicker = headers.some((h) => ["ticker", "symbol", "stocksymbol", "stock"].includes(h));
+    const hasSizing = headers.some((h) => ["shares", "share", "quantity", "qty", "averagecost", "avgcost", "costbasis", "costper","holding", "holdings", "holding%", "holding$", "weight", "weight%", "portfolio", "portfolio%", "allocation", "amount", "value", "marketvalue", "percent", "percentage"].includes(h));
+    return hasTicker && hasSizing;
   });
 
   if (headerLineIndex < 0) headerLineIndex = 0;
@@ -1827,12 +1828,14 @@ function parsePortfolioCsv(text) {
   const headers = splitCsvLine(lines[headerLineIndex]).map(normalizeCsvHeader);
   const dataLines = lines.slice(headerLineIndex + 1);
 
-  const tickerIndex = Math.max(headers.findIndex((h) => ["ticker", "symbol", "stocksymbol"].includes(h)), 0);
+  const tickerIndex = Math.max(headers.findIndex((h) => ["ticker", "symbol", "stocksymbol", "stock"].includes(h)), 0);
+  const sharesIndex = headers.findIndex((h) => ["shares", "share", "quantity", "qty"].includes(h));
+  const avgCostIndex = headers.findIndex((h) => ["averagecost", "avgcost", "costbasis", "costper", "costpershare", "averageprice", "avgprice"].includes(h));
   const percentIndex = headers.findIndex((h) => ["holding%", "weight%", "portfolio%", "percent", "percentage"].includes(h));
   const dollarIndex = headers.findIndex((h) => ["holding$", "holding", "holdings", "amount", "value", "marketvalue", "allocation", "portfolio"].includes(h));
 
-  if (percentIndex < 0 && dollarIndex < 0) {
-    throw new Error("Could not find a holding column. Use Holding ($) and/or Holding %.");
+  if (sharesIndex < 0 && percentIndex < 0 && dollarIndex < 0) {
+    throw new Error("Could not find a sizing column. Use Shares, Holding ($), or Holding %.");
   }
 
   const merged = new Map();
@@ -1840,59 +1843,222 @@ function parsePortfolioCsv(text) {
     const cells = splitCsvLine(line);
     const rawTicker = String(cells[tickerIndex] || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
     const ticker = rawTicker.replace("-", ".");
+    const shares = sharesIndex >= 0 ? parseHoldingDollars(cells[sharesIndex]) : null;
+    const averageCost = avgCostIndex >= 0 ? parseHoldingDollars(cells[avgCostIndex]) : null;
     const weightPercent = percentIndex >= 0 ? parseHoldingPercent(cells[percentIndex]) : null;
     const holdingDollars = dollarIndex >= 0 ? parseHoldingDollars(cells[dollarIndex]) : null;
     if (!ticker || !/^[A-Z][A-Z0-9.]{0,7}$/.test(ticker)) continue;
-    if (weightPercent === null && holdingDollars === null) continue;
-    const previous = merged.get(ticker) || { symbol: ticker, weightPercent: 0, holdingDollars: 0 };
+    if (shares === null && weightPercent === null && holdingDollars === null) continue;
+    const previous = merged.get(ticker) || { symbol: ticker, weightPercent: 0, holdingDollars: 0, shares: 0, averageCostTotal: 0 };
+    const nextShares = previous.shares + (shares || 0);
+    const nextCostTotal = previous.averageCostTotal + ((shares || 0) * (averageCost || 0));
     merged.set(ticker, {
       symbol: ticker,
       weightPercent: previous.weightPercent + (weightPercent || 0),
       holdingDollars: previous.holdingDollars + (holdingDollars || 0),
+      shares: nextShares,
+      averageCostTotal: nextCostTotal,
     });
   }
 
   const rows = [...merged.values()]
     .map((row) => ({
       symbol: row.symbol,
+      shares: row.shares > 0 ? Number(row.shares.toFixed(6)) : null,
+      averageCost: row.shares > 0 && row.averageCostTotal > 0 ? Number((row.averageCostTotal / row.shares).toFixed(4)) : null,
       weightPercent: row.weightPercent > 0 ? Number(row.weightPercent.toFixed(4)) : null,
       holdingDollars: row.holdingDollars > 0 ? Number(row.holdingDollars.toFixed(2)) : null,
     }))
-    .filter((row) => row.weightPercent !== null || row.holdingDollars !== null);
+    .filter((row) => row.shares !== null || row.weightPercent !== null || row.holdingDollars !== null);
 
   if (!rows.length) throw new Error("No valid ticker and holding rows were found.");
   return rows;
 }
-
 
 function portfolioMetricSummary(key, value) {
   const label = categoryLabel(key);
   const n = score10(value);
   if (n === null) return `${label} is not included in this portfolio score yet.`;
 
-  const strength = n >= 7.5 ? "a strong contributor" : n >= 6.5 ? "a mixed but usable contributor" : "an area that weighs down the portfolio";
+  const strength = n >= 7.5 ? "a strong contributor" : n >= 6.5 ? "a mixed contributor" : "a weaker contributor";
   const descriptions = {
-    growth: "Growth shows whether the portfolio leans toward companies with stronger expansion profiles.",
-    profitability: "Profitability shows how much the portfolio is backed by companies that convert sales into earnings efficiently.",
-    financialHealth: "Financial Health shows whether the portfolio leans toward companies with stronger balance sheets and lower financial stress.",
-    valuation: "Valuation shows whether the portfolio's holdings look reasonably priced compared with their fundamentals.",
-    momentum: "Momentum shows whether the portfolio is tilted toward stocks with stronger recent price action.",
-    reversal: "Pullback shows whether the portfolio includes stocks that may have reset from recent highs without breaking the overall profile.",
-    newsSentiment: "News Sentiment shows how recent company-specific headlines are affecting the portfolio's current backdrop.",
+    growth: "Shows whether the portfolio is weighted toward companies with stronger expansion profiles.",
+    profitability: "Shows whether larger holdings are backed by companies that convert sales into earnings efficiently.",
+    financialHealth: "Shows whether the portfolio is tilted toward stronger balance sheets and lower financial stress.",
+    valuation: "Shows whether the portfolio is weighted toward holdings that look reasonably priced against fundamentals.",
+    momentum: "Shows whether larger positions have stronger recent price action.",
+    reversal: "Shows whether the portfolio includes stocks with healthier pullback/reset setups.",
+    newsSentiment: "Shows how current company-specific headlines affect the portfolio backdrop.",
   };
 
-  return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} to the overall Portfolio Score.`;
+  return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} in the overall Portfolio Score.`;
 }
 
 function blankManualHolding() {
-  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, symbol: "", holdingDollars: "" };
+  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, symbol: "", shares: "", averageCost: "" };
 }
 
-const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v4";
+const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v7";
 
 function portfolioStorageKeyFor(user) {
   const id = user?.id || user?.primaryEmailAddress?.emailAddress || "local";
   return `${PORTFOLIO_UPLOAD_STORAGE_KEY}:${id}`;
+}
+
+function easternDateKey(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+function minutesUntilNextMarketOpen(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(now);
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = lookup.weekday;
+  const minutes = Number(lookup.hour || 0) * 60 + Number(lookup.minute || 0);
+  const weekdayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const isWeekday = weekdayOrder.includes(weekday);
+  if (isWeekday && minutes < 570) return (570 - minutes) * 60 * 1000;
+  let days = 1;
+  const allDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let idx = allDays.indexOf(weekday);
+  while (days < 8) {
+    const next = allDays[(idx + days) % 7];
+    if (weekdayOrder.includes(next)) break;
+    days += 1;
+  }
+  const minutesPastMidnight = minutes;
+  return ((days * 24 * 60) - minutesPastMidnight + 570) * 60 * 1000;
+}
+
+function isAfterMarketOpenEt(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(now);
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(lookup.weekday);
+  const minutes = Number(lookup.hour || 0) * 60 + Number(lookup.minute || 0);
+  return isWeekday && minutes >= 570;
+}
+
+function buildPortfolioHistory(previous = [], analysis) {
+  const totalValue = Number(analysis?.summary?.totalHoldingDollars);
+  if (!Number.isFinite(totalValue) || totalValue <= 0) return previous || [];
+  const today = easternDateKey();
+  const nextPoint = { date: today, value: Number(totalValue.toFixed(2)) };
+  const filtered = (Array.isArray(previous) ? previous : []).filter((point) => point?.date !== today);
+  return [...filtered, nextPoint].slice(-260);
+}
+
+function MiniScoreRing({ value, small = false }) {
+  return (
+    <div className={`score-ring mini-score-ring ${small ? "small" : ""} ${scoreTone(value)}`} style={{ "--score-angle": `${scoreDegrees(value)}deg` }}>
+      <div className="score-core"><strong>{scoreText(value)}</strong></div>
+    </div>
+  );
+}
+
+function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry }) {
+  const total = groups.reduce((sum, group) => sum + (Number(group.totalWeightPercent) || 0), 0);
+  let running = 0;
+  const gradient = groups.map((group, index) => {
+    const value = total > 0 ? ((Number(group.totalWeightPercent) || 0) / total) * 100 : 0;
+    const start = running;
+    running += value;
+    const palette = ["#7c3aed", "#22c55e", "#facc15", "#38bdf8", "#f97316", "#ec4899", "#14b8a6", "#a78bfa"];
+    return `${palette[index % palette.length]} ${start.toFixed(2)}% ${running.toFixed(2)}%`;
+  }).join(", ");
+  const active = groups.find((g) => g.industry === activeIndustry) || groups[0];
+  return (
+    <div className="portfolio-donut-card">
+      <div
+        className="portfolio-industry-donut"
+        style={{ background: `conic-gradient(${gradient || "rgba(255,255,255,.12) 0% 100%"})` }}
+      >
+        <div className="portfolio-donut-core">
+          <span>{active?.industry || "Industries"}</span>
+          <strong>{active ? `${Number(active.totalWeightPercent || 0).toFixed(1)}%` : "N/A"}</strong>
+        </div>
+      </div>
+      <div className="portfolio-donut-list">
+        {(groups || []).map((group) => (
+          <button
+            type="button"
+            key={group.industry}
+            className={group.industry === activeIndustry ? "active" : ""}
+            onMouseEnter={() => onActiveIndustry?.(group.industry)}
+            onFocus={() => onActiveIndustry?.(group.industry)}
+          >
+            <span>{group.industry}</span>
+            <b>{Number(group.totalWeightPercent || 0).toFixed(1)}%</b>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IndustryBars({ groups = [] }) {
+  return (
+    <div className="portfolio-industry-bars-card">
+      <div className="portfolio-card-title-row">
+        <span className="section-title"><BarChart3 size={17}/> Industry scores</span>
+        <small>Eval Score weighted inside each industry</small>
+      </div>
+      <div className="portfolio-industry-bars">
+        {(groups || []).map((group) => {
+          const score = score10(group.industryEvalScore) || 0;
+          return (
+            <div className="portfolio-industry-bar-row" key={group.industry}>
+              <div><b>{group.industry}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
+              <div className="portfolio-industry-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
+              <strong>{scoreText(score)}</strong>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PortfolioValueChart({ points = [] }) {
+  const width = 900;
+  const height = 260;
+  const pad = 28;
+  if (!points.length) {
+    return <div className="portfolio-chart-empty">Portfolio value history starts after the first saved refresh after market open.</div>;
+  }
+  const values = points.map((p) => Number(p.value)).filter(Number.isFinite);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = Math.max(1, max - min);
+  const coords = points.map((point, index) => {
+    const x = pad + (index / Math.max(1, points.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((Number(point.value) - min) / spread) * (height - pad * 2);
+    return { x, y };
+  });
+  const path = coords.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${path} L${coords[coords.length - 1].x.toFixed(1)},${height-pad} L${coords[0].x.toFixed(1)},${height-pad} Z`;
+  const start = points[0];
+  const end = points[points.length - 1];
+  const change = Number(end.value) - Number(start.value);
+  const pct = Number(start.value) > 0 ? (change / Number(start.value)) * 100 : null;
+  return (
+    <div className="portfolio-chart-wrap premium-line-chart-card">
+      <div className="portfolio-chart-labels">
+        <span>{new Date(`${start.date}T12:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+        <strong>{money(end.value)} <small>{Number.isFinite(pct) ? signedPercent(pct) : ""}</small></strong>
+        <span>{new Date(`${end.date}T12:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+      </div>
+      <svg className="portfolio-value-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily portfolio value">
+        <defs>
+          <linearGradient id="portfolioArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity=".30" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+          <filter id="portfolioGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <path className="portfolio-chart-area" d={area} fill="url(#portfolioArea)" />
+        <path className="portfolio-chart-line" d={path} filter="url(#portfolioGlow)" />
+      </svg>
+    </div>
+  );
 }
 
 function PortfolioPage({ onBack, onAnalyze }) {
@@ -1908,17 +2074,20 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [csvName, setCsvName] = useState("");
   const [csvAnalysis, setCsvAnalysis] = useState(null);
   const [savedHoldings, setSavedHoldings] = useState([]);
+  const [portfolioHistory, setPortfolioHistory] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
-  const [entryMode, setEntryMode] = useState("csv");
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
+  const [hideHoldingsValue, setHideHoldingsValue] = useState(false);
+  const [activeIndustry, setActiveIndustry] = useState("");
 
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
       if (!saved) return;
       if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
+      if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
       if (saved.fileName) setCsvName(saved.fileName);
       if (saved.analysis) setCsvAnalysis(saved.analysis);
       if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
@@ -1927,13 +2096,19 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }, [storageKey]);
 
-  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows) {
+  useEffect(() => {
+    if (!csvAnalysis?.industryGroups?.length) return;
+    setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
+  }, [csvAnalysis]);
+
+  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory) {
     try {
       localStorage.setItem(storageKey, JSON.stringify({
         holdings: nextHoldings,
         fileName,
         analysis,
         manualRows: nextManualRows,
+        history: nextHistory,
         savedAt: new Date().toISOString(),
       }));
     } catch {
@@ -1941,7 +2116,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordHistory = true } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -1959,12 +2134,14 @@ function PortfolioPage({ onBack, onAnalyze }) {
         body: JSON.stringify({ holdings, portfolioName: portfolioTitle }),
       });
       const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio CSV.");
-      setCsvAnalysis(json);
-      persistPortfolioState(holdings, fileName, json);
+      if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio.");
+      const nextHistory = recordHistory ? buildPortfolioHistory(portfolioHistory, json) : portfolioHistory;
+      setPortfolioHistory(nextHistory);
+      setCsvAnalysis({ ...json, history: nextHistory });
+      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory }, manualRows, nextHistory);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setCsvError(err?.message || "Could not analyze this portfolio CSV.");
+      setCsvError(err?.message || "Could not analyze this portfolio.");
     } finally {
       setCsvLoading(false);
     }
@@ -1986,14 +2163,27 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
-  function refreshSavedPortfolio() {
+  function refreshSavedPortfolio({ silent = true } = {}) {
     if (!savedHoldings.length) {
-      setCsvError("Upload a CSV first, then refresh will rescore the saved portfolio.");
+      setCsvError("Upload a CSV or enter holdings first, then refresh will rescore the saved portfolio.");
       return;
     }
-    analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent: true });
+    analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent, recordHistory: true });
   }
 
+  useEffect(() => {
+    if (!savedHoldings.length) return undefined;
+    const autoRefreshIfNeeded = () => {
+      const today = easternDateKey();
+      const hasToday = portfolioHistory.some((point) => point?.date === today);
+      if (isAfterMarketOpenEt() && !hasToday && !csvLoading) {
+        refreshSavedPortfolio({ silent: true });
+      }
+    };
+    autoRefreshIfNeeded();
+    const timer = window.setTimeout(autoRefreshIfNeeded, Math.min(minutesUntilNextMarketOpen(), 2147483647));
+    return () => window.clearTimeout(timer);
+  }, [savedHoldings.length, portfolioHistory, csvLoading]);
 
   function updateManualRow(id, field, value) {
     setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
@@ -2011,12 +2201,13 @@ function PortfolioPage({ onBack, onAnalyze }) {
     const holdings = manualRows
       .map((row) => ({
         symbol: String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", "."),
-        holdingDollars: parseHoldingDollars(row.holdingDollars),
+        shares: parseHoldingDollars(row.shares),
+        averageCost: parseHoldingDollars(row.averageCost),
       }))
-      .filter((row) => row.symbol && row.holdingDollars !== null);
+      .filter((row) => row.symbol && row.shares !== null);
 
     if (!holdings.length) {
-      setCsvError("Add at least one ticker and holding dollar amount before analyzing.");
+      setCsvError("Add at least one ticker and share count before analyzing.");
       return;
     }
 
@@ -2027,21 +2218,23 @@ function PortfolioPage({ onBack, onAnalyze }) {
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
   const industryGroups = csvAnalysis?.industryGroups || [];
+  const historyPoints = csvAnalysis?.history || portfolioHistory || [];
+  const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
 
   return (
-    <main className="portfolio-builder-page portfolio-cache-page portfolio-upload-only-page portfolio-upload-polished-page">
-      <div className="portfolio-builder-head portfolio-upload-topbar">
+    <main className="portfolio-builder-page portfolio-dashboard-v3">
+      <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
         <div>
-          <span className="assistant-kicker"><Sparkles size={16}/> Portfolio upload</span>
+          <span className="assistant-kicker"><Sparkles size={16}/> Portfolio dashboard</span>
           <h2>Portfolio</h2>
-          <p>Upload a CSV of your holdings and Eval will calculate a weighted Portfolio Score, weighted category scores, and industry-level scores from the U.S. stocks it can analyze.</p>
+          <p>Upload a CSV or enter holdings manually. Eval uses shares, average cost, current price, and Eval Scores to calculate a live weighted portfolio report.</p>
         </div>
       </div>
 
-      <section className="portfolio-csv-dashboard portfolio-csv-dashboard-polished">
+      <section className="portfolio-input-grid-v3">
         <article
-          className={`portfolio-csv-drop portfolio-csv-drop-polished ${dragActive ? "drag-active" : ""}`}
+          className={`portfolio-csv-drop portfolio-csv-drop-polished portfolio-input-card-v3 ${dragActive ? "drag-active" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={(event) => {
@@ -2054,53 +2247,37 @@ function PortfolioPage({ onBack, onAnalyze }) {
           <div>
             <span className="section-title"><BarChart3 size={17}/> CSV portfolio scorer</span>
             <h3>Drop {portfolioTitle} CSV here</h3>
-            <p>Use the Eval template, enter U.S. stock tickers and either holding dollars or holding percentages, then upload the CSV here.</p>
-            <small>Accepted columns: <b>Ticker</b> or <b>Symbol</b>, plus <b>Holding ($)</b> and/or <b>Holding %</b>.</small>
+            <p>The template uses <b>Ticker</b>, <b>Shares</b>, and <b>Average Cost</b>. Eval fetches current price to calculate current holding value and portfolio weight.</p>
           </div>
           <div className="portfolio-csv-actions">
-            <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>
-              Download template
-            </button>
+            <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>Download template</button>
             <label className="portfolio-csv-upload-btn">
               Choose CSV
               <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
             </label>
-            <button type="button" className="portfolio-template-btn portfolio-refresh-saved-btn" onClick={refreshSavedPortfolio} disabled={!savedHoldings.length || csvLoading}>
+            <button type="button" className="portfolio-template-btn portfolio-refresh-saved-btn" onClick={() => refreshSavedPortfolio({ silent: true })} disabled={!savedHoldings.length || csvLoading}>
               <RefreshCw size={16} className={csvLoading ? "spin" : ""}/> Refresh scores
             </button>
           </div>
         </article>
 
-        <article className="portfolio-manual-card">
+        <article className="portfolio-manual-card portfolio-input-card-v3">
           <div className="portfolio-manual-head">
             <div>
-              <span className="section-title"><Plus size={17}/> Manual portfolio entry</span>
-              <h3>Enter holdings by hand</h3>
-              <p>Add each U.S. stock ticker and the dollar amount held. Eval will calculate weights automatically and return the same portfolio report.</p>
+              <span className="section-title"><Plus size={17}/> Manual entry</span>
+              <h3>Add holdings by hand</h3>
+              <p>Enter ticker, share count, and average cost per share. Eval will use current price to calculate current position value.</p>
             </div>
-            <button type="button" className="portfolio-template-btn" onClick={addManualRow}>
-              <Plus size={16}/> Add holding
-            </button>
+            <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add</button>
           </div>
-          <div className="portfolio-manual-table">
-            <div className="portfolio-manual-row header"><span>Ticker</span><span>Holding ($)</span><span></span></div>
+          <div className="portfolio-manual-table portfolio-manual-table-v3">
+            <div className="portfolio-manual-row header"><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
             {manualRows.map((row) => (
               <div className="portfolio-manual-row" key={row.id}>
-                <input
-                  value={row.symbol}
-                  onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())}
-                  placeholder="AAPL"
-                  maxLength={8}
-                />
-                <input
-                  value={row.holdingDollars}
-                  onChange={(event) => updateManualRow(row.id, "holdingDollars", event.target.value)}
-                  placeholder="$5,000"
-                  inputMode="decimal"
-                />
-                <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding">
-                  <Trash2 size={15}/>
-                </button>
+                <input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} />
+                <input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" />
+                <input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" />
+                <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
               </div>
             ))}
           </div>
@@ -2108,107 +2285,112 @@ function PortfolioPage({ onBack, onAnalyze }) {
             <Sparkles size={16}/> Analyze manual portfolio
           </button>
         </article>
+      </section>
 
-        {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating each ticker and updating the weighted portfolio score.</p></div>}
-        {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
+      {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, industries, and weighted portfolio metrics.</p></div>}
+      {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
 
-        {csvAnalysis && !csvLoading && (
-          <article className="portfolio-upload-results portfolio-upload-results-v2 portfolio-upload-results-premium">
-            <div className="portfolio-upload-hero portfolio-upload-hero-premium">
-              <div
-                className={`score-ring portfolio-score-ring portfolio-score-ring-premium ${scoreTone(csvAnalysis.summary?.portfolioEvalScore)}`}
-                style={{ "--score-angle": `${scoreDegrees(csvAnalysis.summary?.portfolioEvalScore)}deg` }}
-              >
-                <div className="score-core">
-                  <strong>{scoreText(csvAnalysis.summary?.portfolioEvalScore)}</strong>
-                </div>
-              </div>
-              <div className="portfolio-upload-hero-copy">
-                <span className="section-title"><Scale size={17}/> Weighted Eval Portfolio Score</span>
+      {csvAnalysis && !csvLoading && (
+        <section className="portfolio-report-v3">
+          <div className="portfolio-hero-grid-v3">
+            <article className="portfolio-score-card-v3">
+              <MiniScoreRing value={csvAnalysis.summary?.portfolioEvalScore} />
+              <div>
+                <span className="section-title"><Scale size={17}/> Portfolio Eval Score</span>
                 <h3>{portfolioTitle}</h3>
-                <p>{csvAnalysis.summary?.scoredHoldingCount || 0} scorable U.S. stock holdings across {csvAnalysis.summary?.industryCount || 0} industries. Each holding is weighted by its portfolio size, so larger positions have a bigger impact on the final score.</p>
-                <div className="portfolio-saved-strip">
-                  <span>Saved in this browser</span>
-                  <b>{csvAnalysis.generatedAt ? new Date(csvAnalysis.generatedAt).toLocaleString() : "Just now"}</b>
+                <p>The overall score is calculated from each industry’s Eval Score multiplied by that industry’s percentage of the portfolio, then added together as a sumproduct.</p>
+              </div>
+            </article>
+
+            <article className="portfolio-total-value-card-v3">
+              <span>Total holdings value</span>
+              <div className="portfolio-total-value-line">
+                <strong>{hideHoldingsValue ? "******" : money(totalHoldings)}</strong>
+                <button type="button" onClick={() => setHideHoldingsValue((v) => !v)}>{hideHoldingsValue ? "Show" : "Hide"}</button>
+              </div>
+              <small>Current value uses shares × latest fetched price for each scorable holding.</small>
+            </article>
+
+            <article className="portfolio-mini-stat-card-v3"><span>Holdings</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
+            <article className="portfolio-mini-stat-card-v3"><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></article>
+          </div>
+
+          <div className="portfolio-visual-grid-v3">
+            <IndustryDiversityDonut groups={industryGroups} activeIndustry={activeIndustry} onActiveIndustry={setActiveIndustry} />
+            <IndustryBars groups={industryGroups} />
+          </div>
+
+          <article className="portfolio-history-card-v3">
+            <div className="portfolio-card-title-row">
+              <span className="section-title"><LineChart size={17}/> Daily portfolio movement</span>
+              <small>Refreshes once per trading day after 9:30 AM ET while the portfolio is saved in this browser.</small>
+            </div>
+            <PortfolioValueChart points={historyPoints} />
+          </article>
+
+          {!!categoryEntries.length && (
+            <article className="portfolio-weighted-metrics-card portfolio-metrics-v3">
+              <div className="portfolio-card-title-row">
+                <div>
+                  <span className="section-title"><Gauge size={17}/> Weighted portfolio metrics</span>
+                  <h3>Portfolio metrics</h3>
                 </div>
+                <small>Each metric uses holding weights, matching the dashboard bar style.</small>
+              </div>
+              <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3">
+                {categoryEntries.map(([key, value]) => (
+                  <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
+                    <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
+                    <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
+                    <p>{portfolioMetricSummary(key, value)}</p>
+                  </article>
+                ))}
+              </div>
+            </article>
+          )}
+
+          <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3">
+            <div className="portfolio-section-head">
+              <div>
+                <span className="section-title"><Activity size={17}/> Holdings by industry</span>
+                <h3>Industry-weighted breakdown</h3>
               </div>
             </div>
 
-            <div className="portfolio-summary-grid portfolio-upload-summary portfolio-upload-summary-clean portfolio-upload-summary-premium">
-              <article><span>Total amount in holdings</span><strong>{money(csvAnalysis.summary?.totalHoldingDollars)}</strong></article>
-              <article><span>Holdings scored</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
-              <article><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></article>
-              <article><span>Voided holdings</span><strong>{csvAnalysis.summary?.voidedHoldingCount || csvAnalysis.skipped?.length || 0}</strong></article>
-            </div>
-
-            {!!categoryEntries.length && (
-              <div className="portfolio-weighted-metrics-card portfolio-weighted-metrics-card-pop portfolio-weighted-metrics-premium">
-                <div>
-                  <span className="section-title"><Gauge size={17}/> Weighted category scores</span>
-                  <h3>Portfolio metrics</h3>
-                  <p>These show how the portfolio looks after each stock’s category score is weighted by that holding’s size.</p>
+            {industryGroups.map((group) => (
+              <article className="portfolio-industry-block portfolio-industry-block-v3" key={group.industry}>
+                <div className="portfolio-industry-head portfolio-industry-head-v3">
+                  <div className="portfolio-industry-title-v3">
+                    <span>{group.industry}</span>
+                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)}</small>
+                  </div>
+                  <MiniScoreRing value={group.industryEvalScore} small />
                 </div>
-                <div className="portfolio-weighted-metric-grid portfolio-weighted-metric-grid-premium portfolio-metric-bar-grid">
-                  {categoryEntries.map(([key, value]) => (
-                    <article key={key} className={`portfolio-metric-bar-card ${scoreTone(value)}`}>
-                      <div className="portfolio-metric-bar-head">
-                        <span>{categoryLabel(key)}</span>
-                        <strong>{scoreText(value)}</strong>
-                      </div>
-                      <div className="grade-line portfolio-metric-grade-line">
-                        <span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} />
-                      </div>
-                      <p>{portfolioMetricSummary(key, value)}</p>
-                    </article>
+                <div className="portfolio-holdings-table portfolio-industry-table-v3">
+                  <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                  {(group.holdings || []).map((holding) => (
+                    <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                      <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                      <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                      <span>{money(holding.holdingDollars)}</span>
+                      <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
+                      <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
+                      <span><MiniScoreRing value={holding.edgeScore} small /></span>
+                      <span>{scoreText(holding.growth)}</span>
+                      <span>{scoreText(holding.valuation)}</span>
+                      <span>{scoreText(holding.momentum)}</span>
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
+              </article>
+            ))}
+          </div>
 
-            <div className="portfolio-industry-results portfolio-industry-results-premium">
-              <div className="portfolio-section-head">
-                <div>
-                  <span className="section-title"><Activity size={17}/> Holdings by industry</span>
-                  <h3>Industry-weighted breakdown</h3>
-                </div>
-              </div>
-
-              {industryGroups.map((group) => (
-                <article className="portfolio-industry-block portfolio-industry-block-premium" key={group.industry}>
-                  <button type="button" className="portfolio-industry-head portfolio-industry-head-premium">
-                    <span>{group.industry}</span>
-                    <div className="portfolio-industry-score-pills">
-                      <strong className={scoreTone(group.industryEvalScore)}>Industry Eval {scoreText(group.industryEvalScore)}</strong>
-                      <b>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio</b>
-                    </div>
-                  </button>
-                  <div className="portfolio-holdings-table portfolio-upload-table portfolio-industry-table portfolio-industry-table-premium">
-                    <div className="portfolio-holding-row header"><span>Stock</span><span>Portfolio weight</span><span>Industry weight</span><span>Eval</span><span>Impact</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
-                    {(group.holdings || []).map((holding) => (
-                      <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
-                        <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
-                        <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
-                        <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
-                        <span>{scoreText(holding.edgeScore)}</span>
-                        <span>{scoreText(holding.weightedContribution)}</span>
-                        <span>{scoreText(holding.growth)}</span>
-                        <span>{scoreText(holding.valuation)}</span>
-                        <span>{scoreText(holding.momentum)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {!!csvAnalysis.skipped?.length && (
-              <div className="portfolio-skipped-note">
-                <b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}
-              </div>
-            )}
-          </article>
-        )}
-      </section>
+          {!!csvAnalysis.skipped?.length && (
+            <div className="portfolio-skipped-note"><b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}</div>
+          )}
+        </section>
+      )}
     </main>
   );
 }
