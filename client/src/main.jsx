@@ -200,6 +200,19 @@ function scoreText(v) {
   return n === null ? "N/A" : n.toFixed(1);
 }
 
+function signedMoney(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "+$0.00";
+  const abs = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${n >= 0 ? "+" : "-"}$${abs}`;
+}
+
+function signedPercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "+0.00%";
+  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
 function scoreTone(v) {
   const n = score10(v);
   if (n === null) return "neutral";
@@ -2403,8 +2416,9 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const historyPoints = csvAnalysis?.history || portfolioHistory || [];
   const evalHistoryPoints = csvAnalysis?.evalScoreHistory || evalScoreHistory || [];
   const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
+  const totalHoldingsDollarChange = csvAnalysis?.summary?.totalDollarChange;
+  const totalHoldingsChangePct = csvAnalysis?.summary?.totalReturnPercent;
   const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
-  const totalHoldingsChangePct = portfolioValueChangePercent(historyPoints, totalHoldings);
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
   const prosCons = buildPortfolioProsCons(industryGroups);
 
@@ -2510,8 +2524,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 <strong>{hideHoldingsValue ? "******" : money(totalHoldings)}</strong>
                 <button type="button" onClick={() => setHideHoldingsValue((v) => !v)}>{hideHoldingsValue ? "Show" : "Hide"}</button>
               </div>
-              <b className={`portfolio-value-change ${Number(totalHoldingsChangePct) >= 0 ? "up" : "down"}`}>
-                {Number(totalHoldingsChangePct) >= 0 ? "+" : ""}{Number(totalHoldingsChangePct || 0).toFixed(2)}%
+              <b className={`portfolio-value-change ${Number(totalHoldingsDollarChange) >= 0 ? "up" : "down"}`}>
+                {signedMoney(totalHoldingsDollarChange)} ({signedPercent(totalHoldingsChangePct)})
               </b>
             </article>
 
@@ -2555,18 +2569,19 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.industry)}>
                   <div className="portfolio-industry-title-v3">
                     <span>{group.industry}</span>
-                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)} • {isOpen ? "Click to close" : "Click to view holdings"}</small>
+                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Click to close" : "Click to view holdings"}</small>
                   </div>
                   <MiniScoreRing value={group.industryEvalScore} small industry />
                 </button>
                 {isOpen && (
                   <div className="portfolio-holdings-table portfolio-industry-table-v3">
-                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Return</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
                     {(group.holdings || []).map((holding) => (
                       <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                         <span>{money(holding.holdingDollars)}</span>
+                        <span className={`portfolio-return-cell ${Number(holding.dollarChange) >= 0 ? "up" : "down"}`}><b>{signedMoney(holding.dollarChange)}</b><small>{signedPercent(holding.returnPercent)}</small></span>
                         <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
                         <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
                         <span><MiniScoreRing value={holding.edgeScore} small /></span>
