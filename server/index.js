@@ -1885,6 +1885,26 @@ function cleanSubmittedDollars(value) {
   return number;
 }
 
+async function fetchFinnhubPortfolioQuote(symbol) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey || !symbol) return null;
+  try {
+    const url = new URL("https://finnhub.io/api/v1/quote");
+    url.searchParams.set("symbol", symbol);
+    url.searchParams.set("token", apiKey);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Number(process.env.PROVIDER_TIMEOUT_MS || 3500));
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!response.ok) return null;
+    const quote = await response.json();
+    const current = Number(quote?.c);
+    return Number.isFinite(current) && current > 0 ? current : null;
+  } catch {
+    return null;
+  }
+}
+
 
 const PORTFOLIO_CATEGORY_KEYS = [
   "growth",
@@ -1997,7 +2017,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
       try {
         const report = await getCachedAnalysis(row.symbol, { includeAiScoreSummary: false });
         const edgeScore = portfolioScore10(report?.grades?.edgeScore);
-        const price = Number(report?.quote?.c);
+        const finnhubCurrentPrice = await fetchFinnhubPortfolioQuote(row.symbol);
+        const price = Number(finnhubCurrentPrice || report?.quote?.c);
         if (edgeScore === null || !isSupportedPortfolioStock(report, row.symbol)) {
           return { skipped: true, symbol: row.symbol, reason: "Unsupported or unscored holding." };
         }
