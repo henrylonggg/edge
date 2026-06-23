@@ -202,15 +202,54 @@ function scoreText(v) {
 
 function signedMoney(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "+$0.00";
+  if (!Number.isFinite(n)) return "N/A";
   const abs = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${n >= 0 ? "+" : "-"}$${abs}`;
 }
 
 function signedPercent(value) {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "+0.00%";
+  if (!Number.isFinite(n)) return "N/A";
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+}
+
+function holdingCostBasisValue(holding) {
+  const explicit = Number(holding?.costBasisDollars);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const shares = Number(holding?.shares);
+  const averageCost = Number(holding?.averageCost ?? holding?.avgCost);
+  if (Number.isFinite(shares) && shares > 0 && Number.isFinite(averageCost) && averageCost > 0) return shares * averageCost;
+  return null;
+}
+
+function holdingCurrentValue(holding) {
+  const explicit = Number(holding?.holdingDollars ?? holding?.currentValue);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const shares = Number(holding?.shares);
+  const price = Number(holding?.price ?? holding?.currentPrice);
+  if (Number.isFinite(shares) && shares > 0 && Number.isFinite(price) && price > 0) return shares * price;
+  return null;
+}
+
+function holdingDollarChangeValue(holding) {
+  const explicit = Number(holding?.dollarChange ?? holding?.returnDollars);
+  const current = holdingCurrentValue(holding);
+  const cost = holdingCostBasisValue(holding);
+  const calculated = Number.isFinite(current) && Number.isFinite(cost) && cost > 0 ? current - cost : null;
+  if (Number.isFinite(calculated) && Math.abs(calculated) > 0.004) return calculated;
+  if (Number.isFinite(explicit) && Math.abs(explicit) > 0.004) return explicit;
+  if (Number.isFinite(calculated)) return calculated;
+  return Number.isFinite(explicit) ? explicit : null;
+}
+
+function holdingReturnPercentValue(holding) {
+  const explicit = Number(holding?.returnPercent);
+  const change = holdingDollarChangeValue(holding);
+  const cost = holdingCostBasisValue(holding);
+  const calculated = Number.isFinite(change) && Number.isFinite(cost) && cost > 0 ? (change / cost) * 100 : null;
+  if (Number.isFinite(calculated) && Math.abs(calculated) > 0.004) return calculated;
+  if (Number.isFinite(explicit) && Math.abs(explicit) > 0.004) return explicit;
+  return Number.isFinite(calculated) ? calculated : (Number.isFinite(explicit) ? explicit : null);
 }
 
 function scoreTone(v) {
@@ -2575,7 +2614,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                         <span>{money(holding.holdingDollars)}</span>
-                        <span className={`portfolio-return-cell ${Number(holding.dollarChange) >= 0 ? "up" : "down"}`}><b>{signedMoney(holding.dollarChange)}</b><small>{signedPercent(holding.returnPercent)}</small></span>
+                        <span className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>
                         <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
                         <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
                         <span><MiniScoreRing value={holding.edgeScore} small /></span>
