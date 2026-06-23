@@ -27497,3 +27497,94 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* PORTFOLIO RETURNS + LAYOUT POLISH */
+.portfolio-score-text-badge.main {
+  width: 206px !important;
+  height: 206px !important;
+  font-size: 76px !important;
+  letter-spacing: -.07em !important;
+}
+
+.portfolio-score-card-v3.portfolio-score-card-clickable {
+  min-height: 250px !important;
+  padding: 24px 30px !important;
+}
+
+.portfolio-score-ring-stack {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.portfolio-total-value-card-v3.portfolio-total-value-card-wide {
+  align-content: center !important;
+  justify-items: start !important;
+  text-align: left !important;
+}
+
+.portfolio-total-value-line {
+  justify-content: flex-start !important;
+  width: 100% !important;
+}
+
+.portfolio-total-value-line strong {
+  text-align: left !important;
+}
+
+.portfolio-total-value-line button {
+  margin-left: auto !important;
+}
+
+.portfolio-value-change {
+  text-align: left !important;
+  font-size: 18px !important;
+  font-weight: 1000 !important;
+  letter-spacing: -.01em !important;
+}
+
+.portfolio-value-change.up { color: rgba(134,239,172,.95) !important; }
+.portfolio-value-change.down { color: rgba(251,113,133,.95) !important; }
+
+.portfolio-industry-table-v3 .portfolio-holding-row {
+  grid-template-columns: minmax(165px,1.2fr) .52fr .78fr .82fr .72fr .72fr 84px .62fr .72fr .72fr !important;
+  min-width: 1120px !important;
+}
+
+.portfolio-return-cell {
+  display: grid !important;
+  gap: 2px !important;
+  justify-items: start !important;
+  align-content: center !important;
+}
+
+.portfolio-return-cell b {
+  font-size: 14px !important;
+  line-height: 1.1 !important;
+}
+
+.portfolio-return-cell small {
+  font-size: 11px !important;
+  margin-top: 0 !important;
+  opacity: .82 !important;
+}
+
+.portfolio-return-cell.up b, .portfolio-return-cell.up small { color: rgba(134,239,172,.96) !important; }
+.portfolio-return-cell.down b, .portfolio-return-cell.down small { color: rgba(251,113,133,.96) !important; }
+
+.portfolio-industry-title-v3 small {
+  display: block !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  line-height: 1.45 !important;
+}
+
+@media (max-width: 1180px) {
+  .portfolio-score-text-badge.main {
+    width: 176px !important;
+    height: 176px !important;
+    font-size: 64px !important;
+  }
+}
