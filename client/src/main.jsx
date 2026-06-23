@@ -1068,35 +1068,22 @@ function App() {
 function ScoreRingSvg({ value, className = "", label = null }) {
   const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
   const tone = scoreTone(score);
-  const radius = 46;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (score / 10) * circumference;
+  const percent = Math.max(0, Math.min(100, score * 10));
 
   return (
     <div className={`svg-score-ring ${tone} ${className}`}>
       <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
-        <defs>
-          <filter id="svgRingGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <circle className="svg-ring-track" cx="60" cy="60" r={radius} />
+        <circle className="svg-ring-track" cx="60" cy="60" r="46" pathLength="100" />
         <circle
           className="svg-ring-progress"
           cx="60"
           cy="60"
-          r={radius}
-          pathLength={circumference}
-          strokeDasharray={`${dash} ${circumference - dash}`}
+          r="46"
+          pathLength="100"
+          strokeDasharray={`${percent} ${100 - percent}`}
         />
         <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
       </svg>
-
       <strong>{label || scoreText(score)}</strong>
     </div>
   );
@@ -1853,10 +1840,10 @@ function portfolioMetricSummary(key, value) {
 }
 
 function blankManualHolding() {
-  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, symbol: "", shares: "", averageCost: "" };
+  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, mode: "current", symbol: "", shares: "", averageCost: "" };
 }
 
-const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v7";
+const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v8";
 
 function portfolioStorageKeyFor(user) {
   const id = user?.id || user?.primaryEmailAddress?.emailAddress || "local";
@@ -2029,20 +2016,22 @@ function buildPortfolioProsCons(groups = []) {
   const strongStocks = scored
     .filter((h) => Number(h.edgeScore) >= 7.0)
     .sort((a, b) => (Number(b.weightPercent || 0) * Number(b.edgeScore || 0)) - (Number(a.weightPercent || 0) * Number(a.edgeScore || 0)))
-    .slice(0, 5);
+    .slice(0, 6);
   const weakStocks = scored
-    .filter((h) => Number(h.edgeScore) < 7.0)
-    .sort((a, b) => (Number(a.edgeScore || 0) - Number(b.edgeScore || 0)) || (Number(b.weightPercent || 0) - Number(a.weightPercent || 0)))
-    .slice(0, 5);
+    .filter((h) => Number(h.edgeScore) < 6.8)
+    .sort((a, b) => (Number(b.weightPercent || 0) * (10 - Number(b.edgeScore || 0))) - (Number(a.weightPercent || 0) * (10 - Number(a.edgeScore || 0))))
+    .slice(0, 6);
   const topIndustries = [...(groups || [])].sort((a, b) => Number(b.totalWeightPercent || 0) - Number(a.totalWeightPercent || 0)).slice(0, 3);
+  const bestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.industryEvalScore))).sort((a, b) => Number(b.industryEvalScore || 0) - Number(a.industryEvalScore || 0)).slice(0, 3);
+  const weakestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.industryEvalScore))).sort((a, b) => Number(a.industryEvalScore || 0) - Number(b.industryEvalScore || 0)).slice(0, 3);
 
   const pros = strongStocks.length
-    ? `The strongest parts of this portfolio come from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)})`).join(", ")}. These holdings give the portfolio its best support because they combine stronger Eval Scores with meaningful position sizes. The largest industry exposures are ${topIndustries.map((g) => `${g.industry} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those groups drive most of the portfolio's overall score.`
-    : `The portfolio has a spread across ${groups.length || 0} industries, which helps avoid having the entire score depend on one stock. The strongest industries and holdings are shown below so users can quickly see where the portfolio is getting the most support.`;
+    ? `The portfolio gets its strongest support from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These positions matter because they are not just high-scoring stocks; they also carry enough weight to move the total Portfolio Eval Score. The strongest industry areas are ${bestIndustries.map((g) => `${g.industry} (${scoreText(g.industryEvalScore)})`).join(", ")}, which means the portfolio's best quality is concentrated in groups with stronger weighted fundamentals, momentum, valuation, or news backdrop. The largest exposures are ${topIndustries.map((g) => `${g.industry} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those areas explain most of the portfolio's upside in the Eval model.`
+    : `The portfolio has exposure across ${groups.length || 0} industries, which helps keep the overall score from depending on one single stock. Its strongest holdings and highest-scoring industries will appear here after more holdings score above the stronger Eval threshold.`;
 
   const cons = weakStocks.length
-    ? `The main weak spots are ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)})`).join(", ")}. These names reduce the portfolio score when their Eval Scores are lower and their portfolio weights are meaningful. The biggest portfolio risk is concentration in lower-scoring holdings or industries, so the industry bars and holding rows show exactly where those weak spots sit.`
-    : `The portfolio does not have many low-scoring holdings in the current report. The main thing to watch is whether one industry becomes too large, because a high weight in one group can make the overall portfolio score move mostly with that industry.`;
+    ? `The biggest drag comes from ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These holdings hurt more when their scores are lower and their portfolio weights are meaningful, because the total Portfolio Eval Score is weighted by position size. The weakest industry areas are ${weakestIndustries.map((g) => `${g.industry} (${scoreText(g.industryEvalScore)})`).join(", ")}, so those sections deserve the closest review. If a lower-scoring stock or industry grows into a larger position, it can pull down the portfolio even if the rest of the holdings look stronger.`
+    : `The current report does not show many clearly weak holdings. The main weakness to monitor is concentration: even a strong stock can make the portfolio less balanced if it becomes too large, and one oversized industry can dominate the score's movement over time.`;
 
   return { pros, cons };
 }
@@ -2163,6 +2152,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
   const [hideHoldingsValue, setHideHoldingsValue] = useState(false);
   const [activeIndustry, setActiveIndustry] = useState("");
+  const [metricsOpen, setMetricsOpen] = useState(false);
+  const [openIndustries, setOpenIndustries] = useState({});
 
   useEffect(() => {
     try {
@@ -2182,6 +2173,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   useEffect(() => {
     if (!csvAnalysis?.industryGroups?.length) return;
     setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
+    setOpenIndustries((current) => Object.keys(current || {}).length ? current : { [csvAnalysis.industryGroups[0]?.industry || ""]: true });
   }, [csvAnalysis]);
 
   function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory) {
@@ -2290,15 +2282,71 @@ function PortfolioPage({ onBack, onAnalyze }) {
   function removeManualRow(id) {
     setManualRows((rows) => rows.length <= 1 ? rows : rows.filter((row) => row.id !== id));
   }
+  function loadSavedHoldingsIntoManualEntry() {
+    const source = savedHoldings.length
+      ? savedHoldings
+      : (csvAnalysis?.industryGroups || []).flatMap((group) => group.holdings || []);
+    if (!source.length) {
+      setManualRows((rows) => rows.length ? rows : [blankManualHolding()]);
+      return;
+    }
+    setManualRows(source.map((holding) => ({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      mode: "current",
+      symbol: String(holding.symbol || "").toUpperCase(),
+      shares: Number(holding.shares || 0) ? String(holding.shares) : "",
+      averageCost: Number(holding.averageCost || holding.avgCost || 0) ? String(holding.averageCost || holding.avgCost) : "",
+    })));
+  }
+
+  function toggleManualEntry() {
+    setManualOpen((open) => {
+      const next = !open;
+      if (next) loadSavedHoldingsIntoManualEntry();
+      return next;
+    });
+  }
+
+  function aggregateManualPortfolioRows(rows) {
+    const bySymbol = new Map();
+    rows.forEach((row) => {
+      const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
+      const shares = parseHoldingDollars(row.shares);
+      const averageCost = parseHoldingDollars(row.averageCost);
+      const mode = row.mode || "current";
+      if (!symbol || shares === null) return;
+      const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: averageCost || 0 };
+      if (mode === "closed") {
+        bySymbol.set(symbol, { ...current, shares: 0, averageCost: averageCost || current.averageCost || 0 });
+        return;
+      }
+      if (mode === "remove") {
+        current.shares = Math.max(0, Number(current.shares || 0) - Number(shares || 0));
+        bySymbol.set(symbol, current);
+        return;
+      }
+      if (mode === "add") {
+        const oldShares = Number(current.shares || 0);
+        const addShares = Number(shares || 0);
+        const oldCost = Number(current.averageCost || 0);
+        const addCost = Number(averageCost || oldCost || 0);
+        const nextShares = oldShares + addShares;
+        const nextCost = nextShares > 0 ? ((oldShares * oldCost) + (addShares * addCost)) / nextShares : addCost;
+        bySymbol.set(symbol, { symbol, shares: nextShares, averageCost: nextCost });
+        return;
+      }
+      bySymbol.set(symbol, { symbol, shares: Number(shares || 0), averageCost: Number(averageCost || current.averageCost || 0) });
+    });
+    return [...bySymbol.values()].filter((holding) => holding.symbol && Number(holding.shares) > 0);
+  }
+
+  function toggleIndustry(industry) {
+    setOpenIndustries((current) => ({ ...current, [industry]: !current?.[industry] }));
+  }
+
 
   async function analyzeManualPortfolio() {
-    const holdings = manualRows
-      .map((row) => ({
-        symbol: String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", "."),
-        shares: parseHoldingDollars(row.shares),
-        averageCost: parseHoldingDollars(row.averageCost),
-      }))
-      .filter((row) => row.symbol && row.shares !== null);
+    const holdings = aggregateManualPortfolioRows(manualRows);
 
     if (!holdings.length) {
       setCsvError("Add at least one ticker and share count before analyzing.");
@@ -2354,7 +2402,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
               Choose CSV
               <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
             </label>
-            <button type="button" className="portfolio-template-btn" onClick={() => setManualOpen((open) => !open)}>
+            <button type="button" className="portfolio-template-btn" onClick={toggleManualEntry}>
               <Plus size={16}/> {manualOpen ? "Hide manual" : "Manual Entry"}
             </button>
             <button type="button" className="portfolio-template-btn portfolio-refresh-saved-btn" onClick={() => refreshSavedPortfolio({ silent: true })} disabled={!savedHoldings.length || csvLoading}>
@@ -2374,9 +2422,15 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
             </div>
             <div className="portfolio-manual-table portfolio-manual-table-v3">
-              <div className="portfolio-manual-row header"><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
+              <div className="portfolio-manual-row header"><span>Action</span><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
               {manualRows.map((row) => (
                 <div className="portfolio-manual-row" key={row.id}>
+                  <select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
+                    <option value="current">Current</option>
+                    <option value="add">Add shares</option>
+                    <option value="remove">Remove shares</option>
+                    <option value="closed">Closed</option>
+                  </select>
                   <input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} />
                   <input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" />
                   <input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" />
@@ -2447,23 +2501,25 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
 
           {!!categoryEntries.length && (
-            <article className="portfolio-weighted-metrics-card portfolio-metrics-v3">
-              <div className="portfolio-card-title-row">
+            <article className={`portfolio-weighted-metrics-card portfolio-metrics-v3 portfolio-tab-card ${metricsOpen ? "open" : "closed"}`}>
+              <button type="button" className="portfolio-tab-toggle portfolio-metrics-toggle" onClick={() => setMetricsOpen((open) => !open)}>
                 <div>
                   <span className="section-title"><Gauge size={17}/> Weighted portfolio metrics</span>
                   <h3>Portfolio metrics</h3>
                 </div>
-                <small>Each metric uses holding weights, matching the dashboard bar style.</small>
-              </div>
-              <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3">
-                {categoryEntries.map(([key, value]) => (
-                  <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
-                    <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
-                    <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
-                    <p>{portfolioMetricSummary(key, value)}</p>
-                  </article>
-                ))}
-              </div>
+                <strong>{metricsOpen ? "Close" : "Open"}</strong>
+              </button>
+              {metricsOpen && (
+                <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3">
+                  {categoryEntries.map(([key, value]) => (
+                    <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
+                      <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
+                      <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
+                      <p>{portfolioMetricSummary(key, value)}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
             </article>
           )}
 
@@ -2475,33 +2531,38 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </div>
             </div>
 
-            {industryGroups.map((group) => (
-              <article className="portfolio-industry-block portfolio-industry-block-v3" key={group.industry}>
-                <div className="portfolio-industry-head portfolio-industry-head-v3">
+            {industryGroups.map((group) => {
+              const isOpen = !!openIndustries[group.industry];
+              return (
+              <article className={`portfolio-industry-block portfolio-industry-block-v3 portfolio-industry-tab ${isOpen ? "open" : "closed"}`} key={group.industry}>
+                <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.industry)}>
                   <div className="portfolio-industry-title-v3">
                     <span>{group.industry}</span>
-                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)}</small>
+                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)} • {isOpen ? "Click to close" : "Click to view holdings"}</small>
                   </div>
                   <MiniScoreRing value={group.industryEvalScore} small />
-                </div>
-                <div className="portfolio-holdings-table portfolio-industry-table-v3">
-                  <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
-                  {(group.holdings || []).map((holding) => (
-                    <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
-                      <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
-                      <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                      <span>{money(holding.holdingDollars)}</span>
-                      <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
-                      <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
-                      <span><MiniScoreRing value={holding.edgeScore} small /></span>
-                      <span>{scoreText(holding.growth)}</span>
-                      <span>{scoreText(holding.valuation)}</span>
-                      <span>{scoreText(holding.momentum)}</span>
-                    </button>
-                  ))}
-                </div>
+                </button>
+                {isOpen && (
+                  <div className="portfolio-holdings-table portfolio-industry-table-v3">
+                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
+                    {(group.holdings || []).map((holding) => (
+                      <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                        <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                        <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                        <span>{money(holding.holdingDollars)}</span>
+                        <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
+                        <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
+                        <span><MiniScoreRing value={holding.edgeScore} small /></span>
+                        <span>{scoreText(holding.growth)}</span>
+                        <span>{scoreText(holding.valuation)}</span>
+                        <span>{scoreText(holding.momentum)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </article>
-            ))}
+              );
+            })}
           </div>
 
           <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5">
