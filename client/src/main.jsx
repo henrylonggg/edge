@@ -1924,19 +1924,11 @@ function buildPortfolioEvalHistory(previous = [], analysis) {
 }
 
 function MiniScoreRing({ value, small = false }) {
-  const tone = scoreTone(value);
-  const degrees = scoreDegrees(value);
-  const display = scoreText(value);
   return (
-    <div
-      className={`eval-score-pie ${small ? "small" : ""} ${tone}`}
-      style={{ "--score-angle": `${degrees}deg` }}
-      title={`Eval Score ${display}`}
-    >
-      <div className="eval-score-pie-core">
-        <strong>{display}</strong>
-      </div>
-    </div>
+    <ScoreRingSvg
+      value={value}
+      className={small ? "watch-score-ring portfolio-small-score-ring" : "score-ring portfolio-main-score-ring"}
+    />
   );
 }
 
@@ -2011,6 +2003,48 @@ function IndustryBars({ groups = [] }) {
       </div>
     </div>
   );
+}
+
+function portfolioValueChangePercent(points = [], currentValue) {
+  const clean = (Array.isArray(points) ? points : []).filter((p) => Number.isFinite(Number(p.value)) && Number(p.value) > 0);
+  const current = Number(currentValue);
+  if (!clean.length || !Number.isFinite(current) || current <= 0) return 0;
+  const start = Number(clean[0].value);
+  if (!Number.isFinite(start) || start <= 0) return 0;
+  return ((current - start) / start) * 100;
+}
+
+function portfolioEvalScoreChange(points = [], currentScore) {
+  const clean = (Array.isArray(points) ? points : []).filter((p) => Number.isFinite(Number(p.value)) && Number(p.value) > 0);
+  const current = Number(currentScore);
+  if (!clean.length || !Number.isFinite(current)) return 0;
+  const start = Number(clean[0].value);
+  if (!Number.isFinite(start)) return 0;
+  return current - start;
+}
+
+function buildPortfolioProsCons(groups = []) {
+  const holdings = (groups || []).flatMap((group) => (group.holdings || []).map((holding) => ({ ...holding, industry: group.industry })));
+  const scored = holdings.filter((h) => Number.isFinite(Number(h.edgeScore)));
+  const strongStocks = scored
+    .filter((h) => Number(h.edgeScore) >= 7.0)
+    .sort((a, b) => (Number(b.weightPercent || 0) * Number(b.edgeScore || 0)) - (Number(a.weightPercent || 0) * Number(a.edgeScore || 0)))
+    .slice(0, 5);
+  const weakStocks = scored
+    .filter((h) => Number(h.edgeScore) < 7.0)
+    .sort((a, b) => (Number(a.edgeScore || 0) - Number(b.edgeScore || 0)) || (Number(b.weightPercent || 0) - Number(a.weightPercent || 0)))
+    .slice(0, 5);
+  const topIndustries = [...(groups || [])].sort((a, b) => Number(b.totalWeightPercent || 0) - Number(a.totalWeightPercent || 0)).slice(0, 3);
+
+  const pros = strongStocks.length
+    ? `The strongest parts of this portfolio come from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)})`).join(", ")}. These holdings give the portfolio its best support because they combine stronger Eval Scores with meaningful position sizes. The largest industry exposures are ${topIndustries.map((g) => `${g.industry} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those groups drive most of the portfolio's overall score.`
+    : `The portfolio has a spread across ${groups.length || 0} industries, which helps avoid having the entire score depend on one stock. The strongest industries and holdings are shown below so users can quickly see where the portfolio is getting the most support.`;
+
+  const cons = weakStocks.length
+    ? `The main weak spots are ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)})`).join(", ")}. These names reduce the portfolio score when their Eval Scores are lower and their portfolio weights are meaningful. The biggest portfolio risk is concentration in lower-scoring holdings or industries, so the industry bars and holding rows show exactly where those weak spots sit.`
+    : `The portfolio does not have many low-scoring holdings in the current report. The main thing to watch is whether one industry becomes too large, because a high weight in one group can make the overall portfolio score move mostly with that industry.`;
+
+  return { pros, cons };
 }
 
 function PortfolioValueChart({ points = [] }) {
@@ -2281,6 +2315,10 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const historyPoints = csvAnalysis?.history || portfolioHistory || [];
   const evalHistoryPoints = csvAnalysis?.evalScoreHistory || evalScoreHistory || [];
   const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
+  const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
+  const totalHoldingsChangePct = portfolioValueChangePercent(historyPoints, totalHoldings);
+  const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
+  const prosCons = buildPortfolioProsCons(industryGroups);
 
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
@@ -2360,11 +2398,15 @@ function PortfolioPage({ onBack, onAnalyze }) {
         <section className="portfolio-report-v3">
           <div className="portfolio-hero-grid-v3">
             <article className="portfolio-score-card-v3">
-              <MiniScoreRing value={csvAnalysis.summary?.portfolioEvalScore} />
+              <div className="portfolio-score-ring-stack">
+                <MiniScoreRing value={portfolioEvalScore} />
+                <span className={`portfolio-score-change-pill ${Number(evalScoreChange) >= 0 ? "up" : "down"}`}>
+                  {Number(evalScoreChange) >= 0 ? "+" : ""}{Number(evalScoreChange || 0).toFixed(1)}
+                </span>
+              </div>
               <div>
                 <span className="section-title"><Scale size={17}/> Portfolio Eval Score</span>
                 <h3>{portfolioTitle}</h3>
-                <p>The overall score is calculated from each industry’s Eval Score multiplied by that industry’s percentage of the portfolio, then added together as a sumproduct.</p>
               </div>
             </article>
 
@@ -2374,15 +2416,32 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 <strong>{hideHoldingsValue ? "******" : money(totalHoldings)}</strong>
                 <button type="button" onClick={() => setHideHoldingsValue((v) => !v)}>{hideHoldingsValue ? "Show" : "Hide"}</button>
               </div>
-              <small>Current value uses shares × latest fetched price for each scorable holding.</small>
+              <b className={`portfolio-value-change ${Number(totalHoldingsChangePct) >= 0 ? "up" : "down"}`}>
+                {Number(totalHoldingsChangePct) >= 0 ? "+" : ""}{Number(totalHoldingsChangePct || 0).toFixed(2)}%
+              </b>
             </article>
 
-            <article className="portfolio-mini-stat-card-v3"><span>Holdings</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></article>
-            <article className="portfolio-mini-stat-card-v3"><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></article>
+            <article className="portfolio-combined-stat-card-v3">
+              <div><span>Holdings</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></div>
+              <div><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></div>
+            </article>
           </div>
 
-          <div className="portfolio-visual-grid-v3">
-            <IndustryDiversityDonut groups={industryGroups} activeIndustry={activeIndustry} onActiveIndustry={setActiveIndustry} />
+          <div className="portfolio-visual-grid-v3 portfolio-pros-cons-visual-grid">
+            <section className="ai-score-summary-card ai-score-summary-card-simple ai-score-pros-cons-card portfolio-pros-cons-card">
+              <div className="ai-score-two-column-grid ai-score-pros-cons-grid">
+                <article className="ai-score-long-summary ai-score-pros-panel">
+                  <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> PROS</div>
+                  <h3>{portfolioTitle} strengths</h3>
+                  <p>{prosCons.pros}</p>
+                </article>
+                <article className="ai-score-long-summary ai-score-cons-panel">
+                  <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> CONS</div>
+                  <h3>{portfolioTitle} weaknesses</h3>
+                  <p>{prosCons.cons}</p>
+                </article>
+              </div>
+            </section>
             <IndustryBars groups={industryGroups} />
           </div>
 
