@@ -1964,14 +1964,20 @@ app.post("/api/portfolio-csv", async (req, res) => {
       const symbol = cleanTicker(row?.symbol || row?.ticker);
       const weightPercent = cleanSubmittedWeight(row?.weightPercent ?? row?.weight ?? row?.holdingPercent ?? row?.holding);
       const holdingDollars = cleanSubmittedDollars(row?.holdingDollars ?? row?.dollars ?? row?.amount ?? row?.marketValue ?? row?.value);
+      const shares = cleanSubmittedDollars(row?.shares ?? row?.shareCount ?? row?.quantity ?? row?.qty);
+      const averageCost = cleanSubmittedDollars(row?.averageCost ?? row?.avgCost ?? row?.costBasis ?? row?.costPerShare ?? row?.averagePrice);
       if (!symbol) continue;
       if (!/^[A-Z][A-Z0-9.]{0,7}$/.test(symbol)) continue;
-      if (weightPercent === null && holdingDollars === null) continue;
-      const previous = merged.get(symbol) || { symbol, weightPercent: 0, holdingDollars: 0 };
+      if (weightPercent === null && holdingDollars === null && shares === null) continue;
+      const previous = merged.get(symbol) || { symbol, weightPercent: 0, holdingDollars: 0, shares: 0, costTotal: 0 };
+      const nextShares = previous.shares + (shares || 0);
+      const nextCostTotal = previous.costTotal + ((shares || 0) * (averageCost || 0));
       merged.set(symbol, {
         symbol,
         weightPercent: previous.weightPercent + (weightPercent || 0),
         holdingDollars: previous.holdingDollars + (holdingDollars || 0),
+        shares: nextShares,
+        costTotal: nextCostTotal,
       });
     }
 
@@ -1979,26 +1985,12 @@ app.post("/api/portfolio-csv", async (req, res) => {
       symbol: row.symbol,
       weightPercent: row.weightPercent > 0 ? row.weightPercent : null,
       holdingDollars: row.holdingDollars > 0 ? row.holdingDollars : null,
+      shares: row.shares > 0 ? row.shares : null,
+      averageCost: row.shares > 0 && row.costTotal > 0 ? row.costTotal / row.shares : null,
     }));
 
     if (!submitted.length) {
       return res.status(400).json({ error: "No valid ticker and holding rows were found.", route: "api/portfolio-csv" });
-    }
-
-    const totalSubmittedDollars = submitted.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
-    const hasAnyPercent = submitted.some((row) => Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0);
-
-    if (!hasAnyPercent && totalSubmittedDollars > 0) {
-      submitted = submitted.map((row) => ({
-        ...row,
-        weightPercent: Number((((Number(row.holdingDollars) || 0) / totalSubmittedDollars) * 100).toFixed(6)),
-      }));
-    }
-
-    submitted = submitted.filter((row) => Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0);
-
-    if (!submitted.length) {
-      return res.status(400).json({ error: "The CSV needs Holding % values or Holding ($) values so Eval can calculate portfolio weights.", route: "api/portfolio-csv" });
     }
 
     const analyzed = await mapWithConcurrency(submitted, 2, async (row) => {
@@ -2014,14 +2006,28 @@ app.post("/api/portfolio-csv", async (req, res) => {
           const score = portfolioScore10(categories?.[key]);
           return score === null || score <= 0 ? null : Number(score.toFixed(1));
         };
+
+        const shares = Number.isFinite(Number(row.shares)) && Number(row.shares) > 0 ? Number(row.shares) : null;
+        const averageCost = Number.isFinite(Number(row.averageCost)) && Number(row.averageCost) > 0 ? Number(row.averageCost) : null;
+        const currentPrice = Number.isFinite(price) && price > 0 ? Number(price) : null;
+        const currentHoldingDollars = shares && currentPrice ? shares * currentPrice : (Number(row.holdingDollars) || null);
+        const costBasisDollars = shares && averageCost ? shares * averageCost : null;
+
+        if (!Number.isFinite(Number(row.weightPercent)) && !Number.isFinite(Number(currentHoldingDollars))) {
+          return { skipped: true, symbol: row.symbol, reason: "No current holding value available." };
+        }
+
         return {
           symbol: row.symbol,
           name: report?.profile?.name || row.symbol,
           industry: report?.profile?.finnhubIndustry || "Other",
-          inputWeightPercent: Number(Number(row.weightPercent).toFixed(4)),
-          holdingDollars: Number.isFinite(Number(row.holdingDollars)) && Number(row.holdingDollars) > 0 ? Number(Number(row.holdingDollars).toFixed(2)) : null,
+          inputWeightPercent: Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0 ? Number(row.weightPercent) : null,
+          holdingDollars: Number.isFinite(Number(currentHoldingDollars)) && Number(currentHoldingDollars) > 0 ? Number(currentHoldingDollars.toFixed(2)) : null,
+          costBasisDollars: Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0 ? Number(costBasisDollars.toFixed(2)) : null,
+          shares: shares ? Number(shares.toFixed(6)) : null,
+          averageCost: averageCost ? Number(averageCost.toFixed(4)) : null,
           edgeScore: Number(edgeScore.toFixed(1)),
-          price: Number.isFinite(price) && price > 0 ? Number(price.toFixed(2)) : null,
+          price: currentPrice ? Number(currentPrice.toFixed(2)) : null,
           growth: category("growth"),
           valuation: category("valuation"),
           momentum: category("momentum"),
@@ -2038,24 +2044,30 @@ app.post("/api/portfolio-csv", async (req, res) => {
 
     const valid = analyzed.filter((row) => row && !row.skipped);
     const skipped = analyzed.filter((row) => row?.skipped);
-    const validInputWeightRaw = valid.reduce((sum, row) => sum + row.inputWeightPercent, 0);
-    if (!valid.length || validInputWeightRaw <= 0) {
+    if (!valid.length) {
       return res.status(400).json({ error: "None of the uploaded holdings could be scored yet.", skipped, route: "api/portfolio-csv" });
     }
 
-    const validHoldingDollars = valid.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
+    const totalCurrentDollars = valid.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
+    const validInputWeightRaw = valid.reduce((sum, row) => sum + (Number(row.inputWeightPercent) || 0), 0);
+    if (totalCurrentDollars <= 0 && validInputWeightRaw <= 0) {
+      return res.status(400).json({ error: "The portfolio needs Shares, Holding ($), or Holding % values so Eval can calculate portfolio weights.", route: "api/portfolio-csv" });
+    }
+
     const holdings = valid
       .map((row) => {
-        const normalizedWeight = row.inputWeightPercent / validInputWeightRaw;
+        const normalizedWeight = totalCurrentDollars > 0
+          ? (Number(row.holdingDollars) || 0) / totalCurrentDollars
+          : (Number(row.inputWeightPercent) || 0) / validInputWeightRaw;
         return {
           ...row,
           weightPercent: Number((normalizedWeight * 100).toFixed(2)),
           weightedContribution: Number((row.edgeScore * normalizedWeight).toFixed(2)),
         };
       })
+      .filter((row) => row.weightPercent > 0)
       .sort((a, b) => String(a.industry || "").localeCompare(String(b.industry || "")) || b.weightPercent - a.weightPercent);
 
-    const portfolioEvalScore = Number(holdings.reduce((sum, row) => sum + row.weightedContribution, 0).toFixed(1));
     const weightedCategoryScores = weightedCategoryScoresFromHoldings(holdings);
 
     const industryMap = new Map();
@@ -2093,7 +2105,15 @@ app.post("/api/portfolio-csv", async (req, res) => {
       };
     }).sort((a, b) => b.totalWeightPercent - a.totalWeightPercent);
 
+    const portfolioEvalScore = Number(industryGroups.reduce((sum, group) => {
+      const score = Number(group.industryEvalScore);
+      const weight = Number(group.totalWeightPercent);
+      if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(weight) || weight <= 0) return sum;
+      return sum + score * (weight / 100);
+    }, 0).toFixed(1));
+
     const industryCount = industryGroups.length;
+    const totalCostBasisDollars = holdings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
 
     res.json({
       portfolioName: submittedPortfolioName,
@@ -2106,7 +2126,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
         submittedHoldingCount: submitted.length,
         scoredHoldingCount: holdings.length,
         voidedHoldingCount: skipped.length,
-        totalHoldingDollars: validHoldingDollars > 0 ? Number(validHoldingDollars.toFixed(2)) : (totalSubmittedDollars > 0 ? Number(totalSubmittedDollars.toFixed(2)) : null),
+        totalHoldingDollars: totalCurrentDollars > 0 ? Number(totalCurrentDollars.toFixed(2)) : null,
+        totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
         industryCount,
       },
       generatedAt: new Date().toISOString(),
