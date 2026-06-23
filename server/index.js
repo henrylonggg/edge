@@ -1880,7 +1880,9 @@ function cleanSubmittedWeight(value) {
 }
 
 function cleanSubmittedDollars(value) {
-  const number = Number(value);
+  if (value === null || value === undefined) return null;
+  const cleaned = String(value).replace(/[$,%]/g, "").replace(/,/g, "").trim();
+  const number = Number(cleaned);
   if (!Number.isFinite(number) || number <= 0) return null;
   return number;
 }
