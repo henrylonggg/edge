@@ -2033,6 +2033,12 @@ app.post("/api/portfolio-csv", async (req, res) => {
         const currentPrice = Number.isFinite(price) && price > 0 ? Number(price) : null;
         const currentHoldingDollars = shares && currentPrice ? shares * currentPrice : (Number(row.holdingDollars) || null);
         const costBasisDollars = shares && averageCost ? shares * averageCost : null;
+        const dollarChange = Number.isFinite(Number(currentHoldingDollars)) && Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0
+          ? Number(currentHoldingDollars) - Number(costBasisDollars)
+          : null;
+        const returnPercent = Number.isFinite(Number(dollarChange)) && Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0
+          ? (Number(dollarChange) / Number(costBasisDollars)) * 100
+          : null;
 
         if (!Number.isFinite(Number(row.weightPercent)) && !Number.isFinite(Number(currentHoldingDollars))) {
           return { skipped: true, symbol: row.symbol, reason: "No current holding value available." };
@@ -2045,6 +2051,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
           inputWeightPercent: Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0 ? Number(row.weightPercent) : null,
           holdingDollars: Number.isFinite(Number(currentHoldingDollars)) && Number(currentHoldingDollars) > 0 ? Number(currentHoldingDollars.toFixed(2)) : null,
           costBasisDollars: Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0 ? Number(costBasisDollars.toFixed(2)) : null,
+          dollarChange: Number.isFinite(Number(dollarChange)) ? Number(dollarChange.toFixed(2)) : null,
+          returnPercent: Number.isFinite(Number(returnPercent)) ? Number(returnPercent.toFixed(2)) : null,
           shares: shares ? Number(shares.toFixed(6)) : null,
           averageCost: averageCost ? Number(averageCost.toFixed(4)) : null,
           edgeScore: Number(edgeScore.toFixed(1)),
@@ -2101,6 +2109,9 @@ app.post("/api/portfolio-csv", async (req, res) => {
     const industryGroups = [...industryMap.entries()].map(([industry, groupHoldings]) => {
       const totalWeightPercent = groupHoldings.reduce((sum, row) => sum + row.weightPercent, 0);
       const totalHoldingDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
+      const totalCostBasisDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
+      const totalDollarChange = groupHoldings.reduce((sum, row) => sum + (Number(row.dollarChange) || 0), 0);
+      const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
       const decorated = groupHoldings
         .map((row) => ({
           ...row,
@@ -2122,6 +2133,9 @@ app.post("/api/portfolio-csv", async (req, res) => {
         industryEvalScore,
         totalWeightPercent: Number(totalWeightPercent.toFixed(2)),
         totalHoldingDollars: totalHoldingDollars > 0 ? Number(totalHoldingDollars.toFixed(2)) : null,
+        totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
+        totalDollarChange: Number.isFinite(Number(totalDollarChange)) ? Number(totalDollarChange.toFixed(2)) : null,
+        totalReturnPercent: Number.isFinite(Number(totalReturnPercent)) ? Number(totalReturnPercent.toFixed(2)) : null,
         holdings: decorated,
       };
     }).sort((a, b) => b.totalWeightPercent - a.totalWeightPercent);
@@ -2135,6 +2149,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
 
     const industryCount = industryGroups.length;
     const totalCostBasisDollars = holdings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
+    const totalDollarChange = holdings.reduce((sum, row) => sum + (Number(row.dollarChange) || 0), 0);
+    const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
 
     res.json({
       portfolioName: submittedPortfolioName,
@@ -2149,6 +2165,8 @@ app.post("/api/portfolio-csv", async (req, res) => {
         voidedHoldingCount: skipped.length,
         totalHoldingDollars: totalCurrentDollars > 0 ? Number(totalCurrentDollars.toFixed(2)) : null,
         totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
+        totalDollarChange: Number.isFinite(Number(totalDollarChange)) ? Number(totalDollarChange.toFixed(2)) : null,
+        totalReturnPercent: Number.isFinite(Number(totalReturnPercent)) ? Number(totalReturnPercent.toFixed(2)) : null,
         industryCount,
       },
       generatedAt: new Date().toISOString(),
