@@ -2026,7 +2026,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
         {(groups || []).map((group) => {
           const score = score10(group.industryEvalScore) || 0;
           return (
-            <button type="button" className="portfolio-industry-bar-row" key={group.industry} onClick={() => onSelectIndustry?.(group)}>
+            <button type="button" className={`portfolio-industry-bar-row ${scoreTone(score)}`} key={group.industry} onClick={() => onSelectIndustry?.(group)}>
               <div><b>{group.industry}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
               <div className="portfolio-industry-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
               <strong>{scoreText(score)}</strong>
@@ -2234,6 +2234,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [portfolioToolsOpen, setPortfolioToolsOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
   const [hideHoldingsValue, setHideHoldingsValue] = useState(false);
   const [activeIndustry, setActiveIndustry] = useState("");
@@ -2303,6 +2304,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
       setEvalScoreHistory(nextEvalScoreHistory);
       setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
       persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRows, nextHistory, nextEvalScoreHistory);
+      setPortfolioToolsOpen(false);
+      setManualOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setCsvError(err?.message || "Could not analyze this portfolio.");
@@ -2457,16 +2460,29 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
-      <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3">
+      <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
         <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
-        <div>
-          <span className="assistant-kicker"><Sparkles size={16}/> Portfolio dashboard</span>
-          <h2>Portfolio</h2>
-          <p>Upload a CSV or enter holdings manually. Eval uses shares, average cost, current price, and Eval Scores to calculate a live weighted portfolio report.</p>
+        <div className="portfolio-title-mainline">
+          <div>
+            <span className="assistant-kicker"><Sparkles size={16}/> Portfolio dashboard</span>
+            <h2>{portfolioTitle}</h2>
+          </div>
+          {csvAnalysis && (
+            <button
+              type="button"
+              className={`portfolio-doc-toggle-btn ${portfolioToolsOpen ? "open" : ""}`}
+              onClick={() => setPortfolioToolsOpen((open) => !open)}
+              aria-label="Open portfolio upload and manual entry tools"
+              title="Edit or upload portfolio"
+            >
+              <FileText size={21}/>
+            </button>
+          )}
         </div>
       </div>
 
-      <section className={`portfolio-input-grid-v3 ${manualOpen ? "manual-open" : "manual-closed"}`}>
+      {(!csvAnalysis || portfolioToolsOpen) && (
+      <section className={`portfolio-input-grid-v3 portfolio-tools-panel ${csvAnalysis ? "portfolio-tools-overlay-open" : "portfolio-tools-first-run"} ${manualOpen ? "manual-open" : "manual-closed"}`}>
         <article
           className={`portfolio-csv-drop portfolio-csv-drop-polished portfolio-input-card-v3 ${dragActive ? "drag-active" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
@@ -2531,6 +2547,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
           </article>
         )}
       </section>
+      )}
 
       {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, industries, and weighted portfolio metrics.</p></div>}
       {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
@@ -2598,7 +2615,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
             {industryGroups.map((group) => {
               const isOpen = !!openIndustries[group.industry];
               return (
-              <article className={`portfolio-industry-block portfolio-industry-block-v3 portfolio-industry-tab ${isOpen ? "open" : "closed"}`} key={group.industry}>
+              <article className={`portfolio-industry-block portfolio-industry-block-v3 portfolio-industry-tab ${scoreTone(group.industryEvalScore)} ${isOpen ? "open" : "closed"}`} key={group.industry}>
                 <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.industry)}>
                   <div className="portfolio-industry-title-v3">
                     <span>{group.industry}</span>
@@ -2610,7 +2627,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                   <div className="portfolio-holdings-table portfolio-industry-table-v3">
                     <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Value</span><span>Return</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span><span>Growth</span><span>Valuation</span><span>Momentum</span></div>
                     {(group.holdings || []).map((holding) => (
-                      <button type="button" className="portfolio-holding-row" key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                      <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                         <span>{money(holding.holdingDollars)}</span>
