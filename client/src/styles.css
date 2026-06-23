@@ -27588,3 +27588,130 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     font-size: 64px !important;
   }
 }
+
+
+/* Portfolio hover rings - match the score tone instead of default cyan */
+.portfolio-industry-tab:hover {
+  transform: translateY(-1px);
+  border-width: 2px !important;
+}
+.portfolio-industry-tab.green:hover,
+.portfolio-industry-bars-clickable-card .portfolio-industry-bar-row.green:hover,
+.portfolio-industry-table-v3 .portfolio-holding-row.green:hover {
+  border-color: rgba(133,255,71,.72) !important;
+  box-shadow: 0 30px 82px rgba(0,0,0,.38), 0 0 0 2px rgba(133,255,71,.34), 0 0 44px rgba(133,255,71,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.portfolio-industry-tab.yellow:hover,
+.portfolio-industry-bars-clickable-card .portfolio-industry-bar-row.yellow:hover,
+.portfolio-industry-table-v3 .portfolio-holding-row.yellow:hover {
+  border-color: rgba(255,228,95,.78) !important;
+  box-shadow: 0 30px 82px rgba(0,0,0,.38), 0 0 0 2px rgba(255,228,95,.36), 0 0 44px rgba(255,228,95,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.portfolio-industry-tab.red:hover,
+.portfolio-industry-bars-clickable-card .portfolio-industry-bar-row.red:hover,
+.portfolio-industry-table-v3 .portfolio-holding-row.red:hover {
+  border-color: rgba(255,85,112,.76) !important;
+  box-shadow: 0 30px 82px rgba(0,0,0,.38), 0 0 0 2px rgba(255,85,112,.34), 0 0 44px rgba(255,85,112,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.portfolio-industry-bars-clickable-card .portfolio-industry-bar-row,
+.portfolio-industry-table-v3 .portfolio-holding-row {
+  border: 1px solid rgba(255,255,255,.07) !important;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease !important;
+}
+.portfolio-industry-bars-clickable-card .portfolio-industry-bar-row:hover,
+.portfolio-industry-table-v3 .portfolio-holding-row:not(.header):hover {
+  transform: translateY(-1px);
+}
+
+/* PORTFOLIO TOP TOOLS COLLAPSE — loaded portfolios hide upload scorer */
+.portfolio-top-title-bubble {
+  grid-template-columns: auto 1fr !important;
+  align-items: stretch !important;
+}
+
+.portfolio-title-mainline {
+  min-height: 118px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 28px;
+  padding: 24px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(34, 211, 238, .18), transparent 34%),
+    radial-gradient(circle at 100% 20%, rgba(124, 58, 237, .22), transparent 36%),
+    linear-gradient(135deg, rgba(16, 185, 129, .10), rgba(15, 23, 42, .86) 44%, rgba(88, 28, 135, .22));
+  box-shadow: 0 22px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.11);
+  backdrop-filter: blur(18px);
+}
+
+.portfolio-title-mainline h2 {
+  margin: 8px 0 0;
+  font-size: clamp(40px, 5vw, 74px);
+  line-height: .88;
+  letter-spacing: -.065em;
+  font-weight: 1000;
+  color: #fff;
+  text-shadow: 0 0 26px rgba(255,255,255,.20), 0 0 46px rgba(34,211,238,.12);
+}
+
+.portfolio-doc-toggle-btn {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 74px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #eaffff;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,255,255,.22), transparent 30%),
+    linear-gradient(135deg, rgba(34,211,238,.26), rgba(124,58,237,.28));
+  box-shadow: 0 18px 48px rgba(0,0,0,.34), 0 0 26px rgba(34,211,238,.10), inset 0 1px 0 rgba(255,255,255,.20);
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.portfolio-doc-toggle-btn:hover,
+.portfolio-doc-toggle-btn.open {
+  transform: translateY(-2px);
+  border-color: rgba(103,232,249,.55);
+  box-shadow: 0 22px 58px rgba(0,0,0,.40), 0 0 34px rgba(34,211,238,.24), inset 0 1px 0 rgba(255,255,255,.26);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255,255,255,.28), transparent 31%),
+    linear-gradient(135deg, rgba(34,211,238,.36), rgba(124,58,237,.35));
+}
+
+.portfolio-tools-panel.portfolio-tools-overlay-open {
+  animation: portfolioToolsDrop .22s ease both;
+}
+
+@keyframes portfolioToolsDrop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portfolio-tools-overlay-open .portfolio-csv-drop-polished {
+  border-color: rgba(103,232,249,.24);
+  box-shadow: 0 26px 78px rgba(0,0,0,.35), 0 0 38px rgba(34,211,238,.09), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+@media (max-width: 820px) {
+  .portfolio-top-title-bubble {
+    grid-template-columns: 1fr !important;
+  }
+
+  .portfolio-title-mainline {
+    min-height: 104px;
+    padding: 20px;
+  }
+
+  .portfolio-doc-toggle-btn {
+    width: 62px;
+    height: 62px;
+    flex-basis: 62px;
+    border-radius: 20px;
+  }
+}
