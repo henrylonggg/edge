@@ -1685,49 +1685,6 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
 
 
 
-function PortfolioValueChart({ points = [] }) {
-  const width = 900;
-  const height = 300;
-  const pad = 28;
-  if (!points.length) {
-    return <div className="portfolio-chart-empty">Historical YTD data will appear after the portfolio is built.</div>;
-  }
-  const values = points.map((p) => Number(p.value)).filter(Number.isFinite);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const spread = Math.max(1, max - min);
-  const coords = points.map((point, index) => {
-    const x = pad + (index / Math.max(1, points.length - 1)) * (width - pad * 2);
-    const y = height - pad - ((Number(point.value) - min) / spread) * (height - pad * 2);
-    return { x, y };
-  });
-  const path = coords.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const area = `${path} L${coords[coords.length - 1].x.toFixed(1)},${height-pad} L${coords[0].x.toFixed(1)},${height-pad} Z`;
-  const start = points[0];
-  const end = points[points.length - 1];
-  return (
-    <div className="portfolio-chart-wrap">
-      <div className="portfolio-chart-labels">
-        <span>{new Date(start.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
-        <strong>{money(end.value)}</strong>
-        <span>{new Date(end.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
-      </div>
-      <svg className="portfolio-value-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Historical YTD portfolio value">
-        <defs>
-          <linearGradient id="portfolioArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="currentColor" stopOpacity=".30" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-          </linearGradient>
-          <filter id="portfolioGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-        </defs>
-        <path className="portfolio-chart-area" d={area} fill="url(#portfolioArea)" />
-        <path className="portfolio-chart-line" d={path} filter="url(#portfolioGlow)" />
-      </svg>
-    </div>
-  );
-}
-
-
 function splitCsvLine(line) {
   const cells = [];
   let current = "";
@@ -1909,32 +1866,42 @@ function easternDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
-function minutesUntilNextMarketOpen(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(now);
-  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  const weekday = lookup.weekday;
-  const minutes = Number(lookup.hour || 0) * 60 + Number(lookup.minute || 0);
-  const weekdayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  const isWeekday = weekdayOrder.includes(weekday);
-  if (isWeekday && minutes < 570) return (570 - minutes) * 60 * 1000;
-  let days = 1;
-  const allDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  let idx = allDays.indexOf(weekday);
-  while (days < 8) {
-    const next = allDays[(idx + days) % 7];
-    if (weekdayOrder.includes(next)) break;
-    days += 1;
-  }
-  const minutesPastMidnight = minutes;
-  return ((days * 24 * 60) - minutesPastMidnight + 570) * 60 * 1000;
+function easternTimeParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
-function isAfterMarketOpenEt(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(now);
-  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+function isAfterEtTime(hour = 5, minute = 0, now = new Date()) {
+  const lookup = easternTimeParts(now);
   const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(lookup.weekday);
   const minutes = Number(lookup.hour || 0) * 60 + Number(lookup.minute || 0);
-  return isWeekday && minutes >= 570;
+  return isWeekday && minutes >= hour * 60 + minute;
+}
+
+function minutesUntilNextEtTime(hour = 5, minute = 0, now = new Date()) {
+  const lookup = easternTimeParts(now);
+  const weekday = lookup.weekday;
+  const currentMinutes = Number(lookup.hour || 0) * 60 + Number(lookup.minute || 0);
+  const targetMinutes = hour * 60 + minute;
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  if (weekdays.includes(weekday) && currentMinutes < targetMinutes) {
+    return (targetMinutes - currentMinutes) * 60 * 1000;
+  }
+  const allDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let idx = allDays.indexOf(weekday);
+  let days = 1;
+  while (days < 8) {
+    const next = allDays[(idx + days) % 7];
+    if (weekdays.includes(next)) break;
+    days += 1;
+  }
+  return ((days * 24 * 60) - currentMinutes + targetMinutes) * 60 * 1000;
 }
 
 function buildPortfolioHistory(previous = [], analysis) {
@@ -1942,6 +1909,15 @@ function buildPortfolioHistory(previous = [], analysis) {
   if (!Number.isFinite(totalValue) || totalValue <= 0) return previous || [];
   const today = easternDateKey();
   const nextPoint = { date: today, value: Number(totalValue.toFixed(2)) };
+  const filtered = (Array.isArray(previous) ? previous : []).filter((point) => point?.date !== today);
+  return [...filtered, nextPoint].slice(-260);
+}
+
+function buildPortfolioEvalHistory(previous = [], analysis) {
+  const evalScore = Number(analysis?.summary?.portfolioEvalScore);
+  if (!Number.isFinite(evalScore) || evalScore <= 0) return previous || [];
+  const today = easternDateKey();
+  const nextPoint = { date: today, value: Number(evalScore.toFixed(1)) };
   const filtered = (Array.isArray(previous) ? previous : []).filter((point) => point?.date !== today);
   return [...filtered, nextPoint].slice(-260);
 }
@@ -2061,6 +2037,56 @@ function PortfolioValueChart({ points = [] }) {
   );
 }
 
+function PortfolioEvalScoreChart({ points = [] }) {
+  const width = 900;
+  const height = 260;
+  const pad = 28;
+  if (!points.length) {
+    return <div className="portfolio-chart-empty">Portfolio Eval Score history starts after the first saved 5:15 AM ET refresh.</div>;
+  }
+  const cleanPoints = points.filter((p) => Number.isFinite(Number(p.value)));
+  if (!cleanPoints.length) return <div className="portfolio-chart-empty">Portfolio Eval Score history starts after the first saved 5:15 AM ET refresh.</div>;
+  const min = Math.max(0, Math.min(...cleanPoints.map((p) => Number(p.value))) - 0.5);
+  const max = Math.min(10, Math.max(...cleanPoints.map((p) => Number(p.value))) + 0.5);
+  const spread = Math.max(1, max - min);
+  const coords = cleanPoints.map((point, index) => {
+    const x = pad + (index / Math.max(1, cleanPoints.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((Number(point.value) - min) / spread) * (height - pad * 2);
+    return { x, y };
+  });
+  const path = coords.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const start = cleanPoints[0];
+  const end = cleanPoints[cleanPoints.length - 1];
+  const change = Number(end.value) - Number(start.value);
+  return (
+    <div className="portfolio-chart-wrap premium-line-chart-card eval-score-history-card">
+      <div className="portfolio-chart-labels">
+        <span>{new Date(`${start.date}T12:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+        <strong>{scoreText(end.value)} <small>{Number.isFinite(change) ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}` : ""}</small></strong>
+        <span>{new Date(`${end.date}T12:00:00`).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span>
+      </div>
+      <svg className="portfolio-value-chart portfolio-eval-score-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily Portfolio Eval Score">
+        <defs>
+          <filter id="portfolioEvalGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <path className="portfolio-chart-line" d={path} filter="url(#portfolioEvalGlow)" />
+      </svg>
+    </div>
+  );
+}
+
+function PortfolioHiddenDataTable({ valueHistory = [], evalHistory = [] }) {
+  return (
+    <table className="portfolio-hidden-data-table" aria-hidden="true">
+      <tbody>
+        {valueHistory.map((point) => <tr key={`value-${point.date}`}><td>value</td><td>{point.date}</td><td>{point.value}</td></tr>)}
+        {evalHistory.map((point) => <tr key={`eval-${point.date}`}><td>eval</td><td>{point.date}</td><td>{point.value}</td></tr>)}
+      </tbody>
+    </table>
+  );
+}
+
+
 function PortfolioPage({ onBack, onAnalyze }) {
   const { user } = useUser();
   const firstName =
@@ -2075,6 +2101,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [csvAnalysis, setCsvAnalysis] = useState(null);
   const [savedHoldings, setSavedHoldings] = useState([]);
   const [portfolioHistory, setPortfolioHistory] = useState([]);
+  const [evalScoreHistory, setEvalScoreHistory] = useState([]);
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -2088,6 +2115,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       if (!saved) return;
       if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
       if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
+      if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
       if (saved.fileName) setCsvName(saved.fileName);
       if (saved.analysis) setCsvAnalysis(saved.analysis);
       if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
@@ -2101,7 +2129,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
   }, [csvAnalysis]);
 
-  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory) {
+  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory) {
     try {
       localStorage.setItem(storageKey, JSON.stringify({
         holdings: nextHoldings,
@@ -2109,6 +2137,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
         analysis,
         manualRows: nextManualRows,
         history: nextHistory,
+        evalScoreHistory: nextEvalScoreHistory,
         savedAt: new Date().toISOString(),
       }));
     } catch {
@@ -2116,7 +2145,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordHistory = true } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -2135,10 +2164,12 @@ function PortfolioPage({ onBack, onAnalyze }) {
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio.");
-      const nextHistory = recordHistory ? buildPortfolioHistory(portfolioHistory, json) : portfolioHistory;
+      const nextHistory = recordValueHistory ? buildPortfolioHistory(portfolioHistory, json) : portfolioHistory;
+      const nextEvalScoreHistory = recordEvalHistory ? buildPortfolioEvalHistory(evalScoreHistory, json) : evalScoreHistory;
       setPortfolioHistory(nextHistory);
-      setCsvAnalysis({ ...json, history: nextHistory });
-      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory }, manualRows, nextHistory);
+      setEvalScoreHistory(nextEvalScoreHistory);
+      setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
+      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRows, nextHistory, nextEvalScoreHistory);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setCsvError(err?.message || "Could not analyze this portfolio.");
@@ -2163,27 +2194,35 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
   }
 
-  function refreshSavedPortfolio({ silent = true } = {}) {
+  function refreshSavedPortfolio({ silent = true, recordValueHistory = true, recordEvalHistory = true } = {}) {
     if (!savedHoldings.length) {
       setCsvError("Upload a CSV or enter holdings first, then refresh will rescore the saved portfolio.");
       return;
     }
-    analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent, recordHistory: true });
+    analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent, recordValueHistory, recordEvalHistory });
   }
 
   useEffect(() => {
     if (!savedHoldings.length) return undefined;
     const autoRefreshIfNeeded = () => {
       const today = easternDateKey();
-      const hasToday = portfolioHistory.some((point) => point?.date === today);
-      if (isAfterMarketOpenEt() && !hasToday && !csvLoading) {
-        refreshSavedPortfolio({ silent: true });
+      const hasValueToday = portfolioHistory.some((point) => point?.date === today);
+      const hasEvalToday = evalScoreHistory.some((point) => point?.date === today);
+      if (csvLoading) return;
+      if (isAfterEtTime(5, 0) && !hasValueToday) {
+        refreshSavedPortfolio({ silent: true, recordValueHistory: true, recordEvalHistory: false });
+        return;
+      }
+      if (isAfterEtTime(5, 15) && !hasEvalToday) {
+        refreshSavedPortfolio({ silent: true, recordValueHistory: false, recordEvalHistory: true });
       }
     };
     autoRefreshIfNeeded();
-    const timer = window.setTimeout(autoRefreshIfNeeded, Math.min(minutesUntilNextMarketOpen(), 2147483647));
+    const nextValueMs = minutesUntilNextEtTime(5, 0);
+    const nextEvalMs = minutesUntilNextEtTime(5, 15);
+    const timer = window.setTimeout(autoRefreshIfNeeded, Math.min(nextValueMs, nextEvalMs, 2147483647));
     return () => window.clearTimeout(timer);
-  }, [savedHoldings.length, portfolioHistory, csvLoading]);
+  }, [savedHoldings.length, portfolioHistory, evalScoreHistory, csvLoading]);
 
   function updateManualRow(id, field, value) {
     setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
@@ -2211,7 +2250,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       return;
     }
 
-    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false });
+    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true });
   }
 
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
@@ -2219,6 +2258,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   const industryGroups = csvAnalysis?.industryGroups || [];
   const historyPoints = csvAnalysis?.history || portfolioHistory || [];
+  const evalHistoryPoints = csvAnalysis?.evalScoreHistory || evalScoreHistory || [];
   const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
 
   return (
@@ -2320,12 +2360,22 @@ function PortfolioPage({ onBack, onAnalyze }) {
             <IndustryBars groups={industryGroups} />
           </div>
 
-          <article className="portfolio-history-card-v3">
+          <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4">
             <div className="portfolio-card-title-row">
-              <span className="section-title"><LineChart size={17}/> Daily portfolio movement</span>
-              <small>Refreshes once per trading day after 9:30 AM ET while the portfolio is saved in this browser.</small>
+              <span className="section-title"><LineChart size={17}/> Daily tracking</span>
+              <small>Saved portfolios refresh once at 5:00 AM ET for holdings value and once at 5:15 AM ET for Eval Score history while this browser is active.</small>
             </div>
-            <PortfolioValueChart points={historyPoints} />
+            <div className="portfolio-history-chart-grid-v4">
+              <div>
+                <h4>Holdings value</h4>
+                <PortfolioValueChart points={historyPoints} />
+              </div>
+              <div>
+                <h4>Portfolio Eval Score</h4>
+                <PortfolioEvalScoreChart points={evalHistoryPoints} />
+              </div>
+            </div>
+            <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
           </article>
 
           {!!categoryEntries.length && (
