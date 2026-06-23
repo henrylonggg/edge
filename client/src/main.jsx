@@ -22,6 +22,7 @@ import {
   Target,
   TrendingUp,
   BarChart3,
+  PieChart,
   LineChart,
   Zap,
   BrainCircuit,
@@ -1923,44 +1924,62 @@ function buildPortfolioEvalHistory(previous = [], analysis) {
 }
 
 function MiniScoreRing({ value, small = false }) {
+  const tone = scoreTone(value);
+  const degrees = scoreDegrees(value);
+  const display = scoreText(value);
   return (
-    <div className={`score-ring mini-score-ring ${small ? "small" : ""} ${scoreTone(value)}`} style={{ "--score-angle": `${scoreDegrees(value)}deg` }}>
-      <div className="score-core"><strong>{scoreText(value)}</strong></div>
+    <div
+      className={`eval-score-pie ${small ? "small" : ""} ${tone}`}
+      style={{ "--score-angle": `${degrees}deg` }}
+      title={`Eval Score ${display}`}
+    >
+      <div className="eval-score-pie-core">
+        <strong>{display}</strong>
+      </div>
     </div>
   );
 }
 
 function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry }) {
+  const palette = ["#85ff47", "#15e7ff", "#9f5cff", "#ffe45f", "#ff7a18", "#ff4f67", "#23f0c7", "#f472b6", "#a3e635", "#60a5fa"];
   const total = groups.reduce((sum, group) => sum + (Number(group.totalWeightPercent) || 0), 0);
   let running = 0;
-  const gradient = groups.map((group, index) => {
+  const enriched = groups.map((group, index) => {
     const value = total > 0 ? ((Number(group.totalWeightPercent) || 0) / total) * 100 : 0;
     const start = running;
     running += value;
-    const palette = ["#7c3aed", "#22c55e", "#facc15", "#38bdf8", "#f97316", "#ec4899", "#14b8a6", "#a78bfa"];
-    return `${palette[index % palette.length]} ${start.toFixed(2)}% ${running.toFixed(2)}%`;
-  }).join(", ");
-  const active = groups.find((g) => g.industry === activeIndustry) || groups[0];
+    return { ...group, color: palette[index % palette.length], donutStart: start, donutEnd: running, normalizedWeight: value };
+  });
+  const gradient = enriched.map((group) => `${group.color} ${group.donutStart.toFixed(2)}% ${group.donutEnd.toFixed(2)}%`).join(", ");
+  const active = enriched.find((g) => g.industry === activeIndustry) || enriched[0];
   return (
-    <div className="portfolio-donut-card">
+    <div className="portfolio-donut-card portfolio-donut-card-interactive">
+      <div className="portfolio-donut-copy">
+        <span className="section-title"><PieChart size={17}/> Industry diversity</span>
+        <h3>Portfolio mix</h3>
+        <p>Hover or tap an industry to see its portfolio weight and industry-weighted Eval Score.</p>
+      </div>
       <div
-        className="portfolio-industry-donut"
+        className="portfolio-industry-donut interactive"
         style={{ background: `conic-gradient(${gradient || "rgba(255,255,255,.12) 0% 100%"})` }}
       >
         <div className="portfolio-donut-core">
           <span>{active?.industry || "Industries"}</span>
           <strong>{active ? `${Number(active.totalWeightPercent || 0).toFixed(1)}%` : "N/A"}</strong>
+          <small>{active ? `Eval ${scoreText(active.industryEvalScore)}` : ""}</small>
         </div>
       </div>
       <div className="portfolio-donut-list">
-        {(groups || []).map((group) => (
+        {enriched.map((group) => (
           <button
             type="button"
             key={group.industry}
-            className={group.industry === activeIndustry ? "active" : ""}
+            className={group.industry === active?.industry ? "active" : ""}
             onMouseEnter={() => onActiveIndustry?.(group.industry)}
             onFocus={() => onActiveIndustry?.(group.industry)}
+            onClick={() => onActiveIndustry?.(group.industry)}
           >
+            <i style={{ background: group.color }} />
             <span>{group.industry}</span>
             <b>{Number(group.totalWeightPercent || 0).toFixed(1)}%</b>
           </button>
@@ -1969,6 +1988,7 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
     </div>
   );
 }
+
 
 function IndustryBars({ groups = [] }) {
   return (
@@ -2105,6 +2125,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [csvLoading, setCsvLoading] = useState(false);
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
   const [hideHoldingsValue, setHideHoldingsValue] = useState(false);
   const [activeIndustry, setActiveIndustry] = useState("");
@@ -2272,7 +2293,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
         </div>
       </div>
 
-      <section className="portfolio-input-grid-v3">
+      <section className={`portfolio-input-grid-v3 ${manualOpen ? "manual-open" : "manual-closed"}`}>
         <article
           className={`portfolio-csv-drop portfolio-csv-drop-polished portfolio-input-card-v3 ${dragActive ? "drag-active" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
@@ -2286,8 +2307,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
           <div className="portfolio-csv-icon"><FileText size={30}/></div>
           <div>
             <span className="section-title"><BarChart3 size={17}/> CSV portfolio scorer</span>
-            <h3>Drop {portfolioTitle} CSV here</h3>
-            <p>The template uses <b>Ticker</b>, <b>Shares</b>, and <b>Average Cost</b>. Eval fetches current price to calculate current holding value and portfolio weight.</p>
+            <h3>Upload {portfolioTitle}</h3>
+            <p>The template uses <b>Ticker</b>, <b>Shares</b>, and <b>Average Cost</b>. Eval fetches current price, calculates live holding value, then creates the weighted portfolio report.</p>
           </div>
           <div className="portfolio-csv-actions">
             <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>Download template</button>
@@ -2295,36 +2316,41 @@ function PortfolioPage({ onBack, onAnalyze }) {
               Choose CSV
               <input type="file" accept=".csv,text/csv" onChange={(event) => handleCsvFile(event.target.files?.[0])} />
             </label>
+            <button type="button" className="portfolio-template-btn" onClick={() => setManualOpen((open) => !open)}>
+              <Plus size={16}/> {manualOpen ? "Hide manual" : "Manual Entry"}
+            </button>
             <button type="button" className="portfolio-template-btn portfolio-refresh-saved-btn" onClick={() => refreshSavedPortfolio({ silent: true })} disabled={!savedHoldings.length || csvLoading}>
               <RefreshCw size={16} className={csvLoading ? "spin" : ""}/> Refresh scores
             </button>
           </div>
         </article>
 
-        <article className="portfolio-manual-card portfolio-input-card-v3">
-          <div className="portfolio-manual-head">
-            <div>
-              <span className="section-title"><Plus size={17}/> Manual entry</span>
-              <h3>Add holdings by hand</h3>
-              <p>Enter ticker, share count, and average cost per share. Eval will use current price to calculate current position value.</p>
-            </div>
-            <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add</button>
-          </div>
-          <div className="portfolio-manual-table portfolio-manual-table-v3">
-            <div className="portfolio-manual-row header"><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
-            {manualRows.map((row) => (
-              <div className="portfolio-manual-row" key={row.id}>
-                <input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} />
-                <input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" />
-                <input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" />
-                <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
+        {manualOpen && (
+          <article className="portfolio-manual-card portfolio-input-card-v3 portfolio-manual-panel-open">
+            <div className="portfolio-manual-head">
+              <div>
+                <span className="section-title"><Plus size={17}/> Manual entry</span>
+                <h3>Add holdings by hand</h3>
+                <p>Enter ticker, share count, and average cost per share. Eval will use current price to calculate current position value.</p>
               </div>
-            ))}
-          </div>
-          <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
-            <Sparkles size={16}/> Analyze manual portfolio
-          </button>
-        </article>
+              <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
+            </div>
+            <div className="portfolio-manual-table portfolio-manual-table-v3">
+              <div className="portfolio-manual-row header"><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
+              {manualRows.map((row) => (
+                <div className="portfolio-manual-row" key={row.id}>
+                  <input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} />
+                  <input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" />
+                  <input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" />
+                  <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
+              <Sparkles size={16}/> Analyze manual portfolio
+            </button>
+          </article>
+        )}
       </section>
 
       {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, industries, and weighted portfolio metrics.</p></div>}
@@ -2360,23 +2386,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
             <IndustryBars groups={industryGroups} />
           </div>
 
-          <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4">
-            <div className="portfolio-card-title-row">
-              <span className="section-title"><LineChart size={17}/> Daily tracking</span>
-              <small>Saved portfolios refresh once at 5:00 AM ET for holdings value and once at 5:15 AM ET for Eval Score history while this browser is active.</small>
-            </div>
-            <div className="portfolio-history-chart-grid-v4">
-              <div>
-                <h4>Holdings value</h4>
-                <PortfolioValueChart points={historyPoints} />
-              </div>
-              <div>
-                <h4>Portfolio Eval Score</h4>
-                <PortfolioEvalScoreChart points={evalHistoryPoints} />
-              </div>
-            </div>
-            <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
-          </article>
 
           {!!categoryEntries.length && (
             <article className="portfolio-weighted-metrics-card portfolio-metrics-v3">
@@ -2435,6 +2444,27 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </article>
             ))}
           </div>
+
+          <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5">
+            <div className="portfolio-card-title-row">
+              <div>
+                <span className="section-title"><LineChart size={17}/> Daily tracking</span>
+                <h3>Portfolio movement</h3>
+              </div>
+              <small>Saved portfolios refresh once at 5:00 AM ET for holdings value and once at 5:15 AM ET for Eval Score history while this browser is active.</small>
+            </div>
+            <div className="portfolio-history-chart-grid-v4">
+              <div>
+                <h4>Holdings value</h4>
+                <PortfolioValueChart points={historyPoints} />
+              </div>
+              <div>
+                <h4>Portfolio Eval Score</h4>
+                <PortfolioEvalScoreChart points={evalHistoryPoints} />
+              </div>
+            </div>
+            <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
+          </article>
 
           {!!csvAnalysis.skipped?.length && (
             <div className="portfolio-skipped-note"><b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}</div>
