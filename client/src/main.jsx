@@ -1910,12 +1910,12 @@ function buildPortfolioEvalHistory(previous = [], analysis) {
   return [...filtered, nextPoint].slice(-260);
 }
 
-function MiniScoreRing({ value, small = false }) {
+function MiniScoreRing({ value, small = false, industry = false }) {
+  const tone = scoreTone(value);
   return (
-    <ScoreRingSvg
-      value={value}
-      className={small ? "watch-score-ring portfolio-small-score-ring" : "score-ring portfolio-main-score-ring"}
-    />
+    <div className={`portfolio-score-text-badge ${small ? "small" : "main"} ${industry ? "industry" : "stock"} ${tone}`}>
+      {scoreText(value)}
+    </div>
   );
 }
 
@@ -1969,25 +1969,64 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
 }
 
 
-function IndustryBars({ groups = [] }) {
+function IndustryBars({ groups = [], onSelectIndustry }) {
   return (
-    <div className="portfolio-industry-bars-card">
+    <div className="portfolio-industry-bars-card portfolio-industry-bars-clickable-card">
       <div className="portfolio-card-title-row">
         <span className="section-title"><BarChart3 size={17}/> Industry scores</span>
-        <small>Eval Score weighted inside each industry</small>
+        <small>Click an industry to view weighted metric detail</small>
       </div>
       <div className="portfolio-industry-bars">
         {(groups || []).map((group) => {
           const score = score10(group.industryEvalScore) || 0;
           return (
-            <div className="portfolio-industry-bar-row" key={group.industry}>
+            <button type="button" className="portfolio-industry-bar-row" key={group.industry} onClick={() => onSelectIndustry?.(group)}>
               <div><b>{group.industry}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
               <div className="portfolio-industry-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
               <strong>{scoreText(score)}</strong>
-            </div>
+            </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function weightedMetricEntriesFromIndustry(group) {
+  const metricKeys = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback", "newsSentiment"];
+  const holdings = Array.isArray(group?.holdings) ? group.holdings : [];
+  return metricKeys.map((key) => {
+    const weighted = holdings.reduce((sum, holding) => {
+      const value = Number(holding?.[key]);
+      const weight = Number(holding?.industryWeightPercent);
+      if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(weight) || weight <= 0) return sum;
+      return sum + value * (weight / 100);
+    }, 0);
+    return [key, Number(weighted.toFixed(1))];
+  }).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
+}
+
+function PortfolioMetricsModal({ title, subtitle, entries = [], onClose }) {
+  if (!entries.length) return null;
+  return (
+    <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={onClose}>
+      <article className="portfolio-metric-modal" role="dialog" aria-modal="true" aria-label={`${title} metrics`} onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="portfolio-metric-modal-close" onClick={onClose} aria-label="Close portfolio metrics">×</button>
+        <div className="portfolio-metric-modal-head">
+          <span className="section-title"><Gauge size={17}/> Weighted metrics</span>
+          <h3>{title}</h3>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3 portfolio-metrics-modal-grid">
+          {entries.map(([key, value]) => (
+            <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
+              <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
+              <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
+              <p>{portfolioMetricSummary(key, value)}</p>
+            </article>
+          ))}
+        </div>
+      </article>
     </div>
   );
 }
@@ -2154,6 +2193,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [activeIndustry, setActiveIndustry] = useState("");
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
+  const [metricModal, setMetricModal] = useState(null);
 
   useEffect(() => {
     try {
@@ -2451,20 +2491,20 @@ function PortfolioPage({ onBack, onAnalyze }) {
       {csvAnalysis && !csvLoading && (
         <section className="portfolio-report-v3">
           <div className="portfolio-hero-grid-v3">
-            <article className="portfolio-score-card-v3">
+            <button type="button" className="portfolio-score-card-v3 portfolio-score-card-clickable" onClick={() => setMetricModal({
+              title: "Portfolio metrics",
+              subtitle: "Weighted category scores for the full uploaded portfolio.",
+              entries: categoryEntries,
+            })}>
               <div className="portfolio-score-ring-stack">
                 <MiniScoreRing value={portfolioEvalScore} />
                 <span className={`portfolio-score-change-pill ${Number(evalScoreChange) >= 0 ? "up" : "down"}`}>
                   {Number(evalScoreChange) >= 0 ? "+" : ""}{Number(evalScoreChange || 0).toFixed(1)}
                 </span>
               </div>
-              <div>
-                <span className="section-title"><Scale size={17}/> Portfolio Eval Score</span>
-                <h3>{portfolioTitle}</h3>
-              </div>
-            </article>
+            </button>
 
-            <article className="portfolio-total-value-card-v3">
+            <article className="portfolio-total-value-card-v3 portfolio-total-value-card-wide">
               <span>Total holdings value</span>
               <div className="portfolio-total-value-line">
                 <strong>{hideHoldingsValue ? "******" : money(totalHoldings)}</strong>
@@ -2496,32 +2536,9 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 </article>
               </div>
             </section>
-            <IndustryBars groups={industryGroups} />
+            <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
           </div>
 
-
-          {!!categoryEntries.length && (
-            <article className={`portfolio-weighted-metrics-card portfolio-metrics-v3 portfolio-tab-card ${metricsOpen ? "open" : "closed"}`}>
-              <button type="button" className="portfolio-tab-toggle portfolio-metrics-toggle" onClick={() => setMetricsOpen((open) => !open)}>
-                <div>
-                  <span className="section-title"><Gauge size={17}/> Weighted portfolio metrics</span>
-                  <h3>Portfolio metrics</h3>
-                </div>
-                <strong>{metricsOpen ? "Close" : "Open"}</strong>
-              </button>
-              {metricsOpen && (
-                <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3">
-                  {categoryEntries.map(([key, value]) => (
-                    <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
-                      <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
-                      <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
-                      <p>{portfolioMetricSummary(key, value)}</p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </article>
-          )}
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3">
             <div className="portfolio-section-head">
@@ -2540,7 +2557,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                     <span>{group.industry}</span>
                     <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)} • {isOpen ? "Click to close" : "Click to view holdings"}</small>
                   </div>
-                  <MiniScoreRing value={group.industryEvalScore} small />
+                  <MiniScoreRing value={group.industryEvalScore} small industry />
                 </button>
                 {isOpen && (
                   <div className="portfolio-holdings-table portfolio-industry-table-v3">
@@ -2585,6 +2602,15 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
             <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
           </article>
+
+          {metricModal && (
+            <PortfolioMetricsModal
+              title={metricModal.title}
+              subtitle={metricModal.subtitle}
+              entries={metricModal.entries}
+              onClose={() => setMetricModal(null)}
+            />
+          )}
 
           {!!csvAnalysis.skipped?.length && (
             <div className="portfolio-skipped-note"><b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}</div>
