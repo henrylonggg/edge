@@ -9689,10 +9689,10 @@ function MiniStat({
   icon,
   label,
   value,
-  helpTitle,
+  helpTitle = "",
   metricsUsed = [],
   isOpen = false,
-  onToggle,
+  onToggle = () => {},
   extra = null,
   className = "",
 }) {
@@ -9737,13 +9737,14 @@ function MiniStat({
 }
 
 function Grade({
+  id = "",
   name,
   value,
   icon,
   description,
   metricsUsed = [],
   isOpen = false,
-  onToggle,
+  onToggle = () => {},
 }) {
   const s = score10(value);
   const tone = scoreTone(s);
