@@ -2737,22 +2737,43 @@ function PortfolioPage({ onBack, onAnalyze }) {
   function applyEvalStrategy() {
     const groups = csvAnalysis?.industryGroups || [];
     if (!groups.length) return;
-    const evalStrategyWeights = {
-      Technology: 22,
-      "Communication Services": 10,
-      Healthcare: 14,
-      "Financial Services": 13,
-      Financials: 13,
-      Industrials: 10,
-      "Consumer Defensive": 9,
-      "Consumer Cyclical": 8,
-      Energy: 6,
-      Utilities: 4,
-      "Real Estate": 3,
-      "Basic Materials": 1,
-      Materials: 1,
-    };
-    const next = normalizeStrategyWeights(evalStrategyWeights, groups);
+
+    const ranked = [...groups]
+      .map((group) => ({
+        industry: group.industry,
+        score: Number(group.industryEvalScore || group.score || 0),
+        current: Number(group.totalWeightPercent || 0),
+      }))
+      .sort((a, b) => (b.score - a.score) || (b.current - a.current));
+
+    const rawTargets = {};
+    const totalIndustries = ranked.length;
+    ranked.forEach((group, index) => {
+      let target = 100 / totalIndustries;
+
+      // Eval Strategy is built for diversification first, then a controlled tilt toward the best sleeves.
+      if (totalIndustries >= 10) {
+        target = index === 0 ? 14 : index === 1 ? 12 : index <= 4 ? 8 : index <= 8 ? 6 : 3.5;
+      } else if (totalIndustries >= 7) {
+        target = index === 0 ? 16 : index === 1 ? 14 : index <= 3 ? 11 : 7;
+      } else if (totalIndustries >= 4) {
+        target = index === 0 ? 22 : index === 1 ? 18 : 12;
+      } else if (totalIndustries === 3) {
+        target = index === 0 ? 42 : index === 1 ? 33 : 25;
+      } else if (totalIndustries === 2) {
+        target = index === 0 ? 58 : 42;
+      } else {
+        target = 100;
+      }
+
+      if (group.score >= 7.5) target *= 1.08;
+      else if (group.score < 5.5) target *= 0.7;
+      else if (group.score < 6.3) target *= 0.85;
+
+      rawTargets[group.industry] = target;
+    });
+
+    const next = normalizeStrategyWeights(rawTargets, groups);
     setStrategyTargets(next);
     setStrategySavedLabel("Eval Strategy loaded — press Save Strategy to keep it");
   }
@@ -2909,7 +2930,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       {csvAnalysis && !csvLoading && (
         <section className="portfolio-report-v3">
           <div className="portfolio-hero-grid-v3">
-            <button type="button" className="portfolio-score-card-v3 portfolio-score-card-clickable" onClick={() => setMetricModal({
+            <button type="button" className={`portfolio-score-card-v3 portfolio-score-card-clickable ${scoreTone(portfolioEvalScore)}`} onClick={() => setMetricModal({
               title: "Portfolio metrics",
               subtitle: "Weighted category scores for the full uploaded portfolio.",
               entries: categoryEntries,
