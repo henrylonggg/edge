@@ -19,7 +19,7 @@ import {
   Activity,
   Building2,
   ShieldCheck,
-  Target,
+  Target,a
   TrendingUp,
   BarChart3,
   PieChart,
@@ -1090,8 +1090,8 @@ function App() {
                 type="button"
                 className="morning-brew-trigger"
                 onClick={() => setView("morningBrew")}
-                aria-label="Open Morning Brew"
-                title="Morning Brew"
+                aria-label="Open Morning Mugs"
+                title="Morning Mugs"
               >
                 <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
               </button>
@@ -2288,6 +2288,20 @@ function formatEarningsDate(dateText) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", weekday: "short" });
 }
 
+function earningsEventSummary(event = {}) {
+  const parts = [];
+  if (event.epsEstimate !== null && event.epsEstimate !== undefined) {
+    parts.push(`EPS expectations are ${Number(event.epsEstimate) >= 0 ? "$" : "-$"}${Math.abs(Number(event.epsEstimate)).toFixed(2)}.`);
+  }
+  if (event.revenueEstimate !== null && event.revenueEstimate !== undefined) {
+    parts.push(`Revenue expectations are ${formatBrewCurrency(event.revenueEstimate)}.`);
+  }
+  if (!parts.length && event.expectations) parts.push(event.expectations);
+  const setup = `${event.symbol || "This holding"} reports earnings on ${formatEarningsDate(event.date)}.`;
+  const meaning = "This matters because earnings can quickly change revenue growth, margins, news sentiment, momentum, and the stock's Eval Score.";
+  return [setup, ...parts, meaning].filter(Boolean).join(" ");
+}
+
 function groupEarningsByDate(events = []) {
   return (Array.isArray(events) ? events : []).reduce((acc, item) => {
     const date = String(item?.date || "").slice(0, 10) || "TBD";
@@ -2333,16 +2347,23 @@ function EarningsMiniList({ earnings = [], emptyText = "No upcoming portfolio ea
   );
 }
 
-function PortfolioEarningsCalendar({ earnings = [], loading = false }) {
+function PortfolioEarningsCalendar({
+  earnings = [],
+  loading = false,
+  title = "Upcoming portfolio earnings",
+  subtitle = "Next two weeks • portfolio holdings only",
+  className = "",
+}) {
+  const [selectedEarning, setSelectedEarning] = useState(null);
   const days = buildEarningsCalendarDays(earnings, 14);
   return (
-    <section className="portfolio-earnings-calendar-card">
+    <section className={`portfolio-earnings-calendar-card ${className}`.trim()}>
       <div className="portfolio-card-title-row">
         <div>
           <span className="section-title"><Activity size={17}/> Earnings calendar</span>
-          <h3>Upcoming portfolio earnings</h3>
+          <h3>{title}</h3>
         </div>
-        <small>Next two weeks • portfolio holdings only</small>
+        <small>{subtitle}</small>
       </div>
       {loading ? <div className="portfolio-earnings-loading"><RefreshCw className="spin" size={16}/> Loading earnings dates...</div> : null}
       <div className="portfolio-earnings-calendar-grid">
@@ -2351,7 +2372,13 @@ function PortfolioEarningsCalendar({ earnings = [], loading = false }) {
             <span>{formatEarningsDate(day.date)}</span>
             <div>
               {day.events.length ? day.events.map((event, index) => (
-                <button type="button" className="portfolio-earnings-ticker" key={`${event.symbol}-${index}`} title={event.expectations || "Expectations unavailable"}>
+                <button
+                  type="button"
+                  className="portfolio-earnings-ticker"
+                  key={`${event.symbol}-${index}`}
+                  title="View earnings expectations"
+                  onClick={() => setSelectedEarning(event)}
+                >
                   {event.symbol}
                 </button>
               )) : <small>—</small>}
@@ -2359,6 +2386,20 @@ function PortfolioEarningsCalendar({ earnings = [], loading = false }) {
           </div>
         ))}
       </div>
+      {selectedEarning ? (
+        <div className="earnings-detail-popover" role="dialog" aria-label="Earnings expectations">
+          <button type="button" className="earnings-detail-close" onClick={() => setSelectedEarning(null)}>×</button>
+          <div className="earnings-detail-symbol">{selectedEarning.symbol}</div>
+          <div className="earnings-detail-date">{formatEarningsDate(selectedEarning.date)}</div>
+          <div className="earnings-detail-grid">
+            <span>EPS expectation</span>
+            <b>{selectedEarning.epsEstimate !== null && selectedEarning.epsEstimate !== undefined ? `${Number(selectedEarning.epsEstimate) >= 0 ? "$" : "-$"}${Math.abs(Number(selectedEarning.epsEstimate)).toFixed(2)}` : "N/A"}</b>
+            <span>Revenue expectation</span>
+            <b>{selectedEarning.revenueEstimate !== null && selectedEarning.revenueEstimate !== undefined ? formatBrewCurrency(selectedEarning.revenueEstimate) : "N/A"}</b>
+          </div>
+          <p>{earningsEventSummary(selectedEarning)}</p>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -2381,10 +2422,10 @@ function MorningBrewDashboard({ onBack }) {
         body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores, holdings: portfolio.holdings, strategyTargets: portfolio.strategyTargets || {} }),
       });
       const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not load Morning Brew.");
+      if (!response.ok) throw new Error(json?.error || "Could not load Morning Mugs.");
       setBrew(json);
     } catch (err) {
-      setError(err?.message || "Could not load Morning Brew.");
+      setError(err?.message || "Could not load Morning Mugs.");
     } finally {
       setLoading(false);
     }
@@ -2401,10 +2442,12 @@ function MorningBrewDashboard({ onBack }) {
     return () => clearInterval(timer);
   }, [user?.id]);
 
+  const savedMorningPortfolio = getSavedMorningPortfolio(user);
+  const hasSavedPortfolio = Array.isArray(savedMorningPortfolio.symbols) && savedMorningPortfolio.symbols.length > 0;
   const indexes = brew?.market?.indexes || [];
   const articles = brew?.market?.articles || [];
-  const alerts = brew?.portfolio?.alerts || [];
-  const earnings = brew?.market?.earnings?.events || [];
+  const alerts = hasSavedPortfolio ? (brew?.portfolio?.alerts || []) : [];
+  const earnings = hasSavedPortfolio ? (brew?.market?.earnings?.events || []) : [];
 
   return (
     <main className="app-shell morning-brew-page-shell">
@@ -2420,7 +2463,7 @@ function MorningBrewDashboard({ onBack }) {
         <div className="morning-brew-hero morning-brew-hero-clean">
           <div className="morning-brew-title-wrap morning-brew-title-clean">
             <span className="morning-brew-giant-cup" aria-hidden="true">☕</span>
-            <h2>Morning Brew</h2>
+            <h2>Morning Mugs</h2>
           </div>
           <div className="morning-brew-actions-clean">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
@@ -2434,7 +2477,7 @@ function MorningBrewDashboard({ onBack }) {
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
         {loading && !brew ? (
-          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Building Morning Brew...</div>
+          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Building Morning Mugs...</div>
         ) : (
           <div className="morning-brew-page-grid">
             <section className="morning-brew-card market-card">
@@ -2453,41 +2496,47 @@ function MorningBrewDashboard({ onBack }) {
               <p className="morning-footnote">Pre-market movement uses liquid index ETF proxies, displayed as Dow Jones, Nasdaq, and S&amp;P 500.</p>
             </section>
 
-            <section className="morning-brew-card portfolio-alert-card">
-              <div className="morning-section-title"><AlertTriangle size={17}/> Portfolio alerts</div>
-              {alerts.length ? (
-                <div className="morning-alert-list">
-                  {alerts.map((alert, index) => (
-                    <div className={`morning-alert ${alert.type || "watch"}`} key={`${alert.symbol || "alert"}-${index}`}>
-                      <div className="morning-alert-topline">
-                        <b>{alert.headline}</b>
-                        {alert.dayChangePercent !== null && alert.dayChangePercent !== undefined ? (
-                          <strong className={`morning-alert-move ${Number(alert.dayChangePercent) >= 0 ? "up" : "down"}`}>
-                            {formatBrewPercent(alert.dayChangePercent)} today
-                          </strong>
+            {hasSavedPortfolio ? (
+              <section className="morning-brew-card portfolio-alert-card">
+                <div className="morning-section-title"><AlertTriangle size={17}/> Portfolio alerts</div>
+                {alerts.length ? (
+                  <div className="morning-alert-list">
+                    {alerts.map((alert, index) => (
+                      <div className={`morning-alert ${alert.type || "watch"}`} key={`${alert.symbol || "alert"}-${index}`}>
+                        <div className="morning-alert-topline">
+                          <b>{alert.headline}</b>
+                          {alert.dayChangePercent !== null && alert.dayChangePercent !== undefined ? (
+                            <strong className={`morning-alert-move ${Number(alert.dayChangePercent) >= 0 ? "up" : "down"}`}>
+                              {formatBrewPercent(alert.dayChangePercent)} today
+                            </strong>
+                          ) : null}
+                        </div>
+                        <p>{alert.detail}</p>
+                        {alert.news?.headline ? (
+                          <div className="morning-alert-news">
+                            <span>Latest news</span>
+                            <b>{alert.news.headline}</b>
+                            {alert.news.summary ? <p>{alert.news.summary}</p> : null}
+                            {alert.news.url ? <a href={alert.news.url} target="_blank" rel="noreferrer">Read article</a> : null}
+                          </div>
                         ) : null}
                       </div>
-                      <p>{alert.detail}</p>
-                      {alert.news?.headline ? (
-                        <div className="morning-alert-news">
-                          <span>Latest news</span>
-                          <b>{alert.news.headline}</b>
-                          {alert.news.summary ? <p>{alert.news.summary}</p> : null}
-                          {alert.news.url ? <a href={alert.news.url} target="_blank" rel="noreferrer">Read article</a> : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="morning-muted">{brew?.portfolio?.message || "No major saved-portfolio alerts yet."}</p>
-              )}
-            </section>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="morning-muted">{brew?.portfolio?.message || "No major saved-portfolio alerts yet."}</p>
+                )}
+              </section>
+            ) : null}
 
-            <section className="morning-brew-card earnings-card wide">
-              <div className="morning-section-title"><Activity size={17}/> Portfolio earnings this week</div>
-              <EarningsMiniList earnings={earnings} emptyText="No saved-portfolio earnings are scheduled in the next 5 trading days." />
-            </section>
+            {hasSavedPortfolio ? (
+              <PortfolioEarningsCalendar
+                earnings={earnings}
+                title="Portfolio earnings"
+                subtitle="Next two weeks • saved holdings only"
+                className="morning-mugs-earnings-calendar wide"
+              />
+            ) : null}
 
             <section className="morning-brew-card news-card wide">
               <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
@@ -3246,7 +3295,7 @@ function LandingPage({ onContinue }) {
     },
     {
       icon: <Newspaper size={22} />,
-      title: "Morning Brew",
+      title: "Morning Mugs",
       text: "The coffee-cup dashboard gives users CNBC pre-market headlines, index proxy movement, article impact scores, and up to five saved-portfolio alerts each morning.",
     },
     {
@@ -3294,7 +3343,7 @@ function LandingPage({ onContinue }) {
     },
     {
       number: "08",
-      title: "Open Morning Brew",
+      title: "Open Morning Mugs",
       text: "The coffee button opens a daily market page with CNBC headlines, pre-market index movement, article scores, and saved-portfolio alerts.",
     },
   ];
@@ -3323,13 +3372,13 @@ function LandingPage({ onContinue }) {
 
             <p>
               Eval is a stock evaluation dashboard that turns scattered market data, company fundamentals,
-              recent news, risk signals, watchlist rankings, portfolio scoring, Morning Brew alerts,
+              recent news, risk signals, watchlist rankings, portfolio scoring, Morning Mugs alerts,
               and AI explanations into one clean system. Instead of making users bounce between finance sites,
               charts, headlines, raw ratios, and spreadsheets, Eval gives them a fast company-quality read they can understand in minutes.
             </p>
 
             <div className="landing-action-row-static landing-action-row-static-copy-only">
-              <span>Built for quick research, watchlist ranking, portfolio scoring, Morning Brew, and easier company comparison.</span>
+              <span>Built for quick research, watchlist ranking, portfolio scoring, Morning Mugs, and easier company comparison.</span>
             </div>
           </div>
 
@@ -3393,7 +3442,7 @@ function LandingPage({ onContinue }) {
             <h2>Built to make stock research cleaner</h2>
             <p>
               Eval combines data providers, cached reports, category scoring, article summaries, saved watchlists,
-              portfolio uploads, Morning Brew, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
+              portfolio uploads, Morning Mugs, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
               The purpose is to make a company easier to understand before they decide what to research next.
             </p>
           </div>
@@ -9512,7 +9561,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, Morning Brew, or how to use any dashboard feature.",
+        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, Morning Mugs, or how to use any dashboard feature.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -9592,7 +9641,7 @@ function AssistantPage({ current, watchlist, onBack }) {
             <h2>Ask about Eval, the report, your watchlist, or your portfolio.</h2>
             <p>
               Eval AI is built as a short-answer support agent for navigation, FAQs, ticker lookup,
-              watchlist stocks, portfolio stocks, Morning Brew, score meanings, and company basics.
+              watchlist stocks, portfolio stocks, Morning Mugs, score meanings, and company basics.
             </p>
 
         <section className="ai-rules-card ai-rules-card-full">
@@ -9626,8 +9675,8 @@ function AssistantPage({ current, watchlist, onBack }) {
             </div>
 
             <div>
-              <strong>Morning Brew and strategy help</strong>
-              <p>Ask where Morning Brew is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
+              <strong>Morning Mugs and strategy help</strong>
+              <p>Ask where Morning Mugs is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
             </div>
           </div>
 
@@ -9660,7 +9709,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about Eval, portfolio, watchlist, Morning Brew, metrics, tickers, or navigation."
+              placeholder="Ask about Eval, portfolio, watchlist, Morning Mugs, metrics, tickers, or navigation."
               rows="3"
             />
             <button disabled={loading}>
