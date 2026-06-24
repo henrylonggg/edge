@@ -28130,3 +28130,20 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     flex-direction: column;
   }
 }
+
+/* Morning Brew coffee symbol fallback */
+.morning-coffee-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 17px;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(255, 219, 92, 0.55));
+}
+.morning-coffee-symbol.small {
+  width: 16px;
+  height: 16px;
+  font-size: 15px;
+}
