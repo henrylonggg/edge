@@ -27873,7 +27873,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   }
 }
 
-/* Morning Brew dashboard */
+/* Morning Mugs dashboard */
 .morning-brew-trigger {
   border: 1px solid rgba(255, 214, 107, .42) !important;
   background: radial-gradient(circle at 30% 20%, rgba(255, 214, 107, .22), rgba(111, 140, 255, .18) 52%, rgba(255,255,255,.07)) !important;
@@ -28131,7 +28131,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   }
 }
 
-/* Morning Brew coffee symbol fallback */
+/* Morning Mugs coffee symbol fallback */
 .morning-coffee-symbol {
   display: inline-flex;
   align-items: center;
@@ -28148,7 +28148,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   font-size: 15px;
 }
 
-/* Morning Brew page upgrade */
+/* Morning Mugs page upgrade */
 .morning-brew-trigger {
   position: relative;
   min-width: 54px !important;
@@ -28283,7 +28283,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   .morning-brew-back { min-height: 64px; }
 }
 
-/* Morning Brew CNBC + one-row dashboard button tune */
+/* Morning Mugs CNBC + one-row dashboard button tune */
 .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar {
   display: grid !important;
   grid-template-columns: 56px minmax(120px, 1fr) 56px 56px !important;
@@ -28864,7 +28864,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   }
 }
 
-/* Portfolio / Morning Brew earnings calendar */
+/* Portfolio / Morning Mugs earnings calendar */
 .earnings-card {
   border-color: rgba(255, 224, 92, 0.22);
   background: linear-gradient(135deg, rgba(15, 24, 39, 0.92), rgba(32, 25, 67, 0.72));
@@ -29251,4 +29251,98 @@ body:has(.morning-brew-page-shell) {
     font-size: 34px;
     border-radius: 20px;
   }
+}
+
+/* Morning Mugs earnings calendar detail popup */
+.morning-mugs-earnings-calendar {
+  grid-column: 1 / -1;
+  position: relative;
+  border-color: rgba(255, 205, 116, .22) !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 220, 130, .15), transparent 34%),
+    radial-gradient(circle at 94% 12%, rgba(129, 70, 24, .24), transparent 42%),
+    linear-gradient(145deg, rgba(26, 14, 7, .9), rgba(13, 8, 6, .94) 52%, rgba(40, 21, 9, .88)) !important;
+  box-shadow: 0 28px 90px rgba(55, 25, 4, .36), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.earnings-detail-popover {
+  position: fixed;
+  right: min(32px, 5vw);
+  bottom: min(32px, 5vw);
+  width: min(420px, calc(100vw - 32px));
+  z-index: 9000;
+  border: 1px solid rgba(255, 215, 116, .32);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 217, 126, .20), transparent 38%),
+    linear-gradient(145deg, rgba(35, 19, 9, .96), rgba(13, 8, 6, .98));
+  box-shadow: 0 28px 90px rgba(0,0,0,.45), 0 0 34px rgba(255, 190, 72, .16);
+  color: #fff4d0;
+  padding: 22px;
+}
+
+.earnings-detail-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+  color: #fff4d0;
+  font-size: 1.25rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.earnings-detail-symbol {
+  font-size: 2rem;
+  font-weight: 1000;
+  letter-spacing: .04em;
+  color: #ffe07a;
+  text-shadow: 0 0 18px rgba(255, 214, 110, .24);
+}
+
+.earnings-detail-date {
+  margin-top: 2px;
+  color: rgba(255, 244, 208, .68);
+  font-weight: 900;
+}
+
+.earnings-detail-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 16px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 116, .16);
+  background: rgba(255,255,255,.045);
+}
+
+.earnings-detail-grid span {
+  color: rgba(255, 244, 208, .64);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+}
+
+.earnings-detail-grid b {
+  color: #fff;
+  font-weight: 1000;
+}
+
+.earnings-detail-popover p {
+  margin: 14px 0 0;
+  color: rgba(255, 244, 208, .82);
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.portfolio-earnings-ticker:hover,
+.portfolio-earnings-ticker:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(255, 224, 92, .22);
 }
