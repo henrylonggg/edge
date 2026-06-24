@@ -2234,12 +2234,12 @@ function PortfolioHiddenDataTable({ valueHistory = [], evalHistory = [] }) {
 function getSavedMorningPortfolio(user) {
   try {
     const saved = JSON.parse(localStorage.getItem(portfolioStorageKeyFor(user)) || "null");
-    const holdings = Array.isArray(saved?.holdings) ? saved.holdings : [];
+    const manualHoldings = Array.isArray(saved?.holdings) ? saved.holdings : [];
     const analyzedHoldings = Array.isArray(saved?.analysis?.industryGroups)
       ? saved.analysis.industryGroups.flatMap((group) => Array.isArray(group?.holdings) ? group.holdings : [])
       : [];
     const symbols = [...new Set([
-      ...holdings.map((holding) => holding?.symbol),
+      ...manualHoldings.map((holding) => holding?.symbol),
       ...analyzedHoldings.map((holding) => holding?.symbol),
     ].map((symbol) => String(symbol || "").trim().toUpperCase()).filter(Boolean))];
     const previousScores = {};
@@ -2248,9 +2248,19 @@ function getSavedMorningPortfolio(user) {
       const score = score10(holding?.edgeScore);
       if (symbol && score !== null) previousScores[symbol] = score;
     });
-    return { symbols, previousScores, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
+    const holdings = symbols.map((symbol) => {
+      const analyzed = analyzedHoldings.find((holding) => String(holding?.symbol || "").trim().toUpperCase() === symbol) || {};
+      const manual = manualHoldings.find((holding) => String(holding?.symbol || "").trim().toUpperCase() === symbol) || {};
+      return {
+        symbol,
+        weightPercent: Number(analyzed.weightPercent ?? analyzed.weight ?? manual.weightPercent ?? manual.weight),
+        holdingDollars: Number(analyzed.holdingDollars ?? analyzed.currentValue ?? manual.holdingDollars ?? manual.currentValue),
+        edgeScore: score10(analyzed.edgeScore),
+      };
+    });
+    return { symbols, previousScores, holdings, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
   } catch {
-    return { symbols: [], previousScores: {}, portfolioName: "Saved Portfolio" };
+    return { symbols: [], previousScores: {}, holdings: [], portfolioName: "Saved Portfolio" };
   }
 }
 
@@ -2283,7 +2293,7 @@ function MorningBrewDashboard({ onBack }) {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores }),
+        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores, holdings: portfolio.holdings }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not load Morning Brew.");
@@ -2297,6 +2307,13 @@ function MorningBrewDashboard({ onBack }) {
 
   useEffect(() => {
     loadBrew(false);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      loadBrew(false);
+    }, 60 * 1000);
+    return () => clearInterval(timer);
   }, [user?.id]);
 
   const indexes = brew?.market?.indexes || [];
@@ -2368,16 +2385,23 @@ function MorningBrewDashboard({ onBack }) {
             <section className="morning-brew-card news-card wide">
               <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
               <div className="morning-news-list morning-news-cards">
-                {articles.length ? articles.map((article, index) => (
-                  <article className="morning-news-item" key={`${article.url || article.headline}-${index}`}>
-                    <span>{index + 1}</span>
-                    <div>
-                      <b>{article.headline}</b>
-                      <p>{article.summary || "A market-moving headline to watch before the open."}</p>
-                      {article.url ? <a href={article.url} target="_blank" rel="noreferrer">Read full article</a> : null}
-                    </div>
-                  </article>
-                )) : <p className="morning-muted">No market headlines returned yet.</p>}
+                {articles.length ? articles.map((article, index) => {
+                  const articleScore = score10(article.score);
+                  const tone = scoreTone(articleScore);
+                  return (
+                    <article className={`morning-news-item news-score-${tone}`} key={`${article.url || article.headline}-${index}`}>
+                      <span>{index + 1}</span>
+                      <div>
+                        <div className="morning-news-title-row">
+                          <b>{article.headline}</b>
+                          {articleScore !== null ? <strong className={`morning-news-score ${tone}`}>{articleScore.toFixed(1)}</strong> : null}
+                        </div>
+                        <p>{article.summary || "A CNBC pre-market headline to watch before the open."}</p>
+                        {article.url ? <a href={article.url} target="_blank" rel="noreferrer">Read full article</a> : null}
+                      </div>
+                    </article>
+                  );
+                }) : <p className="morning-muted">No CNBC pre-market headlines returned yet.</p>}
               </div>
             </section>
           </div>
