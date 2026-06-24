@@ -2552,16 +2552,22 @@ const PORTFOLIO_CATEGORY_KEYS = [
 
 function isSupportedPortfolioStock(report, symbol) {
   const profile = report?.profile || {};
-  const name = String(profile?.name || symbol || "").toLowerCase();
+  const cleanSymbol = cleanTicker(symbol || report?.symbol || profile?.ticker);
+  const name = String(profile?.name || cleanSymbol || "").toLowerCase();
   const industry = String(profile?.finnhubIndustry || "").toLowerCase();
   const exchange = String(profile?.exchange || "").toLowerCase();
   const currency = String(profile?.currency || "").toUpperCase();
   const country = String(profile?.country || "").toLowerCase();
+  const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+
+  // The portfolio page should only void holdings that are clearly unsupported.
+  // If Eval already produced a real Eval Score for a normal U.S. equity, keep it.
+  if (!cleanSymbol || edgeScore === null) return false;
 
   const fundLike = [
     "etf",
+    "exchange traded fund",
     "fund",
-    "trust",
     "spdr",
     "ishares",
     "vanguard",
@@ -2569,20 +2575,32 @@ function isSupportedPortfolioStock(report, symbol) {
     "proshares",
     "direxion",
     "ark innovation",
+    "index trust",
+    "sector spdr",
   ];
 
   const isFundLike = fundLike.some((term) => name.includes(term) || industry.includes(term));
   if (isFundLike) return false;
 
+  // Block only clearly non-USD / foreign listings. Do not reject normal scored stocks
+  // just because a provider omits or formats country/exchange metadata differently.
   if (currency && currency !== "USD") return false;
   if (country && !["us", "usa", "united states", "united states of america"].includes(country)) return false;
 
-  // If Finnhub gives an exchange, keep common U.S.-listed exchanges and OTC; skip clearly foreign exchanges.
   if (exchange) {
-    const usExchangeHints = ["nasdaq", "nyse", "amex", "arca", "bats", "otc", "new york", "nms", "ngs", "global select", "capital market"];
+    const usExchangeHints = ["nasdaq", "nyse", "amex", "arca", "bats", "otc", "new york", "nms", "ngs", "global select", "capital market", "nasdaq global", "nasdaqgs", "nasdaqgm", "nasdaqcm"];
     const foreignHints = ["london", "toronto", "hong kong", "shanghai", "shenzhen", "tokyo", "frankfurt", "paris", "milan", "australia", "tsx", "lse", "xetra", "sse", "hkex", "japan"];
     if (foreignHints.some((hint) => exchange.includes(hint)) && !usExchangeHints.some((hint) => exchange.includes(hint))) return false;
   }
+
+  const appUniverseSymbols = new Set([
+    ...Object.values(PORTFOLIO_UNIVERSE).flat().map((item) => cleanTicker(item)),
+    ...(Array.isArray(CSV_TICKER_LOOKUP) ? CSV_TICKER_LOOKUP.map((item) => cleanTicker(item?.symbol)) : []),
+  ].filter(Boolean));
+
+  // BAC, ABBV, NFLX and other normal U.S. equities should pass here because they
+  // already have valid Eval Scores and are part of Eval's supported universe.
+  if (appUniverseSymbols.has(cleanSymbol)) return true;
 
   return true;
 }
@@ -2654,7 +2672,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
         const finnhubCurrentPrice = await fetchFinnhubPortfolioQuote(row.symbol);
         const price = Number(finnhubCurrentPrice || report?.quote?.c);
         if (edgeScore === null || !isSupportedPortfolioStock(report, row.symbol)) {
-          return { skipped: true, symbol: row.symbol, reason: "Unsupported or unscored holding." };
+          return { skipped: true, symbol: row.symbol, reason: edgeScore === null ? "No Eval Score available yet." : "Unsupported non-stock holding." };
         }
         const categories = report?.grades?.categories || {};
         const category = (key) => {
