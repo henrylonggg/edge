@@ -1573,7 +1573,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv", "/api/morning-brew"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv", "/api/portfolio-earnings", "/api/morning-brew"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -1842,6 +1842,104 @@ async function fetchMorningQuote(symbol) {
     previousClose: Number.isFinite(previousClose) ? previousClose : null,
     change: Number.isFinite(change) ? change : null,
     changePercent: Number.isFinite(changePercent) ? changePercent : null,
+  };
+}
+
+
+
+const portfolioEarningsCache = new Map();
+
+function addCalendarDaysIso(days = 0, fromDate = new Date()) {
+  const d = new Date(fromDate);
+  d.setDate(d.getDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+function nextTradingDayEndIso(count = 5, fromDate = new Date()) {
+  const d = new Date(fromDate);
+  let seen = 0;
+  while (seen < count) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) seen += 1;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function formatCompactNumberLocal(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "N/A";
+  const abs = Math.abs(n);
+  if (abs >= 1e12) return `$${(n / 1e12).toFixed(1)}T`;
+  if (abs >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+function cleanEarningsEvent(item = {}) {
+  const symbol = cleanTicker(item.symbol || item.ticker || item.companySymbol);
+  if (!symbol) return null;
+  const date = String(item.date || item.period || item.reportDate || item.earningsDate || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const epsEstimate = Number(item.epsEstimate ?? item.epsEstimated ?? item.estimate ?? item.eps);
+  const revenueEstimate = Number(item.revenueEstimate ?? item.revenueEstimated ?? item.revenue);
+  const hour = String(item.hour || item.time || "").trim();
+  return {
+    symbol,
+    date,
+    hour,
+    epsEstimate: Number.isFinite(epsEstimate) ? epsEstimate : null,
+    revenueEstimate: Number.isFinite(revenueEstimate) ? revenueEstimate : null,
+    expectations: [
+      Number.isFinite(epsEstimate) ? `EPS est. ${epsEstimate >= 0 ? "$" : "-$"}${Math.abs(epsEstimate).toFixed(2)}` : "",
+      Number.isFinite(revenueEstimate) ? `Revenue est. ${formatCompactNumberLocal(revenueEstimate)}` : "",
+    ].filter(Boolean).join(" • ") || "Expectations unavailable",
+  };
+}
+
+async function fetchFinnhubEarningsCalendar(from, to) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) return [];
+  const url = new URL("https://finnhub.io/api/v1/calendar/earnings");
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("token", apiKey);
+  const data = await fetchFinnhubJson(url, Number(process.env.PROVIDER_TIMEOUT_MS || 5000));
+  const rows = Array.isArray(data?.earningsCalendar) ? data.earningsCalendar : Array.isArray(data) ? data : [];
+  return rows.map(cleanEarningsEvent).filter(Boolean);
+}
+
+async function getPortfolioEarnings(symbols = [], options = {}) {
+  const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
+    .map(cleanTicker)
+    .filter(Boolean))].slice(0, 80);
+  const symbolSet = new Set(cleanSymbols);
+  const from = morningBrewDateKey();
+  const to = options.tradingDays ? nextTradingDayEndIso(options.tradingDays) : addCalendarDaysIso(options.days || 14);
+  const cacheKey = `${from}:${to}`;
+  const cached = portfolioEarningsCache.get(cacheKey);
+  let allEvents = cached?.events;
+  if (!allEvents) {
+    allEvents = await fetchFinnhubEarningsCalendar(from, to);
+    portfolioEarningsCache.set(cacheKey, { savedAt: Date.now(), events: allEvents });
+    if (portfolioEarningsCache.size > 12) {
+      for (const key of portfolioEarningsCache.keys()) {
+        if (key !== cacheKey) portfolioEarningsCache.delete(key);
+        if (portfolioEarningsCache.size <= 8) break;
+      }
+    }
+  }
+  const events = (allEvents || [])
+    .filter((item) => !symbolSet.size || symbolSet.has(item.symbol))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.symbol).localeCompare(String(b.symbol)));
+  return {
+    from,
+    to,
+    symbols: cleanSymbols,
+    events,
+    source: "Finnhub earnings calendar",
+    cached: !!cached,
   };
 }
 
@@ -2131,16 +2229,34 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
   return result;
 }
 
+
+app.post("/api/portfolio-earnings", async (req, res) => {
+  try {
+    const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols : [];
+    const days = Number(req.body?.days || 14);
+    const tradingDays = Number(req.body?.tradingDays || 0);
+    const data = await getPortfolioEarnings(symbols, { days, tradingDays });
+    res.json({ ok: true, ...data });
+  } catch (error) {
+    console.error("Portfolio earnings route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not load portfolio earnings.", route: "api/portfolio-earnings" });
+  }
+});
+
 app.post("/api/morning-brew", async (req, res) => {
   try {
     const forceRefresh = String(req.query.refresh || "0") === "1";
-    const market = await buildMorningBrewMarket(forceRefresh);
-    const portfolio = await buildMorningPortfolioAlerts(req.body?.symbols || [], req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {});
+    const symbols = req.body?.symbols || [];
+    const [market, portfolio, earnings] = await Promise.all([
+      buildMorningBrewMarket(forceRefresh),
+      buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {}),
+      getPortfolioEarnings(symbols, { tradingDays: 5 }),
+    ]);
     res.json({
       ok: true,
       title: "Morning Brew",
       generatedAt: new Date().toISOString(),
-      market,
+      market: { ...market, earnings },
       portfolio,
     });
   } catch (error) {
