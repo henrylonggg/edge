@@ -888,7 +888,7 @@ function App() {
   }
 
   if (view === "morningBrew") {
-    return <MorningBrewDashboard onBack={() => setView("dashboard")} />;
+    return <MorningMugsDashboard onBack={() => setView("dashboard")} />;
   }
 
   return (
