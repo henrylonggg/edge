@@ -19,7 +19,7 @@ import {
   Activity,
   Building2,
   ShieldCheck,
-  Target,a
+  Target,
   TrendingUp,
   BarChart3,
   PieChart,
@@ -2404,7 +2404,7 @@ function PortfolioEarningsCalendar({
   );
 }
 
-function MorningBrewDashboard({ onBack }) {
+function MorningMugsDashboard({ onBack }) {
   const { user } = useUser();
   const [brew, setBrew] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2414,12 +2414,12 @@ function MorningBrewDashboard({ onBack }) {
     setLoading(true);
     setError("");
     try {
-      const portfolio = getSavedMorningPortfolio(user);
+      const portfolio = getSavedMorningPortfolio(user) || {};
       const response = await fetch(`${API}/api/morning-brew${forceRefresh ? "?refresh=1" : ""}`, {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores, holdings: portfolio.holdings, strategyTargets: portfolio.strategyTargets || {} }),
+        body: JSON.stringify({ symbols: Array.isArray(portfolio.symbols) ? portfolio.symbols : [], previousScores: portfolio.previousScores || {}, holdings: Array.isArray(portfolio.holdings) ? portfolio.holdings : [], strategyTargets: portfolio.strategyTargets || {} }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not load Morning Mugs.");
@@ -2477,7 +2477,7 @@ function MorningBrewDashboard({ onBack }) {
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
         {loading && !brew ? (
-          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Building Morning Mugs...</div>
+          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Loading Morning Mugs...</div>
         ) : (
           <div className="morning-brew-page-grid">
             <section className="morning-brew-card market-card">
