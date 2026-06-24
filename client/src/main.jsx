@@ -3150,7 +3150,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
           </div>
 
-          <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-three">
+          <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-four">
             <button type="button" className="portfolio-action-tile pros" onClick={() => setPortfolioInsightModal({ type: "pros", title: `${portfolioTitle} strengths`, text: prosCons.pros })}>
               <b>PROS</b>
               <small>Click to view</small>
@@ -3159,11 +3159,21 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <b>CONS</b>
               <small>Click to view</small>
             </button>
-            <button type="button" className="portfolio-action-tile industries" onClick={() => setIndustryScoresOpen(true)}>
+            <button type="button" className={`portfolio-action-tile industries ${industryScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
               <b>Industry Scores</b>
-              <small>Click to view</small>
+              <small>{industryScoresOpen ? "Click to close" : "Click to view"}</small>
+            </button>
+            <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              <b>↓ Holdings</b>
+              <small>Jump to section</small>
             </button>
           </div>
+
+          {industryScoresOpen && (
+            <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
+              <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+            </div>
+          )}
 
           <section className="portfolio-strategy-panel-v1">
             <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
@@ -3266,14 +3276,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
           </article>
 
 
-          {industryScoresOpen && (
-            <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={() => setIndustryScoresOpen(false)}>
-              <article className="portfolio-industry-score-popup" role="dialog" aria-modal="true" aria-label="Industry scores" onClick={(event) => event.stopPropagation()}>
-                <button type="button" className="portfolio-metric-modal-close" onClick={() => setIndustryScoresOpen(false)} aria-label="Close industry scores">×</button>
-                <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
-              </article>
-            </div>
-          )}
 
           {portfolioInsightModal && (
             <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={() => setPortfolioInsightModal(null)}>
