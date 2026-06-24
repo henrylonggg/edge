@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ClerkProvider,
@@ -2356,6 +2356,7 @@ function PortfolioEarningsCalendar({
 }) {
   const [selectedEarning, setSelectedEarning] = useState(null);
   const days = buildEarningsCalendarDays(earnings, 14);
+  const mobileDays = days.filter((day) => day.events.length);
   return (
     <section className={`portfolio-earnings-calendar-card ${className}`.trim()}>
       <div className="portfolio-card-title-row">
@@ -2385,6 +2386,25 @@ function PortfolioEarningsCalendar({
             </div>
           </div>
         ))}
+      </div>
+      <div className="portfolio-earnings-mobile-list">
+        {mobileDays.length ? mobileDays.map((day) => (
+          <article className="portfolio-earnings-mobile-day" key={`mobile-${day.date}`}>
+            <strong>{formatEarningsDate(day.date)}</strong>
+            <div>
+              {day.events.map((event, index) => (
+                <button
+                  type="button"
+                  className="portfolio-earnings-ticker"
+                  key={`mobile-${event.symbol}-${index}`}
+                  onClick={() => setSelectedEarning(event)}
+                >
+                  {event.symbol}
+                </button>
+              ))}
+            </div>
+          </article>
+        )) : <div className="portfolio-earnings-mobile-empty">No portfolio earnings in this window.</div>}
       </div>
       {selectedEarning ? (
         <div className="earnings-detail-popover" role="dialog" aria-label="Earnings expectations">
@@ -2592,7 +2612,10 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [activeIndustry, setActiveIndustry] = useState("");
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
+  const [industryScoresOpen, setIndustryScoresOpen] = useState(false);
+  const [portfolioInsightModal, setPortfolioInsightModal] = useState(null);
   const [metricModal, setMetricModal] = useState(null);
+  const holdingsSectionRef = useRef(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
   const [strategySavedLabel, setStrategySavedLabel] = useState("");
@@ -2618,7 +2641,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   useEffect(() => {
     if (!csvAnalysis?.industryGroups?.length) return;
     setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
-    setOpenIndustries((current) => Object.keys(current || {}).length ? current : { [csvAnalysis.industryGroups[0]?.industry || ""]: true });
+    setOpenIndustries((current) => current || {});
   }, [csvAnalysis]);
 
   useEffect(() => {
@@ -3124,29 +3147,33 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </b>
             </article>
 
-            <article className="portfolio-combined-stat-card-v3">
-              <div><span>Holdings</span><strong>{csvAnalysis.summary?.scoredHoldingCount || 0}</strong></div>
-              <div><span>Industries</span><strong>{csvAnalysis.summary?.industryCount || 0}</strong></div>
-            </article>
+
           </div>
 
-          <div className="portfolio-visual-grid-v3 portfolio-pros-cons-visual-grid">
-            <section className="ai-score-summary-card ai-score-summary-card-simple ai-score-pros-cons-card portfolio-pros-cons-card">
-              <div className="ai-score-two-column-grid ai-score-pros-cons-grid">
-                <article className="ai-score-long-summary ai-score-pros-panel">
-                  <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> PROS</div>
-                  <h3>{portfolioTitle} strengths</h3>
-                  <p>{prosCons.pros}</p>
-                </article>
-                <article className="ai-score-long-summary ai-score-cons-panel">
-                  <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> CONS</div>
-                  <h3>{portfolioTitle} weaknesses</h3>
-                  <p>{prosCons.cons}</p>
-                </article>
-              </div>
-            </section>
-            <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+          <div className="portfolio-dashboard-action-row">
+            <button type="button" className="portfolio-action-tile pros" onClick={() => setPortfolioInsightModal({ type: "pros", title: `${portfolioTitle} strengths`, text: prosCons.pros })}>
+              <span>• PROS</span>
+              <b>View strengths</b>
+            </button>
+            <button type="button" className="portfolio-action-tile cons" onClick={() => setPortfolioInsightModal({ type: "cons", title: `${portfolioTitle} weaknesses`, text: prosCons.cons })}>
+              <span>• CONS</span>
+              <b>View weaknesses</b>
+            </button>
+            <button type="button" className={`portfolio-action-tile industries ${industryScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
+              <span>Industry scores</span>
+              <b>{industryScoresOpen ? "Click to close" : "Click to view"}</b>
+            </button>
+            <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              <span>↓ Holdings</span>
+              <b>Jump to holdings</b>
+            </button>
           </div>
+
+          {industryScoresOpen && (
+            <div className="portfolio-industry-score-panel-wrap">
+              <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+            </div>
+          )}
 
           <section className="portfolio-strategy-panel-v1">
             <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
@@ -3184,7 +3211,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
           </section>
 
 
-          <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3">
+          <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
             <div className="portfolio-section-head">
               <div>
                 <span className="section-title"><Activity size={17}/> Holdings by industry</span>
@@ -3247,6 +3274,17 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
             <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
           </article>
+
+          {portfolioInsightModal && (
+            <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={() => setPortfolioInsightModal(null)}>
+              <article className={`portfolio-insight-popup ai-score-long-summary ${portfolioInsightModal.type === "pros" ? "ai-score-pros-panel" : "ai-score-cons-panel"}`} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="portfolio-metric-modal-close" onClick={() => setPortfolioInsightModal(null)} aria-label="Close insight">×</button>
+                <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> {portfolioInsightModal.type === "pros" ? "PROS" : "CONS"}</div>
+                <h3>{portfolioInsightModal.title}</h3>
+                <p>{portfolioInsightModal.text}</p>
+              </article>
+            </div>
+          )}
 
           {metricModal && (
             <PortfolioMetricsModal
