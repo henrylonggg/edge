@@ -43,6 +43,8 @@ import {
   Newspaper,
   HelpCircle,
   Menu,
+  Coffee,
+  X,
 } from "lucide-react";
 import "./styles.css";
 
@@ -506,6 +508,7 @@ function App() {
   const [compareError, setCompareError] = useState("");
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [morningBrewOpen, setMorningBrewOpen] = useState(false);
 
   function goMenu(nextView) {
     setMenuOpen(false);
@@ -926,6 +929,8 @@ function App() {
         </div>
       )}
 
+      {morningBrewOpen && <MorningBrewDashboard onClose={() => setMorningBrewOpen(false)} />}
+
       {view === "portfolio" ? (
         <PortfolioPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
@@ -1079,6 +1084,16 @@ function App() {
 
               <button disabled={loading} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
+              </button>
+
+              <button
+                type="button"
+                className="morning-brew-trigger"
+                onClick={() => setMorningBrewOpen(true)}
+                aria-label="Open Morning Brew"
+                title="Morning Brew"
+              >
+                <Coffee size={18} />
               </button>
             </form>
 
@@ -2214,6 +2229,158 @@ function PortfolioHiddenDataTable({ valueHistory = [], evalHistory = [] }) {
   );
 }
 
+
+
+function getSavedMorningPortfolio(user) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(portfolioStorageKeyFor(user)) || "null");
+    const holdings = Array.isArray(saved?.holdings) ? saved.holdings : [];
+    const analyzedHoldings = Array.isArray(saved?.analysis?.industryGroups)
+      ? saved.analysis.industryGroups.flatMap((group) => Array.isArray(group?.holdings) ? group.holdings : [])
+      : [];
+    const symbols = [...new Set([
+      ...holdings.map((holding) => holding?.symbol),
+      ...analyzedHoldings.map((holding) => holding?.symbol),
+    ].map((symbol) => String(symbol || "").trim().toUpperCase()).filter(Boolean))];
+    const previousScores = {};
+    analyzedHoldings.forEach((holding) => {
+      const symbol = String(holding?.symbol || "").trim().toUpperCase();
+      const score = score10(holding?.edgeScore);
+      if (symbol && score !== null) previousScores[symbol] = score;
+    });
+    return { symbols, previousScores, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
+  } catch {
+    return { symbols: [], previousScores: {}, portfolioName: "Saved Portfolio" };
+  }
+}
+
+function formatBrewCurrency(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "N/A";
+  const sign = num > 0 ? "+" : num < 0 ? "-" : "";
+  return `${sign}$${Math.abs(num).toFixed(2)}`;
+}
+
+function formatBrewPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "N/A";
+  const sign = num > 0 ? "+" : num < 0 ? "-" : "";
+  return `${sign}${Math.abs(num).toFixed(2)}%`;
+}
+
+function MorningBrewDashboard({ onClose }) {
+  const { user } = useUser();
+  const [brew, setBrew] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadBrew(forceRefresh = false) {
+    setLoading(true);
+    setError("");
+    try {
+      const portfolio = getSavedMorningPortfolio(user);
+      const response = await fetch(`${API}/api/morning-brew${forceRefresh ? "?refresh=1" : ""}`, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores }),
+      });
+      const json = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(json?.error || "Could not load Morning Brew.");
+      setBrew(json);
+    } catch (err) {
+      setError(err?.message || "Could not load Morning Brew.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadBrew(false);
+  }, [user?.id]);
+
+  const indexes = brew?.market?.indexes || [];
+  const articles = brew?.market?.articles || [];
+  const alerts = brew?.portfolio?.alerts || [];
+
+  return (
+    <div className="morning-brew-overlay" role="dialog" aria-modal="true" aria-label="Morning Brew report">
+      <div className="morning-brew-panel">
+        <div className="morning-brew-head">
+          <div>
+            <span className="assistant-kicker"><Coffee size={16}/> Morning Brew</span>
+            <h2>Pre-market report</h2>
+            <p>Market movers, influential headlines, and saved portfolio alerts.</p>
+          </div>
+          <div className="morning-brew-actions">
+            <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
+              {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
+            </button>
+            <button type="button" className="morning-brew-close" onClick={onClose} aria-label="Close Morning Brew">
+              <X size={20}/>
+            </button>
+          </div>
+        </div>
+
+        {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
+        {loading && !brew ? (
+          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Building Morning Brew...</div>
+        ) : (
+          <div className="morning-brew-grid">
+            <section className="morning-brew-card market-card">
+              <div className="morning-section-title"><BarChart3 size={17}/> Index movement</div>
+              <div className="morning-index-grid">
+                {indexes.length ? indexes.map((item) => {
+                  const tone = Number(item.changePercent || 0) >= 0 ? "positive" : "negative";
+                  return (
+                    <div className={`morning-index ${tone}`} key={item.name || item.proxy}>
+                      <span>{item.name}</span>
+                      <strong>{formatBrewPercent(item.changePercent)}</strong>
+                      <small>{formatBrewCurrency(item.change)} via {item.proxy}</small>
+                    </div>
+                  );
+                }) : <p className="morning-muted">Index data is unavailable right now.</p>}
+              </div>
+              <p className="morning-footnote">{brew?.market?.note || "ETF proxies are used when direct index values are unavailable."}</p>
+            </section>
+
+            <section className="morning-brew-card portfolio-alert-card">
+              <div className="morning-section-title"><AlertTriangle size={17}/> Portfolio alerts</div>
+              {alerts.length ? (
+                <div className="morning-alert-list">
+                  {alerts.map((alert, index) => (
+                    <div className={`morning-alert ${alert.type || "watch"}`} key={`${alert.symbol || "alert"}-${index}`}>
+                      <b>{alert.headline}</b>
+                      <p>{alert.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="morning-muted">{brew?.portfolio?.message || "No major saved-portfolio alerts yet."}</p>
+              )}
+            </section>
+
+            <section className="morning-brew-card news-card wide">
+              <div className="morning-section-title"><Newspaper size={17}/> Top market headlines</div>
+              <div className="morning-news-list">
+                {articles.length ? articles.map((article, index) => (
+                  <a className="morning-news-item" href={article.url} target="_blank" rel="noreferrer" key={`${article.url}-${index}`}>
+                    <span>{index + 1}</span>
+                    <div>
+                      <b>{article.headline}</b>
+                      <p>{article.summary || article.source || "Market headline from Finnhub."}</p>
+                      <small>{article.source || "Finnhub"}</small>
+                    </div>
+                  </a>
+                )) : <p className="morning-muted">No market headlines returned yet.</p>}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function PortfolioPage({ onBack, onAnalyze }) {
   const { user } = useUser();
