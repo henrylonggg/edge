@@ -2044,20 +2044,63 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
     });
 
   const industryActual = {};
+  const industryHoldings = {};
   reports.forEach((item) => {
-    const industry = String(cleanHoldings.find((h) => h.symbol === item.symbol)?.industry || "");
+    const holding = cleanHoldings.find((h) => h.symbol === item.symbol) || {};
+    const industry = String(holding.industry || item.industry || "").trim();
     if (!industry || !Number.isFinite(item.weightPercent)) return;
     industryActual[industry] = (industryActual[industry] || 0) + Number(item.weightPercent);
+    if (!industryHoldings[industry]) industryHoldings[industry] = [];
+    industryHoldings[industry].push(item);
   });
+
   Object.entries(strategyTargets || {}).slice(0, 15).forEach(([industry, rawTarget]) => {
     const target = Number(rawTarget);
     const actual = Number(industryActual[industry] || 0);
-    if (!Number.isFinite(target) || target <= 0) return;
+    if (!Number.isFinite(target) || target <= 0 || !Number.isFinite(actual)) return;
     const diff = actual - target;
-    if (diff >= 5) {
-      alerts.push({ type: "watch", symbol: industry, headline: `${industry} is above target`, detail: `${industry} is ${actual.toFixed(1)}% versus a ${target.toFixed(1)}% target, so new buys may be better directed elsewhere until weights normalize.`, weightPercent: actual });
+    const redAboveTarget = diff >= 8 || actual / target >= 1.25;
+    const yellowAboveTarget = diff >= 4;
+
+    if (redAboveTarget) {
+      const holdingsInIndustry = (industryHoldings[industry] || [])
+        .filter((item) => Number.isFinite(item.weightPercent))
+        .sort((a, b) => Number(b.weightPercent || 0) - Number(a.weightPercent || 0));
+      const largest = holdingsInIndustry[0];
+      alerts.push({
+        type: "risk",
+        symbol: industry,
+        headline: `${industry} is meaningfully above target`,
+        detail: `${industry} is ${actual.toFixed(1)}% versus a ${target.toFixed(1)}% target. This is far enough above the saved Eval Strategy that trimming the largest driver${largest?.symbol ? `, ${largest.symbol},` : ""} may be worth reviewing.`,
+        weightPercent: actual,
+      });
+      if (largest?.symbol) {
+        alerts.push({
+          type: "risk",
+          symbol: largest.symbol,
+          headline: `${largest.symbol} may need a trim review`,
+          detail: `${largest.symbol} is the biggest driver inside an overweight ${industry} sleeve. Only trim alerts trigger when the industry is clearly above target, not just slightly high.`,
+          score: largest.score,
+          weightPercent: largest.weightPercent,
+          dayChangePercent: largest.dayChangePercent,
+        });
+      }
+    } else if (yellowAboveTarget) {
+      alerts.push({
+        type: "watch",
+        symbol: industry,
+        headline: `${industry} is above target`,
+        detail: `${industry} is ${actual.toFixed(1)}% versus a ${target.toFixed(1)}% target. It is not in the trim zone yet, but new buys may be better directed elsewhere.`,
+        weightPercent: actual,
+      });
     } else if (diff <= -5) {
-      alerts.push({ type: "strength", symbol: industry, headline: `${industry} is below target`, detail: `${industry} is ${actual.toFixed(1)}% versus a ${target.toFixed(1)}% target, so strong Eval names in this industry may deserve review.`, weightPercent: actual });
+      alerts.push({
+        type: "strength",
+        symbol: industry,
+        headline: `${industry} is below target`,
+        detail: `${industry} is ${actual.toFixed(1)}% versus a ${target.toFixed(1)}% target, so strong Eval names in this industry may deserve review.`,
+        weightPercent: actual,
+      });
     }
   });
 
