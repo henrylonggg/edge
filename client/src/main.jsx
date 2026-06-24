@@ -2256,11 +2256,12 @@ function getSavedMorningPortfolio(user) {
         weightPercent: Number(analyzed.weightPercent ?? analyzed.weight ?? manual.weightPercent ?? manual.weight),
         holdingDollars: Number(analyzed.holdingDollars ?? analyzed.currentValue ?? manual.holdingDollars ?? manual.currentValue),
         edgeScore: score10(analyzed.edgeScore),
+        industry: analyzed.industry || analyzed.finnhubIndustry || manual.industry || "Unknown",
       };
     });
-    return { symbols, previousScores, holdings, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
+    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
   } catch {
-    return { symbols: [], previousScores: {}, holdings: [], portfolioName: "Saved Portfolio" };
+    return { symbols: [], previousScores: {}, holdings: [], strategyTargets: {}, portfolioName: "Saved Portfolio" };
   }
 }
 
@@ -2293,7 +2294,7 @@ function MorningBrewDashboard({ onBack }) {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores, holdings: portfolio.holdings }),
+        body: JSON.stringify({ symbols: portfolio.symbols, previousScores: portfolio.previousScores, holdings: portfolio.holdings, strategyTargets: portfolio.strategyTargets || {} }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok) throw new Error(json?.error || "Could not load Morning Brew.");
@@ -2453,6 +2454,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
   const [metricModal, setMetricModal] = useState(null);
+  const [strategyOpen, setStrategyOpen] = useState(false);
+  const [strategyTargets, setStrategyTargets] = useState({});
 
   useEffect(() => {
     try {
@@ -2464,6 +2467,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       if (saved.fileName) setCsvName(saved.fileName);
       if (saved.analysis) setCsvAnalysis(saved.analysis);
       if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
+      if (saved.strategyTargets && typeof saved.strategyTargets === "object") setStrategyTargets(saved.strategyTargets);
     } catch {
       // Ignore damaged local portfolio state.
     }
@@ -2475,6 +2479,16 @@ function PortfolioPage({ onBack, onAnalyze }) {
     setOpenIndustries((current) => Object.keys(current || {}).length ? current : { [csvAnalysis.industryGroups[0]?.industry || ""]: true });
   }, [csvAnalysis]);
 
+  useEffect(() => {
+    if (!csvAnalysis) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
+      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets }));
+    } catch {
+      // Ignore local storage failures.
+    }
+  }, [strategyTargets, csvAnalysis, storageKey]);
+
   function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory) {
     try {
       localStorage.setItem(storageKey, JSON.stringify({
@@ -2484,6 +2498,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
         manualRows: nextManualRows,
         history: nextHistory,
         evalScoreHistory: nextEvalScoreHistory,
+        strategyTargets,
         savedAt: new Date().toISOString(),
       }));
     } catch {
@@ -2645,6 +2660,83 @@ function PortfolioPage({ onBack, onAnalyze }) {
     setOpenIndustries((current) => ({ ...current, [industry]: !current?.[industry] }));
   }
 
+  function updateStrategyTarget(industry, value) {
+    const clean = String(value || "").replace(/[^0-9.]/g, "");
+    setStrategyTargets((current) => ({ ...current, [industry]: clean }));
+  }
+
+  function applyCurrentStrategyWeights() {
+    const next = {};
+    (csvAnalysis?.industryGroups || []).forEach((group) => {
+      next[group.industry] = Number(group.totalWeightPercent || 0).toFixed(1);
+    });
+    setStrategyTargets(next);
+  }
+
+  function applyOLearyStyleStrategy() {
+    const groups = csvAnalysis?.industryGroups || [];
+    if (!groups.length) return;
+    const preferred = {
+      Technology: 20,
+      "Financial Services": 15,
+      Financials: 15,
+      Healthcare: 15,
+      Industrials: 12,
+      "Consumer Cyclical": 10,
+      "Consumer Defensive": 8,
+      Energy: 8,
+      Utilities: 5,
+      "Communication Services": 10,
+      "Real Estate": 4,
+      Materials: 5,
+    };
+    const next = {};
+    let remaining = 100;
+    groups.forEach((group) => {
+      const key = Object.keys(preferred).find((name) => group.industry.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(group.industry.toLowerCase()));
+      const value = Math.min(20, key ? preferred[key] : Math.max(5, Math.floor(100 / groups.length)));
+      next[group.industry] = String(value);
+      remaining -= value;
+    });
+    const names = Object.keys(next);
+    let i = 0;
+    while (remaining !== 0 && names.length) {
+      const name = names[i % names.length];
+      const current = Number(next[name] || 0);
+      if (remaining > 0 && current < 20) { next[name] = String(current + 1); remaining -= 1; }
+      else if (remaining < 0 && current > 3) { next[name] = String(current - 1); remaining += 1; }
+      i += 1;
+      if (i > 500) break;
+    }
+    setStrategyTargets(next);
+  }
+
+  function buildStrategySuggestions() {
+    const groups = csvAnalysis?.industryGroups || [];
+    if (!groups.length) return [];
+    return groups.map((group) => {
+      const actual = Number(group.totalWeightPercent || 0);
+      const target = Number(strategyTargets[group.industry]);
+      const diff = Number.isFinite(target) ? actual - target : null;
+      const score = Number(group.industryEvalScore || 0);
+      let action = "Set a target weight to compare this industry.";
+      let tone = "neutral";
+      if (Number.isFinite(diff)) {
+        if (diff > 3) {
+          action = score >= 7.5 ? "Above target but strong; trim only if concentration is getting too large." : "Above target; consider trimming or redirecting new cash elsewhere.";
+          tone = diff > 8 ? "red" : "yellow";
+        } else if (diff < -3) {
+          action = score >= 7.0 ? "Below target with a solid score; consider adding from the strongest holdings in this industry." : "Below target, but wait for stronger Eval scores before adding heavily.";
+          tone = score >= 7 ? "green" : "yellow";
+        } else {
+          action = "Close to target; no major rebalance pressure.";
+          tone = "green";
+        }
+      }
+      return { industry: group.industry, actual, target: Number.isFinite(target) ? target : null, diff, score, action, tone };
+    });
+  }
+
 
   async function analyzeManualPortfolio() {
     const holdings = aggregateManualPortfolioRows(manualRows);
@@ -2669,6 +2761,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
   const prosCons = buildPortfolioProsCons(industryGroups);
+  const strategySuggestions = buildStrategySuggestions();
 
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
@@ -2815,6 +2908,38 @@ function PortfolioPage({ onBack, onAnalyze }) {
             <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
           </div>
 
+          <section className="portfolio-strategy-panel-v1">
+            <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
+              <span><Target size={17}/> Portfolio strategy</span>
+              <b>{strategyOpen ? "Click to close" : "Click to set targets"}</b>
+            </button>
+            {strategyOpen && (
+              <div className="portfolio-strategy-body-v1">
+                <div className="portfolio-strategy-actions-v1">
+                  <button type="button" onClick={applyOLearyStyleStrategy}>Use prebuilt O'Leary-style plan</button>
+                  <button type="button" onClick={applyCurrentStrategyWeights}>Use current weights</button>
+                </div>
+                <div className="portfolio-strategy-target-grid-v1">
+                  {industryGroups.map((group) => (
+                    <label key={group.industry}>
+                      <span>{group.industry}</span>
+                      <input value={strategyTargets[group.industry] || ""} onChange={(event) => updateStrategyTarget(group.industry, event.target.value)} placeholder={`${Number(group.totalWeightPercent || 0).toFixed(1)}%`} inputMode="decimal" />
+                    </label>
+                  ))}
+                </div>
+                <div className="portfolio-strategy-suggestions-v1">
+                  {strategySuggestions.map((item) => (
+                    <article className={`portfolio-strategy-suggestion ${item.tone}`} key={item.industry}>
+                      <strong>{item.industry}</strong>
+                      <span>Now {item.actual.toFixed(1)}%{item.target !== null ? ` / target ${item.target.toFixed(1)}%` : ""} • Eval {scoreText(item.score)}</span>
+                      <p>{item.action}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3">
             <div className="portfolio-section-head">
@@ -2857,7 +2982,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
             })}
           </div>
 
-          <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5">
+          <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5 portfolio-user-hidden-history">
             <div className="portfolio-card-title-row">
               <div>
                 <span className="section-title"><LineChart size={17}/> Daily tracking</span>
@@ -2918,6 +3043,21 @@ function LandingPage({ onContinue }) {
       title: "Ranked watchlist",
       text: "Users can save stocks, refresh them, and instantly see which names rank highest by Eval Score. The watchlist is meant to make stock research feel organized instead of scattered.",
     },
+    {
+      icon: <PieChart size={22} />,
+      title: "Portfolio scoring",
+      text: "Users can upload a CSV or manually enter holdings. Eval calculates current holding value, returns, industry weights, weighted Portfolio Eval Score, and category-level portfolio metrics.",
+    },
+    {
+      icon: <Newspaper size={22} />,
+      title: "Morning Brew",
+      text: "The coffee-cup dashboard gives users CNBC pre-market headlines, index proxy movement, article impact scores, and up to five saved-portfolio alerts each morning.",
+    },
+    {
+      icon: <BrainCircuit size={22} />,
+      title: "Stronger Eval AI",
+      text: "Eval AI answers FAQs, navigation questions, ticker lookup from the embedded U.S. stock universe, watchlist questions, portfolio questions, and loaded-stock explanations in short clear responses.",
+    },
   ];
 
   const breakdownSteps = [
@@ -2949,7 +3089,17 @@ function LandingPage({ onContinue }) {
     {
       number: "06",
       title: "Ask Eval AI",
-      text: "Eval AI explains the dashboard, metrics, watchlist stocks, company basics, ticker lookup questions, and stock-specific questions for loaded or saved companies.",
+      text: "Eval AI explains the dashboard, metrics, watchlist stocks, portfolio holdings, company basics, ticker lookup questions, and stock-specific questions for loaded or saved companies.",
+    },
+    {
+      number: "07",
+      title: "Upload a portfolio",
+      text: "Users can upload the CSV template or enter trades manually. Eval calculates current market value, returns, industry weights, and a weighted Portfolio Eval Score.",
+    },
+    {
+      number: "08",
+      title: "Open Morning Brew",
+      text: "The coffee button opens a daily market page with CNBC headlines, pre-market index movement, article scores, and saved-portfolio alerts.",
     },
   ];
 
@@ -2977,13 +3127,13 @@ function LandingPage({ onContinue }) {
 
             <p>
               Eval is a stock evaluation dashboard that turns scattered market data, company fundamentals,
-              recent news, risk signals, watchlist rankings, and AI explanations into one clean report.
-              Instead of making users bounce between finance sites, charts, headlines, and raw ratios,
-              Eval gives them a fast company-quality read they can understand in minutes.
+              recent news, risk signals, watchlist rankings, portfolio scoring, Morning Brew alerts,
+              and AI explanations into one clean system. Instead of making users bounce between finance sites,
+              charts, headlines, raw ratios, and spreadsheets, Eval gives them a fast company-quality read they can understand in minutes.
             </p>
 
             <div className="landing-action-row-static landing-action-row-static-copy-only">
-              <span>Built for quick research, watchlist ranking, and easier company comparison.</span>
+              <span>Built for quick research, watchlist ranking, portfolio scoring, Morning Brew, and easier company comparison.</span>
             </div>
           </div>
 
@@ -3047,7 +3197,7 @@ function LandingPage({ onContinue }) {
             <h2>Built to make stock research cleaner</h2>
             <p>
               Eval combines data providers, cached reports, category scoring, article summaries, saved watchlists,
-              comparison tools, and Eval AI support into one interface. The purpose is not to tell users what to buy.
+              portfolio uploads, Morning Brew, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
               The purpose is to make a company easier to understand before they decide what to research next.
             </p>
           </div>
@@ -9160,12 +9310,13 @@ function PlansPage({ onBack }) {
 }
 
 function AssistantPage({ current, watchlist, onBack }) {
+  const { user } = useUser();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
     {
       role: "assistant",
       content:
-        "Ask about Eval, FAQs, navigation, metrics, watchlist stocks, company tickers, key products, or what a company does.",
+        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, Morning Brew, or how to use any dashboard feature.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -9173,7 +9324,7 @@ function AssistantPage({ current, watchlist, onBack }) {
   async function ask(e) {
     e.preventDefault();
 
-    const clean = question.trim().slice(0, 75);
+    const clean = question.trim().slice(0, 150);
     if (!clean) return;
 
     const userMessage = { role: "user", content: clean };
@@ -9194,6 +9345,7 @@ function AssistantPage({ current, watchlist, onBack }) {
           question: clean,
           current,
           watchlist,
+          portfolio: getSavedMorningPortfolio(user),
         }),
       });
 
@@ -9241,15 +9393,15 @@ function AssistantPage({ current, watchlist, onBack }) {
             <div className="assistant-kicker">
               <BrainCircuit size={16} /> Eval AI Assistant
             </div>
-            <h2>Ask about Eval, the report, or the company.</h2>
+            <h2>Ask about Eval, the report, your watchlist, or your portfolio.</h2>
             <p>
-              Use Eval AI as a support agent and company explainer. Ask about app navigation,
-              metrics, FAQs, watchlist stocks, tickers, products, news sentiment, or what a company does.
+              Eval AI is built as a short-answer support agent for navigation, FAQs, ticker lookup,
+              watchlist stocks, portfolio stocks, Morning Brew, score meanings, and company basics.
             </p>
 
         <section className="ai-rules-card ai-rules-card-full">
           <div className="ai-rules-eyebrow">What Eval AI can answer</div>
-          <h3>Ask Eval AI for support, company intelligence, FAQ help, and watchlist-stock explanations.</h3>
+          <h3>Ask Eval AI for support, ticker lookup, company intelligence, portfolio help, and watchlist-stock explanations.</h3>
 
           <div className="ai-rules-grid ai-rules-grid-brief">
             <div>
@@ -9268,8 +9420,8 @@ function AssistantPage({ current, watchlist, onBack }) {
             </div>
 
             <div>
-              <strong>Watchlist stock questions</strong>
-              <p>Specific stock analysis works when the ticker is loaded on your dashboard or saved in your watchlist.</p>
+              <strong>Watchlist and portfolio questions</strong>
+              <p>Ask which saved holding has the highest Eval Score, what portfolio alerts mean, or which portfolio stocks are driving the score.</p>
             </div>
 
             <div>
@@ -9278,12 +9430,12 @@ function AssistantPage({ current, watchlist, onBack }) {
             </div>
 
             <div>
-              <strong>Compare and industry help</strong>
-              <p>Ask how to compare 2–5 watchlist stocks, read radar charts, or understand industry leader rankings.</p>
+              <strong>Morning Brew and strategy help</strong>
+              <p>Ask where Morning Brew is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
             </div>
           </div>
 
-          <p className="ai-rules-note">Eval AI stays focused on Eval support, FAQs, company/ticker/product lookup, and loaded or watchlist stock analysis. It will not answer unrelated questions.</p>
+          <p className="ai-rules-note">Eval AI stays focused on Eval support, FAQs, ticker/product lookup, portfolio/watchlist analysis, and navigation. It keeps answers brief and clear.</p>
         </section>
 
 </div>
@@ -9312,7 +9464,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about Eval, FAQs, metrics, watchlist stocks, tickers, products, or what a company does."
+              placeholder="Ask about Eval, portfolio, watchlist, Morning Brew, metrics, tickers, or navigation."
               rows="3"
             />
             <button disabled={loading}>
