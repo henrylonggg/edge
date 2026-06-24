@@ -1698,12 +1698,15 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
 
 
 
-const morningBrewCache = new Map();
+
+const morningBrewNewsCache = new Map();
+const morningBrewIndexCache = new Map();
+const morningBrewPortfolioAlertsCache = new Map();
 let lastMorningBrewArticles = [];
 
 function makeMorningArticleSummary(article = {}) {
   const raw = String(article.summary || article.headline || "").replace(/\s+/g, " ").trim();
-  if (!raw) return "A market-moving headline to watch before the open.";
+  if (!raw) return "A CNBC pre-market headline to watch before the open.";
   const sentence = raw.split(/(?<=[.!?])\s+/).find(Boolean) || raw;
   return sentence.length > 260 ? `${sentence.slice(0, 257)}...` : sentence;
 }
@@ -1717,15 +1720,54 @@ function morningBrewDateKey(date = new Date()) {
   }).format(date);
 }
 
-function cleanArticle(article = {}) {
-  return {
-    headline: String(article.headline || article.title || "Market update").slice(0, 180),
+function morningBrewMinuteKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}-${parts.hour}-${parts.minute}`;
+}
+
+function stableMorningHash(input) {
+  const str = JSON.stringify(input || {});
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function morningArticleScore(article = {}) {
+  const text = `${article.headline || ""} ${article.summary || ""}`.toLowerCase();
+  let score = 5.6;
+  const strong = /(fed|inflation|rate|rates|treasury|yield|jobs report|cpi|ppi|gdp|earnings|guidance|ai|chip|semiconductor|nvidia|apple|microsoft|tesla|oil|opec|china|tariff|recession|war|geopolitical|futures|premarket|pre-market|wall street|nasdaq|dow|s&p|sp 500)/g;
+  const matches = text.match(strong) || [];
+  score += Math.min(2.2, matches.length * 0.34);
+  if (/surge|rally|jump|gain|beat|record|optimis|upgrade|strong/i.test(text)) score += 0.7;
+  if (/fall|drop|slump|selloff|miss|cut|warning|fear|risk|lawsuit|probe|downgrade|weak/i.test(text)) score -= 0.55;
+  if (/breaking|live updates|futures|pre-market|premarket/i.test(text)) score += 0.45;
+  return Number(Math.max(1, Math.min(10, score)).toFixed(1));
+}
+
+function cleanMorningArticle(article = {}) {
+  const clean = {
+    headline: String(article.headline || article.title || "CNBC market update").slice(0, 180),
     summary: makeMorningArticleSummary(article),
-    source: String(article.source || "Finnhub").slice(0, 80),
+    source: String(article.source || "CNBC").slice(0, 80),
     url: String(article.url || ""),
     datetime: Number(article.datetime || 0),
     image: String(article.image || ""),
   };
+  clean.score = morningArticleScore(clean);
+  return clean;
 }
 
 async function fetchFinnhubJson(url, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
@@ -1742,7 +1784,7 @@ async function fetchFinnhubJson(url, timeoutMs = Number(process.env.PROVIDER_TIM
   }
 }
 
-async function fetchMorningBrewNews() {
+async function fetchMorningBrewNewsRaw() {
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) return [];
   const url = new URL("https://finnhub.io/api/v1/news");
@@ -1750,17 +1792,35 @@ async function fetchMorningBrewNews() {
   url.searchParams.set("token", apiKey);
   const data = await fetchFinnhubJson(url);
   if (!Array.isArray(data)) return [];
-  const marketTerms = /stock|stocks|market|markets|fed|inflation|rates|yield|bond|earnings|ai|chip|semiconductor|oil|dollar|nasdaq|dow|s&p|sp 500|wall street|futures|premarket|pre-market/i;
+  const preMarketTerms = /pre[- ]?market|premarket|futures|before the bell|morning|wall street|stocks|market|markets|nasdaq|dow|s&p|sp 500|fed|inflation|rates|earnings|ai|chip|semiconductor/i;
   return data
-    .map(cleanArticle)
+    .map(cleanMorningArticle)
     .filter((article) => article.headline && article.url)
+    .filter((article) => /cnbc/i.test(`${article.source} ${article.url}`))
     .sort((a, b) => {
-      const aHit = marketTerms.test(`${a.headline} ${a.summary}`) ? 1 : 0;
-      const bHit = marketTerms.test(`${b.headline} ${b.summary}`) ? 1 : 0;
+      const aHit = preMarketTerms.test(`${a.headline} ${a.summary}`) ? 1 : 0;
+      const bHit = preMarketTerms.test(`${b.headline} ${b.summary}`) ? 1 : 0;
       if (aHit !== bHit) return bHit - aHit;
+      if (Number(b.score || 0) !== Number(a.score || 0)) return Number(b.score || 0) - Number(a.score || 0);
       return Number(b.datetime || 0) - Number(a.datetime || 0);
     })
     .slice(0, 5);
+}
+
+async function getMorningBrewArticles(forceRefresh = false) {
+  const key = morningBrewDateKey();
+  const cached = morningBrewNewsCache.get(key);
+  if (!forceRefresh && cached?.articles?.length) return cached.articles;
+  const freshNews = await fetchMorningBrewNewsRaw();
+  const articles = freshNews.length ? freshNews : lastMorningBrewArticles.slice(0, 5);
+  if (freshNews.length) lastMorningBrewArticles = freshNews.slice(0, 5);
+  if (articles.length) morningBrewNewsCache.set(key, { savedAt: Date.now(), articles, usedPreviousArticles: !freshNews.length });
+  if (morningBrewNewsCache.size > 7) {
+    for (const cacheKey of morningBrewNewsCache.keys()) {
+      if (cacheKey !== key) morningBrewNewsCache.delete(cacheKey);
+    }
+  }
+  return articles;
 }
 
 async function fetchMorningQuote(symbol) {
@@ -1785,47 +1845,50 @@ async function fetchMorningQuote(symbol) {
   };
 }
 
-async function buildMorningBrewMarket(forceRefresh = false) {
-  const key = morningBrewDateKey();
-  const cached = morningBrewCache.get(key);
-  if (!forceRefresh && cached && Date.now() - Number(cached.savedAt || 0) < 6 * 60 * 60 * 1000) {
-    return cached.data;
-  }
-
-  const [freshNews, spy, dia, qqq] = await Promise.all([
-    fetchMorningBrewNews(),
+async function getMorningIndexes() {
+  const key = morningBrewMinuteKey();
+  const cached = morningBrewIndexCache.get(key);
+  if (cached?.indexes?.length) return cached.indexes;
+  const [spy, dia, qqq] = await Promise.all([
     fetchMorningQuote("SPY"),
     fetchMorningQuote("DIA"),
     fetchMorningQuote("QQQ"),
   ]);
-
-  const articles = freshNews.length ? freshNews : lastMorningBrewArticles.slice(0, 5);
-  if (freshNews.length) lastMorningBrewArticles = freshNews.slice(0, 5);
-
-  const data = {
-    date: key,
-    generatedAt: new Date().toISOString(),
-    indexes: [
-      { name: "S&P 500", proxy: "SPY", ...spy },
-      { name: "Dow Jones", proxy: "DIA", ...dia },
-      { name: "Nasdaq", proxy: "QQQ", ...qqq },
-    ].filter((item) => item?.current),
-    articles,
-    usedPreviousArticles: !freshNews.length && articles.length > 0,
-    note: "Index movement uses liquid ETF proxies and displays pre-market percent change only.",
-  };
-
-  morningBrewCache.set(key, { savedAt: Date.now(), data });
-  // Keep only recent daily reports.
-  if (morningBrewCache.size > 7) {
-    for (const cacheKey of morningBrewCache.keys()) {
-      if (cacheKey !== key) morningBrewCache.delete(cacheKey);
+  const indexes = [
+    { name: "S&P 500", proxy: "SPY", ...spy },
+    { name: "Dow Jones", proxy: "DIA", ...dia },
+    { name: "Nasdaq", proxy: "QQQ", ...qqq },
+  ].filter((item) => item?.current);
+  morningBrewIndexCache.set(key, { savedAt: Date.now(), indexes });
+  if (morningBrewIndexCache.size > 8) {
+    for (const cacheKey of morningBrewIndexCache.keys()) {
+      if (cacheKey !== key) morningBrewIndexCache.delete(cacheKey);
     }
   }
-  return data;
+  return indexes;
 }
 
-async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}) {
+async function buildMorningBrewMarket(forceRefresh = false) {
+  const [articles, indexes] = await Promise.all([
+    getMorningBrewArticles(forceRefresh),
+    getMorningIndexes(),
+  ]);
+  return {
+    date: morningBrewDateKey(),
+    generatedAt: new Date().toISOString(),
+    indexes,
+    articles,
+    usedPreviousArticles: !articles.length ? false : morningBrewNewsCache.get(morningBrewDateKey())?.usedPreviousArticles || false,
+    note: "Index movement uses liquid ETF proxies and displays pre-market percent change only.",
+  };
+}
+
+function portfolioScoreToNumber(value) {
+  const n = portfolioScore10(value);
+  return n === null ? null : Number(n);
+}
+
+async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, holdings = []) {
   const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
     .map(cleanTicker)
     .filter(Boolean))].slice(0, 30);
@@ -1838,23 +1901,48 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}) {
     };
   }
 
+  const cleanHoldings = (Array.isArray(holdings) ? holdings : []).map((holding) => {
+    const symbol = cleanTicker(holding?.symbol);
+    const weight = Number(holding?.weightPercent ?? holding?.weight ?? holding?.portfolioWeight);
+    const value = Number(holding?.holdingDollars ?? holding?.currentValue ?? holding?.value);
+    return {
+      symbol,
+      weightPercent: Number.isFinite(weight) ? weight : null,
+      currentValue: Number.isFinite(value) ? value : null,
+      priorScore: portfolioScoreToNumber(holding?.edgeScore ?? previousScores?.[symbol]),
+    };
+  }).filter((holding) => holding.symbol);
+
+  const portfolioKey = `${morningBrewDateKey()}-${stableMorningHash({ cleanSymbols, previousScores, cleanHoldings })}`;
+  const cached = morningBrewPortfolioAlertsCache.get(portfolioKey);
+  if (cached) return cached;
+
   const alerts = [];
   const reports = [];
   for (const symbol of cleanSymbols) {
     try {
       const report = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
-      const currentScore = portfolioScore10(report?.grades?.edgeScore);
-      const priorScore = portfolioScore10(previousScores?.[symbol]);
+      const currentScore = portfolioScoreToNumber(report?.grades?.edgeScore);
+      const holding = cleanHoldings.find((item) => item.symbol === symbol) || {};
+      const priorScore = portfolioScoreToNumber(previousScores?.[symbol] ?? holding.priorScore);
       const cats = report?.grades?.categories || {};
-      reports.push({ symbol, name: report?.profile?.name || symbol, score: currentScore, priorScore, categories: cats });
+      reports.push({
+        symbol,
+        name: report?.profile?.name || symbol,
+        score: currentScore,
+        priorScore,
+        categories: cats,
+        weightPercent: Number.isFinite(holding.weightPercent) ? holding.weightPercent : null,
+        currentValue: Number.isFinite(holding.currentValue) ? holding.currentValue : null,
+      });
       if (currentScore !== null && priorScore !== null) {
         const change = Number((currentScore - priorScore).toFixed(1));
-        if (Math.abs(change) >= 0.4) {
+        if (Math.abs(change) >= 0.2) {
           alerts.push({
             type: change > 0 ? "score-up" : "score-down",
             symbol,
-            headline: `${symbol} Eval Score moved ${change > 0 ? "up" : "down"} ${Math.abs(change).toFixed(1)}`,
-            detail: `${symbol} changed from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.`,
+            headline: `${symbol} Eval Score ${change > 0 ? "improved" : "fell"} ${Math.abs(change).toFixed(1)}`,
+            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.`,
             score: currentScore,
             priorScore,
             change,
@@ -1862,49 +1950,99 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}) {
         }
       }
     } catch {
-      alerts.push({
-        type: "watch",
-        symbol,
-        headline: `${symbol} needs a fresh check`,
-        detail: "Eval could not rescore this holding during the Morning Brew refresh.",
-      });
+      // Keep Morning Brew usable even if one holding cannot refresh.
     }
   }
 
-  if (!alerts.length) {
-    reports
-      .filter((item) => item.score !== null)
-      .sort((a, b) => Math.abs(7 - Number(b.score || 0)) - Math.abs(7 - Number(a.score || 0)))
-      .slice(0, 3)
-      .forEach((item) => {
-        alerts.push({
-          type: Number(item.score) >= 7.5 ? "strength" : Number(item.score) < 6.5 ? "risk" : "watch",
-          symbol: item.symbol,
-          headline: `${item.symbol} is at ${Number(item.score).toFixed(1)}`,
-          detail: Number(item.score) >= 7.5
-            ? `${item.symbol} is one of the stronger holdings in the saved portfolio right now.`
-            : Number(item.score) < 6.5
-              ? `${item.symbol} is one of the weaker holdings to review this morning.`
-              : `${item.symbol} is sitting in the mixed range and is worth monitoring.`,
-          score: item.score,
-          priorScore: item.priorScore,
-        });
+  reports
+    .filter((item) => Number.isFinite(item.weightPercent) && item.weightPercent >= 25)
+    .sort((a, b) => Number(b.weightPercent || 0) - Number(a.weightPercent || 0))
+    .slice(0, 3)
+    .forEach((item) => {
+      alerts.push({
+        type: Number(item.score || 0) >= 7.5 ? "strength" : "watch",
+        symbol: item.symbol,
+        headline: `${item.symbol} is a large portfolio driver`,
+        detail: `${item.symbol} is about ${Number(item.weightPercent).toFixed(1)}% of the saved portfolio, so its daily move can noticeably affect total returns.`,
+        score: item.score,
+        weightPercent: item.weightPercent,
       });
+    });
+
+  reports
+    .filter((item) => item.score !== null && item.score >= 7.5)
+    .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+    .slice(0, 3)
+    .forEach((item) => {
+      alerts.push({
+        type: "strength",
+        symbol: item.symbol,
+        headline: `${item.symbol} remains a high-score holding`,
+        detail: `${item.symbol} is sitting at ${Number(item.score).toFixed(1)}, making it one of the stronger Eval profiles in the saved portfolio today.`,
+        score: item.score,
+      });
+    });
+
+  reports
+    .filter((item) => item.score !== null && item.score < 6.5)
+    .sort((a, b) => Number(a.score || 0) - Number(b.score || 0))
+    .slice(0, 2)
+    .forEach((item) => {
+      alerts.push({
+        type: "risk",
+        symbol: item.symbol,
+        headline: `${item.symbol} is a weaker Eval profile`,
+        detail: `${item.symbol} is at ${Number(item.score).toFixed(1)}, so it may deserve a closer review relative to stronger holdings.`,
+        score: item.score,
+      });
+    });
+
+  reports
+    .filter((item) => item.score !== null && Number.isFinite(item.weightPercent) && item.weightPercent >= 15 && item.score >= 7.5)
+    .slice(0, 2)
+    .forEach((item) => {
+      alerts.push({
+        type: "strength",
+        symbol: item.symbol,
+        headline: `${item.symbol} strength is carrying weight`,
+        detail: `${item.symbol} combines a ${Number(item.score).toFixed(1)} Eval Score with a ${Number(item.weightPercent).toFixed(1)}% portfolio weight, so it is helping support the portfolio score.`,
+        score: item.score,
+        weightPercent: item.weightPercent,
+      });
+    });
+
+  const unique = [];
+  const seen = new Set();
+  for (const alert of alerts) {
+    const key = `${alert.symbol}-${alert.headline}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(alert);
+    }
   }
 
-  return {
+  const result = {
     hasPortfolio: true,
     symbols: cleanSymbols,
-    alerts: alerts.slice(0, 8),
+    alerts: unique.slice(0, 10),
     rescored: reports.length,
+    message: unique.length ? "" : "No major score or concentration alerts for this saved portfolio yet today.",
   };
+  morningBrewPortfolioAlertsCache.set(portfolioKey, result);
+  if (morningBrewPortfolioAlertsCache.size > 50) {
+    for (const cacheKey of morningBrewPortfolioAlertsCache.keys()) {
+      if (cacheKey !== portfolioKey) morningBrewPortfolioAlertsCache.delete(cacheKey);
+      if (morningBrewPortfolioAlertsCache.size <= 25) break;
+    }
+  }
+  return result;
 }
 
 app.post("/api/morning-brew", async (req, res) => {
   try {
     const forceRefresh = String(req.query.refresh || "0") === "1";
     const market = await buildMorningBrewMarket(forceRefresh);
-    const portfolio = await buildMorningPortfolioAlerts(req.body?.symbols || [], req.body?.previousScores || {});
+    const portfolio = await buildMorningPortfolioAlerts(req.body?.symbols || [], req.body?.previousScores || {}, req.body?.holdings || []);
     res.json({
       ok: true,
       title: "Morning Brew",
