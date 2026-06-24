@@ -1845,6 +1845,28 @@ async function fetchMorningQuote(symbol) {
   };
 }
 
+async function fetchLatestCompanyMorningNews(symbol) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cleanSymbol = cleanTicker(symbol);
+  if (!apiKey || !cleanSymbol) return null;
+  const today = new Date();
+  const to = today.toISOString().slice(0, 10);
+  const fromDate = new Date(today.getTime() - 1000 * 60 * 60 * 24 * 7);
+  const from = fromDate.toISOString().slice(0, 10);
+  const url = new URL("https://finnhub.io/api/v1/company-news");
+  url.searchParams.set("symbol", cleanSymbol);
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("token", apiKey);
+  const data = await fetchFinnhubJson(url);
+  if (!Array.isArray(data) || !data.length) return null;
+  const article = data
+    .filter((item) => item && (item.headline || item.title) && item.url)
+    .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0))[0];
+  if (!article) return null;
+  return cleanMorningArticle(article);
+}
+
 async function getMorningIndexes() {
   const key = morningBrewMinuteKey();
   const cached = morningBrewIndexCache.get(key);
@@ -1922,6 +1944,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
   for (const symbol of cleanSymbols) {
     try {
       const report = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
+      const quote = await fetchMorningQuote(symbol);
       const currentScore = portfolioScoreToNumber(report?.grades?.edgeScore);
       const holding = cleanHoldings.find((item) => item.symbol === symbol) || {};
       const priorScore = portfolioScoreToNumber(previousScores?.[symbol] ?? holding.priorScore);
@@ -1934,18 +1957,22 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         categories: cats,
         weightPercent: Number.isFinite(holding.weightPercent) ? holding.weightPercent : null,
         currentValue: Number.isFinite(holding.currentValue) ? holding.currentValue : null,
+        dayChangePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
       });
       if (currentScore !== null && priorScore !== null) {
         const change = Number((currentScore - priorScore).toFixed(1));
         if (Math.abs(change) >= 0.2) {
+          const latestNews = await fetchLatestCompanyMorningNews(symbol);
           alerts.push({
             type: change > 0 ? "score-up" : "score-down",
             symbol,
             headline: `${symbol} Eval Score ${change > 0 ? "improved" : "fell"} ${Math.abs(change).toFixed(1)}`,
-            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.`,
+            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.${latestNews?.headline ? " The latest company headline may be part of what users are watching today." : ""}`,
             score: currentScore,
             priorScore,
             change,
+            dayChangePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
+            news: latestNews,
           });
         }
       }
@@ -1966,6 +1993,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         detail: `${item.symbol} is about ${Number(item.weightPercent).toFixed(1)}% of the saved portfolio, so its daily move can noticeably affect total returns.`,
         score: item.score,
         weightPercent: item.weightPercent,
+        dayChangePercent: item.dayChangePercent,
       });
     });
 
@@ -1980,6 +2008,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         headline: `${item.symbol} remains a high-score holding`,
         detail: `${item.symbol} is sitting at ${Number(item.score).toFixed(1)}, making it one of the stronger Eval profiles in the saved portfolio today.`,
         score: item.score,
+        dayChangePercent: item.dayChangePercent,
       });
     });
 
@@ -1994,6 +2023,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         headline: `${item.symbol} is a weaker Eval profile`,
         detail: `${item.symbol} is at ${Number(item.score).toFixed(1)}, so it may deserve a closer review relative to stronger holdings.`,
         score: item.score,
+        dayChangePercent: item.dayChangePercent,
       });
     });
 
@@ -2008,6 +2038,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         detail: `${item.symbol} combines a ${Number(item.score).toFixed(1)} Eval Score with a ${Number(item.weightPercent).toFixed(1)}% portfolio weight, so it is helping support the portfolio score.`,
         score: item.score,
         weightPercent: item.weightPercent,
+        dayChangePercent: item.dayChangePercent,
       });
     });
 
@@ -2024,7 +2055,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
   const result = {
     hasPortfolio: true,
     symbols: cleanSymbols,
-    alerts: unique.slice(0, 10),
+    alerts: unique.slice(0, 5),
     rescored: reports.length,
     message: unique.length ? "" : "No major score or concentration alerts for this saved portfolio yet today.",
   };
