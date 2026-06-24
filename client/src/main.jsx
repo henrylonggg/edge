@@ -2279,6 +2279,90 @@ function formatBrewPercent(value) {
   return `${sign}${Math.abs(num).toFixed(2)}%`;
 }
 
+
+
+function formatEarningsDate(dateText) {
+  if (!dateText) return "Date TBD";
+  const date = new Date(`${dateText}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return String(dateText);
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", weekday: "short" });
+}
+
+function groupEarningsByDate(events = []) {
+  return (Array.isArray(events) ? events : []).reduce((acc, item) => {
+    const date = String(item?.date || "").slice(0, 10) || "TBD";
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(item);
+    return acc;
+  }, {});
+}
+
+function buildEarningsCalendarDays(events = [], days = 14) {
+  const byDate = groupEarningsByDate(events);
+  const output = [];
+  const today = new Date();
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    output.push({ date: key, events: byDate[key] || [] });
+  }
+  return output;
+}
+
+function EarningsMiniList({ earnings = [], emptyText = "No upcoming portfolio earnings found." }) {
+  const grouped = groupEarningsByDate(earnings);
+  const dates = Object.keys(grouped).sort();
+  if (!dates.length) return <p className="morning-muted">{emptyText}</p>;
+  return (
+    <div className="earnings-mini-list">
+      {dates.map((date) => (
+        <div className="earnings-mini-day" key={date}>
+          <div className="earnings-mini-date">{formatEarningsDate(date)}</div>
+          <div className="earnings-mini-events">
+            {grouped[date].map((event, index) => (
+              <article className="earnings-mini-event" key={`${event.symbol}-${date}-${index}`}>
+                <strong>{event.symbol}</strong>
+                <span>{event.expectations || "Expectations unavailable"}</span>
+              </article>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PortfolioEarningsCalendar({ earnings = [], loading = false }) {
+  const days = buildEarningsCalendarDays(earnings, 14);
+  return (
+    <section className="portfolio-earnings-calendar-card">
+      <div className="portfolio-card-title-row">
+        <div>
+          <span className="section-title"><Activity size={17}/> Earnings calendar</span>
+          <h3>Upcoming portfolio earnings</h3>
+        </div>
+        <small>Next two weeks • portfolio holdings only</small>
+      </div>
+      {loading ? <div className="portfolio-earnings-loading"><RefreshCw className="spin" size={16}/> Loading earnings dates...</div> : null}
+      <div className="portfolio-earnings-calendar-grid">
+        {days.map((day) => (
+          <div className={`portfolio-earnings-day ${day.events.length ? "has-events" : "empty"}`} key={day.date}>
+            <span>{formatEarningsDate(day.date)}</span>
+            <div>
+              {day.events.length ? day.events.map((event, index) => (
+                <button type="button" className="portfolio-earnings-ticker" key={`${event.symbol}-${index}`} title={event.expectations || "Expectations unavailable"}>
+                  {event.symbol}
+                </button>
+              )) : <small>—</small>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MorningBrewDashboard({ onBack }) {
   const { user } = useUser();
   const [brew, setBrew] = useState(null);
@@ -2320,6 +2404,7 @@ function MorningBrewDashboard({ onBack }) {
   const indexes = brew?.market?.indexes || [];
   const articles = brew?.market?.articles || [];
   const alerts = brew?.portfolio?.alerts || [];
+  const earnings = brew?.market?.earnings?.events || [];
 
   return (
     <main className="app-shell morning-brew-page-shell">
@@ -2399,6 +2484,11 @@ function MorningBrewDashboard({ onBack }) {
               )}
             </section>
 
+            <section className="morning-brew-card earnings-card wide">
+              <div className="morning-section-title"><Activity size={17}/> Portfolio earnings this week</div>
+              <EarningsMiniList earnings={earnings} emptyText="No saved-portfolio earnings are scheduled in the next 5 trading days." />
+            </section>
+
             <section className="morning-brew-card news-card wide">
               <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
               <div className="morning-news-list morning-news-cards">
@@ -2457,6 +2547,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
   const [strategySavedLabel, setStrategySavedLabel] = useState("");
+  const [portfolioEarnings, setPortfolioEarnings] = useState([]);
+  const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -2478,6 +2570,35 @@ function PortfolioPage({ onBack, onAnalyze }) {
     if (!csvAnalysis?.industryGroups?.length) return;
     setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
     setOpenIndustries((current) => Object.keys(current || {}).length ? current : { [csvAnalysis.industryGroups[0]?.industry || ""]: true });
+  }, [csvAnalysis]);
+
+  useEffect(() => {
+    if (!csvAnalysis?.industryGroups?.length) {
+      setPortfolioEarnings([]);
+      return;
+    }
+    const symbols = [...new Set(csvAnalysis.industryGroups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))];
+    if (!symbols.length) return;
+    let alive = true;
+    async function loadPortfolioEarnings() {
+      setPortfolioEarningsLoading(true);
+      try {
+        const response = await fetch(`${API}/api/portfolio-earnings`, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ symbols, days: 14 }),
+        });
+        const json = await response.json().catch(() => null);
+        if (alive && response.ok) setPortfolioEarnings(Array.isArray(json?.events) ? json.events : []);
+      } catch {
+        if (alive) setPortfolioEarnings([]);
+      } finally {
+        if (alive) setPortfolioEarningsLoading(false);
+      }
+    }
+    loadPortfolioEarnings();
+    return () => { alive = false; };
   }, [csvAnalysis]);
 
   useEffect(() => {
@@ -3054,6 +3175,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
               );
             })}
           </div>
+
+          <PortfolioEarningsCalendar earnings={portfolioEarnings} loading={portfolioEarningsLoading} />
 
           <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5 portfolio-user-hidden-history">
             <div className="portfolio-card-title-row">
