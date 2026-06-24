@@ -507,7 +507,6 @@ function App() {
   const [compareError, setCompareError] = useState("");
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [morningBrewOpen, setMorningBrewOpen] = useState(false);
 
   function goMenu(nextView) {
     setMenuOpen(false);
@@ -888,6 +887,10 @@ function App() {
     );
   }
 
+  if (view === "morningBrew") {
+    return <MorningBrewDashboard onBack={() => setView("dashboard")} />;
+  }
+
   return (
     <main className="app-shell">
 
@@ -927,8 +930,6 @@ function App() {
           <AlertTriangle size={18} /> {error}
         </div>
       )}
-
-      {morningBrewOpen && <MorningBrewDashboard onClose={() => setMorningBrewOpen(false)} />}
 
       {view === "portfolio" ? (
         <PortfolioPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
@@ -1088,7 +1089,7 @@ function App() {
               <button
                 type="button"
                 className="morning-brew-trigger"
-                onClick={() => setMorningBrewOpen(true)}
+                onClick={() => setView("morningBrew")}
                 aria-label="Open Morning Brew"
                 title="Morning Brew"
               >
@@ -2267,7 +2268,7 @@ function formatBrewPercent(value) {
   return `${sign}${Math.abs(num).toFixed(2)}%`;
 }
 
-function MorningBrewDashboard({ onClose }) {
+function MorningBrewDashboard({ onBack }) {
   const { user } = useUser();
   const [brew, setBrew] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2303,31 +2304,37 @@ function MorningBrewDashboard({ onClose }) {
   const alerts = brew?.portfolio?.alerts || [];
 
   return (
-    <div className="morning-brew-overlay" role="dialog" aria-modal="true" aria-label="Morning Brew report">
-      <div className="morning-brew-panel">
-        <div className="morning-brew-head">
-          <div>
+    <main className="app-shell morning-brew-page-shell">
+      <div className="portrait-lock-overlay" aria-hidden="true">
+        <div className="portrait-lock-card">
+          <div className="portrait-lock-icon">↻</div>
+          <h2>Rotate your device</h2>
+          <p>Eval is designed for portrait mode on mobile and tablet.</p>
+        </div>
+      </div>
+
+      <section className="morning-brew-page">
+        <div className="morning-brew-hero">
+          <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
+            <ArrowLeft size={18} /> Back to dashboard
+          </button>
+          <div className="morning-brew-title-wrap">
             <span className="assistant-kicker"><span className="morning-coffee-symbol small" aria-hidden="true">☕</span> Morning Brew</span>
             <h2>Pre-market report</h2>
-            <p>Market movers, influential headlines, and saved portfolio alerts.</p>
+            <p>Index movement, influential headlines, and alerts from your saved portfolio stocks.</p>
           </div>
-          <div className="morning-brew-actions">
-            <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
-              {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
-            </button>
-            <button type="button" className="morning-brew-close" onClick={onClose} aria-label="Close Morning Brew">
-              <X size={20}/>
-            </button>
-          </div>
+          <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
+            {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
+          </button>
         </div>
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
         {loading && !brew ? (
           <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Building Morning Brew...</div>
         ) : (
-          <div className="morning-brew-grid">
+          <div className="morning-brew-page-grid">
             <section className="morning-brew-card market-card">
-              <div className="morning-section-title"><BarChart3 size={17}/> Index movement</div>
+              <div className="morning-section-title"><BarChart3 size={17}/> Pre-market indexes</div>
               <div className="morning-index-grid">
                 {indexes.length ? indexes.map((item) => {
                   const tone = Number(item.changePercent || 0) >= 0 ? "positive" : "negative";
@@ -2335,12 +2342,11 @@ function MorningBrewDashboard({ onClose }) {
                     <div className={`morning-index ${tone}`} key={item.name || item.proxy}>
                       <span>{item.name}</span>
                       <strong>{formatBrewPercent(item.changePercent)}</strong>
-                      <small>{formatBrewCurrency(item.change)} via {item.proxy}</small>
                     </div>
                   );
                 }) : <p className="morning-muted">Index data is unavailable right now.</p>}
               </div>
-              <p className="morning-footnote">{brew?.market?.note || "ETF proxies are used when direct index values are unavailable."}</p>
+              <p className="morning-footnote">Pre-market movement uses liquid index ETF proxies, displayed as Dow Jones, Nasdaq, and S&amp;P 500.</p>
             </section>
 
             <section className="morning-brew-card portfolio-alert-card">
@@ -2360,24 +2366,24 @@ function MorningBrewDashboard({ onClose }) {
             </section>
 
             <section className="morning-brew-card news-card wide">
-              <div className="morning-section-title"><Newspaper size={17}/> Top market headlines</div>
-              <div className="morning-news-list">
+              <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
+              <div className="morning-news-list morning-news-cards">
                 {articles.length ? articles.map((article, index) => (
-                  <a className="morning-news-item" href={article.url} target="_blank" rel="noreferrer" key={`${article.url}-${index}`}>
+                  <article className="morning-news-item" key={`${article.url || article.headline}-${index}`}>
                     <span>{index + 1}</span>
                     <div>
                       <b>{article.headline}</b>
-                      <p>{article.summary || article.source || "Market headline from Finnhub."}</p>
-                      <small>{article.source || "Finnhub"}</small>
+                      <p>{article.summary || "A market-moving headline to watch before the open."}</p>
+                      {article.url ? <a href={article.url} target="_blank" rel="noreferrer">Read full article</a> : null}
                     </div>
-                  </a>
+                  </article>
                 )) : <p className="morning-muted">No market headlines returned yet.</p>}
               </div>
             </section>
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
