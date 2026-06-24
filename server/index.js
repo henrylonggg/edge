@@ -1573,7 +1573,7 @@ app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Eval backend",
-    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv"],
+    routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv", "/api/morning-brew"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
     dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
@@ -1693,6 +1693,233 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
       error: error?.message || "Could not generate this score breakdown.",
       route: "api/score-breakdown",
     });
+  }
+});
+
+
+
+const morningBrewCache = new Map();
+
+function morningBrewDateKey(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function cleanArticle(article = {}) {
+  return {
+    headline: String(article.headline || article.title || "Market update").slice(0, 180),
+    summary: String(article.summary || "").slice(0, 420),
+    source: String(article.source || "Finnhub").slice(0, 80),
+    url: String(article.url || ""),
+    datetime: Number(article.datetime || 0),
+    image: String(article.image || ""),
+  };
+}
+
+async function fetchFinnhubJson(url, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchMorningBrewNews() {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) return [];
+  const url = new URL("https://finnhub.io/api/v1/news");
+  url.searchParams.set("category", "general");
+  url.searchParams.set("token", apiKey);
+  const data = await fetchFinnhubJson(url);
+  if (!Array.isArray(data)) return [];
+  const marketTerms = /stock|stocks|market|markets|fed|inflation|rates|yield|bond|earnings|ai|chip|semiconductor|oil|dollar|nasdaq|dow|s&p|sp 500|wall street|futures|premarket|pre-market/i;
+  return data
+    .map(cleanArticle)
+    .filter((article) => article.headline && article.url)
+    .sort((a, b) => {
+      const aHit = marketTerms.test(`${a.headline} ${a.summary}`) ? 1 : 0;
+      const bHit = marketTerms.test(`${b.headline} ${b.summary}`) ? 1 : 0;
+      if (aHit !== bHit) return bHit - aHit;
+      return Number(b.datetime || 0) - Number(a.datetime || 0);
+    })
+    .slice(0, 5);
+}
+
+async function fetchMorningQuote(symbol) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cleanSymbol = cleanTicker(symbol);
+  if (!apiKey || !cleanSymbol) return null;
+  const url = new URL("https://finnhub.io/api/v1/quote");
+  url.searchParams.set("symbol", cleanSymbol);
+  url.searchParams.set("token", apiKey);
+  const quote = await fetchFinnhubJson(url);
+  const current = Number(quote?.c);
+  const previousClose = Number(quote?.pc);
+  const change = Number.isFinite(Number(quote?.d)) ? Number(quote.d) : current - previousClose;
+  const changePercent = Number.isFinite(Number(quote?.dp)) ? Number(quote.dp) : (previousClose ? (change / previousClose) * 100 : null);
+  if (!Number.isFinite(current) || current <= 0) return null;
+  return {
+    symbol: cleanSymbol,
+    current,
+    previousClose: Number.isFinite(previousClose) ? previousClose : null,
+    change: Number.isFinite(change) ? change : null,
+    changePercent: Number.isFinite(changePercent) ? changePercent : null,
+  };
+}
+
+async function buildMorningBrewMarket(forceRefresh = false) {
+  const key = morningBrewDateKey();
+  const cached = morningBrewCache.get(key);
+  if (!forceRefresh && cached && Date.now() - Number(cached.savedAt || 0) < 6 * 60 * 60 * 1000) {
+    return cached.data;
+  }
+
+  const [news, spy, dia, qqq] = await Promise.all([
+    fetchMorningBrewNews(),
+    fetchMorningQuote("SPY"),
+    fetchMorningQuote("DIA"),
+    fetchMorningQuote("QQQ"),
+  ]);
+
+  const data = {
+    date: key,
+    generatedAt: new Date().toISOString(),
+    indexes: [
+      { name: "S&P 500", proxy: "SPY", ...spy },
+      { name: "Dow", proxy: "DIA", ...dia },
+      { name: "Nasdaq", proxy: "QQQ", ...qqq },
+    ].filter((item) => item?.current),
+    articles: news,
+    note: "Index movement uses SPY, DIA, and QQQ as liquid pre-market proxies when direct index symbols are not available.",
+  };
+
+  morningBrewCache.set(key, { savedAt: Date.now(), data });
+  // Keep only recent daily reports.
+  if (morningBrewCache.size > 7) {
+    for (const cacheKey of morningBrewCache.keys()) {
+      if (cacheKey !== key) morningBrewCache.delete(cacheKey);
+    }
+  }
+  return data;
+}
+
+async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}) {
+  const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
+    .map(cleanTicker)
+    .filter(Boolean))].slice(0, 30);
+
+  if (!cleanSymbols.length) {
+    return {
+      hasPortfolio: false,
+      alerts: [],
+      message: "Load a portfolio to see holdings-specific Eval alerts here.",
+    };
+  }
+
+  const alerts = [];
+  const reports = [];
+  for (const symbol of cleanSymbols) {
+    try {
+      const report = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
+      const currentScore = portfolioScore10(report?.grades?.edgeScore);
+      const priorScore = portfolioScore10(previousScores?.[symbol]);
+      const cats = report?.grades?.categories || {};
+      reports.push({ symbol, name: report?.profile?.name || symbol, score: currentScore, priorScore, categories: cats });
+      if (currentScore !== null && priorScore !== null) {
+        const change = Number((currentScore - priorScore).toFixed(1));
+        if (Math.abs(change) >= 0.4) {
+          alerts.push({
+            type: change > 0 ? "score-up" : "score-down",
+            symbol,
+            headline: `${symbol} Eval Score moved ${change > 0 ? "up" : "down"} ${Math.abs(change).toFixed(1)}`,
+            detail: `${symbol} changed from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.`,
+            score: currentScore,
+            priorScore,
+            change,
+          });
+        }
+      }
+    } catch {
+      alerts.push({
+        type: "watch",
+        symbol,
+        headline: `${symbol} needs a fresh check`,
+        detail: "Eval could not rescore this holding during the Morning Brew refresh.",
+      });
+    }
+  }
+
+  if (!alerts.length) {
+    reports
+      .filter((item) => item.score !== null)
+      .sort((a, b) => Math.abs(7 - Number(b.score || 0)) - Math.abs(7 - Number(a.score || 0)))
+      .slice(0, 3)
+      .forEach((item) => {
+        alerts.push({
+          type: Number(item.score) >= 7.5 ? "strength" : Number(item.score) < 6.5 ? "risk" : "watch",
+          symbol: item.symbol,
+          headline: `${item.symbol} is at ${Number(item.score).toFixed(1)}`,
+          detail: Number(item.score) >= 7.5
+            ? `${item.symbol} is one of the stronger holdings in the saved portfolio right now.`
+            : Number(item.score) < 6.5
+              ? `${item.symbol} is one of the weaker holdings to review this morning.`
+              : `${item.symbol} is sitting in the mixed range and is worth monitoring.`,
+          score: item.score,
+          priorScore: item.priorScore,
+        });
+      });
+  }
+
+  return {
+    hasPortfolio: true,
+    symbols: cleanSymbols,
+    alerts: alerts.slice(0, 8),
+    rescored: reports.length,
+  };
+}
+
+app.post("/api/morning-brew", async (req, res) => {
+  try {
+    const forceRefresh = String(req.query.refresh || "0") === "1";
+    const market = await buildMorningBrewMarket(forceRefresh);
+    const portfolio = await buildMorningPortfolioAlerts(req.body?.symbols || [], req.body?.previousScores || {});
+    res.json({
+      ok: true,
+      title: "Morning Brew",
+      generatedAt: new Date().toISOString(),
+      market,
+      portfolio,
+    });
+  } catch (error) {
+    console.error("Morning Brew route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build Morning Brew.", route: "api/morning-brew" });
+  }
+});
+
+app.get("/api/morning-brew", async (req, res) => {
+  try {
+    const forceRefresh = String(req.query.refresh || "0") === "1";
+    const market = await buildMorningBrewMarket(forceRefresh);
+    res.json({
+      ok: true,
+      title: "Morning Brew",
+      generatedAt: new Date().toISOString(),
+      market,
+      portfolio: { hasPortfolio: false, alerts: [], message: "Open Morning Brew from the dashboard to include saved portfolio alerts." },
+    });
+  } catch (error) {
+    console.error("Morning Brew GET failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build Morning Brew.", route: "api/morning-brew" });
   }
 });
 
