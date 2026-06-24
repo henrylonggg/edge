@@ -28752,3 +28752,37 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 @media (max-width: 900px) {
   .portfolio-strategy-target-grid-v1, .portfolio-strategy-suggestions-v1 { grid-template-columns: 1fr; }
 }
+
+/* Portfolio Strategy save + target polish */
+.portfolio-strategy-save-btn {
+  border-color: rgba(56,255,165,.45) !important;
+  background: linear-gradient(135deg, rgba(35,255,160,.22), rgba(255,255,255,.06)) !important;
+  color: #ecfff7 !important;
+  box-shadow: 0 0 20px rgba(35,255,160,.12);
+}
+.portfolio-strategy-saved-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  color: rgba(255,255,255,.82);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+.portfolio-strategy-target-grid-v1 label small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255,255,255,.58);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+.portfolio-strategy-target-grid-v1 input {
+  margin-top: 8px;
+}
+.portfolio-industry-title-v3 small {
+  gap: 4px;
+}
