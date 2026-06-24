@@ -29581,3 +29581,159 @@ body:has(.morning-brew-page-shell) {
     padding: 18px;
   }
 }
+
+/* PORTFOLIO TOP SCORE / ACTION POPUP CLEANUP */
+.portfolio-hero-grid-v3 {
+  align-items: stretch !important;
+}
+
+.portfolio-score-card-v3.portfolio-score-card-clickable {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-height: 270px !important;
+  padding: 30px !important;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,255,255,.06), transparent 34%),
+    linear-gradient(145deg, rgba(11, 15, 32, .95), rgba(21, 18, 50, .92)) !important;
+}
+
+.portfolio-score-card-v3.portfolio-score-card-clickable.green,
+.portfolio-score-card-v3.portfolio-score-card-clickable.yellow,
+.portfolio-score-card-v3.portfolio-score-card-clickable.red {
+  border-width: 6px !important;
+  box-shadow:
+    inset 0 0 0 2px currentColor,
+    0 16px 44px rgba(0,0,0,.40) !important;
+}
+
+.portfolio-score-card-v3.portfolio-score-card-clickable:hover,
+.portfolio-score-card-v3.portfolio-score-card-clickable:focus-visible {
+  border-width: 8px !important;
+  transform: translateY(-1px) !important;
+  box-shadow:
+    inset 0 0 0 2px currentColor,
+    0 18px 48px rgba(0,0,0,.45) !important;
+}
+
+.portfolio-score-card-v3 .portfolio-score-ring-stack {
+  width: 100% !important;
+  height: 100% !important;
+  display: grid !important;
+  place-items: center !important;
+  gap: 10px !important;
+}
+
+.portfolio-score-card-v3 .portfolio-score-text-badge.main {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  font-size: clamp(104px, 9vw, 156px) !important;
+  line-height: .82 !important;
+  letter-spacing: -.075em !important;
+  text-align: center !important;
+  text-shadow: 0 2px 0 rgba(0,0,0,.28), 0 0 12px color-mix(in srgb, currentColor 22%, transparent) !important;
+}
+
+.portfolio-score-card-v3 .portfolio-score-text-badge.main::before,
+.portfolio-score-card-v3 .portfolio-score-text-badge.main::after {
+  display: none !important;
+}
+
+.portfolio-score-card-v3 .portfolio-score-change-pill,
+.portfolio-score-card-v3 .portfolio-score-change-pill.up,
+.portfolio-score-card-v3 .portfolio-score-change-pill.down {
+  color: #fff !important;
+  text-shadow: none !important;
+  font-size: clamp(30px, 3.2vw, 46px) !important;
+}
+
+.portfolio-total-value-card-v3.portfolio-total-value-card-wide {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+.portfolio-total-value-card-v3 .portfolio-total-value-line strong {
+  font-size: clamp(46px, 5.4vw, 76px) !important;
+}
+
+.portfolio-total-value-card-v3 .portfolio-value-change {
+  font-size: clamp(28px, 3.3vw, 46px) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+.portfolio-dashboard-action-row.portfolio-dashboard-action-row-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.portfolio-action-tile {
+  min-height: 116px !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.portfolio-action-tile b {
+  font-size: clamp(2rem, 3.2vw, 3.7rem) !important;
+  line-height: .92 !important;
+  letter-spacing: -.05em !important;
+}
+
+.portfolio-action-tile small {
+  color: rgba(255,255,255,.72) !important;
+  font-weight: 950 !important;
+  font-size: .95rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: .08em !important;
+}
+
+.portfolio-action-tile span {
+  display: none !important;
+}
+
+.portfolio-industry-score-popup {
+  position: relative;
+  width: min(920px, calc(100vw - 34px));
+  max-height: min(82vh, 780px);
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.14);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(21,231,255,.16), transparent 34%),
+    radial-gradient(circle at 100% 14%, rgba(159,92,255,.16), transparent 38%),
+    linear-gradient(145deg, rgba(10,18,32,.97), rgba(25,19,56,.96));
+  box-shadow: 0 34px 110px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.12);
+  padding: clamp(18px, 3vw, 30px);
+}
+
+.portfolio-industry-score-popup .portfolio-industry-bars-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.portfolio-industry-score-popup .portfolio-card-title-row {
+  padding-right: 54px;
+}
+
+@media (max-width: 900px) {
+  .portfolio-dashboard-action-row.portfolio-dashboard-action-row-three {
+    grid-template-columns: 1fr !important;
+  }
+  .portfolio-score-card-v3.portfolio-score-card-clickable {
+    min-height: 220px !important;
+  }
+  .portfolio-score-card-v3 .portfolio-score-text-badge.main {
+    font-size: clamp(86px, 22vw, 122px) !important;
+  }
+  .portfolio-total-value-card-v3 .portfolio-total-value-line strong {
+    font-size: clamp(38px, 11vw, 58px) !important;
+  }
+}
