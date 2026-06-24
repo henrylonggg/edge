@@ -2456,6 +2456,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [metricModal, setMetricModal] = useState(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
+  const [strategySavedLabel, setStrategySavedLabel] = useState("");
 
   useEffect(() => {
     try {
@@ -2662,7 +2663,23 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   function updateStrategyTarget(industry, value) {
     const clean = String(value || "").replace(/[^0-9.]/g, "");
+    setStrategySavedLabel("");
     setStrategyTargets((current) => ({ ...current, [industry]: clean }));
+  }
+
+  function saveStrategyTargets(nextTargets = strategyTargets) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
+      localStorage.setItem(storageKey, JSON.stringify({
+        ...saved,
+        strategyTargets: nextTargets,
+        strategySavedAt: new Date().toISOString(),
+      }));
+      setStrategyTargets(nextTargets);
+      setStrategySavedLabel("Strategy saved");
+    } catch {
+      setStrategySavedLabel("Could not save strategy");
+    }
   }
 
   function applyCurrentStrategyWeights() {
@@ -2671,44 +2688,73 @@ function PortfolioPage({ onBack, onAnalyze }) {
       next[group.industry] = Number(group.totalWeightPercent || 0).toFixed(1);
     });
     setStrategyTargets(next);
+    setStrategySavedLabel("Review and save current weights");
   }
 
-  function applyOLearyStyleStrategy() {
+  function normalizeStrategyWeights(rawWeights, groups) {
+    const next = {};
+    const present = (groups || []).map((group) => group.industry).filter(Boolean);
+    if (!present.length) return next;
+
+    let total = 0;
+    present.forEach((industry) => {
+      const exact = rawWeights[industry];
+      const fuzzyKey = Object.keys(rawWeights).find((name) => {
+        const a = String(name).toLowerCase();
+        const b = String(industry).toLowerCase();
+        return a === b || a.includes(b) || b.includes(a);
+      });
+      const value = Number(exact ?? rawWeights[fuzzyKey] ?? 0);
+      const cleaned = Number.isFinite(value) ? Math.max(0, value) : 0;
+      next[industry] = cleaned;
+      total += cleaned;
+    });
+
+    if (total <= 0) {
+      const equal = 100 / present.length;
+      present.forEach((industry) => { next[industry] = equal; });
+      total = 100;
+    }
+
+    Object.keys(next).forEach((industry) => {
+      next[industry] = Number(((next[industry] / total) * 100).toFixed(1));
+    });
+
+    const roundedTotal = Object.values(next).reduce((sum, value) => sum + Number(value || 0), 0);
+    const diff = Number((100 - roundedTotal).toFixed(1));
+    if (Math.abs(diff) >= 0.1) {
+      const largest = Object.keys(next).sort((a, b) => Number(next[b] || 0) - Number(next[a] || 0))[0];
+      if (largest) next[largest] = Number((Number(next[largest] || 0) + diff).toFixed(1));
+    }
+
+    const formatted = {};
+    Object.entries(next).forEach(([industry, value]) => {
+      formatted[industry] = Number(value).toFixed(1);
+    });
+    return formatted;
+  }
+
+  function applyEvalStrategy() {
     const groups = csvAnalysis?.industryGroups || [];
     if (!groups.length) return;
-    const preferred = {
-      Technology: 20,
-      "Financial Services": 15,
-      Financials: 15,
-      Healthcare: 15,
-      Industrials: 12,
-      "Consumer Cyclical": 10,
-      "Consumer Defensive": 8,
-      Energy: 8,
-      Utilities: 5,
+    const evalStrategyWeights = {
+      Technology: 22,
       "Communication Services": 10,
-      "Real Estate": 4,
-      Materials: 5,
+      Healthcare: 14,
+      "Financial Services": 13,
+      Financials: 13,
+      Industrials: 10,
+      "Consumer Defensive": 9,
+      "Consumer Cyclical": 8,
+      Energy: 6,
+      Utilities: 4,
+      "Real Estate": 3,
+      "Basic Materials": 1,
+      Materials: 1,
     };
-    const next = {};
-    let remaining = 100;
-    groups.forEach((group) => {
-      const key = Object.keys(preferred).find((name) => group.industry.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(group.industry.toLowerCase()));
-      const value = Math.min(20, key ? preferred[key] : Math.max(5, Math.floor(100 / groups.length)));
-      next[group.industry] = String(value);
-      remaining -= value;
-    });
-    const names = Object.keys(next);
-    let i = 0;
-    while (remaining !== 0 && names.length) {
-      const name = names[i % names.length];
-      const current = Number(next[name] || 0);
-      if (remaining > 0 && current < 20) { next[name] = String(current + 1); remaining -= 1; }
-      else if (remaining < 0 && current > 3) { next[name] = String(current - 1); remaining += 1; }
-      i += 1;
-      if (i > 500) break;
-    }
+    const next = normalizeStrategyWeights(evalStrategyWeights, groups);
     setStrategyTargets(next);
+    setStrategySavedLabel("Eval Strategy loaded — press Save Strategy to keep it");
   }
 
   function buildStrategySuggestions() {
@@ -2722,11 +2768,14 @@ function PortfolioPage({ onBack, onAnalyze }) {
       let action = "Set a target weight to compare this industry.";
       let tone = "neutral";
       if (Number.isFinite(diff)) {
-        if (diff > 3) {
-          action = score >= 7.5 ? "Above target but strong; trim only if concentration is getting too large." : "Above target; consider trimming or redirecting new cash elsewhere.";
-          tone = diff > 8 ? "red" : "yellow";
-        } else if (diff < -3) {
-          action = score >= 7.0 ? "Below target with a solid score; consider adding from the strongest holdings in this industry." : "Below target, but wait for stronger Eval scores before adding heavily.";
+        if (diff >= 8 || (target > 0 && actual / target >= 1.25)) {
+          action = score >= 7.5 ? "Above target but high quality; consider trimming only if it keeps stretching past the strategy range." : "Above target by a wide margin; consider trimming or redirecting new cash into underweight industries.";
+          tone = "red";
+        } else if (diff > 3) {
+          action = "Slightly above target; watch the weight before adding more here.";
+          tone = "yellow";
+        } else if (diff <= -5) {
+          action = score >= 7.0 ? "Below target with a solid score; consider adding through the strongest holdings in this industry." : "Below target, but wait for stronger Eval Scores before adding heavily.";
           tone = score >= 7 ? "green" : "yellow";
         } else {
           action = "Close to target; no major rebalance pressure.";
@@ -2916,13 +2965,16 @@ function PortfolioPage({ onBack, onAnalyze }) {
             {strategyOpen && (
               <div className="portfolio-strategy-body-v1">
                 <div className="portfolio-strategy-actions-v1">
-                  <button type="button" onClick={applyOLearyStyleStrategy}>Use prebuilt O'Leary-style plan</button>
+                  <button type="button" onClick={applyEvalStrategy}>Use Eval Strategy</button>
                   <button type="button" onClick={applyCurrentStrategyWeights}>Use current weights</button>
+                  <button type="button" className="portfolio-strategy-save-btn" onClick={() => saveStrategyTargets(strategyTargets)}>Save Strategy</button>
+                  {strategySavedLabel ? <span className="portfolio-strategy-saved-label">{strategySavedLabel}</span> : null}
                 </div>
                 <div className="portfolio-strategy-target-grid-v1">
                   {industryGroups.map((group) => (
                     <label key={group.industry}>
                       <span>{group.industry}</span>
+                      <small>Current {Number(group.totalWeightPercent || 0).toFixed(1)}% • Target {strategyTargets[group.industry] ? `${Number(strategyTargets[group.industry]).toFixed(1)}%` : "not set"}</small>
                       <input value={strategyTargets[group.industry] || ""} onChange={(event) => updateStrategyTarget(group.industry, event.target.value)} placeholder={`${Number(group.totalWeightPercent || 0).toFixed(1)}%`} inputMode="decimal" />
                     </label>
                   ))}
@@ -2956,7 +3008,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.industry)}>
                   <div className="portfolio-industry-title-v3">
                     <span>{group.industry}</span>
-                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% of portfolio • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Click to close" : "Click to view holdings"}</small>
+                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% current{strategyTargets[group.industry] ? ` / ${Number(strategyTargets[group.industry]).toFixed(1)}% target` : ""} • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Click to close" : "Click to view holdings"}</small>
                   </div>
                   <MiniScoreRing value={group.industryEvalScore} small industry />
                 </button>
