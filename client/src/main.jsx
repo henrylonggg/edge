@@ -2331,18 +2331,19 @@ function MorningBrewDashboard({ onBack }) {
       </div>
 
       <section className="morning-brew-page">
-        <div className="morning-brew-hero">
-          <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
-            <ArrowLeft size={18} /> Back to dashboard
-          </button>
-          <div className="morning-brew-title-wrap">
-            <span className="assistant-kicker"><span className="morning-coffee-symbol small" aria-hidden="true">☕</span> Morning Brew</span>
-            <h2>Pre-market report</h2>
-            <p>Index movement, influential headlines, and alerts from your saved portfolio stocks.</p>
+        <div className="morning-brew-hero morning-brew-hero-clean">
+          <div className="morning-brew-title-wrap morning-brew-title-clean">
+            <span className="morning-brew-giant-cup" aria-hidden="true">☕</span>
+            <h2>Morning Brew</h2>
           </div>
-          <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
-            {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
-          </button>
+          <div className="morning-brew-actions-clean">
+            <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
+              <ArrowLeft size={18} /> Back to dashboard
+            </button>
+            <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
+              {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
+            </button>
+          </div>
         </div>
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
@@ -2372,8 +2373,23 @@ function MorningBrewDashboard({ onBack }) {
                 <div className="morning-alert-list">
                   {alerts.map((alert, index) => (
                     <div className={`morning-alert ${alert.type || "watch"}`} key={`${alert.symbol || "alert"}-${index}`}>
-                      <b>{alert.headline}</b>
+                      <div className="morning-alert-topline">
+                        <b>{alert.headline}</b>
+                        {alert.dayChangePercent !== null && alert.dayChangePercent !== undefined ? (
+                          <strong className={`morning-alert-move ${Number(alert.dayChangePercent) >= 0 ? "up" : "down"}`}>
+                            {formatBrewPercent(alert.dayChangePercent)} today
+                          </strong>
+                        ) : null}
+                      </div>
                       <p>{alert.detail}</p>
+                      {alert.news?.headline ? (
+                        <div className="morning-alert-news">
+                          <span>Latest news</span>
+                          <b>{alert.news.headline}</b>
+                          {alert.news.summary ? <p>{alert.news.summary}</p> : null}
+                          {alert.news.url ? <a href={alert.news.url} target="_blank" rel="noreferrer">Read article</a> : null}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -2771,7 +2787,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                 <button type="button" onClick={() => setHideHoldingsValue((v) => !v)}>{hideHoldingsValue ? "Show" : "Hide"}</button>
               </div>
               <b className={`portfolio-value-change ${Number(totalHoldingsDollarChange) >= 0 ? "up" : "down"}`}>
-                {signedMoney(totalHoldingsDollarChange)} ({signedPercent(totalHoldingsChangePct)})
+                {hideHoldingsValue ? "******" : signedMoney(totalHoldingsDollarChange)} ({signedPercent(totalHoldingsChangePct)})
               </b>
             </article>
 
