@@ -2608,7 +2608,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [manualOpen, setManualOpen] = useState(false);
   const [portfolioToolsOpen, setPortfolioToolsOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
-  const [hideHoldingsValue, setHideHoldingsValue] = useState(false);
+  const [hideHoldingsValue, setHideHoldingsValue] = useState(true);
   const [activeIndustry, setActiveIndustry] = useState("");
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
@@ -2641,7 +2641,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
   useEffect(() => {
     if (!csvAnalysis?.industryGroups?.length) return;
     setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
-    setOpenIndustries((current) => current || {});
+    setOpenIndustries({});
   }, [csvAnalysis]);
 
   useEffect(() => {
@@ -3150,30 +3150,20 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
           </div>
 
-          <div className="portfolio-dashboard-action-row">
+          <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-three">
             <button type="button" className="portfolio-action-tile pros" onClick={() => setPortfolioInsightModal({ type: "pros", title: `${portfolioTitle} strengths`, text: prosCons.pros })}>
-              <span>• PROS</span>
-              <b>View strengths</b>
+              <b>PROS</b>
+              <small>Click to view</small>
             </button>
             <button type="button" className="portfolio-action-tile cons" onClick={() => setPortfolioInsightModal({ type: "cons", title: `${portfolioTitle} weaknesses`, text: prosCons.cons })}>
-              <span>• CONS</span>
-              <b>View weaknesses</b>
+              <b>CONS</b>
+              <small>Click to view</small>
             </button>
-            <button type="button" className={`portfolio-action-tile industries ${industryScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
-              <span>Industry scores</span>
-              <b>{industryScoresOpen ? "Click to close" : "Click to view"}</b>
-            </button>
-            <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-              <span>↓ Holdings</span>
-              <b>Jump to holdings</b>
+            <button type="button" className="portfolio-action-tile industries" onClick={() => setIndustryScoresOpen(true)}>
+              <b>Industry Scores</b>
+              <small>Click to view</small>
             </button>
           </div>
-
-          {industryScoresOpen && (
-            <div className="portfolio-industry-score-panel-wrap">
-              <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
-            </div>
-          )}
 
           <section className="portfolio-strategy-panel-v1">
             <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
@@ -3274,6 +3264,16 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
             <PortfolioHiddenDataTable valueHistory={historyPoints} evalHistory={evalHistoryPoints} />
           </article>
+
+
+          {industryScoresOpen && (
+            <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={() => setIndustryScoresOpen(false)}>
+              <article className="portfolio-industry-score-popup" role="dialog" aria-modal="true" aria-label="Industry scores" onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="portfolio-metric-modal-close" onClick={() => setIndustryScoresOpen(false)} aria-label="Close industry scores">×</button>
+                <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+              </article>
+            </div>
+          )}
 
           {portfolioInsightModal && (
             <div className="portfolio-metric-modal-backdrop" role="presentation" onClick={() => setPortfolioInsightModal(null)}>
