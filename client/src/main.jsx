@@ -43,7 +43,6 @@ import {
   Newspaper,
   HelpCircle,
   Menu,
-  Coffee,
   X,
 } from "lucide-react";
 import "./styles.css";
@@ -1093,7 +1092,7 @@ function App() {
                 aria-label="Open Morning Brew"
                 title="Morning Brew"
               >
-                <Coffee size={18} />
+                <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
               </button>
             </form>
 
@@ -2308,7 +2307,7 @@ function MorningBrewDashboard({ onClose }) {
       <div className="morning-brew-panel">
         <div className="morning-brew-head">
           <div>
-            <span className="assistant-kicker"><Coffee size={16}/> Morning Brew</span>
+            <span className="assistant-kicker"><span className="morning-coffee-symbol small" aria-hidden="true">☕</span> Morning Brew</span>
             <h2>Pre-market report</h2>
             <p>Market movers, influential headlines, and saved portfolio alerts.</p>
           </div>
