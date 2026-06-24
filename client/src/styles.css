@@ -28147,3 +28147,138 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   height: 16px;
   font-size: 15px;
 }
+
+/* Morning Brew page upgrade */
+.morning-brew-trigger {
+  position: relative;
+  min-width: 54px !important;
+  height: 54px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 214, 107, .72) !important;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 245, 172, .92), rgba(255, 214, 107, .42) 28%, transparent 52%),
+    linear-gradient(135deg, rgba(255, 214, 107, .28), rgba(122, 92, 255, .24), rgba(21, 231, 255, .14)) !important;
+  color: #fff !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 107, .24),
+    0 0 30px rgba(255, 214, 107, .38),
+    0 16px 34px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+  animation: morningBrewPulse 2.4s ease-in-out infinite;
+}
+.morning-brew-trigger:hover {
+  transform: translateY(-2px) scale(1.04) !important;
+  border-color: rgba(255, 232, 148, .95) !important;
+  box-shadow:
+    0 0 0 2px rgba(255, 214, 107, .32),
+    0 0 44px rgba(255, 214, 107, .58),
+    0 20px 42px rgba(0,0,0,.38),
+    inset 0 1px 0 rgba(255,255,255,.28) !important;
+}
+@keyframes morningBrewPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,214,107,.24), 0 0 24px rgba(255,214,107,.30), 0 16px 34px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.22); }
+  50% { box-shadow: 0 0 0 3px rgba(255,214,107,.20), 0 0 46px rgba(255,214,107,.56), 0 18px 38px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.26); }
+}
+.morning-brew-trigger .morning-coffee-symbol {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+.morning-brew-page-shell {
+  min-height: 100vh;
+}
+.morning-brew-page {
+  width: min(1380px, calc(100vw - 44px));
+  margin: 0 auto 80px;
+}
+.morning-brew-hero {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: stretch;
+  padding: 24px;
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.16);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255,214,107,.18), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(111,92,255,.28), transparent 34%),
+    linear-gradient(135deg, rgba(8, 28, 39, .78), rgba(12, 10, 37, .88));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 28px 80px rgba(0,0,0,.32);
+  margin: 18px 0 24px;
+}
+.morning-brew-back {
+  height: 100%;
+  min-height: 110px;
+  justify-content: center;
+  border-radius: 24px !important;
+}
+.morning-brew-title-wrap {
+  padding: 14px 8px;
+}
+.morning-brew-title-wrap h2 {
+  margin: 8px 0 8px;
+  color: #fff;
+  font-size: clamp(42px, 6vw, 86px);
+  line-height: .88;
+  letter-spacing: -.06em;
+  text-shadow: 0 0 28px rgba(255,255,255,.18);
+}
+.morning-brew-title-wrap p {
+  margin: 0;
+  max-width: 760px;
+  color: rgba(248,251,255,.72);
+  font-weight: 800;
+  line-height: 1.4;
+}
+.morning-brew-page .morning-brew-refresh {
+  align-self: center;
+  min-width: 145px;
+  height: 58px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,214,107,.24), rgba(122,92,255,.22));
+  border-color: rgba(255,214,107,.34);
+}
+.morning-brew-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  gap: 18px;
+}
+.morning-brew-page-grid .news-card.wide {
+  grid-column: 1 / -1;
+}
+.morning-brew-page-grid .morning-brew-card {
+  padding: 22px;
+}
+.morning-news-cards {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+}
+.morning-news-cards .morning-news-item {
+  grid-template-columns: 1fr;
+  min-height: 260px;
+  align-content: start;
+}
+.morning-news-cards .morning-news-item > span {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 6px;
+}
+.morning-news-item a {
+  display: inline-flex;
+  margin-top: 14px;
+  color: #ffd66b;
+  font-weight: 950;
+  text-decoration: none;
+}
+.morning-news-item a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 1180px) {
+  .morning-news-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .morning-brew-hero,
+  .morning-brew-page-grid,
+  .morning-news-cards { grid-template-columns: 1fr; }
+  .morning-brew-back { min-height: 64px; }
+}
