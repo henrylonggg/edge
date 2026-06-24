@@ -28647,3 +28647,108 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
     display: grid;
   }
 }
+
+/* Homepage / Portfolio strategy / assistant upgrade */
+.portfolio-user-hidden-history {
+  display: none !important;
+}
+.portfolio-strategy-panel-v1 {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  background: radial-gradient(circle at top left, rgba(129,92,255,.18), rgba(7,9,18,.92) 55%), rgba(12,14,26,.88);
+  border-radius: 26px;
+  padding: 14px;
+  box-shadow: 0 18px 55px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.portfolio-strategy-toggle {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 20px;
+  background: rgba(255,255,255,.045);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 17px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.portfolio-strategy-toggle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+.portfolio-strategy-toggle b {
+  font-size: .78rem;
+  color: rgba(255,255,255,.72);
+}
+.portfolio-strategy-body-v1 {
+  margin-top: 14px;
+  display: grid;
+  gap: 14px;
+}
+.portfolio-strategy-actions-v1 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.portfolio-strategy-actions-v1 button {
+  border: 1px solid rgba(255,255,255,.15);
+  background: linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.05));
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.portfolio-strategy-target-grid-v1 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.portfolio-strategy-target-grid-v1 label {
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.2);
+  border-radius: 16px;
+  padding: 10px;
+  display: grid;
+  gap: 7px;
+}
+.portfolio-strategy-target-grid-v1 span {
+  color: rgba(255,255,255,.7);
+  font-size: .78rem;
+  font-weight: 800;
+}
+.portfolio-strategy-target-grid-v1 input {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(5,7,14,.78);
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+}
+.portfolio-strategy-suggestions-v1 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.portfolio-strategy-suggestion {
+  border-radius: 18px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(255,255,255,.045);
+}
+.portfolio-strategy-suggestion.green { border-color: rgba(56,255,165,.35); background: linear-gradient(135deg, rgba(35,255,160,.16), rgba(255,255,255,.04)); }
+.portfolio-strategy-suggestion.yellow { border-color: rgba(255,215,90,.38); background: linear-gradient(135deg, rgba(255,210,70,.16), rgba(255,255,255,.04)); }
+.portfolio-strategy-suggestion.red { border-color: rgba(255,90,115,.38); background: linear-gradient(135deg, rgba(255,70,105,.16), rgba(255,255,255,.04)); }
+.portfolio-strategy-suggestion strong { display:block; color:#fff; font-size:.96rem; margin-bottom:5px; }
+.portfolio-strategy-suggestion span { display:block; color:rgba(255,255,255,.72); font-size:.78rem; font-weight:800; }
+.portfolio-strategy-suggestion p { margin:7px 0 0; color:rgba(255,255,255,.86); font-size:.86rem; line-height:1.35; }
+@media (max-width: 900px) {
+  .portfolio-strategy-target-grid-v1, .portfolio-strategy-suggestions-v1 { grid-template-columns: 1fr; }
+}
