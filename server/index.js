@@ -2076,7 +2076,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         }
       }
     } catch {
-      // Keep Morning Brew usable even if one holding cannot refresh.
+      // Keep Morning Mugs usable even if one holding cannot refresh.
     }
   }
 
@@ -2246,22 +2246,25 @@ app.post("/api/portfolio-earnings", async (req, res) => {
 app.post("/api/morning-brew", async (req, res) => {
   try {
     const forceRefresh = String(req.query.refresh || "0") === "1";
-    const symbols = req.body?.symbols || [];
+    const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols.map(cleanTicker).filter(Boolean) : [];
+    const hasPortfolio = symbols.length > 0;
     const [market, portfolio, earnings] = await Promise.all([
       buildMorningBrewMarket(forceRefresh),
-      buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {}),
-      getPortfolioEarnings(symbols, { tradingDays: 5 }),
+      hasPortfolio
+        ? buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {})
+        : Promise.resolve({ hasPortfolio: false, alerts: [], message: "" }),
+      hasPortfolio ? getPortfolioEarnings(symbols, { days: 14 }) : Promise.resolve({ events: [], symbols: [], cached: true }),
     ]);
     res.json({
       ok: true,
-      title: "Morning Brew",
+      title: "Morning Mugs",
       generatedAt: new Date().toISOString(),
       market: { ...market, earnings },
       portfolio,
     });
   } catch (error) {
-    console.error("Morning Brew route failed:", error?.stack || error?.message || error);
-    res.status(500).json({ error: error?.message || "Could not build Morning Brew.", route: "api/morning-brew" });
+    console.error("Morning Mugs route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build Morning Mugs.", route: "api/morning-brew" });
   }
 });
 
@@ -2271,14 +2274,14 @@ app.get("/api/morning-brew", async (req, res) => {
     const market = await buildMorningBrewMarket(forceRefresh);
     res.json({
       ok: true,
-      title: "Morning Brew",
+      title: "Morning Mugs",
       generatedAt: new Date().toISOString(),
       market,
-      portfolio: { hasPortfolio: false, alerts: [], message: "Open Morning Brew from the dashboard to include saved portfolio alerts." },
+      portfolio: { hasPortfolio: false, alerts: [], message: "" },
     });
   } catch (error) {
-    console.error("Morning Brew GET failed:", error?.stack || error?.message || error);
-    res.status(500).json({ error: error?.message || "Could not build Morning Brew.", route: "api/morning-brew" });
+    console.error("Morning Mugs GET failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build Morning Mugs.", route: "api/morning-brew" });
   }
 });
 
@@ -2846,7 +2849,7 @@ app.post("/api/assistant", async (req, res) => {
       "strategy",
       "rebalance",
       "trim",
-      "morning brew",
+      "morning mugs",
       "coffee",
       "alert",
       "alerts",
@@ -2971,7 +2974,7 @@ app.post("/api/assistant", async (req, res) => {
       "watchlist",
       "portfolio",
       "strategy",
-      "morning brew",
+      "morning mugs",
       "alerts",
       "compare",
       "metrics",
