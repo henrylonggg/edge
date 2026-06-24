@@ -1699,6 +1699,14 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
 
 
 const morningBrewCache = new Map();
+let lastMorningBrewArticles = [];
+
+function makeMorningArticleSummary(article = {}) {
+  const raw = String(article.summary || article.headline || "").replace(/\s+/g, " ").trim();
+  if (!raw) return "A market-moving headline to watch before the open.";
+  const sentence = raw.split(/(?<=[.!?])\s+/).find(Boolean) || raw;
+  return sentence.length > 260 ? `${sentence.slice(0, 257)}...` : sentence;
+}
 
 function morningBrewDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -1712,7 +1720,7 @@ function morningBrewDateKey(date = new Date()) {
 function cleanArticle(article = {}) {
   return {
     headline: String(article.headline || article.title || "Market update").slice(0, 180),
-    summary: String(article.summary || "").slice(0, 420),
+    summary: makeMorningArticleSummary(article),
     source: String(article.source || "Finnhub").slice(0, 80),
     url: String(article.url || ""),
     datetime: Number(article.datetime || 0),
@@ -1784,23 +1792,27 @@ async function buildMorningBrewMarket(forceRefresh = false) {
     return cached.data;
   }
 
-  const [news, spy, dia, qqq] = await Promise.all([
+  const [freshNews, spy, dia, qqq] = await Promise.all([
     fetchMorningBrewNews(),
     fetchMorningQuote("SPY"),
     fetchMorningQuote("DIA"),
     fetchMorningQuote("QQQ"),
   ]);
 
+  const articles = freshNews.length ? freshNews : lastMorningBrewArticles.slice(0, 5);
+  if (freshNews.length) lastMorningBrewArticles = freshNews.slice(0, 5);
+
   const data = {
     date: key,
     generatedAt: new Date().toISOString(),
     indexes: [
       { name: "S&P 500", proxy: "SPY", ...spy },
-      { name: "Dow", proxy: "DIA", ...dia },
+      { name: "Dow Jones", proxy: "DIA", ...dia },
       { name: "Nasdaq", proxy: "QQQ", ...qqq },
     ].filter((item) => item?.current),
-    articles: news,
-    note: "Index movement uses SPY, DIA, and QQQ as liquid pre-market proxies when direct index symbols are not available.",
+    articles,
+    usedPreviousArticles: !freshNews.length && articles.length > 0,
+    note: "Index movement uses liquid ETF proxies and displays pre-market percent change only.",
   };
 
   morningBrewCache.set(key, { savedAt: Date.now(), data });
