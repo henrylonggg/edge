@@ -5,6 +5,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 import { buildStockAnalysis } from "./score.js";
 
 dotenv.config();
@@ -20,6 +22,30 @@ const OFFICIAL_PORTFOLIO_RISK_MODE = "balanced";
 const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";
 const portfolioCache = new Map();
 const accountSyncCache = new Map();
+const ACCOUNT_SYNC_STORE_PATH = process.env.EVAL_ACCOUNT_SYNC_STORE_PATH || path.join("/tmp", "eval-account-sync-store.json");
+function loadAccountSyncStore() {
+  try {
+    if (!fs.existsSync(ACCOUNT_SYNC_STORE_PATH)) return;
+    const parsed = JSON.parse(fs.readFileSync(ACCOUNT_SYNC_STORE_PATH, "utf8"));
+    if (!parsed || typeof parsed !== "object") return;
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (key && value && typeof value === "object") accountSyncCache.set(String(key), value);
+    });
+  } catch {
+    // Keep sync working in memory if file storage is unavailable.
+  }
+}
+function saveAccountSyncStore() {
+  try {
+    const dir = path.dirname(ACCOUNT_SYNC_STORE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const obj = Object.fromEntries(accountSyncCache.entries());
+    fs.writeFileSync(ACCOUNT_SYNC_STORE_PATH, JSON.stringify(obj));
+  } catch {
+    // Render may reset ephemeral storage; the in-memory cache still works while the service is live.
+  }
+}
+loadAccountSyncStore();
 let officialPortfolioDefinition = null;
 const PORTFOLIO_MAX_ANALYSES_PER_BUILD = Math.max(
   55,
@@ -1608,14 +1634,14 @@ app.get("/api/health", (req, res) => {
 
 
 app.get("/api/user-sync/:userKey", (req, res) => {
-  const userKey = String(req.params.userKey || "").trim();
+  const userKey = String(req.params.userKey || "").trim().toLowerCase();
   if (!userKey) return res.status(400).json({ ok: false, error: "Missing sync user key." });
   const record = accountSyncCache.get(userKey);
   res.json({ ok: true, data: record || null });
 });
 
 app.post("/api/user-sync", express.json({ limit: "2mb" }), (req, res) => {
-  const userKey = String(req.body?.userKey || "").trim();
+  const userKey = String(req.body?.userKey || "").trim().toLowerCase();
   if (!userKey) return res.status(400).json({ ok: false, error: "Missing sync user key." });
   const data = req.body?.data && typeof req.body.data === "object" ? req.body.data : {};
   const record = {
@@ -1623,6 +1649,7 @@ app.post("/api/user-sync", express.json({ limit: "2mb" }), (req, res) => {
     updatedAt: new Date().toISOString(),
   };
   accountSyncCache.set(userKey, record);
+  saveAccountSyncStore();
 
   // Keep the lightweight sync cache from growing forever on long-lived servers.
   if (accountSyncCache.size > 2000) {
@@ -1630,6 +1657,7 @@ app.post("/api/user-sync", express.json({ limit: "2mb" }), (req, res) => {
       .sort((a, b) => Date.parse(a[1]?.updatedAt || 0) - Date.parse(b[1]?.updatedAt || 0))
       .slice(0, 250);
     oldest.forEach(([key]) => accountSyncCache.delete(key));
+    saveAccountSyncStore();
   }
 
   res.json({ ok: true, data: record });
