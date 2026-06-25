@@ -30023,3 +30023,119 @@ body:has(.morning-brew-page-shell) {
   .morning-alert-news-with-image { grid-template-columns: 1fr !important; }
   .morning-alert-news-with-image > img { width: 100%; height: 150px; }
 }
+
+/* MORNING MUGS — ALERT/INSIDER DROPDOWNS + CALENDAR CLEANUP */
+.portfolio-earnings-calendar-weekdays {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+.portfolio-earnings-calendar-weekdays span {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.portfolio-earnings-day.non-trading-day {
+  opacity: 0.62;
+  background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(0,0,0,.20));
+}
+.portfolio-earnings-day.outside-window {
+  opacity: 0.42;
+}
+.market-closed-x {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 1.25rem !important;
+  line-height: 1;
+}
+.morning-alert-toggle,
+.morning-insider-toggle {
+  width: 100%;
+  border: 1px solid rgba(255, 214, 107, 0.22);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 214, 107, 0.12), rgba(24, 9, 3, 0.40));
+  color: #fff2ce;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-weight: 1000;
+  cursor: pointer;
+  position: relative;
+}
+.morning-alert-toggle span,
+.morning-insider-toggle span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.morning-alert-toggle b,
+.morning-insider-toggle b {
+  min-width: 42px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #271200;
+  background: linear-gradient(135deg, #ffe6a0, #ffbd42);
+  box-shadow: 0 0 18px rgba(255, 214, 107, .22);
+}
+.morning-alert-toggle i {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #ff546f;
+  box-shadow: 0 0 0 4px rgba(255, 84, 111, .16), 0 0 18px rgba(255, 84, 111, .65);
+}
+.morning-alert-dropdown {
+  display: none;
+  margin-top: 14px;
+}
+.portfolio-alert-card.open .morning-alert-dropdown {
+  display: block;
+}
+.morning-alert-news,
+.morning-alert-news-with-image {
+  display: none !important;
+}
+.morning-insider-toggle {
+  display: none;
+}
+.morning-insider-row em {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 242, 207, .50);
+  font-size: 11px;
+  line-height: 1.25;
+  font-style: normal;
+  font-weight: 750;
+}
+@media (max-width: 760px) {
+  .morning-insider-toggle {
+    display: flex;
+  }
+  .morning-insider-section .morning-insider-list {
+    display: none;
+    margin-top: 10px;
+  }
+  .morning-insider-section.open .morning-insider-list {
+    display: grid;
+  }
+  .portfolio-earnings-calendar-weekdays {
+    display: none;
+  }
+}
