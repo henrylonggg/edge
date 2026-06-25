@@ -1705,6 +1705,7 @@ const morningBrewPortfolioAlertsCache = new Map();
 
 const morningBrewPortfolioMoversCache = new Map();
 const morningBrewInsiderCache = new Map();
+const morningBrewInsiderContextCache = new Map();
 const morningArticleImageCache = new Map();
 
 async function getMorningPortfolioMovers(symbols = []) {
@@ -1960,6 +1961,45 @@ async function fetchMorningQuote(symbol) {
 }
 
 
+async function fetchMorningCompanyProfile(symbol) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cleanSymbol = cleanTicker(symbol);
+  if (!apiKey || !cleanSymbol) return null;
+  const url = new URL("https://finnhub.io/api/v1/stock/profile2");
+  url.searchParams.set("symbol", cleanSymbol);
+  url.searchParams.set("token", apiKey);
+  return await fetchFinnhubJson(url, Math.max(2200, Number(process.env.PROVIDER_TIMEOUT_MS || 3500)));
+}
+
+async function getMorningInsiderContext(symbol) {
+  const cleanSymbol = cleanTicker(symbol);
+  if (!cleanSymbol) return {};
+  const key = `${morningBrewDateKey()}-${cleanSymbol}`;
+  const cached = morningBrewInsiderContextCache.get(key);
+  if (cached) return cached;
+  const [quote, profile] = await Promise.all([
+    fetchMorningQuote(cleanSymbol),
+    fetchMorningCompanyProfile(cleanSymbol).catch(() => null),
+  ]);
+  const marketCapRaw = Number(profile?.marketCapitalization ?? profile?.marketCap ?? 0);
+  const marketCapUsd = Number.isFinite(marketCapRaw) && marketCapRaw > 0
+    ? (marketCapRaw < 10000000 ? marketCapRaw * 1000000 : marketCapRaw)
+    : null;
+  const context = {
+    marketCapUsd,
+    dayChangePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
+  };
+  morningBrewInsiderContextCache.set(key, context);
+  if (morningBrewInsiderContextCache.size > 160) {
+    for (const cacheKey of morningBrewInsiderContextCache.keys()) {
+      morningBrewInsiderContextCache.delete(cacheKey);
+      if (morningBrewInsiderContextCache.size <= 100) break;
+    }
+  }
+  return context;
+}
+
+
 
 const portfolioEarningsCache = new Map();
 
@@ -2058,34 +2098,61 @@ async function getPortfolioEarnings(symbols = [], options = {}) {
 }
 
 
-function insiderRatingFromTransaction(item = {}) {
+function insiderRatingFromTransaction(item = {}, context = {}) {
   const code = String(item.transactionCode || item.code || "").toUpperCase();
   const rawChange = Number(item.change ?? item.shareChange ?? item.sharesChanged ?? item.share);
   const rawValue = Math.abs(Number(item.value ?? item.transactionValue ?? (Number(item.transactionPrice) * Math.abs(rawChange || 0))));
   if (!Number.isFinite(rawValue) || rawValue <= 0) return null;
 
+  const marketCapUsd = Number(context.marketCapUsd);
+  const dayMove = Number(context.dayChangePercent);
+  const valueToCap = Number.isFinite(marketCapUsd) && marketCapUsd > 0 ? rawValue / marketCapUsd : null;
   const isBuy = ["P", "B", "BUY"].includes(code) || rawChange > 0;
   const isSale = ["S", "SALE", "SELL"].includes(code) || rawChange < 0;
   let rating = 5.0;
+  let reason = "Low-signal insider activity.";
+
+  const sizePoints = (() => {
+    if (valueToCap !== null) {
+      if (valueToCap >= 0.0025) return 3.2;
+      if (valueToCap >= 0.0010) return 2.5;
+      if (valueToCap >= 0.0004) return 1.8;
+      if (valueToCap >= 0.00015) return 1.1;
+      if (rawValue >= 10000000) return 0.8;
+      if (rawValue >= 1000000) return 0.45;
+      return 0.15;
+    }
+    if (rawValue >= 25000000) return 2.4;
+    if (rawValue >= 10000000) return 1.9;
+    if (rawValue >= 5000000) return 1.4;
+    if (rawValue >= 1000000) return 0.9;
+    if (rawValue >= 250000) return 0.45;
+    return 0.15;
+  })();
+
+  const upStrong = Number.isFinite(dayMove) && dayMove >= 2.5;
+  const downStrong = Number.isFinite(dayMove) && dayMove <= -2.5;
 
   if (isBuy) {
-    rating = 6.4;
-    if (rawValue >= 10000000) rating = 9.4;
-    else if (rawValue >= 5000000) rating = 8.8;
-    else if (rawValue >= 1000000) rating = 8.1;
-    else if (rawValue >= 250000) rating = 7.3;
+    rating = 5.4 + sizePoints;
+    if (downStrong) rating += 0.45;
+    if (upStrong) rating -= 0.25;
+    reason = valueToCap !== null
+      ? "Buy rating is scaled against company size, so small buys in mega caps stay closer to neutral."
+      : "Buy rating is based on transaction size and stock movement context.";
   } else if (isSale) {
-    rating = 4.4;
-    if (rawValue >= 10000000) rating = 1.8;
-    else if (rawValue >= 5000000) rating = 2.3;
-    else if (rawValue >= 1000000) rating = 3.0;
-    else if (rawValue >= 250000) rating = 3.8;
+    rating = 4.7 - sizePoints;
+    if (upStrong) rating += 0.55;
+    if (downStrong) rating -= 0.45;
+    reason = valueToCap !== null
+      ? "Sale rating is softened when the dollar value is tiny relative to company size or follows strength."
+      : "Sale rating is based on transaction size and stock movement context.";
   }
 
-  return Number(Math.max(0, Math.min(10, rating)).toFixed(1));
+  return { rating: Number(Math.max(0, Math.min(10, rating)).toFixed(1)), reason };
 }
 
-function cleanInsiderTransaction(item = {}, symbol = "") {
+function cleanInsiderTransaction(item = {}, symbol = "", context = {}) {
   const cleanSymbol = cleanTicker(item.symbol || symbol);
   if (!cleanSymbol) return null;
   const date = String(item.transactionDate || item.filingDate || item.date || "").slice(0, 10);
@@ -2093,8 +2160,9 @@ function cleanInsiderTransaction(item = {}, symbol = "") {
   const price = Number(item.transactionPrice ?? item.price ?? 0);
   const value = Number.isFinite(Number(item.value)) ? Math.abs(Number(item.value)) : (Number.isFinite(price) && Number.isFinite(change) ? Math.abs(price * change) : null);
   if (!Number.isFinite(value) || value <= 0) return null;
-  const rating = insiderRatingFromTransaction({ ...item, change, value });
-  if (rating === null) return null;
+  const ratingResult = insiderRatingFromTransaction({ ...item, change, value }, context);
+  if (!ratingResult) return null;
+  const rating = ratingResult.rating;
   const tone = rating >= 6.8 ? "positive" : rating <= 4.2 ? "negative" : "neutral";
   const direction = Number.isFinite(change) ? (change > 0 ? "buy" : change < 0 ? "sale" : "transaction") : "transaction";
   const label = `${direction === "buy" ? "Insider buy" : direction === "sale" ? "Insider sale" : "Insider transaction"}${date ? ` • ${date}` : ""}${Number.isFinite(value) ? ` • ${formatCompactNumberLocal(Math.abs(value))}` : ""}`;
@@ -2108,6 +2176,7 @@ function cleanInsiderTransaction(item = {}, symbol = "") {
     label,
     rating,
     tone,
+    reason: ratingResult.reason,
   };
 }
 
@@ -2124,9 +2193,12 @@ async function fetchFinnhubInsiders(symbol) {
   url.searchParams.set("from", from);
   url.searchParams.set("to", to);
   url.searchParams.set("token", apiKey);
-  const json = await fetchFinnhubJson(url, Math.max(2500, Number(process.env.PROVIDER_TIMEOUT_MS || 3500)));
+  const [json, context] = await Promise.all([
+    fetchFinnhubJson(url, Math.max(2500, Number(process.env.PROVIDER_TIMEOUT_MS || 3500))),
+    getMorningInsiderContext(cleanSymbol),
+  ]);
   const rows = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
-  return rows.map((item) => cleanInsiderTransaction(item, cleanSymbol)).filter(Boolean);
+  return rows.map((item) => cleanInsiderTransaction(item, cleanSymbol, context)).filter(Boolean);
 }
 
 async function getMorningInsiderTransactions(symbols = []) {
@@ -2280,17 +2352,15 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
       if (currentScore !== null && priorScore !== null) {
         const change = Number((currentScore - priorScore).toFixed(1));
         if (Math.abs(change) >= 0.2) {
-          const latestNews = await fetchLatestCompanyMorningNews(symbol);
           alerts.push({
             type: change > 0 ? "score-up" : "score-down",
             symbol,
             headline: `${symbol} Eval Score ${change > 0 ? "improved" : "fell"} ${Math.abs(change).toFixed(1)}`,
-            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)}. Today: ${Number.isFinite(Number(quote?.changePercent)) ? `${Number(quote.changePercent).toFixed(2)}%` : "N/A"}.${latestNews?.headline ? " Latest headline included below." : ""}`,
+            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)}. Today: ${Number.isFinite(Number(quote?.changePercent)) ? `${Number(quote.changePercent).toFixed(2)}%` : "N/A"}.`,
             score: currentScore,
             priorScore,
             change,
             dayChangePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
-            news: latestNews,
           });
         }
       }
