@@ -527,167 +527,9 @@ function App() {
   const [compareError, setCompareError] = useState("");
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [otherMenuOpen, setOtherMenuOpen] = useState(false);
-  const [tickerLookupOpen, setTickerLookupOpen] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("idle");
-  const [showMorningMug, setShowMorningMug] = useState(() => isTheMorningMugWindow());
-
-  useEffect(() => {
-    const update = () => setShowMorningMug(isTheMorningMugWindow());
-    update();
-    const id = window.setInterval(update, 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  function getSyncUserKey() {
-    const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
-    return String(email || user?.id || "").trim().toLowerCase();
-  }
-
-  function getLocalSyncPayload() {
-    const portfolioKey = portfolioStorageKeyFor(user);
-    const localPortfolioRaw = safeStorageGet(portfolioKey, "");
-    let portfolio = null;
-    try {
-      portfolio = localPortfolioRaw ? JSON.parse(localPortfolioRaw) : null;
-    } catch {
-      portfolio = null;
-    }
-    return {
-      watchlist: readWatchlist(),
-      portfolio,
-      alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
-      syncedAt: new Date().toISOString(),
-    };
-  }
-
-  function applyRemoteSyncData(remote) {
-    if (!remote || typeof remote !== "object") return false;
-    let changed = false;
-    if (Array.isArray(remote.watchlist)) {
-      saveWatchlist(remote.watchlist);
-      setWatchlist(remote.watchlist);
-      changed = true;
-    }
-    if (remote.portfolio) {
-      safeStorageSet(portfolioStorageKeyFor(user), JSON.stringify(remote.portfolio));
-      window.dispatchEvent(new CustomEvent("eval-portfolio-remote-sync", { detail: remote.portfolio }));
-      changed = true;
-    }
-    if (remote.alertsSeen) {
-      safeStorageSet("eval-morning-mugs-alerts-seen", remote.alertsSeen);
-      changed = true;
-    }
-    return changed;
-  }
-
-  async function fetchRemoteSyncData(userKey) {
-    const response = await fetch(`${API}/api/user-sync/${encodeURIComponent(userKey)}`, {
-      method: "GET",
-      mode: "cors",
-      headers: { Accept: "application/json" },
-    });
-    const json = await response.json().catch(() => null);
-    return json?.data || null;
-  }
-
-  async function pushLocalSyncData(userKey) {
-    const response = await fetch(`${API}/api/user-sync`, {
-      method: "POST",
-      mode: "cors",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ userKey, data: getLocalSyncPayload() }),
-    });
-    if (!response.ok) throw new Error("Sync failed");
-    const json = await response.json().catch(() => null);
-    return json?.data || null;
-  }
-
-  async function importRemoteAccountData({ silent = false } = {}) {
-    const userKey = getSyncUserKey();
-    if (!userKey) return false;
-    try {
-      const remote = await fetchRemoteSyncData(userKey);
-      if (!remote) return false;
-      applyRemoteSyncData(remote);
-      safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || remote.syncedAt || "") || Date.now()));
-      safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
-      if (!silent) {
-        setSyncStatus("synced");
-        setTimeout(() => setSyncStatus("idle"), 2500);
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function handleSyncAccountData() {
-    if (!user) {
-      setSyncStatus("error");
-      setTimeout(() => setSyncStatus("idle"), 1800);
-      return;
-    }
-    const userKey = getSyncUserKey();
-    if (!userKey) {
-      setSyncStatus("error");
-      setTimeout(() => setSyncStatus("idle"), 1800);
-      return;
-    }
-
-    setSyncStatus("syncing");
-    try {
-      const local = getLocalSyncPayload();
-      const remote = await fetchRemoteSyncData(userKey);
-      const hasLocalPortfolio = Boolean(local.portfolio);
-      const hasRemotePortfolio = Boolean(remote?.portfolio);
-
-      if (!hasLocalPortfolio && hasRemotePortfolio) {
-        applyRemoteSyncData(remote);
-        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || "") || Date.now()));
-      } else {
-        const pushed = await pushLocalSyncData(userKey);
-        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(pushed?.updatedAt || "") || Date.now()));
-      }
-
-      safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
-      setSyncStatus("synced");
-      setTimeout(() => setSyncStatus("idle"), 2500);
-    } catch {
-      setSyncStatus("error");
-      setTimeout(() => setSyncStatus("idle"), 2200);
-    }
-  }
-
-  useEffect(() => {
-    const userKey = getSyncUserKey();
-    if (!userKey) return undefined;
-
-    let alive = true;
-    importRemoteAccountData({ silent: true });
-
-    const interval = window.setInterval(() => {
-      if (!alive) return;
-      importRemoteAccountData({ silent: true });
-    }, 45_000);
-
-    const onLocalSyncChange = () => {
-      if (!alive) return;
-      pushLocalSyncData(userKey).catch(() => {});
-    };
-
-    window.addEventListener("eval-account-sync-changed", onLocalSyncChange);
-    return () => {
-      alive = false;
-      window.clearInterval(interval);
-      window.removeEventListener("eval-account-sync-changed", onLocalSyncChange);
-    };
-  }, [user]);
 
   function goMenu(nextView) {
     setMenuOpen(false);
-    setOtherMenuOpen(false);
-    setTickerLookupOpen(false);
     setView(nextView);
   }
 
@@ -1197,37 +1039,24 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <div className={`dashboard-dropdown-nested ticker-lookup-nested ${tickerLookupOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle ticker-lookup-toggle"
-                          onClick={() => setTickerLookupOpen((open) => !open)}
-                          aria-expanded={tickerLookupOpen}
-                        >
-                          Ticker Lookup <span>{tickerLookupOpen ? "▴" : "▾"}</span>
-                        </button>
-                        <TickerLookupDropdown open={tickerLookupOpen} />
-                      </div>
+                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
+                        Compare
+                      </button>
+
                       <div className="dropdown-divider" />
 
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
+                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
+                        Homepage
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
+                        Terms & Conditions
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
+                        FAQs
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
+                        Contact
+                      </button>
                     </div>
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
@@ -1237,41 +1066,27 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <div className={`dashboard-dropdown-nested ticker-lookup-nested ${tickerLookupOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle ticker-lookup-toggle"
-                          onClick={() => setTickerLookupOpen((open) => !open)}
-                          aria-expanded={tickerLookupOpen}
-                        >
-                          Ticker Lookup <span>{tickerLookupOpen ? "▴" : "▾"}</span>
-                        </button>
-                        <TickerLookupDropdown open={tickerLookupOpen} />
-                      </div>
+                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
+                        Compare
+                      </button>
                       <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
 
                       <div className="dropdown-divider" />
 
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
+                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
+                        Homepage
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
+                        Terms & Conditions
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
+                        FAQs
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
+                        Contact
+                      </button>
                     </div>
                   </>
                 )}
@@ -1293,26 +1108,13 @@ function App() {
 
               <button
                 type="button"
-                className={`eval-sync-btn ${syncStatus}`}
-                onClick={handleSyncAccountData}
-                aria-label="Sync account data"
-                title="Sync account data across devices"
-                disabled={syncStatus === "syncing"}
+                className="morning-brew-trigger"
+                onClick={() => setView("morningBrew")}
+                aria-label="Open Morning Mugs"
+                title="Morning Mugs"
               >
-                {syncStatus === "synced" ? <CheckCircle2 size={18}/> : <RefreshCw size={18} className={syncStatus === "syncing" ? "spin" : ""}/>}
+                <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
               </button>
-
-              {showMorningMug && (
-                <button
-                  type="button"
-                  className="morning-brew-trigger"
-                  onClick={() => setView("morningBrew")}
-                  aria-label="Open The Morning Mug"
-                  title="The Morning Mug"
-                >
-                  <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
-                </button>
-              )}
             </form>
 
             {data ? (
@@ -2144,14 +1946,6 @@ function easternTimeParts(now = new Date()) {
   return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
-function isTheMorningMugWindow(now = new Date()) {
-  const lookup = easternTimeParts(now);
-  const hour = Number(lookup.hour || 0);
-  const minute = Number(lookup.minute || 0);
-  const current = hour * 60 + minute;
-  return current >= 8 * 60 && current <= 10 * 60 + 30;
-}
-
 function isAfterEtTime(hour = 5, minute = 0, now = new Date()) {
   const lookup = easternTimeParts(now);
   const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(lookup.weekday);
@@ -2485,7 +2279,7 @@ function getSavedMorningPortfolio(user) {
         industry: analyzed.industry || analyzed.finnhubIndustry || manual.industry || "Unknown",
       };
     });
-    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio", analysis: saved?.analysis || null };
+    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
   } catch {
     return { symbols: [], previousScores: {}, holdings: [], strategyTargets: {}, portfolioName: "Saved Portfolio" };
   }
@@ -2712,10 +2506,10 @@ function MorningMugsDashboard({ onBack }) {
         body: JSON.stringify({ symbols: Array.isArray(portfolio.symbols) ? portfolio.symbols : [], previousScores: portfolio.previousScores || {}, holdings: Array.isArray(portfolio.holdings) ? portfolio.holdings : [], strategyTargets: portfolio.strategyTargets || {} }),
       });
       const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not load The Morning Mug.");
+      if (!response.ok) throw new Error(json?.error || "Could not load Morning Mugs.");
       setBrew(json);
     } catch (err) {
-      setError(err?.message || "Could not load The Morning Mug.");
+      setError(err?.message || "Could not load Morning Mugs.");
     } finally {
       setLoading(false);
     }
@@ -2763,7 +2557,7 @@ function MorningMugsDashboard({ onBack }) {
         <div className="morning-brew-hero morning-brew-hero-clean">
           <div className="morning-brew-title-wrap morning-brew-title-clean">
             <span className="morning-brew-giant-cup" aria-hidden="true">☕</span>
-            <h2><strong>The Morning Mug</strong></h2>
+            <h2>Morning Mugs</h2>
           </div>
           <div className="morning-brew-actions-clean">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
@@ -2777,7 +2571,7 @@ function MorningMugsDashboard({ onBack }) {
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
         {loading && !brew ? (
-          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Loading The Morning Mug...</div>
+          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Loading Morning Mugs...</div>
         ) : (
           <div className="morning-brew-page-grid">
             <section className="morning-brew-card market-card">
@@ -2957,22 +2751,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
   const [strategySavedLabel, setStrategySavedLabel] = useState("");
-
-  useEffect(() => {
-    const onRemotePortfolio = (event) => {
-      const saved = event?.detail;
-      if (!saved || typeof saved !== "object") return;
-      if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
-      if (saved.fileName) setCsvName(saved.fileName);
-      if (saved.analysis) setCsvAnalysis(saved.analysis);
-      if (Array.isArray(saved.manualRows)) setManualRows(saved.manualRows);
-      if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
-      if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
-      if (saved.strategyTargets) setStrategyTargets(saved.strategyTargets);
-    };
-    window.addEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
-    return () => window.removeEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
-  }, []);
   const [portfolioEarnings, setPortfolioEarnings] = useState([]);
   const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
@@ -3031,8 +2809,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     if (!csvAnalysis) return;
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
-      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets, savedAt: new Date().toISOString() }));
-      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
+      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets }));
     } catch {
       // Ignore local storage failures.
     }
@@ -3050,7 +2827,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
         strategyTargets,
         savedAt: new Date().toISOString(),
       }));
-      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
     } catch {
       // Local storage can fail in private browsing; the page still works for the current session.
     }
@@ -3511,13 +3287,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </b>
             </article>
 
-            <article className="portfolio-count-card-v3">
-              <span>Portfolio size</span>
-              <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
-              <b>holdings</b>
-              <strong>{industryGroups.length}</strong>
-              <b>industries</b>
-            </article>
 
           </div>
 
@@ -3534,10 +3303,6 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <b>Industry Scores</b>
               <small>{industryScoresOpen ? "Click to close" : "Click to view"}</small>
             </button>
-            <button type="button" className={`portfolio-action-tile strategy ${strategyOpen ? "open" : ""}`} onClick={() => setStrategyOpen((open) => !open)}>
-              <b>Strategy</b>
-              <small>{strategyOpen ? "Click to close" : "Set targets"}</small>
-            </button>
             <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
               <b>↓ Holdings</b>
               <small>Jump to section</small>
@@ -3550,10 +3315,13 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
           )}
 
-          <section className={`portfolio-strategy-panel-v1 ${strategyOpen ? "open" : "closed"}`}>
+          <section className="portfolio-strategy-panel-v1">
+            <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
+              <span><Target size={17}/> Portfolio strategy</span>
+              <b>{strategyOpen ? "Click to close" : "Click to set targets"}</b>
+            </button>
             {strategyOpen && (
               <div className="portfolio-strategy-body-v1">
-                <div className="portfolio-strategy-inline-head"><Target size={17}/> <b>Eval Strategy targets</b></div>
                 <div className="portfolio-strategy-actions-v1">
                   <button type="button" onClick={applyEvalStrategy}>Use Eval Strategy</button>
                   <button type="button" onClick={applyCurrentStrategyWeights}>Use current weights</button>
@@ -3707,7 +3475,7 @@ function LandingPage({ onContinue }) {
     },
     {
       icon: <Newspaper size={22} />,
-      title: "The Morning Mug",
+      title: "Morning Mugs",
       text: "The coffee-cup dashboard gives users CNBC pre-market headlines, index proxy movement, article impact scores, and up to five saved-portfolio alerts each morning.",
     },
     {
@@ -3755,7 +3523,7 @@ function LandingPage({ onContinue }) {
     },
     {
       number: "08",
-      title: "Open The Morning Mug",
+      title: "Open Morning Mugs",
       text: "The coffee button opens a daily market page with CNBC headlines, pre-market index movement, article scores, and saved-portfolio alerts.",
     },
   ];
@@ -3784,13 +3552,13 @@ function LandingPage({ onContinue }) {
 
             <p>
               Eval is a stock evaluation dashboard that turns scattered market data, company fundamentals,
-              recent news, risk signals, watchlist rankings, portfolio scoring, The Morning Mug alerts,
+              recent news, risk signals, watchlist rankings, portfolio scoring, Morning Mugs alerts,
               and AI explanations into one clean system. Instead of making users bounce between finance sites,
               charts, headlines, raw ratios, and spreadsheets, Eval gives them a fast company-quality read they can understand in minutes.
             </p>
 
             <div className="landing-action-row-static landing-action-row-static-copy-only">
-              <span>Built for quick research, watchlist ranking, portfolio scoring, The Morning Mug, and easier company comparison.</span>
+              <span>Built for quick research, watchlist ranking, portfolio scoring, Morning Mugs, and easier company comparison.</span>
             </div>
           </div>
 
@@ -3854,7 +3622,7 @@ function LandingPage({ onContinue }) {
             <h2>Built to make stock research cleaner</h2>
             <p>
               Eval combines data providers, cached reports, category scoring, article summaries, saved watchlists,
-              portfolio uploads, The Morning Mug, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
+              portfolio uploads, Morning Mugs, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
               The purpose is to make a company easier to understand before they decide what to research next.
             </p>
           </div>
@@ -4033,108 +3801,6 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
       <button type="button" className="dashboard-link-btn highlight" onClick={onSupport}> Support & Contact
       </button>
     </nav>
-  );
-}
-
-function parseTickerCsv(text = "") {
-  return String(text || "")
-    .split(/\r?\n/)
-    .slice(1)
-    .map((line) => {
-      const parts = line.split(",");
-      const ticker = String(parts[0] || "").trim().toUpperCase();
-      const exchange = String(parts[parts.length - 1] || "").trim();
-      const name = parts.slice(1, -1).join(",").replace(/^"|"$/g, "").trim();
-      return ticker && name ? { ticker, name, exchange } : null;
-    })
-    .filter(Boolean);
-}
-
-function TickerLookupDropdown({ open }) {
-  const [query, setQuery] = useState("");
-  const [list, setList] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!open || list.length) return;
-    let alive = true;
-    setLoading(true);
-    fetch("/us_stocks_list.csv", { cache: "force-cache" })
-      .then((res) => (res.ok ? res.text() : Promise.reject(new Error("ticker csv missing"))))
-      .then((csv) => {
-        if (!alive) return;
-        setList(parseTickerCsv(csv));
-      })
-      .catch(async () => {
-        try {
-          const res = await fetch(`${API}/api/ticker-lookup?q=a&limit=300`, { cache: "force-cache" });
-          const json = await res.json();
-          if (alive && Array.isArray(json?.results)) {
-            setList(json.results.map((item) => ({ ticker: item.symbol || item.ticker, name: item.name, exchange: item.exchange || "" })).filter((item) => item.ticker && item.name));
-          }
-        } catch (_) {
-          if (alive) setList([]);
-        }
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [open, list.length]);
-
-  const clean = query.trim().toLowerCase();
-  const results = useMemo(() => {
-    if (!clean) return [];
-    return list
-      .map((item) => {
-        const name = String(item.name || "").toLowerCase();
-        const ticker = String(item.ticker || "").toLowerCase();
-        let score = 0;
-        if (name === clean || ticker === clean) score += 100;
-        if (name.startsWith(clean) || ticker.startsWith(clean)) score += 70;
-        if (name.includes(clean) || ticker.includes(clean)) score += 30;
-        for (const word of clean.split(/\s+/).filter(Boolean)) {
-          if (name.includes(word) || ticker.includes(word)) score += 8;
-        }
-        return { ...item, score };
-      })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name)))
-      .slice(0, 25);
-  }, [clean, list]);
-
-  if (!open) return null;
-
-  return (
-    <div className="ticker-lookup-panel" role="region" aria-label="Ticker lookup">
-      <div className="ticker-lookup-search">
-        <Search size={14} />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type a company name"
-          autoComplete="off"
-        />
-      </div>
-      <div className="ticker-lookup-results">
-        {loading ? (
-          <div className="ticker-lookup-empty">Loading ticker list...</div>
-        ) : !clean ? (
-          <div className="ticker-lookup-empty">Start typing to see up to 25 matches.</div>
-        ) : results.length ? (
-          results.map((item) => (
-            <div className="ticker-lookup-row" key={`${item.ticker}-${item.name}`}>
-              <span className="ticker-lookup-name">{item.name}</span>
-              <span className="ticker-lookup-symbol">{item.ticker}</span>
-            </div>
-          ))
-        ) : (
-          <div className="ticker-lookup-empty">No matches yet.</div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -4507,7 +4173,7 @@ const EVAL_FAQS = [
   {
     "category": "Navigation",
     "question": "What is in the dropdown menu?",
-    "answer": "The dropdown menu opens Ticker search, AI Assistant, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
+    "answer": "The dropdown menu opens Ticker search, AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
   },
   {
     "category": "Navigation",
@@ -9391,86 +9057,22 @@ const EVAL_FAQS = [
   }
 ];
 
-const GENERATED_EVAL_FAQS = (() => {
-  const groups = [
-    {
-      category: "Ticker Lookup",
-      topics: ["company name search", "ticker symbol search", "ticker lookup tab", "top 25 matches", "non-clickable ticker results", "NASDAQ stocks", "NYSE stocks", "stock universe", "ticker spelling", "company abbreviation", "ticker on the right", "lookup without API calls"],
-      answer: (topic) => `Ticker Lookup helps users find the ticker for a company name. Type into the dropdown lookup box and Eval filters the built-in U.S. stock universe, showing the best matches with the ticker on the right without loading a full analysis.`
-    },
-    {
-      category: "Portfolio",
-      topics: ["CSV upload", "manual entry", "shares", "average cost", "current value", "portfolio weight", "industry weight", "industry score", "portfolio Eval Score", "returns", "hide holdings value", "strategy targets", "trim suggestion", "rebalance suggestion", "earnings calendar", "portfolio alerts", "portfolio sync", "saved portfolio", "portfolio holdings", "closed positions", "current holdings", "industry tabs", "pros and cons"],
-      answer: (topic) => `Portfolio uses uploaded or manually entered holdings to calculate current value, weights, industry exposure, returns, weighted Eval Scores, and strategy suggestions. It stays saved for the user and can sync across signed-in devices when Sync is enabled.`
-    },
-    {
-      category: "The Morning Mug",
-      topics: ["market indexes", "S&P 500", "Dow Jones", "Nasdaq", "pre-market movement", "CNBC headlines", "news score", "portfolio gainers", "portfolio losers", "insider transactions", "earnings this week", "Morning Mug alerts", "coffee cup button", "8 AM", "10:30 AM", "market movers", "daily cache", "unread alert bubble"],
-      answer: (topic) => `The Morning Mug is the morning dashboard for pre-market index moves, CNBC headlines, portfolio movers, insider transactions, upcoming portfolio earnings, and concise portfolio alerts. It is designed for a fast daily read.`
-    },
-    {
-      category: "Navigation",
-      topics: ["dropdown menu", "Other tab", "Homepage", "FAQs", "Terms", "Contact", "AI Assistant", "Portfolio page", "Watchlist page", "The Morning Mug page", "sync button", "search button", "ticker box", "mobile menu", "desktop menu"],
-      answer: (topic) => `Use the main dropdown to open Eval pages. The top menu includes core tools like Portfolio, AI Assistant, and Ticker Lookup, while Other contains Homepage, FAQs, Terms, and Contact.`
-    },
-    {
-      category: "Eval AI Assistant",
-      topics: ["assistant password", "FAQ answers", "watchlist questions", "portfolio questions", "ticker lookup", "earnings dates", "industry weights", "stock weights", "trim ideas", "strategy targets", "saved data", "cached data", "Please try again", "brief answers", "clear answers"],
-      answer: (topic) => `Eval AI answers brief questions about Eval navigation, FAQs, ticker lookup, loaded stocks, watchlist stocks, saved portfolio holdings, industry weights, strategy targets, and cached app data. If it cannot answer safely, it says Please try again.`
-    },
-    {
-      category: "Scoring and metrics",
-      topics: ["Eval Score", "Growth", "Profitability", "Financial Health", "Valuation", "Momentum", "Pullback", "News Sentiment", "metric bars", "score colors", "green score", "yellow score", "red score", "weighted average", "industry weighted score", "portfolio weighted score", "score change", "cache refresh"],
-      answer: (topic) => `Eval scores are 0.0 to 10.0 and use red, yellow, and green to make the rating easy to read. Portfolio scores are weighted by current holding value and industry scores are weighted by each stock inside that industry.`
-    }
-  ];
-  const intents = [
-    "How do I use {topic}?",
-    "What does {topic} mean in Eval?",
-    "Where do I find {topic}?",
-    "Can Eval AI explain {topic}?",
-    "Why does {topic} matter?",
-    "How does {topic} update?",
-    "What should I check if {topic} looks wrong?",
-    "Does {topic} use cached data?",
-    "Can {topic} work on mobile?",
-    "How does {topic} connect to the dashboard?",
-    "How does {topic} help with portfolio research?",
-    "What is the simplest way to understand {topic}?"
-  ];
-  const out = [];
-  for (const group of groups) {
-    for (const topic of group.topics) {
-      for (const template of intents) {
-        out.push({
-          category: group.category,
-          question: template.replace("{topic}", topic),
-          answer: group.answer(topic)
-        });
-      }
-    }
-  }
-  return out;
-})();
-
-const ALL_EVAL_FAQS = [...EVAL_FAQS, ...GENERATED_EVAL_FAQS];
-
 function FaqPage({ onBack, onHome, onTerms, onSupport }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const categories = ["All", ...Array.from(new Set(ALL_EVAL_FAQS.map((item) => item.category)))];
+  const categories = ["All", ...Array.from(new Set(EVAL_FAQS.map((item) => item.category)))];
 
   const normalized = query.trim().toLowerCase();
 
-  const filteredFaqs = ALL_EVAL_FAQS.filter((item) => {
+  const filteredFaqs = EVAL_FAQS.filter((item) => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const haystack = `${item.category} ${item.question} ${item.answer}`.toLowerCase();
     const matchesQuery = !normalized || haystack.includes(normalized);
     return matchesCategory && matchesQuery;
   });
 
-  const shownFaqs = normalized ? filteredFaqs.slice(0, 240) : filteredFaqs.slice(0, 84);
+  const shownFaqs = normalized ? filteredFaqs : filteredFaqs.slice(0, 36);
 
   return (
     <main className="faq-page">
@@ -9499,8 +9101,8 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           </div>
           <h1>Eval help center</h1>
           <p>
-            Search the expanded help center for ticker lookup, Portfolio, The Morning Mug, strategy targets,
-            watchlist, metrics, navigation, caching, Eval AI, and account basics.
+            Search roughly 1,000 support questions about the dashboard, score rings, metrics, watchlist, compare,
+            industry rankings, news sentiment, ticker search, caching, data sources, Eval AI, and account basics.
           </p>
         </div>
 
@@ -9510,10 +9112,10 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
             id="faq-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search ticker lookup, Morning Mug, portfolio strategy, earnings, holdings..."
+            placeholder="Start typing: watchlist, compare, risk, news sentiment..."
             autoComplete="off"
           />
-          <span>{filteredFaqs.length} result{filteredFaqs.length === 1 ? "" : "s"} · {ALL_EVAL_FAQS.length} total</span>
+          <span>{filteredFaqs.length} result{filteredFaqs.length === 1 ? "" : "s"}</span>
         </div>
 
         <div className="faq-category-row">
@@ -9545,7 +9147,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           <div className="faq-empty">
             <HelpCircle size={30} />
             <h3>No FAQ matches that search yet</h3>
-            <p>Try a shorter word like “portfolio,” “Morning Mug,” “ticker,” “earnings,” “score,” or “watchlist.”</p>
+            <p>Try a shorter word like “score,” “watchlist,” “compare,” “risk,” or “news.”</p>
           </div>
         )}
 
@@ -10139,25 +9741,10 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, The Morning Mug, or how to use any dashboard feature.",
+        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, Morning Mugs, or how to use any dashboard feature.",
     },
   ]);
   const [loading, setLoading] = useState(false);
-  const [assistantUnlocked, setAssistantUnlocked] = useState(() => safeStorageGet("eval-ai-assistant-unlocked", "") === "1");
-  const [assistantPassword, setAssistantPassword] = useState("");
-  const [assistantPasswordError, setAssistantPasswordError] = useState("");
-
-  function unlockAssistant(e) {
-    e.preventDefault();
-    if (assistantPassword.trim() === "111805") {
-      safeStorageSet("eval-ai-assistant-unlocked", "1");
-      setAssistantUnlocked(true);
-      setAssistantPasswordError("");
-      setAssistantPassword("");
-    } else {
-      setAssistantPasswordError("Incorrect password.");
-    }
-  }
 
   async function ask(e) {
     e.preventDefault();
@@ -10184,7 +9771,6 @@ function AssistantPage({ current, watchlist, onBack }) {
           current,
           watchlist,
           portfolio: getSavedMorningPortfolio(user),
-          assistantPassword: "111805",
         }),
       });
 
@@ -10202,7 +9788,7 @@ function AssistantPage({ current, watchlist, onBack }) {
         ...prev,
         {
           role: "assistant",
-          content: json?.answer || "Please try again.",
+          content: json?.answer || "I could not create a response.",
         },
       ]);
     } catch (err) {
@@ -10210,40 +9796,14 @@ function AssistantPage({ current, watchlist, onBack }) {
         ...prev,
         {
           role: "assistant",
-          content: "Please try again.",
+          content:
+            err.message ||
+            "Could not connect to the Render assistant endpoint.",
         },
       ]);
     } finally {
       setLoading(false);
     }
-  }
-
-  if (!assistantUnlocked) {
-    return (
-      <section className="assistant-page">
-        <div className="assistant-shell assistant-lock-shell">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
-          </button>
-          <div className="assistant-lock-card">
-            <div className="assistant-kicker"><BrainCircuit size={16} /> Eval AI Assistant</div>
-            <h2>Testing access</h2>
-            <p>Enter the testing password to use Eval AI Assistant.</p>
-            <form className="assistant-lock-form" onSubmit={unlockAssistant}>
-              <input
-                type="password"
-                value={assistantPassword}
-                onChange={(e) => setAssistantPassword(e.target.value)}
-                placeholder="Password"
-                autoComplete="off"
-              />
-              <button type="submit">Unlock</button>
-            </form>
-            {assistantPasswordError ? <p className="assistant-lock-error">{assistantPasswordError}</p> : null}
-          </div>
-        </div>
-      </section>
-    );
   }
 
   return (
@@ -10261,7 +9821,7 @@ function AssistantPage({ current, watchlist, onBack }) {
             <h2>Ask about Eval, the report, your watchlist, or your portfolio.</h2>
             <p>
               Eval AI is built as a short-answer support agent for navigation, FAQs, ticker lookup,
-              watchlist stocks, portfolio stocks, The Morning Mug, score meanings, and company basics.
+              watchlist stocks, portfolio stocks, Morning Mugs, score meanings, and company basics.
             </p>
 
         <section className="ai-rules-card ai-rules-card-full">
@@ -10276,7 +9836,7 @@ function AssistantPage({ current, watchlist, onBack }) {
 
             <div>
               <strong>FAQs and app support</strong>
-              <p>Ask how to use Eval, read score rings, understand popups, navigate the dropdown, or manage the watchlist.</p>
+              <p>Ask how to use Eval, read score rings, understand popups, navigate the dropdown, compare stocks, or manage the watchlist.</p>
             </div>
 
             <div>
@@ -10295,8 +9855,8 @@ function AssistantPage({ current, watchlist, onBack }) {
             </div>
 
             <div>
-              <strong>The Morning Mug and strategy help</strong>
-              <p>Ask where The Morning Mug is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
+              <strong>Morning Mugs and strategy help</strong>
+              <p>Ask where Morning Mugs is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
             </div>
           </div>
 
@@ -10329,7 +9889,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about Eval, portfolio, watchlist, The Morning Mug, metrics, tickers, or navigation."
+              placeholder="Ask about Eval, portfolio, watchlist, Morning Mugs, metrics, tickers, or navigation."
               rows="3"
             />
             <button disabled={loading}>
