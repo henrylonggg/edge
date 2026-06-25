@@ -19,6 +19,7 @@ const OFFICIAL_PORTFOLIO_SIZE = 30;
 const OFFICIAL_PORTFOLIO_RISK_MODE = "balanced";
 const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";
 const portfolioCache = new Map();
+const accountSyncCache = new Map();
 let officialPortfolioDefinition = null;
 const PORTFOLIO_MAX_ANALYSES_PER_BUILD = Math.max(
   55,
@@ -1606,6 +1607,34 @@ app.get("/api/health", (req, res) => {
 
 
 
+app.get("/api/user-sync/:userKey", (req, res) => {
+  const userKey = String(req.params.userKey || "").trim();
+  if (!userKey) return res.status(400).json({ ok: false, error: "Missing sync user key." });
+  const record = accountSyncCache.get(userKey);
+  res.json({ ok: true, data: record || null });
+});
+
+app.post("/api/user-sync", express.json({ limit: "2mb" }), (req, res) => {
+  const userKey = String(req.body?.userKey || "").trim();
+  if (!userKey) return res.status(400).json({ ok: false, error: "Missing sync user key." });
+  const data = req.body?.data && typeof req.body.data === "object" ? req.body.data : {};
+  const record = {
+    ...data,
+    updatedAt: new Date().toISOString(),
+  };
+  accountSyncCache.set(userKey, record);
+
+  // Keep the lightweight sync cache from growing forever on long-lived servers.
+  if (accountSyncCache.size > 2000) {
+    const oldest = [...accountSyncCache.entries()]
+      .sort((a, b) => Date.parse(a[1]?.updatedAt || 0) - Date.parse(b[1]?.updatedAt || 0))
+      .slice(0, 250);
+    oldest.forEach(([key]) => accountSyncCache.delete(key));
+  }
+
+  res.json({ ok: true, data: record });
+});
+
 app.get("/api/ticker-answer", (req, res) => {
   const q = String(req.query.q || "").trim();
   const matches = findTickerLookupMatches(q, 8);
@@ -2214,7 +2243,7 @@ async function getMorningInsiderTransactions(symbols = []) {
       const rows = await fetchFinnhubInsiders(symbol);
       transactions.push(...rows);
     } catch {
-      // Keep Morning Mugs running if insider data is unavailable for one stock.
+      // Keep The Morning Mug running if insider data is unavailable for one stock.
     }
   }
   const ranked = transactions
@@ -2366,7 +2395,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
         }
       }
     } catch {
-      // Keep Morning Mugs usable even if one holding cannot refresh.
+      // Keep The Morning Mug usable even if one holding cannot refresh.
     }
   }
 
@@ -2562,14 +2591,14 @@ app.post("/api/morning-brew", async (req, res) => {
     ]);
     res.json({
       ok: true,
-      title: "Morning Mugs",
+      title: "The Morning Mug",
       generatedAt: new Date().toISOString(),
       market: { ...market, earnings, movers, insiders },
       portfolio,
     });
   } catch (error) {
-    console.error("Morning Mugs route failed:", error?.stack || error?.message || error);
-    res.status(500).json({ error: error?.message || "Could not build Morning Mugs.", route: "api/morning-brew" });
+    console.error("The Morning Mug route failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build The Morning Mug.", route: "api/morning-brew" });
   }
 });
 
@@ -2579,14 +2608,14 @@ app.get("/api/morning-brew", async (req, res) => {
     const market = await buildMorningBrewMarket(forceRefresh);
     res.json({
       ok: true,
-      title: "Morning Mugs",
+      title: "The Morning Mug",
       generatedAt: new Date().toISOString(),
       market,
       portfolio: { hasPortfolio: false, alerts: [], message: "" },
     });
   } catch (error) {
-    console.error("Morning Mugs GET failed:", error?.stack || error?.message || error);
-    res.status(500).json({ error: error?.message || "Could not build Morning Mugs.", route: "api/morning-brew" });
+    console.error("The Morning Mug GET failed:", error?.stack || error?.message || error);
+    res.status(500).json({ error: error?.message || "Could not build The Morning Mug.", route: "api/morning-brew" });
   }
 });
 
@@ -3182,7 +3211,7 @@ app.post("/api/assistant", async (req, res) => {
       "strategy",
       "rebalance",
       "trim",
-      "morning mugs",
+      "the morning mug",
       "coffee",
       "alert",
       "alerts",
@@ -3307,7 +3336,7 @@ app.post("/api/assistant", async (req, res) => {
       "watchlist",
       "portfolio",
       "strategy",
-      "morning mugs",
+      "the morning mug",
       "alerts",
       "compare",
       "metrics",
