@@ -30722,3 +30722,160 @@ body:has(.morning-brew-page-shell) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* TICKER LOOKUP PAGE — full-page lookup instead of dropdown panel */
+.ticker-lookup-page {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(99, 241, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 82% 16%, rgba(132, 88, 255, 0.16), transparent 36%),
+    linear-gradient(135deg, #070912, #0a1020 48%, #05070d);
+}
+.ticker-lookup-page-shell {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+.ticker-lookup-topbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 18px;
+}
+.ticker-lookup-hero {
+  border: 1px solid rgba(99, 241, 255, 0.16);
+  border-radius: 30px;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(11, 18, 38, 0.92), rgba(28, 18, 54, 0.86));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+.ticker-lookup-hero h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(2.1rem, 6vw, 4.6rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+  color: #fff;
+}
+.ticker-lookup-hero p {
+  max-width: 760px;
+  color: rgba(255,255,255,.72);
+  font-weight: 750;
+  line-height: 1.6;
+}
+.ticker-lookup-page-card,
+.ticker-lookup-results-card {
+  margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+  padding: 22px;
+  background: rgba(7, 12, 26, 0.78);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+.ticker-lookup-page-card label {
+  display: block;
+  margin-bottom: 9px;
+  color: rgba(255,255,255,.72);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-size: .72rem;
+  font-weight: 1000;
+}
+.ticker-lookup-page-card input {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 18px;
+  border: 1px solid rgba(99, 241, 255, 0.24);
+  background: rgba(0,0,0,.34);
+  color: #fff;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 900;
+  outline: none;
+}
+.ticker-lookup-page-card input:focus {
+  border-color: rgba(99, 241, 255, 0.62);
+  box-shadow: 0 0 0 4px rgba(99, 241, 255, 0.1);
+}
+.ticker-lookup-page-helper {
+  margin-top: 10px;
+  color: rgba(255,255,255,.56);
+  font-size: .88rem;
+  font-weight: 750;
+}
+.ticker-lookup-results-head,
+.ticker-lookup-page-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 16px;
+  align-items: center;
+}
+.ticker-lookup-results-head {
+  padding: 0 4px 12px;
+  color: rgba(255,255,255,.46);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .13em;
+  font-weight: 1000;
+}
+.ticker-lookup-results-head span:last-child { text-align: right; }
+.ticker-lookup-page-results { display: grid; gap: 10px; }
+.ticker-lookup-page-row {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+}
+.ticker-lookup-page-row strong {
+  display: block;
+  color: #fff;
+  font-size: 1rem;
+}
+.ticker-lookup-page-row small {
+  display: block;
+  margin-top: 3px;
+  color: rgba(255,255,255,.48);
+  font-weight: 800;
+}
+.ticker-lookup-page-row b {
+  justify-self: end;
+  min-width: 74px;
+  text-align: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #0a111f;
+  background: linear-gradient(135deg, #63f1ff, #8cff66);
+  box-shadow: 0 0 24px rgba(99, 241, 255, 0.16);
+}
+.ticker-lookup-page-status {
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  padding: 14px;
+  color: rgba(255,255,255,.62);
+  font-weight: 900;
+  background: rgba(255,255,255,.04);
+}
+.ticker-lookup-page-status.error { color: #ff8ca0; }
+
+/* EARNINGS CALENDAR — current day is blue, not yellow */
+.portfolio-earnings-day.today {
+  border-color: rgba(76, 170, 255, 0.95) !important;
+  background: radial-gradient(circle at 50% 0%, rgba(76, 170, 255, 0.32), rgba(9, 13, 29, 0.64) 58%) !important;
+  box-shadow: 0 0 0 2px rgba(76, 170, 255, 0.26), 0 0 42px rgba(76, 170, 255, 0.28) !important;
+}
+.portfolio-earnings-day.today::after {
+  background: rgba(76, 170, 255, 0.18) !important;
+  border-color: rgba(76, 170, 255, 0.70) !important;
+  color: #8fd0ff !important;
+}
+.portfolio-earnings-mobile-day.today {
+  border-color: rgba(76, 170, 255, 0.78) !important;
+  box-shadow: 0 0 28px rgba(76, 170, 255, 0.18) !important;
+}
+@media (max-width: 720px) {
+  .ticker-lookup-page { padding: 16px; }
+  .ticker-lookup-hero { padding: 22px; border-radius: 24px; }
+  .ticker-lookup-results-head,
+  .ticker-lookup-page-row { grid-template-columns: minmax(0, 1fr) 88px; gap: 10px; }
+  .ticker-lookup-page-row { padding: 12px; }
+  .ticker-lookup-page-row strong { font-size: .92rem; }
+}
