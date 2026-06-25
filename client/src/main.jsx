@@ -1001,7 +1001,7 @@ function App() {
 
   useEffect(() => {
     const q = tickerLookupQuery.trim();
-    if (!tickerLookupOpen || q.length < 1) {
+    if (view !== "tickerLookup" || q.length < 1) {
       setTickerLookupResults([]);
       setTickerLookupError("");
       setTickerLookupLoading(false);
@@ -1029,7 +1029,7 @@ function App() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [tickerLookupOpen, tickerLookupQuery]);
+  }, [view, tickerLookupQuery]);
 
   function acceptTerms() {
     if (user?.id) {
@@ -1089,6 +1089,19 @@ function App() {
     );
   }
 
+
+  if (view === "tickerLookup") {
+    return (
+      <TickerLookupPage
+        query={tickerLookupQuery}
+        results={tickerLookupResults}
+        loading={tickerLookupLoading}
+        error={tickerLookupError}
+        onQueryChange={setTickerLookupQuery}
+        onBack={() => setView("dashboard")}
+      />
+    );
+  }
 
   if (view === "faqs") {
     return (
@@ -1233,15 +1246,9 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <TickerLookupMenuPanel
-                        open={tickerLookupOpen}
-                        query={tickerLookupQuery}
-                        results={tickerLookupResults}
-                        loading={tickerLookupLoading}
-                        error={tickerLookupError}
-                        onToggle={() => setTickerLookupOpen((open) => !open)}
-                        onQueryChange={setTickerLookupQuery}
-                      />
+                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
+                        Ticker Lookup
+                      </button>
                       <div className="dropdown-divider" />
 
                       <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
@@ -1271,15 +1278,9 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <TickerLookupMenuPanel
-                        open={tickerLookupOpen}
-                        query={tickerLookupQuery}
-                        results={tickerLookupResults}
-                        loading={tickerLookupLoading}
-                        error={tickerLookupError}
-                        onToggle={() => setTickerLookupOpen((open) => !open)}
-                        onQueryChange={setTickerLookupQuery}
-                      />
+                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
+                        Ticker Lookup
+                      </button>
                       <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
@@ -4055,6 +4056,66 @@ function ClerkAccessPage({ onBack, onSuccess }) {
 }
 
 
+function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack }) {
+  const cleanQuery = query.trim();
+  return (
+    <main className="ticker-lookup-page">
+      <section className="ticker-lookup-page-shell">
+        <div className="ticker-lookup-topbar">
+          <button type="button" className="back-btn" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+        </div>
+
+        <div className="ticker-lookup-hero">
+          <div className="section-title"><Search size={17} /> Ticker Lookup</div>
+          <h1>Find a U.S. stock ticker.</h1>
+          <p>Type a company name or ticker. Eval filters the uploaded U.S. stock universe and shows the top 25 matches without calling market-data APIs.</p>
+        </div>
+
+        <div className="ticker-lookup-page-card">
+          <label htmlFor="ticker-lookup-page-input">Company or ticker</label>
+          <input
+            id="ticker-lookup-page-input"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Type Apple, Microsoft, Tesla, Nvidia..."
+            autoComplete="off"
+            autoFocus
+          />
+          <div className="ticker-lookup-page-helper">Only the top 25 results are shown. Tickers are not clickable, so lookup does not spend analysis calls.</div>
+        </div>
+
+        <section className="ticker-lookup-results-card">
+          <div className="ticker-lookup-results-head">
+            <span>Company</span>
+            <span>Ticker</span>
+          </div>
+          {loading ? <div className="ticker-lookup-page-status">Searching...</div> : null}
+          {error ? <div className="ticker-lookup-page-status error">{error}</div> : null}
+          {!loading && cleanQuery && !results.length && !error ? (
+            <div className="ticker-lookup-page-status">No matches found.</div>
+          ) : null}
+          {!cleanQuery ? (
+            <div className="ticker-lookup-page-status">Start typing to search the ticker universe.</div>
+          ) : null}
+          <div className="ticker-lookup-page-results">
+            {results.slice(0, 25).map((item) => (
+              <div className="ticker-lookup-page-row" key={`${item.symbol}-${item.name}`}>
+                <div>
+                  <strong>{item.name}</strong>
+                  <small>{item.exchange || "U.S. exchange"}</small>
+                </div>
+                <b>{item.symbol}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
+
 function TickerLookupMenuPanel({ open, query, results, loading, error, onToggle, onQueryChange }) {
   return (
     <div className={`dashboard-dropdown-nested ticker-lookup-menu ${open ? "open" : ""}`}>
@@ -4110,6 +4171,10 @@ function DashboardLinkRow({ onHome, onTerms, onSupport }) {
 }
 
 const EVAL_FAQS = [
+  { category: "Ticker Lookup", question: "Where is Ticker Lookup now?", answer: "Open the dashboard menu and click Ticker Lookup. It opens a separate page where users can type a company name and see matching U.S. stock tickers." },
+  { category: "Ticker Lookup", question: "Does Ticker Lookup spend stock API calls?", answer: "No. Ticker Lookup uses the uploaded U.S. stock universe and only shows company names and ticker symbols. The results are not clickable to avoid unnecessary analysis calls." },
+  { category: "Ticker Lookup", question: "How many ticker lookup results show at once?", answer: "Ticker Lookup shows the top 25 matches at a time so the page stays fast and easy to read." },
+  { category: "Morning Mug", question: "Why is today's earnings calendar date blue?", answer: "The blue calendar highlight marks the current day, making it easier to separate today from upcoming earnings dates." },
   {
     "category": "Getting started",
     "question": "What is Eval?",
@@ -4478,7 +4543,7 @@ const EVAL_FAQS = [
   {
     "category": "Navigation",
     "question": "What is in the dropdown menu?",
-    "answer": "The dropdown menu opens Ticker search, AI Assistant, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
+    "answer": "The dropdown menu opens AI Assistant, Portfolio, Ticker Lookup, Watchlist on mobile/tablet, and the Other menu for Homepage, FAQs, Terms, and Contact."
   },
   {
     "category": "Navigation",
