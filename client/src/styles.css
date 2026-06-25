@@ -30458,3 +30458,48 @@ body:has(.morning-brew-page-shell) {
     height: 70px !important;
   }
 }
+
+/* Sync/dropdown hard fix */
+.dashboard-dropdown-nested {
+  width: 100%;
+}
+
+.dashboard-dropdown-nested-toggle {
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: var(--text) !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  font-weight: 900 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+
+.dashboard-dropdown-nested.open .dashboard-dropdown-nested-toggle {
+  border-color: rgba(21,231,255,.35) !important;
+  background: rgba(21,231,255,.10) !important;
+}
+
+.dashboard-dropdown-nested-list {
+  margin: 8px 0 2px 12px;
+  padding: 6px 0 4px 10px;
+  border-left: 1px solid rgba(21,231,255,.22);
+  display: grid;
+  gap: 7px;
+}
+
+.dashboard-dropdown-nested-list button {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.055) !important;
+}
+
+.eval-sync-btn.synced svg {
+  filter: drop-shadow(0 0 8px rgba(133,215,19,.35));
+}
