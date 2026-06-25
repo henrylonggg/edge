@@ -1195,10 +1195,6 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
-                        Compare
-                      </button>
-
                       <div className="dropdown-divider" />
 
                       <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
@@ -2468,7 +2464,7 @@ function getSavedMorningPortfolio(user) {
         industry: analyzed.industry || analyzed.finnhubIndustry || manual.industry || "Unknown",
       };
     });
-    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio" };
+    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio", analysis: saved?.analysis || null };
   } catch {
     return { symbols: [], previousScores: {}, holdings: [], strategyTargets: {}, portfolioName: "Saved Portfolio" };
   }
@@ -3837,7 +3833,7 @@ function LandingPage({ onContinue }) {
             <h2>Built to make stock research cleaner</h2>
             <p>
               Eval combines data providers, cached reports, category scoring, article summaries, saved watchlists,
-              portfolio uploads, The Morning Mug, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
+              portfolio uploads, The Morning Mug, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
               The purpose is to make a company easier to understand before they decide what to research next.
             </p>
           </div>
@@ -4388,7 +4384,7 @@ const EVAL_FAQS = [
   {
     "category": "Navigation",
     "question": "What is in the dropdown menu?",
-    "answer": "The dropdown menu opens Ticker search, AI Assistant, Compare, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
+    "answer": "The dropdown menu opens Ticker search, AI Assistant, FAQs, Homepage, Terms & Conditions, Contact, and Watchlist on mobile/tablet."
   },
   {
     "category": "Navigation",
@@ -9327,7 +9323,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
             id="faq-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Start typing: watchlist, compare, risk, news sentiment..."
+            placeholder="Start typing: watchlist, risk, news sentiment..."
             autoComplete="off"
           />
           <span>{filteredFaqs.length} result{filteredFaqs.length === 1 ? "" : "s"}</span>
@@ -9960,6 +9956,21 @@ function AssistantPage({ current, watchlist, onBack }) {
     },
   ]);
   const [loading, setLoading] = useState(false);
+  const [assistantUnlocked, setAssistantUnlocked] = useState(() => safeStorageGet("eval-ai-assistant-unlocked", "") === "1");
+  const [assistantPassword, setAssistantPassword] = useState("");
+  const [assistantPasswordError, setAssistantPasswordError] = useState("");
+
+  function unlockAssistant(e) {
+    e.preventDefault();
+    if (assistantPassword.trim() === "111805") {
+      safeStorageSet("eval-ai-assistant-unlocked", "1");
+      setAssistantUnlocked(true);
+      setAssistantPasswordError("");
+      setAssistantPassword("");
+    } else {
+      setAssistantPasswordError("Incorrect password.");
+    }
+  }
 
   async function ask(e) {
     e.preventDefault();
@@ -9986,6 +9997,7 @@ function AssistantPage({ current, watchlist, onBack }) {
           current,
           watchlist,
           portfolio: getSavedMorningPortfolio(user),
+          assistantPassword: "111805",
         }),
       });
 
@@ -10003,7 +10015,7 @@ function AssistantPage({ current, watchlist, onBack }) {
         ...prev,
         {
           role: "assistant",
-          content: json?.answer || "I could not create a response.",
+          content: json?.answer || "Please try again.",
         },
       ]);
     } catch (err) {
@@ -10011,14 +10023,40 @@ function AssistantPage({ current, watchlist, onBack }) {
         ...prev,
         {
           role: "assistant",
-          content:
-            err.message ||
-            "Could not connect to the Render assistant endpoint.",
+          content: "Please try again.",
         },
       ]);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!assistantUnlocked) {
+    return (
+      <section className="assistant-page">
+        <div className="assistant-shell assistant-lock-shell">
+          <button className="back-btn" onClick={onBack}>
+            <ArrowLeft size={18} /> Dashboard
+          </button>
+          <div className="assistant-lock-card">
+            <div className="assistant-kicker"><BrainCircuit size={16} /> Eval AI Assistant</div>
+            <h2>Testing access</h2>
+            <p>Enter the testing password to use Eval AI Assistant.</p>
+            <form className="assistant-lock-form" onSubmit={unlockAssistant}>
+              <input
+                type="password"
+                value={assistantPassword}
+                onChange={(e) => setAssistantPassword(e.target.value)}
+                placeholder="Password"
+                autoComplete="off"
+              />
+              <button type="submit">Unlock</button>
+            </form>
+            {assistantPasswordError ? <p className="assistant-lock-error">{assistantPasswordError}</p> : null}
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -10051,7 +10089,7 @@ function AssistantPage({ current, watchlist, onBack }) {
 
             <div>
               <strong>FAQs and app support</strong>
-              <p>Ask how to use Eval, read score rings, understand popups, navigate the dropdown, compare stocks, or manage the watchlist.</p>
+              <p>Ask how to use Eval, read score rings, understand popups, navigate the dropdown, or manage the watchlist.</p>
             </div>
 
             <div>
