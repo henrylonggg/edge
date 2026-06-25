@@ -999,6 +999,38 @@ function App() {
     }
   }, [isLoaded, isSignedIn, termsAccepted, view]);
 
+  useEffect(() => {
+    const q = tickerLookupQuery.trim();
+    if (!tickerLookupOpen || q.length < 1) {
+      setTickerLookupResults([]);
+      setTickerLookupError("");
+      setTickerLookupLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        setTickerLookupLoading(true);
+        setTickerLookupError("");
+        const res = await fetch(`${API}/api/ticker-lookup?q=${encodeURIComponent(q)}&limit=25`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || "Ticker lookup failed.");
+        if (!cancelled) setTickerLookupResults(Array.isArray(json.results) ? json.results.slice(0, 25) : []);
+      } catch {
+        if (!cancelled) {
+          setTickerLookupResults([]);
+          setTickerLookupError("Could not load ticker lookup.");
+        }
+      } finally {
+        if (!cancelled) setTickerLookupLoading(false);
+      }
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [tickerLookupOpen, tickerLookupQuery]);
+
   function acceptTerms() {
     if (user?.id) {
       const key = `eval-terms-accepted-${TERMS_VERSION}-${user.id}`;
@@ -1057,38 +1089,6 @@ function App() {
     );
   }
 
-
-  useEffect(() => {
-    const q = tickerLookupQuery.trim();
-    if (!tickerLookupOpen || q.length < 1) {
-      setTickerLookupResults([]);
-      setTickerLookupError("");
-      setTickerLookupLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        setTickerLookupLoading(true);
-        setTickerLookupError("");
-        const res = await fetch(`${API}/api/ticker-lookup?q=${encodeURIComponent(q)}&limit=25`);
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json?.error || "Ticker lookup failed.");
-        if (!cancelled) setTickerLookupResults(Array.isArray(json.results) ? json.results.slice(0, 25) : []);
-      } catch (err) {
-        if (!cancelled) {
-          setTickerLookupResults([]);
-          setTickerLookupError("Could not load ticker lookup.");
-        }
-      } finally {
-        if (!cancelled) setTickerLookupLoading(false);
-      }
-    }, 180);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [tickerLookupOpen, tickerLookupQuery]);
 
   if (view === "faqs") {
     return (
