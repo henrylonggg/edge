@@ -1348,7 +1348,7 @@ function enhancedAssistantContextAnswer(question = "", ctx = {}) {
       return `${group.industry} is the main trim area at ${round1(group.actual)}%${targetText}. Review: ${candidates.join(", ")}.`;
     }
     if (/\b(highest|largest|biggest)\b/i.test(q)) {
-      const top = [...holdings].sort((a,b)=>Number(b.weightPercent ?? b.weight || 0)-Number(a.weightPercent ?? a.weight || 0))[0];
+      const top = [...holdings].sort((a,b)=>Number(b.weightPercent ?? b.weight ?? 0) - Number(a.weightPercent ?? a.weight ?? 0))[0];
       return top ? `${cleanTicker(top.symbol || top.ticker)} is the largest holding at about ${round1(top.weightPercent ?? top.weight)}%.` : "Please try again.";
     }
     if (/\b(score|eval)\b/i.test(q) && token && holding) {
