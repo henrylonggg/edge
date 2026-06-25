@@ -527,6 +527,7 @@ function App() {
   const [compareError, setCompareError] = useState("");
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [otherMenuOpen, setOtherMenuOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState("idle");
   const [showMorningMug, setShowMorningMug] = useState(() => isTheMorningMugWindow());
 
@@ -537,49 +538,117 @@ function App() {
     return () => window.clearInterval(id);
   }, []);
 
+  function getSyncUserKey() {
+    const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
+    return String(email || user?.id || "").trim().toLowerCase();
+  }
+
+  function getLocalSyncPayload() {
+    const portfolioKey = portfolioStorageKeyFor(user);
+    const localPortfolioRaw = safeStorageGet(portfolioKey, "");
+    let portfolio = null;
+    try {
+      portfolio = localPortfolioRaw ? JSON.parse(localPortfolioRaw) : null;
+    } catch {
+      portfolio = null;
+    }
+    return {
+      watchlist: readWatchlist(),
+      portfolio,
+      alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
+      syncedAt: new Date().toISOString(),
+    };
+  }
+
+  function applyRemoteSyncData(remote) {
+    if (!remote || typeof remote !== "object") return false;
+    let changed = false;
+    if (Array.isArray(remote.watchlist)) {
+      saveWatchlist(remote.watchlist);
+      setWatchlist(remote.watchlist);
+      changed = true;
+    }
+    if (remote.portfolio) {
+      safeStorageSet(portfolioStorageKeyFor(user), JSON.stringify(remote.portfolio));
+      window.dispatchEvent(new CustomEvent("eval-portfolio-remote-sync", { detail: remote.portfolio }));
+      changed = true;
+    }
+    if (remote.alertsSeen) {
+      safeStorageSet("eval-morning-mugs-alerts-seen", remote.alertsSeen);
+      changed = true;
+    }
+    return changed;
+  }
+
+  async function fetchRemoteSyncData(userKey) {
+    const response = await fetch(`${API}/api/user-sync/${encodeURIComponent(userKey)}`, {
+      method: "GET",
+      mode: "cors",
+      headers: { Accept: "application/json" },
+    });
+    const json = await response.json().catch(() => null);
+    return json?.data || null;
+  }
+
+  async function pushLocalSyncData(userKey) {
+    const response = await fetch(`${API}/api/user-sync`, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ userKey, data: getLocalSyncPayload() }),
+    });
+    if (!response.ok) throw new Error("Sync failed");
+    const json = await response.json().catch(() => null);
+    return json?.data || null;
+  }
+
+  async function importRemoteAccountData({ silent = false } = {}) {
+    const userKey = getSyncUserKey();
+    if (!userKey) return false;
+    try {
+      const remote = await fetchRemoteSyncData(userKey);
+      if (!remote) return false;
+      applyRemoteSyncData(remote);
+      safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || remote.syncedAt || "") || Date.now()));
+      safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
+      if (!silent) {
+        setSyncStatus("synced");
+        setTimeout(() => setSyncStatus("idle"), 2500);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSyncAccountData() {
     if (!user) {
       setSyncStatus("error");
       setTimeout(() => setSyncStatus("idle"), 1800);
       return;
     }
-    const userKey = user.id || user.primaryEmailAddress?.emailAddress || "local";
-    const portfolioKey = portfolioStorageKeyFor(user);
-    const lastSyncKey = `eval-sync-last:${userKey}`;
+    const userKey = getSyncUserKey();
+    if (!userKey) {
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus("idle"), 1800);
+      return;
+    }
+
     setSyncStatus("syncing");
     try {
-      const localPortfolioRaw = safeStorageGet(portfolioKey, "");
-      const localPayload = {
-        watchlist: readWatchlist(),
-        portfolio: localPortfolioRaw ? JSON.parse(localPortfolioRaw) : null,
-        alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
-        syncedAt: new Date().toISOString(),
-      };
-      const remoteResponse = await fetch(`${API}/api/user-sync/${encodeURIComponent(userKey)}`, { method: "GET", mode: "cors", headers: { Accept: "application/json" } });
-      const remoteJson = await remoteResponse.json().catch(() => null);
-      const remote = remoteJson?.data || null;
-      const localLast = Number(safeStorageGet(lastSyncKey, "0") || 0);
-      const remoteTime = remote?.updatedAt ? Date.parse(remote.updatedAt) : 0;
-      const shouldImport = remote && remoteTime > localLast && (!localPayload.portfolio || remoteTime > Date.now() - 1000 * 60 * 60 * 24 * 14);
+      const local = getLocalSyncPayload();
+      const remote = await fetchRemoteSyncData(userKey);
+      const hasLocalPortfolio = Boolean(local.portfolio);
+      const hasRemotePortfolio = Boolean(remote?.portfolio);
 
-      if (shouldImport) {
-        if (Array.isArray(remote.watchlist)) {
-          saveWatchlist(remote.watchlist);
-          setWatchlist(remote.watchlist);
-        }
-        if (remote.portfolio) safeStorageSet(portfolioKey, JSON.stringify(remote.portfolio));
-        if (remote.alertsSeen) safeStorageSet("eval-morning-mugs-alerts-seen", remote.alertsSeen);
-        safeStorageSet(lastSyncKey, String(remoteTime || Date.now()));
+      if (!hasLocalPortfolio && hasRemotePortfolio) {
+        applyRemoteSyncData(remote);
+        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || "") || Date.now()));
       } else {
-        const pushResponse = await fetch(`${API}/api/user-sync`, {
-          method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ userKey, data: localPayload }),
-        });
-        if (!pushResponse.ok) throw new Error("Sync failed");
-        safeStorageSet(lastSyncKey, String(Date.now()));
+        const pushed = await pushLocalSyncData(userKey);
+        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(pushed?.updatedAt || "") || Date.now()));
       }
+
       safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
       setSyncStatus("synced");
       setTimeout(() => setSyncStatus("idle"), 2500);
@@ -590,17 +659,33 @@ function App() {
   }
 
   useEffect(() => {
-    if (!user) return undefined;
-    const userKey = user.id || user.primaryEmailAddress?.emailAddress || "local";
-    if (safeStorageGet(`eval-sync-enabled:${userKey}`, "") !== "true") return undefined;
-    const id = window.setInterval(() => {
-      if (syncStatus === "idle") handleSyncAccountData();
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [user, syncStatus, watchlist]);
+    const userKey = getSyncUserKey();
+    if (!userKey) return undefined;
+
+    let alive = true;
+    importRemoteAccountData({ silent: true });
+
+    const interval = window.setInterval(() => {
+      if (!alive) return;
+      importRemoteAccountData({ silent: true });
+    }, 45_000);
+
+    const onLocalSyncChange = () => {
+      if (!alive) return;
+      pushLocalSyncData(userKey).catch(() => {});
+    };
+
+    window.addEventListener("eval-account-sync-changed", onLocalSyncChange);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+      window.removeEventListener("eval-account-sync-changed", onLocalSyncChange);
+    };
+  }, [user]);
 
   function goMenu(nextView) {
     setMenuOpen(false);
+    setOtherMenuOpen(false);
     setView(nextView);
   }
 
@@ -1116,13 +1201,24 @@ function App() {
 
                       <div className="dropdown-divider" />
 
-                      <details className="dashboard-dropdown-nested">
-                        <summary>Other</summary>
-                        <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                      </details>
+                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
+                        <button
+                          type="button"
+                          className="dashboard-dropdown-nested-toggle"
+                          onClick={() => setOtherMenuOpen((open) => !open)}
+                          aria-expanded={otherMenuOpen}
+                        >
+                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
+                        </button>
+                        {otherMenuOpen ? (
+                          <div className="dashboard-dropdown-nested-list">
+                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
@@ -1141,13 +1237,24 @@ function App() {
 
                       <div className="dropdown-divider" />
 
-                      <details className="dashboard-dropdown-nested">
-                        <summary>Other</summary>
-                        <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                        <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                      </details>
+                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
+                        <button
+                          type="button"
+                          className="dashboard-dropdown-nested-toggle"
+                          onClick={() => setOtherMenuOpen((open) => !open)}
+                          aria-expanded={otherMenuOpen}
+                        >
+                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
+                        </button>
+                        {otherMenuOpen ? (
+                          <div className="dashboard-dropdown-nested-list">
+                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </>
                 )}
@@ -2833,6 +2940,22 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
   const [strategySavedLabel, setStrategySavedLabel] = useState("");
+
+  useEffect(() => {
+    const onRemotePortfolio = (event) => {
+      const saved = event?.detail;
+      if (!saved || typeof saved !== "object") return;
+      if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
+      if (saved.fileName) setCsvName(saved.fileName);
+      if (saved.analysis) setCsvAnalysis(saved.analysis);
+      if (Array.isArray(saved.manualRows)) setManualRows(saved.manualRows);
+      if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
+      if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
+      if (saved.strategyTargets) setStrategyTargets(saved.strategyTargets);
+    };
+    window.addEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
+    return () => window.removeEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
+  }, []);
   const [portfolioEarnings, setPortfolioEarnings] = useState([]);
   const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
@@ -2891,7 +3014,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
     if (!csvAnalysis) return;
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
-      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets }));
+      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets, savedAt: new Date().toISOString() }));
+      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
     } catch {
       // Ignore local storage failures.
     }
@@ -2909,6 +3033,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
         strategyTargets,
         savedAt: new Date().toISOString(),
       }));
+      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
     } catch {
       // Local storage can fail in private browsing; the page still works for the current session.
     }
