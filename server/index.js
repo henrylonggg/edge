@@ -1704,6 +1704,7 @@ const morningBrewIndexCache = new Map();
 const morningBrewPortfolioAlertsCache = new Map();
 
 const morningBrewPortfolioMoversCache = new Map();
+const morningBrewInsiderCache = new Map();
 
 async function getMorningPortfolioMovers(symbols = []) {
   const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
@@ -1983,6 +1984,96 @@ async function getPortfolioEarnings(symbols = [], options = {}) {
   };
 }
 
+
+function insiderRatingFromTransaction(item = {}) {
+  const code = String(item.transactionCode || item.code || "").toUpperCase();
+  const rawChange = Number(item.change ?? item.shareChange ?? item.sharesChanged ?? item.share);
+  const rawValue = Number(item.value ?? item.transactionValue ?? (Number(item.transactionPrice) * Math.abs(rawChange || 0)));
+  let rating = 5.0;
+  if (["P", "B", "BUY"].includes(code) || rawChange > 0) rating += 1.4;
+  if (["S", "SALE", "SELL"].includes(code) || rawChange < 0) rating -= 1.2;
+  if (Number.isFinite(rawValue)) {
+    if (Math.abs(rawValue) >= 1000000) rating += rawChange > 0 ? 0.7 : -0.45;
+    else if (Math.abs(rawValue) >= 250000) rating += rawChange > 0 ? 0.35 : -0.2;
+  }
+  return Number(Math.max(0, Math.min(10, rating)).toFixed(1));
+}
+
+function cleanInsiderTransaction(item = {}, symbol = "") {
+  const cleanSymbol = cleanTicker(item.symbol || symbol);
+  if (!cleanSymbol) return null;
+  const date = String(item.transactionDate || item.filingDate || item.date || "").slice(0, 10);
+  const change = Number(item.change ?? item.shareChange ?? item.sharesChanged ?? item.share);
+  const price = Number(item.transactionPrice ?? item.price ?? 0);
+  const value = Number.isFinite(Number(item.value)) ? Number(item.value) : (Number.isFinite(price) && Number.isFinite(change) ? price * Math.abs(change) : null);
+  const rating = insiderRatingFromTransaction({ ...item, change, value });
+  const tone = rating >= 6.8 ? "positive" : rating <= 4.2 ? "negative" : "neutral";
+  const direction = Number.isFinite(change) ? (change > 0 ? "buy" : change < 0 ? "sale" : "transaction") : "transaction";
+  const label = `${direction === "buy" ? "Insider buy" : direction === "sale" ? "Insider sale" : "Insider transaction"}${date ? ` • ${date}` : ""}${Number.isFinite(value) ? ` • ${formatCompactNumberLocal(Math.abs(value))}` : ""}`;
+  return {
+    symbol: cleanSymbol,
+    date,
+    code: String(item.transactionCode || item.code || ""),
+    name: String(item.name || item.ownerName || "Insider").slice(0, 80),
+    shares: Number.isFinite(change) ? change : null,
+    value: Number.isFinite(value) ? value : null,
+    label,
+    rating,
+    tone,
+  };
+}
+
+async function fetchFinnhubInsiders(symbol) {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cleanSymbol = cleanTicker(symbol);
+  if (!apiKey || !cleanSymbol) return [];
+  const to = morningBrewDateKey();
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 7);
+  const from = fromDate.toISOString().slice(0, 10);
+  const url = new URL("https://finnhub.io/api/v1/stock/insider-transactions");
+  url.searchParams.set("symbol", cleanSymbol);
+  url.searchParams.set("from", from);
+  url.searchParams.set("to", to);
+  url.searchParams.set("token", apiKey);
+  const json = await fetchFinnhubJson(url, Math.max(2500, Number(process.env.PROVIDER_TIMEOUT_MS || 3500)));
+  const rows = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
+  return rows.map((item) => cleanInsiderTransaction(item, cleanSymbol)).filter(Boolean);
+}
+
+async function getMorningInsiderTransactions(symbols = []) {
+  const cleanSymbols = [...new Set((symbols || []).map(cleanTicker).filter(Boolean))].slice(0, 35);
+  if (!cleanSymbols.length) return { transactions: [], cached: true };
+  const key = `${morningBrewDateKey()}-${stableMorningHash(cleanSymbols)}`;
+  const cached = morningBrewInsiderCache.get(key);
+  if (cached?.transactions) return { ...cached, cached: true };
+  const transactions = [];
+  for (const symbol of cleanSymbols.slice(0, 18)) {
+    try {
+      const rows = await fetchFinnhubInsiders(symbol);
+      transactions.push(...rows);
+    } catch {
+      // Keep Morning Mugs running if insider data is unavailable for one stock.
+    }
+  }
+  const ranked = transactions
+    .sort((a, b) => {
+      const aImpact = Math.abs(Number(a.rating || 5) - 5) + (Number.isFinite(a.value) ? Math.min(2, Math.abs(a.value) / 1000000) : 0);
+      const bImpact = Math.abs(Number(b.rating || 5) - 5) + (Number.isFinite(b.value) ? Math.min(2, Math.abs(b.value) / 1000000) : 0);
+      return bImpact - aImpact;
+    })
+    .slice(0, 5);
+  const result = { transactions: ranked, cached: false, source: "Finnhub insider transactions with cached daily fallback" };
+  morningBrewInsiderCache.set(key, result);
+  if (morningBrewInsiderCache.size > 12) {
+    for (const cacheKey of morningBrewInsiderCache.keys()) {
+      if (cacheKey !== key) morningBrewInsiderCache.delete(cacheKey);
+      if (morningBrewInsiderCache.size <= 6) break;
+    }
+  }
+  return result;
+}
+
 async function fetchLatestCompanyMorningNews(symbol) {
   const apiKey = process.env.FINNHUB_API_KEY;
   const cleanSymbol = cleanTicker(symbol);
@@ -2252,10 +2343,23 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
     }
   }
 
+  const compactAlerts = unique.slice(0, 5).map((alert) => {
+    const move = Number.isFinite(Number(alert.dayChangePercent)) ? ` Today: ${Number(alert.dayChangePercent).toFixed(2)}%.` : "";
+    let shortDetail = String(alert.detail || "").replace(/\s+/g, " ").trim();
+    if (alert.type === "score-up" || alert.type === "score-down") {
+      shortDetail = `${alert.symbol} moved ${Number(alert.change || 0) > 0 ? "up" : "down"} ${Math.abs(Number(alert.change || 0)).toFixed(1)} Eval points since the saved snapshot.${move}`;
+    } else if (alert.weightPercent !== undefined && alert.weightPercent !== null) {
+      shortDetail = `${alert.symbol || "This position"} is carrying ${Number(alert.weightPercent).toFixed(1)}% of the portfolio.${move}`;
+    } else if (alert.score !== undefined && alert.score !== null) {
+      shortDetail = `${alert.symbol} has a ${Number(alert.score).toFixed(1)} Eval Score.${move}`;
+    }
+    return { ...alert, shortDetail };
+  });
+
   const result = {
     hasPortfolio: true,
     symbols: cleanSymbols,
-    alerts: unique.slice(0, 5),
+    alerts: compactAlerts,
     rescored: reports.length,
     message: unique.length ? "" : "No major score or concentration alerts for this saved portfolio yet today.",
   };
@@ -2288,19 +2392,20 @@ app.post("/api/morning-brew", async (req, res) => {
     const forceRefresh = String(req.query.refresh || "0") === "1";
     const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols.map(cleanTicker).filter(Boolean) : [];
     const hasPortfolio = symbols.length > 0;
-    const [market, portfolio, earnings, movers] = await Promise.all([
+    const [market, portfolio, earnings, movers, insiders] = await Promise.all([
       buildMorningBrewMarket(forceRefresh),
       hasPortfolio
         ? buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {})
         : Promise.resolve({ hasPortfolio: false, alerts: [], message: "" }),
       hasPortfolio ? getPortfolioEarnings(symbols, { days: 7 }) : Promise.resolve({ events: [], symbols: [], cached: true }),
       hasPortfolio ? getMorningPortfolioMovers(symbols) : Promise.resolve({ gainers: [], losers: [] }),
+      hasPortfolio ? getMorningInsiderTransactions(symbols) : Promise.resolve({ transactions: [], cached: true }),
     ]);
     res.json({
       ok: true,
       title: "Morning Mugs",
       generatedAt: new Date().toISOString(),
-      market: { ...market, earnings, movers },
+      market: { ...market, earnings, movers, insiders },
       portfolio,
     });
   } catch (error) {
