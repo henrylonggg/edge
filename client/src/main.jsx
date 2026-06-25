@@ -527,6 +527,77 @@ function App() {
   const [compareError, setCompareError] = useState("");
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle");
+  const [showMorningMug, setShowMorningMug] = useState(() => isTheMorningMugWindow());
+
+  useEffect(() => {
+    const update = () => setShowMorningMug(isTheMorningMugWindow());
+    update();
+    const id = window.setInterval(update, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  async function handleSyncAccountData() {
+    if (!user) {
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus("idle"), 1800);
+      return;
+    }
+    const userKey = user.id || user.primaryEmailAddress?.emailAddress || "local";
+    const portfolioKey = portfolioStorageKeyFor(user);
+    const lastSyncKey = `eval-sync-last:${userKey}`;
+    setSyncStatus("syncing");
+    try {
+      const localPortfolioRaw = safeStorageGet(portfolioKey, "");
+      const localPayload = {
+        watchlist: readWatchlist(),
+        portfolio: localPortfolioRaw ? JSON.parse(localPortfolioRaw) : null,
+        alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
+        syncedAt: new Date().toISOString(),
+      };
+      const remoteResponse = await fetch(`${API}/api/user-sync/${encodeURIComponent(userKey)}`, { method: "GET", mode: "cors", headers: { Accept: "application/json" } });
+      const remoteJson = await remoteResponse.json().catch(() => null);
+      const remote = remoteJson?.data || null;
+      const localLast = Number(safeStorageGet(lastSyncKey, "0") || 0);
+      const remoteTime = remote?.updatedAt ? Date.parse(remote.updatedAt) : 0;
+      const shouldImport = remote && remoteTime > localLast && (!localPayload.portfolio || remoteTime > Date.now() - 1000 * 60 * 60 * 24 * 14);
+
+      if (shouldImport) {
+        if (Array.isArray(remote.watchlist)) {
+          saveWatchlist(remote.watchlist);
+          setWatchlist(remote.watchlist);
+        }
+        if (remote.portfolio) safeStorageSet(portfolioKey, JSON.stringify(remote.portfolio));
+        if (remote.alertsSeen) safeStorageSet("eval-morning-mugs-alerts-seen", remote.alertsSeen);
+        safeStorageSet(lastSyncKey, String(remoteTime || Date.now()));
+      } else {
+        const pushResponse = await fetch(`${API}/api/user-sync`, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ userKey, data: localPayload }),
+        });
+        if (!pushResponse.ok) throw new Error("Sync failed");
+        safeStorageSet(lastSyncKey, String(Date.now()));
+      }
+      safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
+      setSyncStatus("synced");
+      setTimeout(() => setSyncStatus("idle"), 2500);
+    } catch {
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus("idle"), 2200);
+    }
+  }
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const userKey = user.id || user.primaryEmailAddress?.emailAddress || "local";
+    if (safeStorageGet(`eval-sync-enabled:${userKey}`, "") !== "true") return undefined;
+    const id = window.setInterval(() => {
+      if (syncStatus === "idle") handleSyncAccountData();
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [user, syncStatus, watchlist]);
 
   function goMenu(nextView) {
     setMenuOpen(false);
@@ -1045,18 +1116,13 @@ function App() {
 
                       <div className="dropdown-divider" />
 
-                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
-                        Homepage
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
-                        Terms & Conditions
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
-                        FAQs
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
-                        Contact
-                      </button>
+                      <details className="dashboard-dropdown-nested">
+                        <summary>Other</summary>
+                        <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
+                      </details>
                     </div>
 
                     <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
@@ -1075,18 +1141,13 @@ function App() {
 
                       <div className="dropdown-divider" />
 
-                      <button type="button" role="menuitem" onClick={() => goMenu("landing")}>
-                        Homepage
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("terms")}>
-                        Terms & Conditions
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>
-                        FAQs
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("support")}>
-                        Contact
-                      </button>
+                      <details className="dashboard-dropdown-nested">
+                        <summary>Other</summary>
+                        <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
+                        <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
+                      </details>
                     </div>
                   </>
                 )}
@@ -1108,13 +1169,26 @@ function App() {
 
               <button
                 type="button"
-                className="morning-brew-trigger"
-                onClick={() => setView("morningBrew")}
-                aria-label="Open Morning Mugs"
-                title="Morning Mugs"
+                className={`eval-sync-btn ${syncStatus}`}
+                onClick={handleSyncAccountData}
+                aria-label="Sync account data"
+                title="Sync account data across devices"
+                disabled={syncStatus === "syncing"}
               >
-                <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
+                {syncStatus === "synced" ? <CheckCircle2 size={18}/> : <RefreshCw size={18} className={syncStatus === "syncing" ? "spin" : ""}/>}
               </button>
+
+              {showMorningMug && (
+                <button
+                  type="button"
+                  className="morning-brew-trigger"
+                  onClick={() => setView("morningBrew")}
+                  aria-label="Open The Morning Mug"
+                  title="The Morning Mug"
+                >
+                  <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
+                </button>
+              )}
             </form>
 
             {data ? (
@@ -1946,6 +2020,14 @@ function easternTimeParts(now = new Date()) {
   return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
+function isTheMorningMugWindow(now = new Date()) {
+  const lookup = easternTimeParts(now);
+  const hour = Number(lookup.hour || 0);
+  const minute = Number(lookup.minute || 0);
+  const current = hour * 60 + minute;
+  return current >= 8 * 60 && current <= 10 * 60 + 30;
+}
+
 function isAfterEtTime(hour = 5, minute = 0, now = new Date()) {
   const lookup = easternTimeParts(now);
   const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(lookup.weekday);
@@ -2506,10 +2588,10 @@ function MorningMugsDashboard({ onBack }) {
         body: JSON.stringify({ symbols: Array.isArray(portfolio.symbols) ? portfolio.symbols : [], previousScores: portfolio.previousScores || {}, holdings: Array.isArray(portfolio.holdings) ? portfolio.holdings : [], strategyTargets: portfolio.strategyTargets || {} }),
       });
       const json = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(json?.error || "Could not load Morning Mugs.");
+      if (!response.ok) throw new Error(json?.error || "Could not load The Morning Mug.");
       setBrew(json);
     } catch (err) {
-      setError(err?.message || "Could not load Morning Mugs.");
+      setError(err?.message || "Could not load The Morning Mug.");
     } finally {
       setLoading(false);
     }
@@ -2557,7 +2639,7 @@ function MorningMugsDashboard({ onBack }) {
         <div className="morning-brew-hero morning-brew-hero-clean">
           <div className="morning-brew-title-wrap morning-brew-title-clean">
             <span className="morning-brew-giant-cup" aria-hidden="true">☕</span>
-            <h2>Morning Mugs</h2>
+            <h2><strong>The Morning Mug</strong></h2>
           </div>
           <div className="morning-brew-actions-clean">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
@@ -2571,7 +2653,7 @@ function MorningMugsDashboard({ onBack }) {
 
         {error && <div className="morning-brew-error"><AlertTriangle size={16}/> {error}</div>}
         {loading && !brew ? (
-          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Loading Morning Mugs...</div>
+          <div className="morning-brew-loading"><RefreshCw className="spin" size={18}/> Loading The Morning Mug...</div>
         ) : (
           <div className="morning-brew-page-grid">
             <section className="morning-brew-card market-card">
@@ -3287,6 +3369,13 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </b>
             </article>
 
+            <article className="portfolio-count-card-v3">
+              <span>Portfolio size</span>
+              <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
+              <b>holdings</b>
+              <strong>{industryGroups.length}</strong>
+              <b>industries</b>
+            </article>
 
           </div>
 
@@ -3303,6 +3392,10 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <b>Industry Scores</b>
               <small>{industryScoresOpen ? "Click to close" : "Click to view"}</small>
             </button>
+            <button type="button" className={`portfolio-action-tile strategy ${strategyOpen ? "open" : ""}`} onClick={() => setStrategyOpen((open) => !open)}>
+              <b>Strategy</b>
+              <small>{strategyOpen ? "Click to close" : "Set targets"}</small>
+            </button>
             <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
               <b>↓ Holdings</b>
               <small>Jump to section</small>
@@ -3315,13 +3408,10 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </div>
           )}
 
-          <section className="portfolio-strategy-panel-v1">
-            <button type="button" className={`portfolio-strategy-toggle ${strategyOpen ? "open" : "closed"}`} onClick={() => setStrategyOpen((open) => !open)}>
-              <span><Target size={17}/> Portfolio strategy</span>
-              <b>{strategyOpen ? "Click to close" : "Click to set targets"}</b>
-            </button>
+          <section className={`portfolio-strategy-panel-v1 ${strategyOpen ? "open" : "closed"}`}>
             {strategyOpen && (
               <div className="portfolio-strategy-body-v1">
+                <div className="portfolio-strategy-inline-head"><Target size={17}/> <b>Eval Strategy targets</b></div>
                 <div className="portfolio-strategy-actions-v1">
                   <button type="button" onClick={applyEvalStrategy}>Use Eval Strategy</button>
                   <button type="button" onClick={applyCurrentStrategyWeights}>Use current weights</button>
@@ -3475,7 +3565,7 @@ function LandingPage({ onContinue }) {
     },
     {
       icon: <Newspaper size={22} />,
-      title: "Morning Mugs",
+      title: "The Morning Mug",
       text: "The coffee-cup dashboard gives users CNBC pre-market headlines, index proxy movement, article impact scores, and up to five saved-portfolio alerts each morning.",
     },
     {
@@ -3523,7 +3613,7 @@ function LandingPage({ onContinue }) {
     },
     {
       number: "08",
-      title: "Open Morning Mugs",
+      title: "Open The Morning Mug",
       text: "The coffee button opens a daily market page with CNBC headlines, pre-market index movement, article scores, and saved-portfolio alerts.",
     },
   ];
@@ -3552,13 +3642,13 @@ function LandingPage({ onContinue }) {
 
             <p>
               Eval is a stock evaluation dashboard that turns scattered market data, company fundamentals,
-              recent news, risk signals, watchlist rankings, portfolio scoring, Morning Mugs alerts,
+              recent news, risk signals, watchlist rankings, portfolio scoring, The Morning Mug alerts,
               and AI explanations into one clean system. Instead of making users bounce between finance sites,
               charts, headlines, raw ratios, and spreadsheets, Eval gives them a fast company-quality read they can understand in minutes.
             </p>
 
             <div className="landing-action-row-static landing-action-row-static-copy-only">
-              <span>Built for quick research, watchlist ranking, portfolio scoring, Morning Mugs, and easier company comparison.</span>
+              <span>Built for quick research, watchlist ranking, portfolio scoring, The Morning Mug, and easier company comparison.</span>
             </div>
           </div>
 
@@ -3622,7 +3712,7 @@ function LandingPage({ onContinue }) {
             <h2>Built to make stock research cleaner</h2>
             <p>
               Eval combines data providers, cached reports, category scoring, article summaries, saved watchlists,
-              portfolio uploads, Morning Mugs, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
+              portfolio uploads, The Morning Mug, comparison tools, strategy targets, and Eval AI support into one interface. The purpose is not to tell users what to buy.
               The purpose is to make a company easier to understand before they decide what to research next.
             </p>
           </div>
@@ -9741,7 +9831,7 @@ function AssistantPage({ current, watchlist, onBack }) {
     {
       role: "assistant",
       content:
-        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, Morning Mugs, or how to use any dashboard feature.",
+        "Ask about Eval, navigation, tickers, watchlist stocks, portfolio holdings, The Morning Mug, or how to use any dashboard feature.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -9821,7 +9911,7 @@ function AssistantPage({ current, watchlist, onBack }) {
             <h2>Ask about Eval, the report, your watchlist, or your portfolio.</h2>
             <p>
               Eval AI is built as a short-answer support agent for navigation, FAQs, ticker lookup,
-              watchlist stocks, portfolio stocks, Morning Mugs, score meanings, and company basics.
+              watchlist stocks, portfolio stocks, The Morning Mug, score meanings, and company basics.
             </p>
 
         <section className="ai-rules-card ai-rules-card-full">
@@ -9855,8 +9945,8 @@ function AssistantPage({ current, watchlist, onBack }) {
             </div>
 
             <div>
-              <strong>Morning Mugs and strategy help</strong>
-              <p>Ask where Morning Mugs is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
+              <strong>The Morning Mug and strategy help</strong>
+              <p>Ask where The Morning Mug is, how CNBC headlines are scored, or how Portfolio Strategy target weights work.</p>
             </div>
           </div>
 
@@ -9889,7 +9979,7 @@ className="chat-panel">
               value={question}
               onChange={(e) => setQuestion(e.target.value.slice(0, 150))}
               maxLength={150}
-              placeholder="Ask about Eval, portfolio, watchlist, Morning Mugs, metrics, tickers, or navigation."
+              placeholder="Ask about Eval, portfolio, watchlist, The Morning Mug, metrics, tickers, or navigation."
               rows="3"
             />
             <button disabled={loading}>
