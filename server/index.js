@@ -1705,6 +1705,7 @@ const morningBrewPortfolioAlertsCache = new Map();
 
 const morningBrewPortfolioMoversCache = new Map();
 const morningBrewInsiderCache = new Map();
+const morningArticleImageCache = new Map();
 
 async function getMorningPortfolioMovers(symbols = []) {
   const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
@@ -1786,6 +1787,78 @@ function stableMorningHash(input) {
   return Math.abs(hash).toString(36);
 }
 
+
+function isHighQualityArticleImage(imageUrl = "", articleUrl = "") {
+  const raw = String(imageUrl || "").trim();
+  if (!/^https?:\/\//i.test(raw)) return false;
+  const lower = raw.toLowerCase();
+  const bad = /(logo|favicon|icon|sprite|placeholder|blank|transparent|default-image|default_logo|avatar|profile|author|rss|apple-touch|finance-logo|yahoo-finance-logo|share-card|og-default|markets-logo)/i;
+  if (bad.test(lower)) return false;
+  if (/\.svg(\?|$)/i.test(lower)) return false;
+  if (/1x1|pixel|spacer/i.test(lower)) return false;
+  if (/s\.yimg\.com\/(ny|uu)\/api\/res/.test(lower) && /logo|finance/i.test(lower)) return false;
+  const articleHost = (() => {
+    try { return new URL(articleUrl).hostname.replace(/^www\./, ""); } catch { return ""; }
+  })();
+  const imageHost = (() => {
+    try { return new URL(raw).hostname.replace(/^www\./, ""); } catch { return ""; }
+  })();
+  if (articleHost && imageHost && /yahoo|finance\.yahoo/i.test(articleHost) && /logo|favicon|icon/i.test(lower)) return false;
+  return true;
+}
+
+async function fetchArticleCoverImage(articleUrl = "") {
+  const url = String(articleUrl || "").trim();
+  if (!/^https?:\/\//i.test(url)) return "";
+  const cached = morningArticleImageCache.get(url);
+  if (cached !== undefined) return cached;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2200);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 EvalBot/1.0",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+    });
+    if (!response.ok) throw new Error("cover fetch failed");
+    const html = await response.text();
+    const matches = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+    ];
+    for (const pattern of matches) {
+      const match = html.match(pattern);
+      const candidate = match?.[1]?.replace(/&amp;/g, "&").trim();
+      if (isHighQualityArticleImage(candidate, url)) {
+        morningArticleImageCache.set(url, candidate);
+        return candidate;
+      }
+    }
+  } catch {
+    // Article pages sometimes block server fetches; in that case we simply hide logo/placeholder images.
+  } finally {
+    clearTimeout(timeout);
+  }
+  morningArticleImageCache.set(url, "");
+  if (morningArticleImageCache.size > 120) {
+    for (const key of morningArticleImageCache.keys()) {
+      morningArticleImageCache.delete(key);
+      if (morningArticleImageCache.size <= 80) break;
+    }
+  }
+  return "";
+}
+
+async function enrichMorningArticleImage(article = {}) {
+  const initial = isHighQualityArticleImage(article.image, article.url) ? String(article.image).trim() : "";
+  const cover = initial || await fetchArticleCoverImage(article.url);
+  return { ...article, image: cover || "" };
+}
+
 function morningArticleScore(article = {}) {
   const text = `${article.headline || ""} ${article.summary || ""}`.toLowerCase();
   let score = 5.6;
@@ -1805,7 +1878,7 @@ function cleanMorningArticle(article = {}) {
     source: String(article.source || "CNBC").slice(0, 80),
     url: String(article.url || ""),
     datetime: Number(article.datetime || 0),
-    image: String(article.image || ""),
+    image: isHighQualityArticleImage(article.image, article.url) ? String(article.image || "") : "",
   };
   clean.score = morningArticleScore(clean);
   return clean;
@@ -1834,8 +1907,8 @@ async function fetchMorningBrewNewsRaw() {
   const data = await fetchFinnhubJson(url);
   if (!Array.isArray(data)) return [];
   const preMarketTerms = /pre[- ]?market|premarket|futures|before the bell|morning|wall street|stocks|market|markets|nasdaq|dow|s&p|sp 500|fed|inflation|rates|earnings|ai|chip|semiconductor/i;
-  return data
-    .map(cleanMorningArticle)
+  const cleanedArticles = await Promise.all(data.map((item) => enrichMorningArticleImage(cleanMorningArticle(item))));
+  return cleanedArticles
     .filter((article) => article.headline && article.url)
     .filter((article) => /cnbc/i.test(`${article.source} ${article.url}`))
     .sort((a, b) => {
@@ -1988,14 +2061,27 @@ async function getPortfolioEarnings(symbols = [], options = {}) {
 function insiderRatingFromTransaction(item = {}) {
   const code = String(item.transactionCode || item.code || "").toUpperCase();
   const rawChange = Number(item.change ?? item.shareChange ?? item.sharesChanged ?? item.share);
-  const rawValue = Number(item.value ?? item.transactionValue ?? (Number(item.transactionPrice) * Math.abs(rawChange || 0)));
+  const rawValue = Math.abs(Number(item.value ?? item.transactionValue ?? (Number(item.transactionPrice) * Math.abs(rawChange || 0))));
+  if (!Number.isFinite(rawValue) || rawValue <= 0) return null;
+
+  const isBuy = ["P", "B", "BUY"].includes(code) || rawChange > 0;
+  const isSale = ["S", "SALE", "SELL"].includes(code) || rawChange < 0;
   let rating = 5.0;
-  if (["P", "B", "BUY"].includes(code) || rawChange > 0) rating += 1.4;
-  if (["S", "SALE", "SELL"].includes(code) || rawChange < 0) rating -= 1.2;
-  if (Number.isFinite(rawValue)) {
-    if (Math.abs(rawValue) >= 1000000) rating += rawChange > 0 ? 0.7 : -0.45;
-    else if (Math.abs(rawValue) >= 250000) rating += rawChange > 0 ? 0.35 : -0.2;
+
+  if (isBuy) {
+    rating = 6.4;
+    if (rawValue >= 10000000) rating = 9.4;
+    else if (rawValue >= 5000000) rating = 8.8;
+    else if (rawValue >= 1000000) rating = 8.1;
+    else if (rawValue >= 250000) rating = 7.3;
+  } else if (isSale) {
+    rating = 4.4;
+    if (rawValue >= 10000000) rating = 1.8;
+    else if (rawValue >= 5000000) rating = 2.3;
+    else if (rawValue >= 1000000) rating = 3.0;
+    else if (rawValue >= 250000) rating = 3.8;
   }
+
   return Number(Math.max(0, Math.min(10, rating)).toFixed(1));
 }
 
@@ -2005,8 +2091,10 @@ function cleanInsiderTransaction(item = {}, symbol = "") {
   const date = String(item.transactionDate || item.filingDate || item.date || "").slice(0, 10);
   const change = Number(item.change ?? item.shareChange ?? item.sharesChanged ?? item.share);
   const price = Number(item.transactionPrice ?? item.price ?? 0);
-  const value = Number.isFinite(Number(item.value)) ? Number(item.value) : (Number.isFinite(price) && Number.isFinite(change) ? price * Math.abs(change) : null);
+  const value = Number.isFinite(Number(item.value)) ? Math.abs(Number(item.value)) : (Number.isFinite(price) && Number.isFinite(change) ? Math.abs(price * change) : null);
+  if (!Number.isFinite(value) || value <= 0) return null;
   const rating = insiderRatingFromTransaction({ ...item, change, value });
+  if (rating === null) return null;
   const tone = rating >= 6.8 ? "positive" : rating <= 4.2 ? "negative" : "neutral";
   const direction = Number.isFinite(change) ? (change > 0 ? "buy" : change < 0 ? "sale" : "transaction") : "transaction";
   const label = `${direction === "buy" ? "Insider buy" : direction === "sale" ? "Insider sale" : "Insider transaction"}${date ? ` • ${date}` : ""}${Number.isFinite(value) ? ` • ${formatCompactNumberLocal(Math.abs(value))}` : ""}`;
@@ -2029,7 +2117,7 @@ async function fetchFinnhubInsiders(symbol) {
   if (!apiKey || !cleanSymbol) return [];
   const to = morningBrewDateKey();
   const fromDate = new Date();
-  fromDate.setDate(fromDate.getDate() - 7);
+  fromDate.setDate(fromDate.getDate() - 30);
   const from = fromDate.toISOString().slice(0, 10);
   const url = new URL("https://finnhub.io/api/v1/stock/insider-transactions");
   url.searchParams.set("symbol", cleanSymbol);
@@ -2063,7 +2151,7 @@ async function getMorningInsiderTransactions(symbols = []) {
       return bImpact - aImpact;
     })
     .slice(0, 5);
-  const result = { transactions: ranked, cached: false, source: "Finnhub insider transactions with cached daily fallback" };
+  const result = { transactions: ranked, cached: false, source: "Finnhub insider transactions, past 30 days, cached daily" };
   morningBrewInsiderCache.set(key, result);
   if (morningBrewInsiderCache.size > 12) {
     for (const cacheKey of morningBrewInsiderCache.keys()) {
@@ -2093,7 +2181,7 @@ async function fetchLatestCompanyMorningNews(symbol) {
     .filter((item) => item && (item.headline || item.title) && item.url)
     .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0))[0];
   if (!article) return null;
-  return cleanMorningArticle(article);
+  return await enrichMorningArticleImage(cleanMorningArticle(article));
 }
 
 async function getMorningIndexes() {
@@ -2197,7 +2285,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
             type: change > 0 ? "score-up" : "score-down",
             symbol,
             headline: `${symbol} Eval Score ${change > 0 ? "improved" : "fell"} ${Math.abs(change).toFixed(1)}`,
-            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot. Today it is ${Number.isFinite(Number(quote?.changePercent)) ? `${Number(quote.changePercent).toFixed(2)}%` : "moving"} versus yesterday, so this can affect both the holding weight and the portfolio score.${latestNews?.headline ? " The latest company headline gives context for what may be influencing the move." : ""}`,
+            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)}. Today: ${Number.isFinite(Number(quote?.changePercent)) ? `${Number(quote.changePercent).toFixed(2)}%` : "N/A"}.${latestNews?.headline ? " Latest headline included below." : ""}`,
             score: currentScore,
             priorScore,
             change,
