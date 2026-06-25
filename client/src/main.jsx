@@ -2292,6 +2292,25 @@ function formatBrewCurrency(value) {
   return `${sign}$${Math.abs(num).toFixed(2)}`;
 }
 
+function formatEarningsRevenue(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "N/A";
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(abs >= 10e12 ? 1 : 2)} trillion`;
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(abs >= 10e9 ? 1 : 2)} billion`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(abs >= 10e6 ? 0 : 2)} million`;
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(abs >= 10e3 ? 0 : 1)} thousand`;
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function formatBrewPercent(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return "N/A";
@@ -2320,7 +2339,7 @@ function earningsEventSummary(event = {}) {
     parts.push(`EPS expectations are ${Number(event.epsEstimate) >= 0 ? "$" : "-$"}${Math.abs(Number(event.epsEstimate)).toFixed(2)}.`);
   }
   if (event.revenueEstimate !== null && event.revenueEstimate !== undefined) {
-    parts.push(`Revenue expectations are ${formatBrewCurrency(event.revenueEstimate)}.`);
+    parts.push(`Revenue expectations are ${formatEarningsRevenue(event.revenueEstimate)}.`);
   }
   if (!parts.length && event.expectations) parts.push(event.expectations);
   const setup = `${event.symbol || "This holding"} reports earnings on ${formatEarningsDate(event.date)}.`;
@@ -2390,9 +2409,11 @@ function PortfolioEarningsCalendar({
   subtitle = "Next two weeks • portfolio holdings only",
   className = "",
   days = 14,
+  scoreLookup = {},
 }) {
   const [selectedEarning, setSelectedEarning] = useState(null);
   const calendarDays = buildEarningsCalendarDays(earnings, days);
+  const todayKey = localDateKey();
   const mobileDays = calendarDays.filter((day) => day.events.length);
   return (
     <section className={`portfolio-earnings-calendar-card ${className}`.trim()}>
@@ -2409,13 +2430,13 @@ function PortfolioEarningsCalendar({
       </div>
       <div className="portfolio-earnings-calendar-grid">
         {calendarDays.map((day) => (
-          <div className={`portfolio-earnings-day ${day.events.length ? "has-events" : "empty"} ${day.isTradingDay ? "trading-day" : "non-trading-day"} ${day.isOutsideWindow ? "outside-window" : ""}`} key={day.date}>
+          <div className={`portfolio-earnings-day ${day.events.length ? "has-events" : "empty"} ${day.isTradingDay ? "trading-day" : "non-trading-day"} ${day.isOutsideWindow ? "outside-window" : ""} ${day.date === todayKey ? "today" : ""}`} key={day.date}>
             <span>{formatEarningsDate(day.date)}</span>
             <div>
               {!day.isTradingDay ? <small className="market-closed-x">×</small> : day.events.length ? day.events.map((event, index) => (
                 <button
                   type="button"
-                  className="portfolio-earnings-ticker"
+                  className={`portfolio-earnings-ticker ${scoreTone(scoreLookup?.[event.symbol] ?? event.evalScore ?? event.score)}`}
                   key={`${event.symbol}-${index}`}
                   title="View earnings expectations"
                   onClick={() => setSelectedEarning(event)}
@@ -2435,7 +2456,7 @@ function PortfolioEarningsCalendar({
               {day.events.map((event, index) => (
                 <button
                   type="button"
-                  className="portfolio-earnings-ticker"
+                  className={`portfolio-earnings-ticker ${scoreTone(scoreLookup?.[event.symbol] ?? event.evalScore ?? event.score)}`}
                   key={`mobile-${event.symbol}-${index}`}
                   onClick={() => setSelectedEarning(event)}
                 >
@@ -2455,7 +2476,7 @@ function PortfolioEarningsCalendar({
             <span>EPS expectation</span>
             <b>{selectedEarning.epsEstimate !== null && selectedEarning.epsEstimate !== undefined ? `${Number(selectedEarning.epsEstimate) >= 0 ? "$" : "-$"}${Math.abs(Number(selectedEarning.epsEstimate)).toFixed(2)}` : "N/A"}</b>
             <span>Revenue expectation</span>
-            <b>{selectedEarning.revenueEstimate !== null && selectedEarning.revenueEstimate !== undefined ? formatBrewCurrency(selectedEarning.revenueEstimate) : "N/A"}</b>
+            <b>{selectedEarning.revenueEstimate !== null && selectedEarning.revenueEstimate !== undefined ? formatEarningsRevenue(selectedEarning.revenueEstimate) : "N/A"}</b>
           </div>
           <p>{earningsEventSummary(selectedEarning)}</p>
         </div>
@@ -2515,6 +2536,12 @@ function MorningMugsDashboard({ onBack }) {
   const alertsKey = `${new Date().toISOString().slice(0, 10)}-${alerts.length}-${alerts.map((a) => a.headline).join("|")}`;
   const hasNewAlerts = alerts.length > 0 && seenAlertsKey !== alertsKey;
   const earnings = hasSavedPortfolio ? (brew?.market?.earnings?.events || []) : [];
+  const morningScoreLookup = (Array.isArray(savedMorningPortfolio?.holdings) ? savedMorningPortfolio.holdings : []).reduce((acc, holding) => {
+    const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
+    const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
+    if (symbol && score !== null) acc[symbol] = score;
+    return acc;
+  }, {});
 
   return (
     <main className="app-shell morning-brew-page-shell">
@@ -2654,6 +2681,7 @@ function MorningMugsDashboard({ onBack }) {
                 subtitle="Next week • saved holdings only"
                 className="morning-mugs-earnings-calendar wide"
                 days={7}
+                scoreLookup={morningScoreLookup}
               />
             ) : null}
 
@@ -3120,6 +3148,14 @@ function PortfolioPage({ onBack, onAnalyze }) {
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
   const industryGroups = csvAnalysis?.industryGroups || [];
+  const portfolioScoreLookup = industryGroups.reduce((acc, group) => {
+    (group?.holdings || []).forEach((holding) => {
+      const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
+      const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
+      if (symbol && score !== null) acc[symbol] = score;
+    });
+    return acc;
+  }, {});
   const historyPoints = csvAnalysis?.history || portfolioHistory || [];
   const evalHistoryPoints = csvAnalysis?.evalScoreHistory || evalScoreHistory || [];
   const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
@@ -3356,7 +3392,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
             })}
           </div>
 
-          <PortfolioEarningsCalendar earnings={portfolioEarnings} loading={portfolioEarningsLoading} days={28} subtitle="Next four weeks • portfolio holdings only" />
+          <PortfolioEarningsCalendar earnings={portfolioEarnings} loading={portfolioEarningsLoading} days={28} subtitle="Next four weeks • portfolio holdings only" scoreLookup={portfolioScoreLookup} />
 
           <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5 portfolio-user-hidden-history">
             <div className="portfolio-card-title-row">
