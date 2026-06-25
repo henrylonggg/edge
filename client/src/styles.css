@@ -30503,3 +30503,76 @@ body:has(.morning-brew-page-shell) {
 .eval-sync-btn.synced svg {
   filter: drop-shadow(0 0 8px rgba(133,215,19,.35));
 }
+
+
+/* AI assistant testing lock + nested menu cleanup */
+.assistant-lock-shell {
+  min-height: 80vh;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+.assistant-lock-card {
+  width: min(560px, 100%);
+  margin: 28px auto 0;
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: linear-gradient(145deg, rgba(14,18,34,.94), rgba(7,9,18,.98));
+  box-shadow: 0 24px 90px rgba(0,0,0,.45), 0 0 34px rgba(159,122,234,.15);
+}
+.assistant-lock-card h2 {
+  margin: 10px 0 6px;
+  color: #fff;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+.assistant-lock-card p {
+  color: rgba(235,238,255,.72);
+}
+.assistant-lock-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.assistant-lock-form input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 16px;
+  background: rgba(255,255,255,.07);
+  color: #fff;
+  padding: 13px 14px;
+  font: inherit;
+}
+.assistant-lock-form button {
+  border: 0;
+  border-radius: 16px;
+  padding: 0 18px;
+  font-weight: 900;
+  color: #07101f;
+  background: linear-gradient(135deg, #f7d774, #a78bfa);
+  cursor: pointer;
+}
+.assistant-lock-error {
+  color: #ff8d8d !important;
+  font-weight: 800;
+}
+.dashboard-dropdown-nested-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dashboard-dropdown-nested-list {
+  margin: 6px 0 4px 12px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,.13);
+}
+.dashboard-dropdown-nested-list button {
+  font-size: .9rem;
+  opacity: .92;
+}
+@media (max-width: 640px) {
+  .assistant-lock-form { flex-direction: column; }
+  .assistant-lock-form button { min-height: 46px; }
+}
