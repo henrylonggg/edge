@@ -2472,6 +2472,7 @@ function MorningMugsDashboard({ onBack }) {
   const hasSavedPortfolio = Array.isArray(savedMorningPortfolio.symbols) && savedMorningPortfolio.symbols.length > 0;
   const indexes = brew?.market?.indexes || [];
   const movers = hasSavedPortfolio ? (brew?.market?.movers || { gainers: [], losers: [] }) : { gainers: [], losers: [] };
+  const insiders = hasSavedPortfolio ? (brew?.market?.insiders?.transactions || []) : [];
   const articles = brew?.market?.articles || [];
   const alerts = hasSavedPortfolio ? (brew?.portfolio?.alerts || []) : [];
   const earnings = hasSavedPortfolio ? (brew?.market?.earnings?.events || []) : [];
@@ -2542,6 +2543,22 @@ function MorningMugsDashboard({ onBack }) {
                   </div>
                 </div>
               ) : null}
+              {hasSavedPortfolio && insiders.length ? (
+                <div className="morning-insider-section">
+                  <div className="morning-movers-label insider">Portfolio insider transactions</div>
+                  <div className="morning-insider-list">
+                    {insiders.map((item, index) => (
+                      <div className={`morning-insider-row ${item.tone || "neutral"}`} key={`${item.symbol}-${item.date}-${index}`}>
+                        <div>
+                          <b>{item.symbol}</b>
+                          <span>{item.label}</span>
+                        </div>
+                        <strong>{Number(item.rating || 5).toFixed(1)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <p className="morning-footnote">Pre-market movement uses liquid index ETF proxies, displayed as Dow Jones, Nasdaq, and S&amp;P 500.</p>
             </section>
 
@@ -2560,13 +2577,16 @@ function MorningMugsDashboard({ onBack }) {
                             </strong>
                           ) : null}
                         </div>
-                        <p>{alert.detail}</p>
+                        <p>{alert.shortDetail || alert.detail}</p>
                         {alert.news?.headline ? (
-                          <div className="morning-alert-news">
-                            <span>Latest news</span>
-                            <b>{alert.news.headline}</b>
-                            {alert.news.summary ? <p>{alert.news.summary}</p> : null}
-                            {alert.news.url ? <a href={alert.news.url} target="_blank" rel="noreferrer">Read article</a> : null}
+                          <div className="morning-alert-news morning-alert-news-with-image">
+                            {alert.news.image ? <img src={alert.news.image} alt="" loading="lazy" /> : null}
+                            <div>
+                              <span>Latest news</span>
+                              <b>{alert.news.headline}</b>
+                              {alert.news.summary ? <p>{alert.news.summary}</p> : null}
+                              {alert.news.url ? <a href={alert.news.url} target="_blank" rel="noreferrer">Read article</a> : null}
+                            </div>
                           </div>
                         ) : null}
                       </div>
@@ -10267,6 +10287,11 @@ function Report({ data, onAdd, onOpenIndustry }) {
           <div className="news-topic-list">
             {newsTopics.map((topic, index) => (
               <article className="news-topic-card" key={`${topic.title}-${index}`}>
+                {topic.image ? (
+                  <div className="news-topic-image">
+                    <img src={topic.image} alt="" loading="lazy" />
+                  </div>
+                ) : null}
                 <div className="news-topic-head">
                   <div>
                     <span>Topic  · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
