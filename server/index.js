@@ -1702,6 +1702,46 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
 const morningBrewNewsCache = new Map();
 const morningBrewIndexCache = new Map();
 const morningBrewPortfolioAlertsCache = new Map();
+
+const morningBrewPortfolioMoversCache = new Map();
+
+async function getMorningPortfolioMovers(symbols = []) {
+  const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
+    .map(cleanTicker)
+    .filter(Boolean))].slice(0, 40);
+  if (!cleanSymbols.length) return { gainers: [], losers: [] };
+  const key = `${morningBrewMinuteKey()}-${stableMorningHash(cleanSymbols)}`;
+  const cached = morningBrewPortfolioMoversCache.get(key);
+  if (cached) return cached;
+  const quotes = await Promise.all(cleanSymbols.map(async (symbol) => {
+    const quote = await fetchMorningQuote(symbol);
+    if (!quote || !Number.isFinite(Number(quote.changePercent))) return null;
+    return {
+      symbol,
+      changePercent: Number(quote.changePercent),
+      change: Number.isFinite(Number(quote.change)) ? Number(quote.change) : null,
+      current: Number.isFinite(Number(quote.current)) ? Number(quote.current) : null,
+    };
+  }));
+  const valid = quotes.filter(Boolean);
+  const gainers = valid
+    .filter((item) => Number(item.changePercent) > 0)
+    .sort((a, b) => Number(b.changePercent) - Number(a.changePercent))
+    .slice(0, 3);
+  const losers = valid
+    .filter((item) => Number(item.changePercent) < 0)
+    .sort((a, b) => Number(a.changePercent) - Number(b.changePercent))
+    .slice(0, 3);
+  const result = { gainers, losers };
+  morningBrewPortfolioMoversCache.set(key, result);
+  if (morningBrewPortfolioMoversCache.size > 12) {
+    for (const cacheKey of morningBrewPortfolioMoversCache.keys()) {
+      if (cacheKey !== key) morningBrewPortfolioMoversCache.delete(cacheKey);
+      if (morningBrewPortfolioMoversCache.size <= 6) break;
+    }
+  }
+  return result;
+}
 let lastMorningBrewArticles = [];
 
 function makeMorningArticleSummary(article = {}) {
@@ -2066,7 +2106,7 @@ async function buildMorningPortfolioAlerts(symbols = [], previousScores = {}, ho
             type: change > 0 ? "score-up" : "score-down",
             symbol,
             headline: `${symbol} Eval Score ${change > 0 ? "improved" : "fell"} ${Math.abs(change).toFixed(1)}`,
-            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot.${latestNews?.headline ? " The latest company headline may be part of what users are watching today." : ""}`,
+            detail: `${symbol} moved from ${priorScore.toFixed(1)} to ${currentScore.toFixed(1)} since the saved portfolio snapshot. Today it is ${Number.isFinite(Number(quote?.changePercent)) ? `${Number(quote.changePercent).toFixed(2)}%` : "moving"} versus yesterday, so this can affect both the holding weight and the portfolio score.${latestNews?.headline ? " The latest company headline gives context for what may be influencing the move." : ""}`,
             score: currentScore,
             priorScore,
             change,
@@ -2248,18 +2288,19 @@ app.post("/api/morning-brew", async (req, res) => {
     const forceRefresh = String(req.query.refresh || "0") === "1";
     const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols.map(cleanTicker).filter(Boolean) : [];
     const hasPortfolio = symbols.length > 0;
-    const [market, portfolio, earnings] = await Promise.all([
+    const [market, portfolio, earnings, movers] = await Promise.all([
       buildMorningBrewMarket(forceRefresh),
       hasPortfolio
         ? buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {})
         : Promise.resolve({ hasPortfolio: false, alerts: [], message: "" }),
-      hasPortfolio ? getPortfolioEarnings(symbols, { days: 14 }) : Promise.resolve({ events: [], symbols: [], cached: true }),
+      hasPortfolio ? getPortfolioEarnings(symbols, { days: 7 }) : Promise.resolve({ events: [], symbols: [], cached: true }),
+      hasPortfolio ? getMorningPortfolioMovers(symbols) : Promise.resolve({ gainers: [], losers: [] }),
     ]);
     res.json({
       ok: true,
       title: "Morning Mugs",
       generatedAt: new Date().toISOString(),
-      market: { ...market, earnings },
+      market: { ...market, earnings, movers },
       portfolio,
     });
   } catch (error) {
