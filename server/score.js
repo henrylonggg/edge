@@ -1154,6 +1154,72 @@ function compactNewsText(value = "") {
     .trim();
 }
 
+
+const evalArticleImageCache = new Map();
+
+function isQualityEvalArticleImage(imageUrl = "", articleUrl = "") {
+  const raw = String(imageUrl || "").trim();
+  if (!/^https?:\/\//i.test(raw)) return false;
+  const lower = raw.toLowerCase();
+  const bad = /(logo|favicon|icon|sprite|placeholder|blank|transparent|default-image|default_logo|avatar|profile|author|rss|apple-touch|finance-logo|yahoo-finance-logo|share-card|og-default|markets-logo)/i;
+  if (bad.test(lower)) return false;
+  if (/\.svg(\?|$)/i.test(lower)) return false;
+  if (/1x1|pixel|spacer/i.test(lower)) return false;
+  return true;
+}
+
+async function fetchEvalArticleCoverImage(articleUrl = "") {
+  const url = String(articleUrl || "").trim();
+  if (!/^https?:\/\//i.test(url)) return "";
+  const cached = evalArticleImageCache.get(url);
+  if (cached !== undefined) return cached;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2200);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 EvalBot/1.0",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+    });
+    if (!response.ok) throw new Error("cover fetch failed");
+    const html = await response.text();
+    const patterns = [
+      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+      /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i,
+    ];
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      const candidate = match?.[1]?.replace(/&amp;/g, "&").trim();
+      if (isQualityEvalArticleImage(candidate, url)) {
+        evalArticleImageCache.set(url, candidate);
+        return candidate;
+      }
+    }
+  } catch {
+    // Keep news fast and usable if the publisher blocks article-page metadata fetches.
+  } finally {
+    clearTimeout(timeout);
+  }
+  evalArticleImageCache.set(url, "");
+  if (evalArticleImageCache.size > 120) {
+    for (const key of evalArticleImageCache.keys()) {
+      evalArticleImageCache.delete(key);
+      if (evalArticleImageCache.size <= 80) break;
+    }
+  }
+  return "";
+}
+
+async function resolveEvalArticleImage(item = {}) {
+  const articleUrl = String(item.url || "");
+  const initial = isQualityEvalArticleImage(item.image, articleUrl) ? String(item.image).trim() : "";
+  return initial || await fetchEvalArticleCoverImage(articleUrl);
+}
+
 function companyNewsAliases(symbol, profile = {}) {
   const aliases = new Set();
   const cleanSymbol = String(symbol || "").toUpperCase().trim();
@@ -1229,16 +1295,16 @@ async function fetchRecentNews(symbol, profile = {}) {
     .slice(0, 3)
     .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0));
 
-  return selected.map((item, index) => ({
+  return await Promise.all(selected.map(async (item, index) => ({
     n: index + 1,
     title: item.headline || item.title || `News article ${index + 1}`,
     summary: item.summary || "",
     source: item.source || "",
     url: item.url || "",
-    image: item.image || "",
+    image: await resolveEvalArticleImage(item),
     datetime: item.datetime || null,
     relevanceScore: item.__specificity,
-  }));
+  })));
 }
 
 
@@ -1265,7 +1331,7 @@ function fallbackNewsSentiment(news = []) {
       summary: item.summary || "No summary was available for this article.",
       url: item.url || "",
       source: item.source || "",
-      image: item.image || "",
+      image: isQualityEvalArticleImage(item.image, item.url) ? item.image : "",
       score: 5.0,
       weight: index === 0 ? 45 : index === 1 ? 35 : 20,
       impact: "Neutral impact.",
@@ -1285,7 +1351,7 @@ function normalizeTopicWeights(topics) {
     summary: String(topic?.summary || "No summary available.").trim(),
     url: String(topic?.url || "").trim(),
     source: String(topic?.source || "").trim(),
-    image: String(topic?.image || "").trim(),
+    image: isQualityEvalArticleImage(topic?.image, topic?.url) ? String(topic?.image || "").trim() : "",
     score: Number((clamp(topic?.score, 0, 10) ?? 5).toFixed(1)),
     weight: Math.max(0, Math.min(100, safeNumber(topic?.weight) ?? defaults[index] ?? 20)),
     impact: String(topic?.impact || "").trim(),
@@ -1368,7 +1434,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
         summary: topic.summary || article.summary || "No summary available.",
         url: topic.url || article.url || "",
         source: topic.source || article.source || "",
-        image: topic.image || article.image || "",
+        image: isQualityEvalArticleImage(topic.image, topic.url || article.url) ? topic.image : (isQualityEvalArticleImage(article.image, article.url) ? article.image : ""),
         score: Number((clamp(topic.score, 0, 10) ?? 5).toFixed(1)),
         weight: topic.weight ?? (index === 0 ? 45 : index === 1 ? 35 : 20),
         impact: topic.impact || "Neutral impact.",
