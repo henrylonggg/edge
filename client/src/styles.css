@@ -30577,305 +30577,133 @@ body:has(.morning-brew-page-shell) {
   .assistant-lock-form button { min-height: 46px; }
 }
 
-
-/* Ticker Lookup dropdown + expanded FAQ polish */
-.ticker-lookup-menu {
+/* Ticker lookup dropdown + FAQ polish */
+.dashboard-dropdown-ticker-lookup {
   width: 100%;
 }
 
 .ticker-lookup-toggle {
   width: 100%;
+  justify-content: space-between;
 }
 
-.ticker-lookup-panel {
-  margin: 8px 8px 10px 18px;
-  padding: 12px;
+.ticker-lookup-dropdown-panel {
+  margin: 8px 8px 10px 14px;
+  padding: 10px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(8, 11, 22, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 16px 35px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(2, 8, 18, 0.88);
+  box-shadow: inset 0 0 20px rgba(133, 215, 19, 0.06), 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
-.ticker-lookup-panel label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.58);
-}
-
-.ticker-lookup-panel input {
+.ticker-lookup-dropdown-panel input {
   width: 100%;
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(133, 215, 19, 0.26);
   border-radius: 12px;
+  background: rgba(0, 0, 0, 0.34);
+  color: #f8fbff;
   padding: 10px 11px;
-  color: #fff;
-  background: rgba(255,255,255,0.07);
+  font: inherit;
   outline: none;
-  font-family: inherit;
 }
 
-.ticker-lookup-panel input:focus {
-  border-color: rgba(168, 85, 247, 0.58);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.13);
+.ticker-lookup-dropdown-panel input:focus {
+  border-color: rgba(133, 215, 19, 0.65);
+  box-shadow: 0 0 0 2px rgba(133, 215, 19, 0.13);
 }
 
-.ticker-lookup-helper,
-.ticker-lookup-status {
-  margin-top: 8px;
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.56);
-}
-
-.ticker-lookup-status.error {
-  color: #fca5a5;
-}
-
-.ticker-lookup-results {
-  margin-top: 10px;
+.ticker-lookup-result-list {
+  max-height: 310px;
+  overflow: auto;
+  margin-top: 9px;
   display: grid;
   gap: 6px;
-  max-height: 320px;
-  overflow: auto;
-  padding-right: 2px;
+  padding-right: 3px;
 }
 
-.ticker-lookup-result {
+.ticker-lookup-result-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 8px 9px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.045);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.075);
 }
 
-.ticker-lookup-name {
+.ticker-lookup-company {
   min-width: 0;
-  color: rgba(255,255,255,0.88);
-  font-size: 0.82rem;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  color: rgba(248, 251, 255, 0.86);
+  font-size: 0.83rem;
 }
 
 .ticker-lookup-symbol {
-  color: #ffffff;
-  font-size: 0.76rem;
-  font-weight: 900;
+  color: #f8fbff;
+  font-size: 0.84rem;
   letter-spacing: 0.08em;
-  padding: 5px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: linear-gradient(135deg, rgba(139,92,246,0.35), rgba(59,130,246,0.2));
 }
 
-.faq-shell {
+.ticker-lookup-note,
+.ticker-lookup-empty {
+  color: rgba(248, 251, 255, 0.58);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin: 8px 2px 0;
+}
+
+.faq-page .faq-shell {
   max-width: 1180px;
 }
 
 .faq-search-card {
-  box-shadow: 0 20px 70px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  gap: 10px;
+}
+
+.faq-search-card input {
+  min-height: 48px;
+  font-size: 1rem;
 }
 
 .faq-category-row {
-  align-items: center;
-  padding-bottom: 6px;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  backdrop-filter: blur(18px);
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(2, 8, 18, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .faq-grid {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
+  align-items: start;
 }
 
-.faq-card {
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035));
-}
-
-.faq-card summary {
-  gap: 8px;
-}
-
-.faq-card summary span {
-  width: fit-content;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(139, 92, 246, 0.16);
-  border: 1px solid rgba(139, 92, 246, 0.22);
+.faq-card summary strong {
+  font-size: 0.96rem;
+  line-height: 1.3;
 }
 
 @media (max-width: 720px) {
-  .ticker-lookup-panel {
-    margin-left: 10px;
-    margin-right: 10px;
+  .ticker-lookup-dropdown-panel {
+    margin-left: 6px;
+    margin-right: 6px;
   }
-  .ticker-lookup-results {
-    max-height: 260px;
+  .ticker-lookup-result-list {
+    max-height: 240px;
   }
-  .ticker-lookup-name {
-    font-size: 0.78rem;
+  .faq-category-row {
+    top: 0;
+    overflow-x: auto;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
   }
   .faq-grid {
     grid-template-columns: 1fr;
   }
-}
-
-
-/* TICKER LOOKUP PAGE — full-page lookup instead of dropdown panel */
-.ticker-lookup-page {
-  min-height: 100vh;
-  padding: 24px;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(99, 241, 255, 0.12), transparent 30%),
-    radial-gradient(circle at 82% 16%, rgba(132, 88, 255, 0.16), transparent 36%),
-    linear-gradient(135deg, #070912, #0a1020 48%, #05070d);
-}
-.ticker-lookup-page-shell {
-  max-width: 1040px;
-  margin: 0 auto;
-}
-.ticker-lookup-topbar {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 18px;
-}
-.ticker-lookup-hero {
-  border: 1px solid rgba(99, 241, 255, 0.16);
-  border-radius: 30px;
-  padding: 30px;
-  background: linear-gradient(135deg, rgba(11, 18, 38, 0.92), rgba(28, 18, 54, 0.86));
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
-}
-.ticker-lookup-hero h1 {
-  margin: 10px 0 8px;
-  font-size: clamp(2.1rem, 6vw, 4.6rem);
-  line-height: 0.95;
-  letter-spacing: -0.06em;
-  color: #fff;
-}
-.ticker-lookup-hero p {
-  max-width: 760px;
-  color: rgba(255,255,255,.72);
-  font-weight: 750;
-  line-height: 1.6;
-}
-.ticker-lookup-page-card,
-.ticker-lookup-results-card {
-  margin-top: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 26px;
-  padding: 22px;
-  background: rgba(7, 12, 26, 0.78);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
-}
-.ticker-lookup-page-card label {
-  display: block;
-  margin-bottom: 9px;
-  color: rgba(255,255,255,.72);
-  text-transform: uppercase;
-  letter-spacing: .12em;
-  font-size: .72rem;
-  font-weight: 1000;
-}
-.ticker-lookup-page-card input {
-  width: 100%;
-  min-height: 56px;
-  border-radius: 18px;
-  border: 1px solid rgba(99, 241, 255, 0.24);
-  background: rgba(0,0,0,.34);
-  color: #fff;
-  padding: 0 18px;
-  font: inherit;
-  font-weight: 900;
-  outline: none;
-}
-.ticker-lookup-page-card input:focus {
-  border-color: rgba(99, 241, 255, 0.62);
-  box-shadow: 0 0 0 4px rgba(99, 241, 255, 0.1);
-}
-.ticker-lookup-page-helper {
-  margin-top: 10px;
-  color: rgba(255,255,255,.56);
-  font-size: .88rem;
-  font-weight: 750;
-}
-.ticker-lookup-results-head,
-.ticker-lookup-page-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
-  gap: 16px;
-  align-items: center;
-}
-.ticker-lookup-results-head {
-  padding: 0 4px 12px;
-  color: rgba(255,255,255,.46);
-  font-size: .72rem;
-  text-transform: uppercase;
-  letter-spacing: .13em;
-  font-weight: 1000;
-}
-.ticker-lookup-results-head span:last-child { text-align: right; }
-.ticker-lookup-page-results { display: grid; gap: 10px; }
-.ticker-lookup-page-row {
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
-}
-.ticker-lookup-page-row strong {
-  display: block;
-  color: #fff;
-  font-size: 1rem;
-}
-.ticker-lookup-page-row small {
-  display: block;
-  margin-top: 3px;
-  color: rgba(255,255,255,.48);
-  font-weight: 800;
-}
-.ticker-lookup-page-row b {
-  justify-self: end;
-  min-width: 74px;
-  text-align: center;
-  border-radius: 999px;
-  padding: 8px 12px;
-  color: #0a111f;
-  background: linear-gradient(135deg, #63f1ff, #8cff66);
-  box-shadow: 0 0 24px rgba(99, 241, 255, 0.16);
-}
-.ticker-lookup-page-status {
-  border: 1px solid rgba(255,255,255,.10);
-  border-radius: 16px;
-  padding: 14px;
-  color: rgba(255,255,255,.62);
-  font-weight: 900;
-  background: rgba(255,255,255,.04);
-}
-.ticker-lookup-page-status.error { color: #ff8ca0; }
-
-/* EARNINGS CALENDAR — current day is blue, not yellow */
-.portfolio-earnings-day.today {
-  border-color: rgba(76, 170, 255, 0.95) !important;
-  background: radial-gradient(circle at 50% 0%, rgba(76, 170, 255, 0.32), rgba(9, 13, 29, 0.64) 58%) !important;
-  box-shadow: 0 0 0 2px rgba(76, 170, 255, 0.26), 0 0 42px rgba(76, 170, 255, 0.28) !important;
-}
-.portfolio-earnings-day.today::after {
-  background: rgba(76, 170, 255, 0.18) !important;
-  border-color: rgba(76, 170, 255, 0.70) !important;
-  color: #8fd0ff !important;
-}
-.portfolio-earnings-mobile-day.today {
-  border-color: rgba(76, 170, 255, 0.78) !important;
-  box-shadow: 0 0 28px rgba(76, 170, 255, 0.18) !important;
-}
-@media (max-width: 720px) {
-  .ticker-lookup-page { padding: 16px; }
-  .ticker-lookup-hero { padding: 22px; border-radius: 24px; }
-  .ticker-lookup-results-head,
-  .ticker-lookup-page-row { grid-template-columns: minmax(0, 1fr) 88px; gap: 10px; }
-  .ticker-lookup-page-row { padding: 12px; }
-  .ticker-lookup-page-row strong { font-size: .92rem; }
 }
