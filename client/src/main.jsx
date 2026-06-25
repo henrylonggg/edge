@@ -2279,6 +2279,12 @@ function formatBrewPercent(value) {
   return `${sign}${Math.abs(num).toFixed(2)}%`;
 }
 
+function brewMoveTone(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || Math.abs(num) < 0.005) return "flat";
+  return num > 0 ? "positive" : "negative";
+}
+
 
 
 function formatEarningsDate(dateText) {
@@ -2465,6 +2471,7 @@ function MorningMugsDashboard({ onBack }) {
   const savedMorningPortfolio = getSavedMorningPortfolio(user);
   const hasSavedPortfolio = Array.isArray(savedMorningPortfolio.symbols) && savedMorningPortfolio.symbols.length > 0;
   const indexes = brew?.market?.indexes || [];
+  const movers = hasSavedPortfolio ? (brew?.market?.movers || { gainers: [], losers: [] }) : { gainers: [], losers: [] };
   const articles = brew?.market?.articles || [];
   const alerts = hasSavedPortfolio ? (brew?.portfolio?.alerts || []) : [];
   const earnings = hasSavedPortfolio ? (brew?.market?.earnings?.events || []) : [];
@@ -2504,7 +2511,7 @@ function MorningMugsDashboard({ onBack }) {
               <div className="morning-section-title"><BarChart3 size={17}/> Pre-market indexes</div>
               <div className="morning-index-grid">
                 {indexes.length ? indexes.map((item) => {
-                  const tone = Number(item.changePercent || 0) >= 0 ? "positive" : "negative";
+                  const tone = brewMoveTone(item.changePercent);
                   return (
                     <div className={`morning-index ${tone}`} key={item.name || item.proxy}>
                       <span>{item.name}</span>
@@ -2513,6 +2520,28 @@ function MorningMugsDashboard({ onBack }) {
                   );
                 }) : <p className="morning-muted">Index data is unavailable right now.</p>}
               </div>
+              {hasSavedPortfolio && ((movers.gainers || []).length || (movers.losers || []).length) ? (
+                <div className="morning-portfolio-movers">
+                  <div className="morning-movers-column">
+                    <span className="morning-movers-label up">Top portfolio gainers</span>
+                    {(movers.gainers || []).length ? movers.gainers.map((item) => (
+                      <div className="morning-mover-row positive" key={`gain-${item.symbol}`}>
+                        <b>{item.symbol}</b>
+                        <strong>{formatBrewPercent(item.changePercent)}</strong>
+                      </div>
+                    )) : <p className="morning-muted compact">No positive movers yet.</p>}
+                  </div>
+                  <div className="morning-movers-column">
+                    <span className="morning-movers-label down">Top portfolio laggards</span>
+                    {(movers.losers || []).length ? movers.losers.map((item) => (
+                      <div className="morning-mover-row negative" key={`loss-${item.symbol}`}>
+                        <b>{item.symbol}</b>
+                        <strong>{formatBrewPercent(item.changePercent)}</strong>
+                      </div>
+                    )) : <p className="morning-muted compact">No negative movers yet.</p>}
+                  </div>
+                </div>
+              ) : null}
               <p className="morning-footnote">Pre-market movement uses liquid index ETF proxies, displayed as Dow Jones, Nasdaq, and S&amp;P 500.</p>
             </section>
 
@@ -2553,7 +2582,7 @@ function MorningMugsDashboard({ onBack }) {
               <PortfolioEarningsCalendar
                 earnings={earnings}
                 title="Portfolio earnings"
-                subtitle="Next two weeks • saved holdings only"
+                subtitle="Next week • saved holdings only"
                 className="morning-mugs-earnings-calendar wide"
               />
             ) : null}
@@ -2566,7 +2595,12 @@ function MorningMugsDashboard({ onBack }) {
                   const tone = scoreTone(articleScore);
                   return (
                     <article className={`morning-news-item news-score-${tone}`} key={`${article.url || article.headline}-${index}`}>
-                      <span>{index + 1}</span>
+                      {article.image ? (
+                        <div className="morning-news-image-wrap">
+                          <img src={article.image} alt="" loading="lazy"/>
+                          <span>{index + 1}</span>
+                        </div>
+                      ) : <span>{index + 1}</span>}
                       <div>
                         <div className="morning-news-title-row">
                           <b>{article.headline}</b>
