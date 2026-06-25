@@ -528,6 +528,11 @@ function App() {
   const [compareSelected, setCompareSelected] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [otherMenuOpen, setOtherMenuOpen] = useState(false);
+  const [tickerLookupOpen, setTickerLookupOpen] = useState(false);
+  const [tickerLookupQuery, setTickerLookupQuery] = useState("");
+  const [tickerLookupResults, setTickerLookupResults] = useState([]);
+  const [tickerLookupLoading, setTickerLookupLoading] = useState(false);
+  const [tickerLookupError, setTickerLookupError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
   const [showMorningMug, setShowMorningMug] = useState(() => isTheMorningMugWindow());
 
@@ -1052,6 +1057,39 @@ function App() {
     );
   }
 
+
+  useEffect(() => {
+    const q = tickerLookupQuery.trim();
+    if (!tickerLookupOpen || q.length < 1) {
+      setTickerLookupResults([]);
+      setTickerLookupError("");
+      setTickerLookupLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        setTickerLookupLoading(true);
+        setTickerLookupError("");
+        const res = await fetch(`${API}/api/ticker-lookup?q=${encodeURIComponent(q)}&limit=25`);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || "Ticker lookup failed.");
+        if (!cancelled) setTickerLookupResults(Array.isArray(json.results) ? json.results.slice(0, 25) : []);
+      } catch (err) {
+        if (!cancelled) {
+          setTickerLookupResults([]);
+          setTickerLookupError("Could not load ticker lookup.");
+        }
+      } finally {
+        if (!cancelled) setTickerLookupLoading(false);
+      }
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [tickerLookupOpen, tickerLookupQuery]);
+
   if (view === "faqs") {
     return (
       <FaqPage
@@ -1195,6 +1233,15 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
+                      <TickerLookupMenuPanel
+                        open={tickerLookupOpen}
+                        query={tickerLookupQuery}
+                        results={tickerLookupResults}
+                        loading={tickerLookupLoading}
+                        error={tickerLookupError}
+                        onToggle={() => setTickerLookupOpen((open) => !open)}
+                        onQueryChange={setTickerLookupQuery}
+                      />
                       <div className="dropdown-divider" />
 
                       <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
@@ -1224,9 +1271,15 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
                         Portfolio
                       </button>
-                      <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); openComparePage(); }}>
-                        Compare
-                      </button>
+                      <TickerLookupMenuPanel
+                        open={tickerLookupOpen}
+                        query={tickerLookupQuery}
+                        results={tickerLookupResults}
+                        loading={tickerLookupLoading}
+                        error={tickerLookupError}
+                        onToggle={() => setTickerLookupOpen((open) => !open)}
+                        onQueryChange={setTickerLookupQuery}
+                      />
                       <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
                       </button>
@@ -3998,6 +4051,47 @@ function ClerkAccessPage({ onBack, onSuccess }) {
         </div>
       </section>
     </main>
+  );
+}
+
+
+function TickerLookupMenuPanel({ open, query, results, loading, error, onToggle, onQueryChange }) {
+  return (
+    <div className={`dashboard-dropdown-nested ticker-lookup-menu ${open ? "open" : ""}`}>
+      <button
+        type="button"
+        className="dashboard-dropdown-nested-toggle ticker-lookup-toggle"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        Ticker Lookup <span>{open ? "▴" : "▾"}</span>
+      </button>
+      {open ? (
+        <div className="ticker-lookup-panel" onClick={(e) => e.stopPropagation()}>
+          <label>Company name</label>
+          <input
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Type Apple, Microsoft, Tesla..."
+            autoComplete="off"
+          />
+          <div className="ticker-lookup-helper">Top 25 results. Tickers are shown only, not clickable.</div>
+          {loading ? <div className="ticker-lookup-status">Searching...</div> : null}
+          {error ? <div className="ticker-lookup-status error">{error}</div> : null}
+          {!loading && query.trim() && !results.length && !error ? (
+            <div className="ticker-lookup-status">No matches yet.</div>
+          ) : null}
+          <div className="ticker-lookup-results">
+            {results.slice(0, 25).map((item) => (
+              <div className="ticker-lookup-result" key={`${item.symbol}-${item.name}`}>
+                <span className="ticker-lookup-name">{item.name}</span>
+                <span className="ticker-lookup-symbol">{item.symbol}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -9268,15 +9362,56 @@ const EVAL_FAQS = [
   }
 ];
 
+
+function buildEvalExtraFaqs() {
+  const topics = [
+    ["Ticker Lookup", "ticker lookup", "Open the dashboard menu, expand Ticker Lookup, type a company name, and Eval shows up to 25 matching U.S. stocks with tickers on the right. The ticker text is not clickable, so lookup does not burn analysis API calls."],
+    ["Ticker Lookup", "company search", "Type a company name in Ticker Lookup. Eval filters the saved U.S. stock universe as you type and shows the ticker on the right."],
+    ["Ticker Lookup", "ticker results", "Ticker Lookup is only a reference list. Copy the ticker or type it in the main search box when you want to run a full stock analysis."],
+    ["Navigation", "Other dropdown", "Open the menu and click Other to reveal Homepage, FAQs, Terms & Conditions, and Contact as an indented list."],
+    ["Navigation", "The Morning Mug", "The Morning Mug is the coffee-cup page for pre-market indexes, CNBC headlines, portfolio movers, alerts, insider transactions, and upcoming earnings when a portfolio is loaded."],
+    ["Portfolio", "portfolio upload", "Upload the Eval CSV template with ticker, shares, and average cost. Eval fetches current prices, calculates current value, returns, weights, industry scores, and the total Portfolio Eval Score."],
+    ["Portfolio", "manual portfolio entry", "Manual Entry lets users add shares, remove shares, mark closed positions, and refresh the saved portfolio without starting over."],
+    ["Portfolio", "holdings section", "Holdings are grouped by industry. Each industry divider starts closed and opens when clicked."],
+    ["Portfolio", "industry score", "Each industry score is a weighted average of the stocks inside that industry using each stock's weight within that industry."],
+    ["Portfolio", "portfolio score", "The Portfolio Eval Score uses each industry score multiplied by that industry's current percentage of the portfolio."],
+    ["Portfolio", "Eval Strategy", "Eval Strategy lets users set target industry weights. Eval then compares current weights to targets for educational trim or rebalance ideas."],
+    ["Portfolio", "trim ideas", "Trim ideas focus on industries that are meaningfully above target and the holdings driving that overweight position."],
+    ["Portfolio", "earnings calendar", "The Portfolio earnings calendar shows upcoming earnings for portfolio stocks over the next four weeks."],
+    ["The Morning Mug", "Morning Mug indexes", "The Morning Mug shows S&P 500, Dow Jones, and Nasdaq percent changes using ETF proxies behind the scenes while displaying clean index names."],
+    ["The Morning Mug", "Morning Mug news", "The Morning Mug shows CNBC market headlines with brief summaries, links, and a strict 0.0 to 10.0 article score."],
+    ["The Morning Mug", "Morning Mug alerts", "Morning Mug alerts use saved portfolio data to highlight movers, score changes, overweight areas, upcoming earnings, and insider transactions."],
+    ["The Morning Mug", "Morning Mug earnings", "The Morning Mug earnings calendar shows the next week of portfolio earnings only when a portfolio is loaded."],
+    ["The Morning Mug", "portfolio movers", "Portfolio movers show the strongest and weakest pre-market moves from the user's saved portfolio."],
+    ["Eval AI", "AI Assistant password", "Eval AI is locked during testing. Enter the testing password before asking questions."],
+    ["Eval AI", "watchlist questions", "Eval AI can answer brief questions about saved watchlist stocks, strongest names, saved scores, and ticker lookup."],
+    ["Eval AI", "portfolio questions", "Eval AI can answer brief questions about portfolio weights, industry weights, largest holdings, Eval Strategy targets, and trim ideas using saved portfolio data."],
+    ["Eval AI", "earnings questions", "Eval AI can answer earnings-date questions when the earnings data is already loaded or saved in portfolio context."],
+    ["Eval AI", "unknown answers", "When Eval AI cannot answer cleanly from saved, cached, or loaded Eval data, it should respond with: Please try again."],
+  ];
+  const verbs = ["How do I use", "What does", "Why is", "Where do I find", "Can Eval AI explain", "How should I read", "What happens when I open", "How does Eval handle", "What should I check in", "How can I understand"];
+  const details = ["quickly", "on mobile", "on desktop", "without using extra API calls", "with saved data", "after uploading a portfolio", "inside the dashboard", "from the dropdown", "for a new user", "when troubleshooting", "before market open", "after refreshing data"];
+  const out = [];
+  for (const [category, topic, answer] of topics) {
+    for (const verb of verbs) {
+      for (const detail of details) {
+        out.push({ category, question: `${verb} ${topic} ${detail}?`, answer });
+      }
+    }
+  }
+  return out;
+}
+
 function FaqPage({ onBack, onHome, onTerms, onSupport }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const categories = ["All", ...Array.from(new Set(EVAL_FAQS.map((item) => item.category)))];
+  const faqList = useMemo(() => [...EVAL_FAQS, ...buildEvalExtraFaqs()], []);
+  const categories = ["All", ...Array.from(new Set(faqList.map((item) => item.category)))];
 
   const normalized = query.trim().toLowerCase();
 
-  const filteredFaqs = EVAL_FAQS.filter((item) => {
+  const filteredFaqs = faqList.filter((item) => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const haystack = `${item.category} ${item.question} ${item.answer}`.toLowerCase();
     const matchesQuery = !normalized || haystack.includes(normalized);
@@ -9312,8 +9447,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           </div>
           <h1>Eval help center</h1>
           <p>
-            Search roughly 1,000 support questions about the dashboard, score rings, metrics, watchlist, compare,
-            industry rankings, news sentiment, ticker search, caching, data sources, Eval AI, and account basics.
+            Search a larger help library covering dashboard navigation, Ticker Lookup, watchlist, Portfolio, Eval Strategy, The Morning Mug, earnings, alerts, caching, data sources, Eval AI, and account basics.
           </p>
         </div>
 
@@ -9323,7 +9457,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
             id="faq-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Start typing: watchlist, risk, news sentiment..."
+            placeholder="Start typing: ticker lookup, portfolio, Morning Mug, alerts..."
             autoComplete="off"
           />
           <span>{filteredFaqs.length} result{filteredFaqs.length === 1 ? "" : "s"}</span>
@@ -9358,7 +9492,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
           <div className="faq-empty">
             <HelpCircle size={30} />
             <h3>No FAQ matches that search yet</h3>
-            <p>Try a shorter word like “score,” “watchlist,” “compare,” “risk,” or “news.”</p>
+            <p>Try a shorter word like “score,” “watchlist,” “portfolio,” “ticker lookup,” “Morning Mug,” or “news.”</p>
           </div>
         )}
 
