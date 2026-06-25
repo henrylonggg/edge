@@ -30139,3 +30139,29 @@ body:has(.morning-brew-page-shell) {
     display: none;
   }
 }
+
+
+/* Morning Mugs deploy-safe compact index movement text */
+.morning-brew-page .market-card .morning-index strong {
+  font-size: clamp(22px, 3.1vw, 34px) !important;
+  line-height: .95 !important;
+  letter-spacing: -0.045em !important;
+  white-space: nowrap !important;
+}
+.morning-brew-page .market-card .morning-index.positive strong,
+.morning-brew-page .market-card .morning-index.positive strong * {
+  color: #72ff98 !important;
+}
+.morning-brew-page .market-card .morning-index.negative strong,
+.morning-brew-page .market-card .morning-index.negative strong * {
+  color: #ff5f78 !important;
+}
+.morning-brew-page .market-card .morning-index.flat strong,
+.morning-brew-page .market-card .morning-index.flat strong * {
+  color: rgba(255,255,255,.96) !important;
+}
+@media (max-width: 720px) {
+  .morning-brew-page .market-card .morning-index strong {
+    font-size: clamp(19px, 7vw, 28px) !important;
+  }
+}
