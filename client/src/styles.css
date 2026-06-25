@@ -30165,3 +30165,53 @@ body:has(.morning-brew-page-shell) {
     font-size: clamp(19px, 7vw, 28px) !important;
   }
 }
+
+/* EARNINGS CALENDAR — VALUE FORMAT / SCORE COLOR / TODAY HIGHLIGHT */
+.portfolio-earnings-day.today {
+  border-color: rgba(255, 224, 92, 0.92) !important;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 224, 92, 0.28), rgba(9, 13, 29, 0.62) 58%) !important;
+  box-shadow: 0 0 0 2px rgba(255, 224, 92, 0.22), 0 0 38px rgba(255, 224, 92, 0.22) !important;
+  position: relative;
+}
+.portfolio-earnings-day.today::after {
+  content: "Today";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(255, 224, 92, 0.18);
+  border: 1px solid rgba(255, 224, 92, 0.62);
+  color: #ffe45e;
+  font-size: 0.62rem;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.portfolio-earnings-ticker.green {
+  border-color: rgba(85, 255, 106, 0.64) !important;
+  background: linear-gradient(135deg, rgba(85, 255, 106, 0.25), rgba(9, 45, 24, 0.66)) !important;
+  color: #75ff72 !important;
+  box-shadow: 0 0 18px rgba(85, 255, 106, 0.14);
+}
+.portfolio-earnings-ticker.yellow {
+  border-color: rgba(255, 224, 92, 0.68) !important;
+  background: linear-gradient(135deg, rgba(255, 224, 92, 0.24), rgba(72, 53, 8, 0.62)) !important;
+  color: #ffe45e !important;
+  box-shadow: 0 0 18px rgba(255, 224, 92, 0.14);
+}
+.portfolio-earnings-ticker.red {
+  border-color: rgba(255, 92, 120, 0.66) !important;
+  background: linear-gradient(135deg, rgba(255, 92, 120, 0.24), rgba(70, 9, 25, 0.64)) !important;
+  color: #ff6f8d !important;
+  box-shadow: 0 0 18px rgba(255, 92, 120, 0.14);
+}
+.portfolio-earnings-ticker.neutral {
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  background: rgba(255,255,255,0.08) !important;
+  color: rgba(255,255,255,0.82) !important;
+}
+.portfolio-earnings-mobile-day.today {
+  border-color: rgba(255, 224, 92, 0.72) !important;
+  box-shadow: 0 0 24px rgba(255, 224, 92, 0.14);
+}
