@@ -2295,18 +2295,18 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
 
 function IndustryBars({ groups = [], onSelectIndustry }) {
   return (
-    <div className="portfolio-sector-bars-card portfolio-sector-bars-clickable-card">
+    <div className="portfolio-industry-bars-card portfolio-industry-bars-clickable-card">
       <div className="portfolio-card-title-row">
         <span className="section-title"><BarChart3 size={17}/> Industry scores</span>
         <small>Tap an industry for weighted metrics</small>
       </div>
-      <div className="portfolio-sector-bars">
+      <div className="portfolio-industry-bars">
         {(groups || []).map((group) => {
           const score = score10(group.sectorEvalScore) || 0;
           return (
             <button type="button" className={`portfolio-industry-bar-row ${scoreTone(score)}`} key={group.sector} onClick={() => onSelectIndustry?.(group)}>
               <div><b>{group.sector}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
-              <div className="portfolio-sector-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
+              <div className="portfolio-industry-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
               <strong>{scoreText(score)}</strong>
             </button>
           );
@@ -3732,7 +3732,11 @@ function PortfolioPage({ onBack, onAnalyze }) {
                   Columns
                 </button>
                 {columnsOpen && (
-                  <div className="portfolio-column-menu">
+                  <div className="portfolio-column-menu portfolio-column-menu-front">
+                    <div className="portfolio-column-menu-head">
+                      <strong>Columns</strong>
+                      <button type="button" className="portfolio-column-menu-close" onClick={() => setColumnsOpen(false)} aria-label="Close columns menu">×</button>
+                    </div>
                     <div className="portfolio-column-menu-actions">
                       <button type="button" onClick={showAllHoldingColumns}>All</button>
                       <button type="button" onClick={compactHoldingColumns}>Compact</button>
