@@ -199,6 +199,12 @@ const MAIN_PIE_THEME_OPTIONS = [
   { key: "glass", label: "Glass Core" },
   { key: "neon", label: "Neon Halo" },
   { key: "minimal", label: "Clean Meter" },
+  { key: "orbit", label: "Orbit Glow" },
+  { key: "prism", label: "Prism Slice" },
+  { key: "cyber", label: "Cyber Grid" },
+  { key: "eclipse", label: "Eclipse" },
+  { key: "diamond", label: "Diamond Edge" },
+  { key: "aurora", label: "Aurora" },
 ];
 
 function rawScore(v) {
@@ -1297,9 +1303,6 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
                         Ticker Lookup
                       </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("settings")}>
-                        Settings
-                      </button>
                       <div className="dropdown-divider" />
 
                       <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
@@ -1322,6 +1325,7 @@ function App() {
                             >
                               {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
                             </button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
@@ -1340,9 +1344,6 @@ function App() {
                       </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
                         Ticker Lookup
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("settings")}>
-                        Settings
                       </button>
                       <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
@@ -1370,6 +1371,7 @@ function App() {
                             >
                               {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
                             </button>
+                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
                             <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
@@ -1449,7 +1451,7 @@ function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieT
           <div>
             <span className="section-title"><Gauge size={17}/> Settings</span>
             <h2>Dashboard setup</h2>
-            <p>Choose where Eval opens and how the main dashboard score ring looks.</p>
+            <p>Choose the first page Eval opens and switch the main dashboard score-ring design.</p>
           </div>
         </div>
 
@@ -4340,26 +4342,34 @@ function TickerLookupPage({ query, results, loading, error, onQueryChange, onBac
           </button>
         </div>
 
-        <div className="ticker-lookup-hero">
+        <div className="ticker-lookup-hero ticker-lookup-hero-upgraded">
           <div className="section-title"><Search size={17} /> Ticker Lookup</div>
-          <h1>Find a U.S. stock ticker.</h1>
-          <p>Type a company name or ticker. Eval filters the uploaded U.S. stock universe and shows the top 25 matches without calling market-data APIs.</p>
+          <h1>Find any U.S. stock faster.</h1>
+          <p>Search by company, ticker, or exchange. Eval filters the local ticker CSV first, so typing does not burn market-data API calls.</p>
+          <div className="ticker-lookup-stat-strip">
+            <span>CSV-backed</span>
+            <span>Top 25 ranked</span>
+            <span>No API calls while typing</span>
+          </div>
         </div>
 
-        <div className="ticker-lookup-page-card">
+        <div className="ticker-lookup-page-card ticker-lookup-search-card-upgraded">
           <label htmlFor="ticker-lookup-page-input">Company or ticker</label>
-          <input
-            id="ticker-lookup-page-input"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Type Apple, Microsoft, Tesla, Nvidia..."
-            autoComplete="off"
-            autoFocus
-          />
-          <div className="ticker-lookup-page-helper">Only the top 25 results are shown. Tickers are not clickable, so lookup does not spend analysis calls.</div>
+          <div className="ticker-lookup-input-shell">
+            <Search size={18} />
+            <input
+              id="ticker-lookup-page-input"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder="SOFI, Apple, Nvidia, Palantir, Coinbase..."
+              autoComplete="off"
+              autoFocus
+            />
+          </div>
+          <div className="ticker-lookup-page-helper">Ticker results stay read-only on purpose, so users can look up symbols without accidentally spending analysis calls.</div>
         </div>
 
-        <section className="ticker-lookup-results-card">
+        <section className="ticker-lookup-results-card ticker-lookup-results-upgraded">
           <div className="ticker-lookup-results-head">
             <span>Company</span>
             <span>Ticker</span>
@@ -4370,14 +4380,14 @@ function TickerLookupPage({ query, results, loading, error, onQueryChange, onBac
             <div className="ticker-lookup-page-status">No matches found.</div>
           ) : null}
           {!cleanQuery ? (
-            <div className="ticker-lookup-page-status">Start typing to search the ticker universe.</div>
+            <div className="ticker-lookup-page-status">Start typing to search the expanded local ticker universe.</div>
           ) : null}
           <div className="ticker-lookup-page-results">
             {results.slice(0, 25).map((item) => (
-              <div className="ticker-lookup-page-row" key={`${item.symbol}-${item.name}`}>
+              <div className="ticker-lookup-page-row ticker-lookup-page-row-upgraded" key={`${item.symbol}-${item.name}`}>
                 <div>
                   <strong>{item.name}</strong>
-                  <small>{item.exchange || "U.S. exchange"}</small>
+                  <small>{item.exchange || "U.S. exchange"}{item.type ? ` • ${item.type}` : ""}</small>
                 </div>
                 <b>{item.symbol}</b>
               </div>
