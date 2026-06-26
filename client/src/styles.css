@@ -36934,3 +36934,60 @@ body:has(.morning-brew-page-shell) {
     padding-bottom: 82px !important;
   }
 }
+
+/* =========================================================
+   MOBILE NAV HISTORY + SETTINGS POLISH
+========================================================= */
+.landing-page-static {
+  --landing-logo-accent: #9f5cff;
+}
+
+.landing-page-static .landing-brand-home img,
+.landing-brand-row-static .landing-brand-home img {
+  background:
+    radial-gradient(circle at 28% 20%, color-mix(in srgb, var(--landing-logo-accent) 38%, white 20%), transparent 34%),
+    linear-gradient(145deg, color-mix(in srgb, var(--landing-logo-accent) 44%, transparent), rgba(21,231,255,.10) 48%, rgba(2,7,17,.08)) !important;
+  border-color: color-mix(in srgb, var(--landing-logo-accent) 46%, rgba(255,255,255,.18)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -18px 32px rgba(0,0,0,.18),
+    0 18px 46px color-mix(in srgb, var(--landing-logo-accent) 36%, transparent),
+    0 0 42px color-mix(in srgb, var(--landing-logo-accent) 28%, transparent) !important;
+}
+
+.settings-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.settings-color-row input[type="color"] {
+  width: 48px;
+  height: 42px;
+  padding: 3px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.08);
+}
+
+.settings-color-row button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: var(--preset-color);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--preset-color) 42%, transparent);
+}
+
+.settings-color-row button.active {
+  outline: 2px solid rgba(255,255,255,.78);
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .mobile-bottom-nav {
+    bottom: calc(15px + env(safe-area-inset-bottom)) !important;
+  }
+}
