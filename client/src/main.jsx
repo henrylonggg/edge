@@ -186,6 +186,9 @@ const TERMS_VERSION = "2026-05-30";
 const MAX_WATCHLIST_ITEMS = 10;
 const DASHBOARD_START_STORAGE_KEY = "eval-dashboard-start-tab-v1";
 const PIE_THEME_STORAGE_KEY = "eval-main-pie-theme-v1";
+const MOBILE_NAV_LEFT_STORAGE_KEY = "eval-mobile-nav-left-v1";
+const MOBILE_NAV_RIGHT_STORAGE_KEY = "eval-mobile-nav-right-v1";
+const MOBILE_SEARCH_TARGET_STORAGE_KEY = "eval-mobile-search-target-v1";
 
 const DASHBOARD_START_OPTIONS = [
   { key: "dashboard", label: "Dashboard" },
@@ -196,15 +199,21 @@ const DASHBOARD_START_OPTIONS = [
 
 const MAIN_PIE_THEME_OPTIONS = [
   { key: "pulse", label: "Pulse Ring" },
-  { key: "glass", label: "Glass Core" },
-  { key: "neon", label: "Neon Halo" },
-  { key: "minimal", label: "Clean Meter" },
-  { key: "orbit", label: "Orbit Glow" },
-  { key: "prism", label: "Prism Slice" },
-  { key: "cyber", label: "Cyber Grid" },
-  { key: "eclipse", label: "Eclipse" },
-  { key: "diamond", label: "Diamond Edge" },
-  { key: "aurora", label: "Aurora" },
+];
+
+const MOBILE_NAV_SHORTCUT_OPTIONS = [
+  { key: "watchlist", label: "Watchlist" },
+  { key: "settings", label: "Settings" },
+  { key: "search", label: "Search" },
+  { key: "assistant", label: "Eval AI" },
+  { key: "portfolio", label: "Portfolio" },
+  { key: "morningBrew", label: "Morning Mug" },
+  { key: "tickerLookup", label: "Ticker Lookup" },
+];
+
+const MOBILE_SEARCH_TARGET_OPTIONS = [
+  { key: "dashboard", label: "Main Eval search" },
+  { key: "tickerLookup", label: "Ticker Lookup" },
 ];
 
 function rawScore(v) {
@@ -565,6 +574,18 @@ function App() {
     const saved = safeStorageGet(PIE_THEME_STORAGE_KEY, "pulse");
     return MAIN_PIE_THEME_OPTIONS.some((option) => option.key === saved) ? saved : "pulse";
   });
+  const [mobileNavLeft, setMobileNavLeft] = useState(() => {
+    const saved = safeStorageGet(MOBILE_NAV_LEFT_STORAGE_KEY, "watchlist");
+    return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "watchlist";
+  });
+  const [mobileNavRight, setMobileNavRight] = useState(() => {
+    const saved = safeStorageGet(MOBILE_NAV_RIGHT_STORAGE_KEY, "assistant");
+    return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "assistant";
+  });
+  const [mobileSearchTarget, setMobileSearchTarget] = useState(() => {
+    const saved = safeStorageGet(MOBILE_SEARCH_TARGET_STORAGE_KEY, "dashboard");
+    return MOBILE_SEARCH_TARGET_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
+  });
 
   useEffect(() => {
     const update = () => setShowMorningMug(isTheMorningMugWindow());
@@ -728,6 +749,33 @@ function App() {
     const clean = MAIN_PIE_THEME_OPTIONS.some((option) => option.key === next) ? next : "pulse";
     setMainPieTheme(clean);
     safeStorageSet(PIE_THEME_STORAGE_KEY, clean);
+  }
+
+  function updateMobileNavLeft(next) {
+    const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "watchlist";
+    setMobileNavLeft(clean);
+    safeStorageSet(MOBILE_NAV_LEFT_STORAGE_KEY, clean);
+  }
+
+  function updateMobileNavRight(next) {
+    const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "assistant";
+    setMobileNavRight(clean);
+    safeStorageSet(MOBILE_NAV_RIGHT_STORAGE_KEY, clean);
+  }
+
+  function updateMobileSearchTarget(next) {
+    const clean = MOBILE_SEARCH_TARGET_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
+    setMobileSearchTarget(clean);
+    safeStorageSet(MOBILE_SEARCH_TARGET_STORAGE_KEY, clean);
+  }
+
+  function goMobileNav(target) {
+    const clean = target === "search" ? mobileSearchTarget : target;
+    const next = clean || "dashboard";
+    setMenuOpen(false);
+    setOtherMenuOpen(false);
+    setView(next);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
   }
 
   function goMenu(nextView) {
@@ -1134,14 +1182,23 @@ function App() {
 
   if (view === "tickerLookup") {
     return (
-      <TickerLookupPage
-        query={tickerLookupQuery}
-        results={tickerLookupResults}
-        loading={tickerLookupLoading}
-        error={tickerLookupError}
-        onQueryChange={setTickerLookupQuery}
-        onBack={() => setView("dashboard")}
-      />
+      <>
+        <TickerLookupPage
+          query={tickerLookupQuery}
+          results={tickerLookupResults}
+          loading={tickerLookupLoading}
+          error={tickerLookupError}
+          onQueryChange={setTickerLookupQuery}
+          onBack={() => setView("dashboard")}
+        />
+        <MobileBottomNav
+          homeView={preferredDashboardStart}
+          leftShortcut={mobileNavLeft}
+          rightShortcut={mobileNavRight}
+          searchTarget={mobileSearchTarget}
+          onNavigate={goMobileNav}
+        />
+      </>
     );
   }
 
@@ -1158,18 +1215,42 @@ function App() {
 
   if (view === "settings") {
     return (
-      <SettingsPage
-        dashboardStart={preferredDashboardStart}
-        pieTheme={mainPieTheme}
-        onDashboardStartChange={updatePreferredDashboardStart}
-        onPieThemeChange={updateMainPieTheme}
-        onBack={() => setView("dashboard")}
-      />
+      <>
+        <SettingsPage
+          dashboardStart={preferredDashboardStart}
+          mobileNavLeft={mobileNavLeft}
+          mobileNavRight={mobileNavRight}
+          mobileSearchTarget={mobileSearchTarget}
+          onDashboardStartChange={updatePreferredDashboardStart}
+          onMobileNavLeftChange={updateMobileNavLeft}
+          onMobileNavRightChange={updateMobileNavRight}
+          onMobileSearchTargetChange={updateMobileSearchTarget}
+          onBack={() => setView("dashboard")}
+        />
+        <MobileBottomNav
+          homeView={preferredDashboardStart}
+          leftShortcut={mobileNavLeft}
+          rightShortcut={mobileNavRight}
+          searchTarget={mobileSearchTarget}
+          onNavigate={goMobileNav}
+        />
+      </>
     );
   }
 
   if (view === "morningBrew") {
-    return <MorningMugsDashboard onBack={() => setView("dashboard")} />;
+    return (
+      <>
+        <MorningMugsDashboard onBack={() => setView("dashboard")} />
+        <MobileBottomNav
+          homeView={preferredDashboardStart}
+          leftShortcut={mobileNavLeft}
+          rightShortcut={mobileNavRight}
+          searchTarget={mobileSearchTarget}
+          onNavigate={goMobileNav}
+        />
+      </>
+    );
   }
 
   return (
@@ -1435,12 +1516,29 @@ function App() {
           />
         </section>
       )}
+      <MobileBottomNav
+        homeView={preferredDashboardStart}
+        leftShortcut={mobileNavLeft}
+        rightShortcut={mobileNavRight}
+        searchTarget={mobileSearchTarget}
+        onNavigate={goMobileNav}
+      />
     </main>
   );
 }
 
 
-function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieThemeChange, onBack }) {
+function SettingsPage({
+  dashboardStart,
+  mobileNavLeft,
+  mobileNavRight,
+  mobileSearchTarget,
+  onDashboardStartChange,
+  onMobileNavLeftChange,
+  onMobileNavRightChange,
+  onMobileSearchTargetChange,
+  onBack,
+}) {
   return (
     <main className="app-shell settings-page-shell">
       <section className="settings-page-card">
@@ -1451,7 +1549,7 @@ function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieT
           <div>
             <span className="section-title"><Gauge size={17}/> Settings</span>
             <h2>Dashboard setup</h2>
-            <p>Choose the first page Eval opens and switch the main dashboard score-ring design.</p>
+            <p>Choose where Open Dashboard goes and customize the mobile bottom menu.</p>
           </div>
         </div>
 
@@ -1472,20 +1570,27 @@ function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieT
             </div>
           </article>
 
-          <article className="settings-option-card">
-            <h3>Main dashboard pie theme</h3>
-            <div className="settings-pie-theme-grid">
-              {MAIN_PIE_THEME_OPTIONS.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  className={`settings-pie-theme ${pieTheme === option.key ? "active" : ""}`}
-                  onClick={() => onPieThemeChange(option.key)}
-                >
-                  <ScoreRingSvg value={8.2} label="8.2" className={`settings-preview-ring pie-theme-${option.key}`} />
-                  <span>{option.label}</span>
-                </button>
-              ))}
+          <article className="settings-option-card settings-mobile-nav-card">
+            <h3>Mobile bottom menu</h3>
+            <div className="settings-field-stack">
+              <label>Left shortcut</label>
+              <select value={mobileNavLeft} onChange={(e) => onMobileNavLeftChange(e.target.value)}>
+                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+              <label>Right shortcut</label>
+              <select value={mobileNavRight} onChange={(e) => onMobileNavRightChange(e.target.value)}>
+                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+              <label>Search shortcut opens</label>
+              <select value={mobileSearchTarget} onChange={(e) => onMobileSearchTargetChange(e.target.value)}>
+                {MOBILE_SEARCH_TARGET_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
             </div>
           </article>
         </div>
@@ -1493,6 +1598,47 @@ function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieT
     </main>
   );
 }
+
+function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, onNavigate }) {
+  const shortcutMap = {
+    watchlist: { label: "Watch", icon: <Star size={15} /> },
+    settings: { label: "Settings", icon: <Gauge size={15} /> },
+    search: { label: "Search", icon: <Search size={15} /> },
+    assistant: { label: "AI", icon: <BrainCircuit size={15} /> },
+    portfolio: { label: "Portfolio", icon: <PieChart size={15} /> },
+    morningBrew: { label: "Mug", icon: <Newspaper size={15} /> },
+    tickerLookup: { label: "Lookup", icon: <Search size={15} /> },
+  };
+
+  const runShortcut = (key) => {
+    const target = key === "search" ? searchTarget : key;
+    onNavigate(target || "dashboard");
+  };
+
+  const left = shortcutMap[leftShortcut] || shortcutMap.watchlist;
+  const right = shortcutMap[rightShortcut] || shortcutMap.assistant;
+
+  return (
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={() => window.history.back()} aria-label="Back">
+        <ArrowLeft size={15} />
+      </button>
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(leftShortcut)}>
+        {left.icon}<span>{left.label}</span>
+      </button>
+      <button type="button" className="mobile-bottom-nav-btn nav-home" onClick={() => onNavigate(homeView || "dashboard")} aria-label="Home">
+        <Home size={18} />
+      </button>
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(rightShortcut)}>
+        {right.icon}<span>{right.label}</span>
+      </button>
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={() => window.history.forward()} aria-label="Forward">
+        <ArrowRight size={15} />
+      </button>
+    </nav>
+  );
+}
+
 
 function ScoreRingSvg({ value, className = "", label = null }) {
   const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
@@ -4334,22 +4480,22 @@ function ClerkAccessPage({ onBack, onSuccess }) {
 function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack }) {
   const cleanQuery = query.trim();
   return (
-    <main className="ticker-lookup-page">
-      <section className="ticker-lookup-page-shell">
+    <main className="ticker-lookup-page ticker-lookup-purple-page">
+      <section className="ticker-lookup-page-shell ticker-lookup-purple-shell">
         <div className="ticker-lookup-topbar">
           <button type="button" className="back-btn" onClick={onBack}>
             <ArrowLeft size={18} /> Dashboard
           </button>
         </div>
 
-        <div className="ticker-lookup-hero ticker-lookup-hero-upgraded">
+        <div className="ticker-lookup-hero ticker-lookup-hero-upgraded ticker-lookup-purple-hero">
           <div className="section-title"><Search size={17} /> Ticker Lookup</div>
-          <h1>Find any U.S. stock faster.</h1>
-          <p>Search by company, ticker, or exchange. Eval filters the local ticker CSV first, so typing does not burn market-data API calls.</p>
+          <h1>Search the full U.S. stock list.</h1>
+          <p>Type a company name or ticker and Eval ranks the best matches instantly from the local CSV.</p>
           <div className="ticker-lookup-stat-strip">
-            <span>CSV-backed</span>
-            <span>Top 25 ranked</span>
-            <span>No API calls while typing</span>
+            <span>7,000+ symbols</span>
+            <span>Fast local search</span>
+            <span>No API calls</span>
           </div>
         </div>
 
@@ -4366,13 +4512,13 @@ function TickerLookupPage({ query, results, loading, error, onQueryChange, onBac
               autoFocus
             />
           </div>
-          <div className="ticker-lookup-page-helper">Ticker results stay read-only on purpose, so users can look up symbols without accidentally spending analysis calls.</div>
+          <div className="ticker-lookup-page-helper">Copy the ticker into Eval search when you want the full score.</div>
         </div>
 
         <section className="ticker-lookup-results-card ticker-lookup-results-upgraded">
           <div className="ticker-lookup-results-head">
-            <span>Company</span>
-            <span>Ticker</span>
+            <span>Matching company</span>
+            <span>Symbol</span>
           </div>
           {loading ? <div className="ticker-lookup-page-status">Searching...</div> : null}
           {error ? <div className="ticker-lookup-page-status error">{error}</div> : null}
