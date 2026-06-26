@@ -35227,3 +35227,282 @@ body:has(.morning-brew-page-shell) {
     height: 118px !important;
   }
 }
+
+/* === Eval final portfolio/mobile cleanup patch === */
+.sector-link-static,
+.sector-link-static:disabled {
+  cursor: default !important;
+  pointer-events: none !important;
+  opacity: .9 !important;
+  text-decoration: none !important;
+}
+
+/* Earnings popup tone follows the holding Eval tone. */
+.earnings-detail-popover.green {
+  border-color: rgba(133,255,71,.55) !important;
+  background: linear-gradient(145deg, rgba(16,47,23,.96), rgba(3,13,9,.97)) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45), 0 0 32px rgba(133,255,71,.20) !important;
+}
+.earnings-detail-popover.yellow {
+  border-color: rgba(255,228,95,.60) !important;
+  background: linear-gradient(145deg, rgba(62,47,7,.96), rgba(14,10,3,.97)) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45), 0 0 32px rgba(255,228,95,.20) !important;
+}
+.earnings-detail-popover.red {
+  border-color: rgba(255,85,112,.58) !important;
+  background: linear-gradient(145deg, rgba(58,14,24,.96), rgba(15,3,7,.97)) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45), 0 0 32px rgba(255,85,112,.20) !important;
+}
+.earnings-detail-popover.neutral {
+  border-color: rgba(21,231,255,.45) !important;
+  background: linear-gradient(145deg, rgba(8,31,42,.96), rgba(3,10,15,.97)) !important;
+}
+
+/* Holdings table: keep headers and values left-aligned in one clean vertical line. */
+.portfolio-industry-table-v3 .portfolio-holding-row,
+.portfolio-industry-table-v3 .portfolio-holding-row.header,
+.portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row,
+.portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header {
+  justify-items: start !important;
+  text-align: left !important;
+  align-items: center !important;
+}
+.portfolio-industry-table-v3 .portfolio-holding-row > span,
+.portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row > span {
+  justify-self: start !important;
+  text-align: left !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.portfolio-industry-table-v3 .portfolio-holding-row > span:last-child,
+.portfolio-industry-table-v3 .portfolio-holding-row.header > span:last-child,
+.portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row > span:last-child,
+.portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header > span:last-child {
+  justify-self: start !important;
+  text-align: left !important;
+}
+.portfolio-return-cell {
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+
+/* Compact total value card after removing label. */
+.portfolio-total-value-card-no-label {
+  justify-content: center !important;
+  gap: 5px !important;
+}
+.portfolio-total-value-card-no-label .portfolio-total-value-line {
+  margin: 0 !important;
+}
+.portfolio-total-value-card-no-label .portfolio-value-change {
+  margin-top: 0 !important;
+  line-height: 1.05 !important;
+}
+
+@media (max-width: 760px) {
+  /* Mobile portfolio only: use real calendar grid like desktop, just smaller. */
+  .portfolio-dashboard-v3 .portfolio-earnings-mobile-list,
+  .portfolio-earnings-calendar-card .portfolio-earnings-mobile-list {
+    display: none !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-weekdays,
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-grid,
+  .portfolio-earnings-calendar-card .portfolio-earnings-calendar-weekdays,
+  .portfolio-earnings-calendar-card .portfolio-earnings-calendar-grid {
+    display: grid !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-card,
+  .portfolio-earnings-calendar-card {
+    padding: 8px !important;
+    border-radius: 14px !important;
+    overflow: visible !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-weekdays,
+  .portfolio-earnings-calendar-card .portfolio-earnings-calendar-weekdays {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+    margin-top: 6px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-weekdays span,
+  .portfolio-earnings-calendar-card .portfolio-earnings-calendar-weekdays span {
+    font-size: 7px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    text-align: center !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-calendar-grid,
+  .portfolio-earnings-calendar-card .portfolio-earnings-calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-day,
+  .portfolio-earnings-calendar-card .portfolio-earnings-day {
+    min-height: 34px !important;
+    padding: 3px 2px !important;
+    border-radius: 7px !important;
+    gap: 2px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-day > span,
+  .portfolio-earnings-calendar-card .portfolio-earnings-day > span {
+    font-size: 6.5px !important;
+    white-space: nowrap !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-day > div,
+  .portfolio-earnings-calendar-card .portfolio-earnings-day > div {
+    gap: 1px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-earnings-ticker,
+  .portfolio-earnings-calendar-card .portfolio-earnings-ticker {
+    font-size: 6.5px !important;
+    padding: 2px 3px !important;
+    min-height: 14px !important;
+    border-radius: 5px !important;
+    max-width: 100% !important;
+  }
+  .portfolio-dashboard-v3 .market-closed-x,
+  .portfolio-earnings-calendar-card .market-closed-x,
+  .portfolio-dashboard-v3 .portfolio-earnings-day.empty small,
+  .portfolio-earnings-calendar-card .portfolio-earnings-day.empty small {
+    font-size: 7px !important;
+  }
+
+  /* Mobile portfolio score: no decorative borders/rings around the Eval score card. */
+  .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable,
+  .portfolio-score-card-v3.portfolio-score-card-clickable {
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable::before,
+  .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable::after,
+  .portfolio-score-card-v3.portfolio-score-card-clickable::before,
+  .portfolio-score-card-v3.portfolio-score-card-clickable::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* Mobile holdings: horizontal data columns, no scroll, left aligned. */
+  .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row,
+  .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header,
+  .portfolio-industry-table-v3 .portfolio-holding-row,
+  .portfolio-industry-table-v3 .portfolio-holding-row.header {
+    display: grid !important;
+    grid-template-columns: minmax(38px, .9fr) repeat(var(--mobile-holding-cols), minmax(30px, .7fr)) !important;
+    column-gap: 3px !important;
+    padding: 5px 4px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-holding-row.header,
+  .portfolio-industry-table-v3 .portfolio-holding-row.header {
+    font-size: 6.5px !important;
+    letter-spacing: .02em !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row > span,
+  .portfolio-industry-table-v3 .portfolio-holding-row > span {
+    font-size: 7px !important;
+    line-height: 1.05 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    text-align: left !important;
+    justify-self: stretch !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-holding-row b,
+  .portfolio-industry-table-v3 .portfolio-holding-row b {
+    font-size: 8px !important;
+    line-height: 1.05 !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-holding-row small,
+  .portfolio-industry-table-v3 .portfolio-holding-row small {
+    font-size: 5.5px !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-return-cell b,
+  .portfolio-industry-table-v3 .portfolio-return-cell b {
+    font-size: 7px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-return-cell small,
+  .portfolio-industry-table-v3 .portfolio-return-cell small {
+    font-size: 5.5px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-score-text-badge.mini,
+  .portfolio-industry-table-v3 .portfolio-score-text-badge.mini {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 7px !important;
+    border-width: 1px !important;
+  }
+
+  /* Mobile total holdings bubble: no label, tighter value/change stack, smaller show/hide. */
+  .portfolio-dashboard-v3 .portfolio-total-value-card-no-label,
+  .portfolio-total-value-card-no-label {
+    gap: 2px !important;
+    padding: 8px !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-total-value-card-v3 .portfolio-total-value-line,
+  .portfolio-total-value-card-v3 .portfolio-total-value-line {
+    gap: 5px !important;
+    align-items: center !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-total-value-card-v3 .portfolio-total-value-line strong,
+  .portfolio-total-value-card-v3 .portfolio-total-value-line strong {
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-total-value-card-v3 .portfolio-value-change,
+  .portfolio-total-value-card-v3 .portfolio-value-change {
+    font-size: 8px !important;
+    line-height: 1 !important;
+  }
+  .portfolio-dashboard-v3 .portfolio-total-value-card-v3 .portfolio-total-value-line button,
+  .portfolio-total-value-card-v3 .portfolio-total-value-line button {
+    font-size: 7px !important;
+    padding: 3px 5px !important;
+    border-radius: 7px !important;
+    min-height: 18px !important;
+  }
+}
+
+/* FINAL MOBILE-ONLY PATCH: remove all portfolio Eval score decorative borders/rings. */
+@media (max-width: 720px) {
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable.green,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable.yellow,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable.red {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3::before,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3::after,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable::before,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3.portfolio-score-card-clickable::after {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main.green,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main.yellow,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main.red {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main::before,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-text-badge.main::after {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+  }
+}
