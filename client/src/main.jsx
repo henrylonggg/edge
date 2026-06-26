@@ -3764,7 +3764,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
                   <MiniScoreRing value={group.sectorEvalScore} small industry />
                 </button>
                 {isOpen && (
-                  <div className="portfolio-holdings-table portfolio-industry-table-v3" style={{ "--holding-grid-template": holdingsTemplate }}>
+                  <div className="portfolio-holdings-table portfolio-industry-table-v3" style={{ "--holding-grid-template": holdingsTemplate, "--mobile-holding-cols": holdingColumns.length }}>
                     <div className="portfolio-holding-row header" style={{ gridTemplateColumns: holdingsTemplate }}>
                       <span>Stock</span>
                       {holdingColumns.map((column) => <span key={column.key}>{column.shortLabel || column.label}</span>)}
