@@ -3681,12 +3681,16 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </b>
             </article>
 
-            <article className="portfolio-count-card-v3">
-              <span>Positions</span>
-              <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
-              <b>holdings</b>
-              <strong>{sectorGroups.length}</strong>
-              <b>industries</b>
+            <article className="portfolio-count-card-v3 portfolio-count-split-card-v4">
+              <div className="portfolio-count-split-item">
+                <span>Holdings</span>
+                <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
+              </div>
+              <div className="portfolio-count-split-line" aria-hidden="true" />
+              <div className="portfolio-count-split-item">
+                <span>Industries</span>
+                <strong>{sectorGroups.length}</strong>
+              </div>
             </article>
 
           </div>
