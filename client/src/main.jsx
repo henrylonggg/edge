@@ -3771,18 +3771,18 @@ function PortfolioPage({ onBack, onAnalyze }) {
                     </div>
                     {(group.holdings || []).map((holding) => {
                       const holdingCells = {
-                        shares: <span key="shares">{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>,
-                        averageCost: <span key="averageCost">{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>,
-                        currentPrice: <span key="currentPrice">{money(currentHoldingPriceValue(holding))}</span>,
-                        value: <span key="value">{money(holding.holdingDollars)}</span>,
-                        return: <span key="return" className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>,
-                        portfolioWeight: <span key="portfolioWeight">{Number(holding.weightPercent || 0).toFixed(2)}%</span>,
-                        sectorWeight: <span key="sectorWeight">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
-                        eval: <span key="eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
+                        shares: <span key="shares" data-label="Shares">{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>,
+                        averageCost: <span key="averageCost" data-label="Avg cost">{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>,
+                        currentPrice: <span key="currentPrice" data-label="Price">{money(currentHoldingPriceValue(holding))}</span>,
+                        value: <span key="value" data-label="Value">{money(holding.holdingDollars)}</span>,
+                        return: <span key="return" data-label="Return" className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>,
+                        portfolioWeight: <span key="portfolioWeight" data-label="Weight">{Number(holding.weightPercent || 0).toFixed(2)}%</span>,
+                        sectorWeight: <span key="sectorWeight" data-label="Industry wt">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
+                        eval: <span key="eval" data-label="Eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
                       };
                       return (
                       <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
-                        <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                        <span className="portfolio-mobile-stock-main" data-label="Stock"><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         {holdingColumns.map((column) => holdingCells[column.key])}
                       </button>
                     );})}
