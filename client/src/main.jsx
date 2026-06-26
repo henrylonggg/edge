@@ -2304,7 +2304,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
         {(groups || []).map((group) => {
           const score = score10(group.sectorEvalScore) || 0;
           return (
-            <button type="button" className={`portfolio-sector-bar-row ${scoreTone(score)}`} key={group.sector} onClick={() => onSelectIndustry?.(group)}>
+            <button type="button" className={`portfolio-industry-bar-row ${scoreTone(score)}`} key={group.sector} onClick={() => onSelectIndustry?.(group)}>
               <div><b>{group.sector}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
               <div className="portfolio-sector-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
               <strong>{scoreText(score)}</strong>
