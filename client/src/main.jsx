@@ -1196,7 +1196,7 @@ function App() {
   }
 
   if (view === "landing") {
-    return <LandingPage onContinue={openDashboardFromLanding} logoColor={landingLogoColor} />;
+    return <LandingPage onContinue={openDashboardFromLanding} />;
   }
 
   if (view === "account") {
@@ -1242,6 +1242,7 @@ function App() {
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
+          homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
@@ -1284,6 +1285,7 @@ function App() {
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
+          homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
@@ -1301,6 +1303,7 @@ function App() {
         <MorningMugsDashboard onBack={() => navigateView("dashboard")} />
         <MobileBottomNav
           homeView={mobileHomeTarget}
+          homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
@@ -1577,6 +1580,7 @@ function App() {
       )}
       <MobileBottomNav
         homeView={mobileHomeTarget}
+        homeButtonColor={landingLogoColor}
         leftShortcut={mobileNavLeft}
         rightShortcut={mobileNavRight}
         searchTarget={mobileSearchTarget}
@@ -1636,13 +1640,13 @@ function SettingsPage({
           </article>
 
           <article className="settings-option-card settings-logo-color-card">
-            <h3>Homepage logo color</h3>
+            <h3>Mobile home button color</h3>
             <div className="settings-color-row">
               <input
                 type="color"
                 value={landingLogoColor}
                 onChange={(e) => onLandingLogoColorChange(e.target.value)}
-                aria-label="Homepage logo color"
+                aria-label="Mobile home button color"
               />
               {LOGO_COLOR_PRESETS.map((color) => (
                 <button
@@ -1651,7 +1655,7 @@ function SettingsPage({
                   className={landingLogoColor.toLowerCase() === color.toLowerCase() ? "active" : ""}
                   onClick={() => onLandingLogoColorChange(color)}
                   style={{ "--preset-color": color }}
-                  aria-label={`Use ${color} as logo color`}
+                  aria-label={`Use ${color} as mobile home button color`}
                 />
               ))}
             </div>
@@ -1692,7 +1696,7 @@ function SettingsPage({
   );
 }
 
-function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, onNavigate, onBack, onForward }) {
+function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, homeButtonColor = "#9f5cff", onNavigate, onBack, onForward }) {
   const shortcutMap = {
     watchlist: { label: "Watch", icon: <Star size={15} /> },
     settings: { label: "Settings", icon: <Gauge size={15} /> },
@@ -1712,7 +1716,7 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
   const right = shortcutMap[rightShortcut] || shortcutMap.assistant;
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": homeButtonColor }}>
       <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onBack} aria-label="Back">
         <ArrowLeft size={15} />
       </button>
@@ -4225,7 +4229,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   );
 }
 
-function LandingPage({ onContinue, logoColor = "#9f5cff" }) {
+function LandingPage({ onContinue }) {
   const productPillars = [
     {
       icon: <Gauge size={22} />,
@@ -4308,7 +4312,7 @@ function LandingPage({ onContinue, logoColor = "#9f5cff" }) {
   ];
 
   return (
-    <main className="landing-page-clean landing-page-static" style={{ "--landing-logo-accent": logoColor }}>
+    <main className="landing-page-clean landing-page-static">
       <section className="landing-shell landing-shell-static">
         <header className="landing-brand-row landing-brand-row-static">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
