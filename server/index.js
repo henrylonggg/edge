@@ -56,6 +56,67 @@ const PORTFOLIO_ROTATION_DAYS = Math.max(
   Math.min(14, Number(process.env.PORTFOLIO_ROTATION_DAYS || 1))
 );
 
+
+const FINNHUB_INDUSTRY_TO_SECTOR = {
+  "Aerospace & Defense": "Industrials",
+  "Airlines": "Industrials",
+  "Auto Components": "Consumer Cyclical",
+  "Automobiles": "Consumer Cyclical",
+  "Banks": "Financial Services",
+  "Beverages": "Consumer Defensive",
+  "Biotechnology": "Healthcare",
+  "Building": "Industrials",
+  "Capital Goods": "Industrials",
+  "Chemicals": "Basic Materials",
+  "Commercial Services": "Industrials",
+  "Communications": "Communication Services",
+  "Construction": "Industrials",
+  "Consumer Durables": "Consumer Cyclical",
+  "Consumer Services": "Consumer Cyclical",
+  "Diversified Financial Services": "Financial Services",
+  "Electrical Equipment": "Industrials",
+  "Energy": "Energy",
+  "Food Products": "Consumer Defensive",
+  "Health Care": "Healthcare",
+  "Healthcare": "Healthcare",
+  "Hotels, Restaurants & Leisure": "Consumer Cyclical",
+  "Household Products": "Consumer Defensive",
+  "Industrial Conglomerates": "Industrials",
+  "Insurance": "Financial Services",
+  "Materials": "Basic Materials",
+  "Media": "Communication Services",
+  "Oil, Gas & Consumable Fuels": "Energy",
+  "Pharmaceuticals": "Healthcare",
+  "Real Estate": "Real Estate",
+  "Retailing": "Consumer Cyclical",
+  "Semiconductors": "Technology",
+  "Software": "Technology",
+  "Technology": "Technology",
+  "Telecommunication": "Communication Services",
+  "Transportation": "Industrials",
+  "Utilities": "Utilities"
+};
+
+function sectorFromFinnhubIndustry(industry = "") {
+  const label = String(industry || "").trim();
+  if (!label) return "Other";
+  const exact = FINNHUB_INDUSTRY_TO_SECTOR[label];
+  if (exact) return exact;
+  const lower = label.toLowerCase();
+  if (/software|semiconductor|technology|electronic|hardware|internet/.test(lower)) return "Technology";
+  if (/bank|financial|capital markets|insurance|credit|mortgage|asset management/.test(lower)) return "Financial Services";
+  if (/health|pharma|biotech|medical|life sciences/.test(lower)) return "Healthcare";
+  if (/retail|auto|restaurant|hotel|leisure|apparel|consumer durables|discretionary/.test(lower)) return "Consumer Cyclical";
+  if (/food|beverage|household|personal products|staples|tobacco/.test(lower)) return "Consumer Defensive";
+  if (/media|telecom|communication|entertainment|interactive/.test(lower)) return "Communication Services";
+  if (/energy|oil|gas|fuel|coal|drilling/.test(lower)) return "Energy";
+  if (/utility|utilities|electric|water|gas utilities/.test(lower)) return "Utilities";
+  if (/real estate|reit/.test(lower)) return "Real Estate";
+  if (/material|chemical|metal|mining|paper|packaging/.test(lower)) return "Basic Materials";
+  if (/industrial|transport|aerospace|defense|machinery|building|construction|airlines/.test(lower)) return "Industrials";
+  return label;
+}
+
 const PORTFOLIO_UNIVERSE = {
   "Technology": ["MSFT","ORCL","CRM","NOW","ADBE","INTU","IBM","ACN","PANW","CRWD"],
   "Semiconductors": ["NVDA","AVGO","AMD","MU","QCOM","TXN","AMAT","LRCX","KLAC","ADI"],
@@ -3229,6 +3290,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
           symbol: row.symbol,
           name: report?.profile?.name || row.symbol,
           industry: report?.profile?.finnhubIndustry || "Other",
+          sector: sectorFromFinnhubIndustry(report?.profile?.finnhubIndustry || "Other"),
           inputWeightPercent: Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0 ? Number(row.weightPercent) : null,
           holdingDollars: Number.isFinite(Number(currentHoldingDollars)) && Number(currentHoldingDollars) > 0 ? Number(currentHoldingDollars.toFixed(2)) : null,
           costBasisDollars: Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0 ? Number(costBasisDollars.toFixed(2)) : null,
@@ -3276,42 +3338,49 @@ app.post("/api/portfolio-csv", async (req, res) => {
         };
       })
       .filter((row) => row.weightPercent > 0)
-      .sort((a, b) => String(a.industry || "").localeCompare(String(b.industry || "")) || b.weightPercent - a.weightPercent);
+      .sort((a, b) => String(a.sector || "").localeCompare(String(b.sector || "")) || String(a.industry || "").localeCompare(String(b.industry || "")) || b.weightPercent - a.weightPercent);
 
     const weightedCategoryScores = weightedCategoryScoresFromHoldings(holdings);
 
-    const industryMap = new Map();
+    const sectorMap = new Map();
     for (const holding of holdings) {
-      const industry = holding.industry || "Other";
-      if (!industryMap.has(industry)) industryMap.set(industry, []);
-      industryMap.get(industry).push(holding);
+      const sector = holding.sector || sectorFromFinnhubIndustry(holding.industry) || "Other";
+      if (!sectorMap.has(sector)) sectorMap.set(sector, []);
+      sectorMap.get(sector).push({ ...holding, sector });
     }
 
-    const industryGroups = [...industryMap.entries()].map(([industry, groupHoldings]) => {
+    const sectorGroups = [...sectorMap.entries()].map(([sector, groupHoldings]) => {
       const totalWeightPercent = groupHoldings.reduce((sum, row) => sum + row.weightPercent, 0);
       const totalHoldingDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
       const totalCostBasisDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
       const totalDollarChange = groupHoldings.reduce((sum, row) => sum + (Number(row.dollarChange) || 0), 0);
       const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
       const decorated = groupHoldings
-        .map((row) => ({
-          ...row,
-          industryWeightPercent: totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null,
-        }))
+        .map((row) => {
+          const sectorWeightPercent = totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null;
+          return {
+            ...row,
+            sector,
+            sectorWeightPercent,
+            industryWeightPercent: sectorWeightPercent,
+          };
+        })
         .sort((a, b) => b.weightPercent - a.weightPercent);
 
-      const industryEvalScore = totalWeightPercent > 0
+      const sectorEvalScore = totalWeightPercent > 0
         ? Number(decorated.reduce((sum, row) => {
             const score = Number(row.edgeScore);
-            const industryWeight = Number(row.industryWeightPercent);
-            if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(industryWeight) || industryWeight <= 0) return sum;
-            return sum + score * (industryWeight / 100);
+            const sectorWeight = Number(row.sectorWeightPercent);
+            if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(sectorWeight) || sectorWeight <= 0) return sum;
+            return sum + score * (sectorWeight / 100);
           }, 0).toFixed(1))
         : null;
 
       return {
-        industry,
-        industryEvalScore,
+        sector,
+        industry: sector,
+        sectorEvalScore,
+        industryEvalScore: sectorEvalScore,
         totalWeightPercent: Number(totalWeightPercent.toFixed(2)),
         totalHoldingDollars: totalHoldingDollars > 0 ? Number(totalHoldingDollars.toFixed(2)) : null,
         totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
@@ -3321,14 +3390,17 @@ app.post("/api/portfolio-csv", async (req, res) => {
       };
     }).sort((a, b) => b.totalWeightPercent - a.totalWeightPercent);
 
-    const portfolioEvalScore = Number(industryGroups.reduce((sum, group) => {
-      const score = Number(group.industryEvalScore);
+    const industryGroups = sectorGroups;
+
+    const portfolioEvalScore = Number(sectorGroups.reduce((sum, group) => {
+      const score = Number(group.sectorEvalScore ?? group.industryEvalScore);
       const weight = Number(group.totalWeightPercent);
       if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(weight) || weight <= 0) return sum;
       return sum + score * (weight / 100);
     }, 0).toFixed(1));
 
-    const industryCount = industryGroups.length;
+    const sectorCount = sectorGroups.length;
+    const industryCount = sectorCount;
     const totalCostBasisDollars = holdings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
     const totalDollarChange = holdings.reduce((sum, row) => sum + (Number(row.dollarChange) || 0), 0);
     const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
@@ -3336,6 +3408,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
     res.json({
       portfolioName: submittedPortfolioName,
       holdings,
+      sectorGroups,
       industryGroups,
       skipped,
       summary: {
@@ -3348,6 +3421,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
         totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
         totalDollarChange: Number.isFinite(Number(totalDollarChange)) ? Number(totalDollarChange.toFixed(2)) : null,
         totalReturnPercent: Number.isFinite(Number(totalReturnPercent)) ? Number(totalReturnPercent.toFixed(2)) : null,
+        sectorCount,
         industryCount,
       },
       generatedAt: new Date().toISOString(),
