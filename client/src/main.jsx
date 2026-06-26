@@ -1343,17 +1343,15 @@ function App() {
               </button>
 
 
-              {showMorningMug && (
-                <button
-                  type="button"
-                  className="morning-brew-trigger"
-                  onClick={() => setView("morningBrew")}
-                  aria-label="Open The Morning Mug"
-                  title="The Morning Mug"
-                >
-                  <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
-                </button>
-              )}
+              <button
+                type="button"
+                className="morning-brew-trigger"
+                onClick={() => setView("morningBrew")}
+                aria-label="Open The Morning Mug"
+                title="The Morning Mug"
+              >
+                <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
+              </button>
             </form>
 
             {data ? (
@@ -2711,7 +2709,7 @@ function PortfolioEarningsCalendar({
         )) : <div className="portfolio-earnings-mobile-empty">No portfolio earnings in this window.</div>}
       </div>
       {selectedEarning ? (
-        <div className="earnings-detail-popover" role="dialog" aria-label="Earnings expectations">
+        <div className={`earnings-detail-popover ${scoreTone(scoreLookup?.[selectedEarning.symbol] ?? selectedEarning.evalScore ?? selectedEarning.score)}`} role="dialog" aria-label="Earnings expectations">
           <button type="button" className="earnings-detail-close" onClick={() => setSelectedEarning(null)}>×</button>
           <div className="earnings-detail-symbol">{selectedEarning.symbol}</div>
           <div className="earnings-detail-date">{formatEarningsDate(selectedEarning.date)}</div>
@@ -3670,8 +3668,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
               </div>
             </button>
 
-            <article className="portfolio-total-value-card-v3 portfolio-total-value-card-wide">
-              <span>Total value</span>
+            <article className="portfolio-total-value-card-v3 portfolio-total-value-card-wide portfolio-total-value-card-no-label">
               <div className="portfolio-total-value-line">
                 <strong>{hideHoldingsValue ? "******" : money(totalHoldings)}</strong>
                 <button type="button" onClick={() => setHideHoldingsValue((v) => !v)}>{hideHoldingsValue ? "Show" : "Hide"}</button>
@@ -10868,15 +10865,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
               <span className="ticker-company-link is-disabled">{data.symbol}</span>
             )}
             <span> · </span>
-            <button
-              type="button"
-              className="sector-link"
-              onClick={openIndustryPopup}
-              disabled={!sectorName || sectorName === "Public company"}
-              title={`View top Eval stocks in ${sectorName}`}
-            >
-              {sectorName}
-            </button>
+            <span className="sector-link sector-link-static">{sectorName}</span>
           </p>
 
           <div className="hero-actions">
