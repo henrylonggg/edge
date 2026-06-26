@@ -35506,3 +35506,531 @@ body:has(.morning-brew-page-shell) {
     opacity: 0 !important;
   }
 }
+
+/* =========================================================
+   PORTFOLIO MOBILE ONLY — FINAL READABILITY + LAYER PATCH
+   Desktop untouched.
+========================================================= */
+@media (max-width: 760px) {
+  /* Keep the Columns control above every portfolio/top card. */
+  body .portfolio-dashboard-v3,
+  body .portfolio-builder-page.portfolio-dashboard-v3,
+  body .portfolio-dashboard-v3 .portfolio-report-v3,
+  body .portfolio-dashboard-v3 .portfolio-dashboard-head-v3,
+  body .portfolio-dashboard-v3 .portfolio-top-title-bubble,
+  body .portfolio-dashboard-v3 .portfolio-hero-grid-v3 {
+    overflow: visible !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-control-wrap {
+    position: relative !important;
+    z-index: 2147483600 !important;
+    isolation: isolate !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-toggle-btn {
+    position: relative !important;
+    z-index: 2147483601 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-menu,
+  body .portfolio-dashboard-v3 .portfolio-column-menu.portfolio-column-menu-front {
+    position: fixed !important;
+    top: 54px !important;
+    right: 8px !important;
+    left: auto !important;
+    width: min(238px, calc(100vw - 16px)) !important;
+    max-height: calc(100dvh - 68px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 2147483647 !important;
+    padding: 8px !important;
+    border-radius: 13px !important;
+    background: rgba(2,7,17,.985) !important;
+    backdrop-filter: blur(22px) !important;
+    box-shadow: 0 18px 50px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.13) !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-menu-head {
+    margin-bottom: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-menu-head strong {
+    font-size: 10px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-menu-close {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    border-radius: 8px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-column-menu label {
+    min-height: 26px !important;
+    padding: 6px 7px !important;
+    border-radius: 9px !important;
+    font-size: 9px !important;
+    gap: 6px !important;
+  }
+
+  /* Upload CSV card: prevent icon/text/buttons from colliding on iPhone. */
+  body .portfolio-dashboard-v3 .portfolio-csv-drop,
+  body .portfolio-dashboard-v3 .portfolio-csv-drop-polished,
+  body .portfolio-dashboard-v3 .portfolio-input-grid-v3.manual-closed .portfolio-csv-drop-polished,
+  body .portfolio-dashboard-v3 .portfolio-input-grid-v3.manual-open .portfolio-csv-drop-polished {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 10px 9px !important;
+    border-radius: 15px !important;
+    display: grid !important;
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    grid-template-areas:
+      "icon title"
+      "icon copy"
+      "actions actions" !important;
+    column-gap: 8px !important;
+    row-gap: 5px !important;
+    align-items: center !important;
+    overflow: hidden !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-icon {
+    grid-area: icon !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 11px !important;
+    margin: 0 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-drop h3,
+  body .portfolio-dashboard-v3 .portfolio-csv-drop-polished h3 {
+    grid-area: title !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    letter-spacing: -.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-drop p,
+  body .portfolio-dashboard-v3 .portfolio-csv-drop-polished p,
+  body .portfolio-dashboard-v3 .portfolio-csv-drop small,
+  body .portfolio-dashboard-v3 .portfolio-csv-drop-polished small {
+    grid-area: copy !important;
+    margin: 0 !important;
+    font-size: 8px !important;
+    line-height: 1.18 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-actions {
+    grid-area: actions !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin: 4px 0 0 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-csv-upload-btn,
+  body .portfolio-dashboard-v3 .portfolio-csv-actions button,
+  body .portfolio-dashboard-v3 .portfolio-csv-actions label {
+    min-height: 27px !important;
+    height: 27px !important;
+    padding: 0 7px !important;
+    border-radius: 9px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Remove colored borders/rings from ALL mobile portfolio Eval score pills in holdings + industries. */
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.mini,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.small,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.industry,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.green,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.yellow,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge.red,
+  body .portfolio-dashboard-v3 .portfolio-industry-head-v3 .portfolio-score-text-badge,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: rgba(255,255,255,.06) !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge::before,
+  body .portfolio-dashboard-v3 .portfolio-score-text-badge::after {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+  }
+
+  /* Main portfolio score change smaller. */
+  body .portfolio-dashboard-v3 .portfolio-score-change-pill,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 small {
+    font-size: 6.5px !important;
+    line-height: 1 !important;
+    padding: 2px 4px !important;
+    margin-top: 2px !important;
+    letter-spacing: .01em !important;
+  }
+
+  /* Total holdings: value and change are more readable, with no giant gap. */
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-no-label {
+    gap: 2px !important;
+    padding: 8px 7px !important;
+    justify-content: center !important;
+    align-content: center !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3 > span,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide > span {
+    display: none !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-line {
+    gap: 5px !important;
+    margin: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-line strong {
+    font-size: 16px !important;
+    line-height: .95 !important;
+    letter-spacing: -.04em !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-value-change {
+    margin: 1px 0 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-line button {
+    min-height: 16px !important;
+    height: 16px !important;
+    padding: 0 4px !important;
+    border-radius: 6px !important;
+    font-size: 6px !important;
+    line-height: 1 !important;
+  }
+
+  /* Keep holdings rows aligned as true columns, left-to-right. */
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header {
+    align-items: center !important;
+    justify-items: start !important;
+    text-align: left !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row > span,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header > span {
+    text-align: left !important;
+    justify-self: stretch !important;
+    align-self: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* === Portfolio mobile requested refinements: Morning Mug, labels, industry score chips, earnings bubbles === */
+.portfolio-dashboard-v3 .portfolio-action-tile.morning-mug {
+  background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,214,107,.11)) !important;
+  border-color: rgba(255,255,255,.16) !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holdings-wide-arrow {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 18px;
+  margin: 10px 0 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+  background: rgba(255,255,255,.075);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 34px rgba(0,0,0,.18);
+}
+
+.portfolio-earnings-ticker,
+.portfolio-dashboard-v3 .portfolio-earnings-ticker,
+.portfolio-earnings-calendar-card .portfolio-earnings-ticker {
+  border-color: rgba(180,190,205,.42) !important;
+}
+
+@media (max-width: 760px) {
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-four {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-action-tile.morning-mug b {
+    font-size: 15px !important;
+    line-height: 1 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow {
+    width: 100% !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    margin: 5px 0 0 !important;
+    border-radius: 10px !important;
+    font-size: 17px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+  }
+
+  /* Mobile priority: By-industry score numbers have color-filled backgrounds and no borders/rings. */
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge,
+  body .portfolio-dashboard-v3 .portfolio-industry-head-v3 .portfolio-score-text-badge,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    min-width: 24px !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 16px !important;
+    padding: 3px 5px !important;
+    border-radius: 7px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    color: #06100a !important;
+    text-shadow: none !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge.green,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge.green,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge.green {
+    background: rgba(133,255,71,.88) !important;
+    color: #041006 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge.yellow,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge.yellow,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge.yellow {
+    background: rgba(255,228,95,.92) !important;
+    color: #181000 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge.red,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge.red,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge.red {
+    background: rgba(255,85,112,.92) !important;
+    color: #1a0308 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge::before,
+  body .portfolio-dashboard-v3 .portfolio-industry-block-v3 .portfolio-score-text-badge::after,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge::before,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-score-text-badge::after,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge::before,
+  body .portfolio-dashboard-v3 .portfolio-holding-row .portfolio-score-text-badge::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  /* Remove mobile Today highlight so there is no extra Today button-like treatment. */
+  body .portfolio-dashboard-v3 .portfolio-earnings-day.today,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-day.today {
+    border-color: rgba(255,255,255,.10) !important;
+    box-shadow: none !important;
+    background: rgba(255,255,255,.045) !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-earnings-day.today > span,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-day.today > span {
+    color: rgba(248,251,255,.72) !important;
+  }
+
+  /* Earnings company bubbles: keep tone fill, but grey borders instead of yellow/colored borders. */
+  body .portfolio-dashboard-v3 .portfolio-earnings-ticker,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-ticker {
+    border: 1px solid rgba(178,188,205,.45) !important;
+    box-shadow: none !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-earnings-ticker.green,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-ticker.green {
+    background: rgba(133,255,71,.18) !important;
+    color: #baff90 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-earnings-ticker.yellow,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-ticker.yellow {
+    background: rgba(255,228,95,.18) !important;
+    color: #ffe98a !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-earnings-ticker.red,
+  body .portfolio-earnings-calendar-card .portfolio-earnings-ticker.red {
+    background: rgba(255,85,112,.18) !important;
+    color: #ff9aac !important;
+  }
+
+  /* Keep holding headers and data aligned in straight left columns after Q/Ind % label changes. */
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header {
+    justify-items: start !important;
+    text-align: left !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row > span,
+  body .portfolio-dashboard-v3 .portfolio-industry-table-v3 .portfolio-holding-row.header > span {
+    justify-self: start !important;
+    text-align: left !important;
+    width: 100% !important;
+  }
+}
+
+/* === Portfolio title cleanup + white holdings arrow refinement === */
+.portfolio-dashboard-v3 .portfolio-top-title-bubble .assistant-kicker {
+  display: none !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-top-title-bubble {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-back-icon-only {
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  border-radius: 16px !important;
+  gap: 0 !important;
+  font-size: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-back-icon-only svg {
+  width: 19px !important;
+  height: 19px !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-title-mainline-clean {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-title-mainline-clean h2 {
+  margin: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-doc-toggle-btn {
+  flex: 0 0 auto !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holdings-wide-arrow {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.18) !important;
+  background: rgba(255,255,255,.055) !important;
+  text-shadow: 0 0 12px rgba(255,255,255,.22) !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:hover,
+.portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:focus-visible,
+.portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:active {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.30) !important;
+  background: rgba(255,255,255,.13) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 18px rgba(255,255,255,.08) !important;
+}
+
+@media (max-width: 760px) {
+  body .portfolio-dashboard-v3 .portfolio-top-title-bubble,
+  body .portfolio-dashboard-v3 .portfolio-dashboard-head-v3.portfolio-top-title-bubble,
+  body .portfolio-dashboard-v3 .portfolio-builder-head.portfolio-top-title-bubble {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 7px !important;
+    align-items: center !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-back-icon-only {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-back-icon-only svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-title-mainline-clean {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 30px !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-title-mainline-clean h2 {
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-doc-toggle-btn {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-doc-toggle-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow {
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,.18) !important;
+    background: rgba(255,255,255,.05) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07) !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:hover,
+  body .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:focus-visible,
+  body .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow:active {
+    background: rgba(255,255,255,.13) !important;
+    border-color: rgba(255,255,255,.30) !important;
+    box-shadow: 0 0 16px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  }
+}
