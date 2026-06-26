@@ -30872,6 +30872,13 @@ body:has(.morning-brew-page-shell) {
   box-shadow: 0 0 28px rgba(76, 170, 255, 0.18) !important;
 }
 @media (max-width: 720px) {
+
+  .mobile-bottom-nav .mobile-mug-icon,
+  .mobile-bottom-nav .mobile-mug-icon * {
+    color: #050505 !important;
+    stroke: #050505 !important;
+  }
+
   .ticker-lookup-page { padding: 16px; }
   .ticker-lookup-hero { padding: 22px; border-radius: 24px; }
   .ticker-lookup-results-head,
@@ -36775,16 +36782,16 @@ body:has(.morning-brew-page-shell) {
   .mobile-bottom-nav {
     position: fixed;
     left: 50%;
-    bottom: calc(22px + env(safe-area-inset-bottom));
+    bottom: calc(30px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
-    width: min(392px, calc(100vw - 10px));
-    height: 56px;
+    width: min(410px, calc(100vw - 8px));
+    height: 60px;
     z-index: 999999;
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 68px minmax(0, 1fr) 38px;
+    grid-template-columns: 40px minmax(0, 1fr) 72px minmax(0, 1fr) 40px;
     align-items: center;
-    gap: 7px;
-    padding: 6px 8px;
+    gap: 8px;
+    padding: 7px 9px;
     border-radius: 20px;
     border: 1px solid rgba(255,255,255,.18);
     background:
@@ -36815,33 +36822,36 @@ body:has(.morning-brew-page-shell) {
     font-weight: 800;
     box-shadow: none;
   }
-
   .mobile-bottom-nav-btn span {
-    max-width: 38px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none !important;
   }
 
   .mobile-bottom-nav-btn.nav-arrow {
-    height: 36px;
+    height: 38px;
     border-radius: 12px;
     opacity: .82;
   }
 
   .mobile-bottom-nav-btn.nav-shortcut {
-    height: 42px;
-    border-radius: 14px;
+    height: 45px;
+    border-radius: 15px;
   }
 
   .mobile-bottom-nav-btn.nav-home {
-    height: 50px;
-    border-radius: 19px;
+    height: 54px;
+    border-radius: 20px;
     background:
       radial-gradient(circle at 50% 12%, rgba(255,255,255,.28), transparent 28%),
       linear-gradient(135deg, color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 94%, white 4%), color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 68%, #15e7ff 18%));
     border-color: color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 52%, rgba(255,255,255,.28));
     box-shadow: 0 0 26px color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 38%, transparent);
+  }
+
+
+  .mobile-bottom-nav .mobile-mug-icon,
+  .mobile-bottom-nav .mobile-mug-icon * {
+    color: #050505 !important;
+    stroke: #050505 !important;
   }
 
   .ticker-lookup-page {
@@ -36972,5 +36982,21 @@ body:has(.morning-brew-page-shell) {
 @media (max-width: 680px) {
   .mobile-bottom-nav {
     bottom: calc(23px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+
+.settings-color-row {
+  flex-wrap: wrap;
+}
+
+.settings-color-row button {
+  width: 30px;
+  height: 30px;
+}
+
+@media (max-width: 680px) {
+  .mobile-bottom-nav {
+    bottom: calc(31px + env(safe-area-inset-bottom)) !important;
   }
 }
