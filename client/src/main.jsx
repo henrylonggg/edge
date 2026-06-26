@@ -189,6 +189,8 @@ const PIE_THEME_STORAGE_KEY = "eval-main-pie-theme-v1";
 const MOBILE_NAV_LEFT_STORAGE_KEY = "eval-mobile-nav-left-v1";
 const MOBILE_NAV_RIGHT_STORAGE_KEY = "eval-mobile-nav-right-v1";
 const MOBILE_SEARCH_TARGET_STORAGE_KEY = "eval-mobile-search-target-v1";
+const MOBILE_HOME_TARGET_STORAGE_KEY = "eval-mobile-home-target-v1";
+const LANDING_LOGO_COLOR_STORAGE_KEY = "eval-landing-logo-color-v1";
 
 const DASHBOARD_START_OPTIONS = [
   { key: "dashboard", label: "Dashboard" },
@@ -215,6 +217,8 @@ const MOBILE_SEARCH_TARGET_OPTIONS = [
   { key: "dashboard", label: "Main Eval search" },
   { key: "tickerLookup", label: "Ticker Lookup" },
 ];
+
+const LOGO_COLOR_PRESETS = ["#9f5cff", "#15e7ff", "#85d713", "#ffd66b", "#ff5f73", "#ffffff"];
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -586,6 +590,16 @@ function App() {
     const saved = safeStorageGet(MOBILE_SEARCH_TARGET_STORAGE_KEY, "dashboard");
     return MOBILE_SEARCH_TARGET_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
   });
+  const [mobileHomeTarget, setMobileHomeTarget] = useState(() => {
+    const saved = safeStorageGet(MOBILE_HOME_TARGET_STORAGE_KEY, "dashboard");
+    return DASHBOARD_START_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
+  });
+  const [landingLogoColor, setLandingLogoColor] = useState(() => {
+    const saved = safeStorageGet(LANDING_LOGO_COLOR_STORAGE_KEY, "#9f5cff");
+    return /^#[0-9a-f]{6}$/i.test(saved) ? saved : "#9f5cff";
+  });
+  const viewHistoryRef = useRef([]);
+  const forwardHistoryRef = useRef([]);
 
   useEffect(() => {
     const update = () => setShowMorningMug(isTheMorningMugWindow());
@@ -739,6 +753,35 @@ function App() {
     };
   }, [user]);
 
+  function navigateView(next, options = {}) {
+    const clean = next || "dashboard";
+    if (clean === view) return;
+    setMenuOpen(false);
+    setOtherMenuOpen(false);
+    if (!options.replace) {
+      viewHistoryRef.current = [...viewHistoryRef.current.slice(-24), view];
+      forwardHistoryRef.current = [];
+    }
+    setView(clean);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }
+
+  function goBackInApp() {
+    const previous = viewHistoryRef.current.pop();
+    if (!previous) return;
+    forwardHistoryRef.current = [...forwardHistoryRef.current.slice(-24), view];
+    setView(previous);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }
+
+  function goForwardInApp() {
+    const next = forwardHistoryRef.current.pop();
+    if (!next) return;
+    viewHistoryRef.current = [...viewHistoryRef.current.slice(-24), view];
+    setView(next);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }
+
   function updatePreferredDashboardStart(next) {
     const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
     setPreferredDashboardStart(clean);
@@ -769,19 +812,25 @@ function App() {
     safeStorageSet(MOBILE_SEARCH_TARGET_STORAGE_KEY, clean);
   }
 
+  function updateMobileHomeTarget(next) {
+    const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
+    setMobileHomeTarget(clean);
+    safeStorageSet(MOBILE_HOME_TARGET_STORAGE_KEY, clean);
+  }
+
+  function updateLandingLogoColor(next) {
+    const clean = /^#[0-9a-f]{6}$/i.test(String(next || "")) ? String(next) : "#9f5cff";
+    setLandingLogoColor(clean);
+    safeStorageSet(LANDING_LOGO_COLOR_STORAGE_KEY, clean);
+  }
+
   function goMobileNav(target) {
     const clean = target === "search" ? mobileSearchTarget : target;
-    const next = clean || "dashboard";
-    setMenuOpen(false);
-    setOtherMenuOpen(false);
-    setView(next);
-    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    navigateView(clean || "dashboard");
   }
 
   function goMenu(nextView) {
-    setMenuOpen(false);
-    setOtherMenuOpen(false);
-    setView(nextView);
+    navigateView(nextView);
   }
 
   async function analyze(e, overrideSymbol, options = {}) {
@@ -1005,7 +1054,7 @@ function App() {
 
   async function analyzeFromIndustry(ticker) {
     await analyze(null, ticker);
-    setView("dashboard");
+    navigateView("dashboard");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1137,7 +1186,7 @@ function App() {
 
   function openDashboardFromLanding() {
     const nextView = isSignedIn ? preferredDashboardStart : "account";
-    setView(nextView);
+    navigateView(nextView);
 
     if (["dashboard", "portfolio", "morningBrew", "watchlist"].includes(nextView)) {
       requestAnimationFrame(() => {
@@ -1147,7 +1196,7 @@ function App() {
   }
 
   if (view === "landing") {
-    return <LandingPage onContinue={openDashboardFromLanding} />;
+    return <LandingPage onContinue={openDashboardFromLanding} logoColor={landingLogoColor} />;
   }
 
   if (view === "account") {
@@ -1163,7 +1212,7 @@ function App() {
     return (
       <TermsPage
         onAgree={acceptTerms}
-        onBack={() => setView("dashboard")}
+        onBack={() => navigateView("dashboard")}
         requireAgreement={!termsAccepted}
       />
     );
@@ -1172,9 +1221,9 @@ function App() {
   if (view === "support") {
     return (
       <SupportContactPage
-        onBack={() => setView("dashboard")}
-        onHome={() => setView("landing")}
-        onTerms={() => setView("terms")}
+        onBack={() => navigateView("dashboard")}
+        onHome={() => navigateView("landing")}
+        onTerms={() => navigateView("terms")}
       />
     );
   }
@@ -1189,14 +1238,16 @@ function App() {
           loading={tickerLookupLoading}
           error={tickerLookupError}
           onQueryChange={setTickerLookupQuery}
-          onBack={() => setView("dashboard")}
+          onBack={() => navigateView("dashboard")}
         />
         <MobileBottomNav
-          homeView={preferredDashboardStart}
+          homeView={mobileHomeTarget}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
+          onBack={goBackInApp}
+          onForward={goForwardInApp}
         />
       </>
     );
@@ -1205,10 +1256,10 @@ function App() {
   if (view === "faqs") {
     return (
       <FaqPage
-        onBack={() => setView("dashboard")}
-        onHome={() => setView("landing")}
-        onTerms={() => setView("terms")}
-        onSupport={() => setView("support")}
+        onBack={() => navigateView("dashboard")}
+        onHome={() => navigateView("landing")}
+        onTerms={() => navigateView("terms")}
+        onSupport={() => navigateView("support")}
       />
     );
   }
@@ -1221,18 +1272,24 @@ function App() {
           mobileNavLeft={mobileNavLeft}
           mobileNavRight={mobileNavRight}
           mobileSearchTarget={mobileSearchTarget}
+          mobileHomeTarget={mobileHomeTarget}
+          landingLogoColor={landingLogoColor}
           onDashboardStartChange={updatePreferredDashboardStart}
           onMobileNavLeftChange={updateMobileNavLeft}
           onMobileNavRightChange={updateMobileNavRight}
           onMobileSearchTargetChange={updateMobileSearchTarget}
-          onBack={() => setView("dashboard")}
+          onMobileHomeTargetChange={updateMobileHomeTarget}
+          onLandingLogoColorChange={updateLandingLogoColor}
+          onBack={() => navigateView("dashboard")}
         />
         <MobileBottomNav
-          homeView={preferredDashboardStart}
+          homeView={mobileHomeTarget}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
+          onBack={goBackInApp}
+          onForward={goForwardInApp}
         />
       </>
     );
@@ -1241,13 +1298,15 @@ function App() {
   if (view === "morningBrew") {
     return (
       <>
-        <MorningMugsDashboard onBack={() => setView("dashboard")} />
+        <MorningMugsDashboard onBack={() => navigateView("dashboard")} />
         <MobileBottomNav
-          homeView={preferredDashboardStart}
+          homeView={mobileHomeTarget}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
+          onBack={goBackInApp}
+          onForward={goForwardInApp}
         />
       </>
     );
@@ -1268,7 +1327,7 @@ function App() {
         <button
           type="button"
           className="brand brand-home-btn"
-          onClick={() => setView("landing")}
+          onClick={() => navigateView("landing")}
           aria-label="Go to homepage"
           title="Go to homepage"
         >
@@ -1294,21 +1353,21 @@ function App() {
       )}
 
       {view === "portfolio" ? (
-        <PortfolioPage onBack={() => setView("dashboard")} onMorning={() => setView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <PortfolioPage onBack={() => navigateView("dashboard")} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
           watchlist={watchlist}
-          onBack={() => setView("dashboard")}
+          onBack={() => navigateView("dashboard")}
         />
       ) : view === "plans" ? (
-        <PlansPage onBack={() => setView("dashboard")} />
+        <PlansPage onBack={() => navigateView("dashboard")} />
       ) : view === "sector" ? (
         <IndustryPage
           sectorPage={sectorPage}
           loading={sectorLoading}
           error={sectorError}
-          onBack={() => setView("dashboard")}
+          onBack={() => navigateView("dashboard")}
           onAnalyze={analyzeFromIndustry}
         />
       ) : view === "compareSelect" ? (
@@ -1319,17 +1378,17 @@ function App() {
           loading={compareLoading}
           onToggle={toggleCompareSelection}
           onSave={() => loadSelectedComparison(compareSelected)}
-          onBack={() => setView("dashboard")}
+          onBack={() => navigateView("dashboard")}
         />
       ) : view === "compare" ? (
         <ComparePage
           data={compareData}
           error={compareError}
-          onBack={() => setView("compareSelect")}
+          onBack={() => navigateView("compareSelect")}
         />
       ) : view === "watchlist" ? (
         <main className="watchlist-page mobile-watchlist-clean">
-          <button type="button" className="back-btn watchlist-page-back" onClick={() => setView("dashboard")}>
+          <button type="button" className="back-btn watchlist-page-back" onClick={() => navigateView("dashboard")}>
             <ArrowLeft size={18} /> Back to dashboard
           </button>
 
@@ -1340,7 +1399,7 @@ function App() {
             onRemove={removeTicker}
             onAnalyze={(ticker) => {
               analyze(null, ticker);
-              setView("dashboard");
+              navigateView("dashboard");
             }}
             onRefresh={refreshWatchlist}
             loading={watchLoading}
@@ -1483,7 +1542,7 @@ function App() {
               <button
                 type="button"
                 className="morning-brew-trigger"
-                onClick={() => setView("morningBrew")}
+                onClick={() => navigateView("morningBrew")}
                 aria-label="Open The Morning Mug"
                 title="The Morning Mug"
               >
@@ -1495,9 +1554,9 @@ function App() {
               <>
                 <Report data={data} onAdd={() => addTicker(data.symbol)} onOpenIndustry={openIndustryPage} pieTheme={mainPieTheme} />
                 <DashboardLinkRow
-                  onHome={() => setView("landing")}
-                  onTerms={() => setView("terms")}
-                  onSupport={() => setView("support")}
+                  onHome={() => navigateView("landing")}
+                  onTerms={() => navigateView("terms")}
+                  onSupport={() => navigateView("support")}
                 />
               </>
             ) : (
@@ -1517,11 +1576,13 @@ function App() {
         </section>
       )}
       <MobileBottomNav
-        homeView={preferredDashboardStart}
+        homeView={mobileHomeTarget}
         leftShortcut={mobileNavLeft}
         rightShortcut={mobileNavRight}
         searchTarget={mobileSearchTarget}
         onNavigate={goMobileNav}
+        onBack={goBackInApp}
+        onForward={goForwardInApp}
       />
     </main>
   );
@@ -1533,10 +1594,14 @@ function SettingsPage({
   mobileNavLeft,
   mobileNavRight,
   mobileSearchTarget,
+  mobileHomeTarget,
+  landingLogoColor,
   onDashboardStartChange,
   onMobileNavLeftChange,
   onMobileNavRightChange,
   onMobileSearchTargetChange,
+  onMobileHomeTargetChange,
+  onLandingLogoColorChange,
   onBack,
 }) {
   return (
@@ -1570,9 +1635,37 @@ function SettingsPage({
             </div>
           </article>
 
+          <article className="settings-option-card settings-logo-color-card">
+            <h3>Homepage logo color</h3>
+            <div className="settings-color-row">
+              <input
+                type="color"
+                value={landingLogoColor}
+                onChange={(e) => onLandingLogoColorChange(e.target.value)}
+                aria-label="Homepage logo color"
+              />
+              {LOGO_COLOR_PRESETS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={landingLogoColor.toLowerCase() === color.toLowerCase() ? "active" : ""}
+                  onClick={() => onLandingLogoColorChange(color)}
+                  style={{ "--preset-color": color }}
+                  aria-label={`Use ${color} as logo color`}
+                />
+              ))}
+            </div>
+          </article>
+
           <article className="settings-option-card settings-mobile-nav-card">
             <h3>Mobile bottom menu</h3>
             <div className="settings-field-stack">
+              <label>Home button opens</label>
+              <select value={mobileHomeTarget} onChange={(e) => onMobileHomeTargetChange(e.target.value)}>
+                {DASHBOARD_START_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
               <label>Left shortcut</label>
               <select value={mobileNavLeft} onChange={(e) => onMobileNavLeftChange(e.target.value)}>
                 {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
@@ -1599,7 +1692,7 @@ function SettingsPage({
   );
 }
 
-function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, onNavigate }) {
+function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, onNavigate, onBack, onForward }) {
   const shortcutMap = {
     watchlist: { label: "Watch", icon: <Star size={15} /> },
     settings: { label: "Settings", icon: <Gauge size={15} /> },
@@ -1620,7 +1713,7 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={() => window.history.back()} aria-label="Back">
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onBack} aria-label="Back">
         <ArrowLeft size={15} />
       </button>
       <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(leftShortcut)}>
@@ -1632,7 +1725,7 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
       <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(rightShortcut)}>
         {right.icon}<span>{right.label}</span>
       </button>
-      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={() => window.history.forward()} aria-label="Forward">
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onForward} aria-label="Forward">
         <ArrowRight size={15} />
       </button>
     </nav>
@@ -4132,7 +4225,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   );
 }
 
-function LandingPage({ onContinue }) {
+function LandingPage({ onContinue, logoColor = "#9f5cff" }) {
   const productPillars = [
     {
       icon: <Gauge size={22} />,
@@ -4215,7 +4308,7 @@ function LandingPage({ onContinue }) {
   ];
 
   return (
-    <main className="landing-page-clean landing-page-static">
+    <main className="landing-page-clean landing-page-static" style={{ "--landing-logo-accent": logoColor }}>
       <section className="landing-shell landing-shell-static">
         <header className="landing-brand-row landing-brand-row-static">
           <button type="button" className="landing-brand-home" aria-label="Eval homepage">
