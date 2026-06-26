@@ -31,6 +31,8 @@ import {
   Star,
   AlertTriangle,
   Gauge,
+  Settings as SettingsIcon,
+  Coffee,
   ArrowLeft,
   ArrowRight,
   FileText,
@@ -213,12 +215,11 @@ const MOBILE_NAV_SHORTCUT_OPTIONS = [
   { key: "tickerLookup", label: "Ticker Lookup" },
 ];
 
-const MOBILE_SEARCH_TARGET_OPTIONS = [
-  { key: "dashboard", label: "Main Eval search" },
-  { key: "tickerLookup", label: "Ticker Lookup" },
+const LOGO_COLOR_PRESETS = [
+  "#9f5cff", "#7d4dff", "#b56cff", "#15e7ff", "#00b7ff", "#4dffdf",
+  "#85d713", "#32ff7e", "#ffd66b", "#ff9f1c", "#ff5f73", "#ff2bd6",
+  "#ffffff", "#c7d2fe", "#a3e635", "#f43f5e", "#38bdf8", "#111827"
 ];
-
-const LOGO_COLOR_PRESETS = ["#9f5cff", "#15e7ff", "#85d713", "#ffd66b", "#ff5f73", "#ffffff"];
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -586,10 +587,7 @@ function App() {
     const saved = safeStorageGet(MOBILE_NAV_RIGHT_STORAGE_KEY, "assistant");
     return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "assistant";
   });
-  const [mobileSearchTarget, setMobileSearchTarget] = useState(() => {
-    const saved = safeStorageGet(MOBILE_SEARCH_TARGET_STORAGE_KEY, "dashboard");
-    return MOBILE_SEARCH_TARGET_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
-  });
+  const mobileSearchTarget = "dashboard";
   const [mobileHomeTarget, setMobileHomeTarget] = useState(() => {
     const saved = safeStorageGet(MOBILE_HOME_TARGET_STORAGE_KEY, "dashboard");
     return DASHBOARD_START_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
@@ -806,11 +804,6 @@ function App() {
     safeStorageSet(MOBILE_NAV_RIGHT_STORAGE_KEY, clean);
   }
 
-  function updateMobileSearchTarget(next) {
-    const clean = MOBILE_SEARCH_TARGET_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
-    setMobileSearchTarget(clean);
-    safeStorageSet(MOBILE_SEARCH_TARGET_STORAGE_KEY, clean);
-  }
 
   function updateMobileHomeTarget(next) {
     const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
@@ -825,7 +818,7 @@ function App() {
   }
 
   function goMobileNav(target) {
-    const clean = target === "search" ? mobileSearchTarget : target;
+    const clean = target === "search" ? "dashboard" : target;
     navigateView(clean || "dashboard");
   }
 
@@ -1278,7 +1271,6 @@ function App() {
           onDashboardStartChange={updatePreferredDashboardStart}
           onMobileNavLeftChange={updateMobileNavLeft}
           onMobileNavRightChange={updateMobileNavRight}
-          onMobileSearchTargetChange={updateMobileSearchTarget}
           onMobileHomeTargetChange={updateMobileHomeTarget}
           onLandingLogoColorChange={updateLandingLogoColor}
           onBack={() => navigateView("dashboard")}
@@ -1603,7 +1595,6 @@ function SettingsPage({
   onDashboardStartChange,
   onMobileNavLeftChange,
   onMobileNavRightChange,
-  onMobileSearchTargetChange,
   onMobileHomeTargetChange,
   onLandingLogoColorChange,
   onBack,
@@ -1682,12 +1673,6 @@ function SettingsPage({
                   <option key={option.key} value={option.key}>{option.label}</option>
                 ))}
               </select>
-              <label>Search shortcut opens</label>
-              <select value={mobileSearchTarget} onChange={(e) => onMobileSearchTargetChange(e.target.value)}>
-                {MOBILE_SEARCH_TARGET_OPTIONS.map((option) => (
-                  <option key={option.key} value={option.key}>{option.label}</option>
-                ))}
-              </select>
             </div>
           </article>
         </div>
@@ -1698,13 +1683,13 @@ function SettingsPage({
 
 function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, homeButtonColor = "#9f5cff", onNavigate, onBack, onForward }) {
   const shortcutMap = {
-    watchlist: { label: "Watch", icon: <Star size={15} /> },
-    settings: { label: "Settings", icon: <Gauge size={15} /> },
-    search: { label: "Search", icon: <Search size={15} /> },
-    assistant: { label: "AI", icon: <BrainCircuit size={15} /> },
-    portfolio: { label: "Portfolio", icon: <PieChart size={15} /> },
-    morningBrew: { label: "Mug", icon: <Newspaper size={15} /> },
-    tickerLookup: { label: "Lookup", icon: <Search size={15} /> },
+    watchlist: { label: "Watchlist", icon: <Star size={17} /> },
+    settings: { label: "Settings", icon: <SettingsIcon size={17} /> },
+    search: { label: "Search", icon: <Search size={17} /> },
+    assistant: { label: "Eval AI", icon: <BrainCircuit size={17} /> },
+    portfolio: { label: "Portfolio", icon: <PieChart size={17} /> },
+    morningBrew: { label: "Morning Mug", icon: <Coffee size={18} className="mobile-mug-icon" /> },
+    tickerLookup: { label: "Ticker Lookup", icon: <Search size={17} /> },
   };
 
   const runShortcut = (key) => {
@@ -1721,13 +1706,13 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
         <ArrowLeft size={15} />
       </button>
       <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(leftShortcut)}>
-        {left.icon}<span>{left.label}</span>
+        {left.icon}
       </button>
       <button type="button" className="mobile-bottom-nav-btn nav-home" onClick={() => onNavigate(homeView || "dashboard")} aria-label="Home">
         <Home size={18} />
       </button>
       <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(rightShortcut)}>
-        {right.icon}<span>{right.label}</span>
+        {right.icon}
       </button>
       <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onForward} aria-label="Forward">
         <ArrowRight size={15} />
