@@ -36234,3 +36234,280 @@ body:has(.morning-brew-page-shell) {
     border: 1px solid rgba(21,231,255,.95) !important;
   }
 }
+
+/* Settings page + main dashboard score-ring themes */
+.settings-page-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+}
+
+.settings-page-card {
+  width: min(1120px, 100%);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 32px;
+  background: rgba(255,255,255,.075);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow);
+  padding: 26px;
+}
+
+.settings-page-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 22px;
+}
+
+.settings-page-head h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: .95;
+  letter-spacing: -2.8px;
+}
+
+.settings-page-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.settings-option-grid {
+  display: grid;
+  grid-template-columns: .9fr 1.1fr;
+  gap: 18px;
+}
+
+.settings-option-card {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 26px;
+  background: rgba(0,0,0,.19);
+  padding: 20px;
+}
+
+.settings-option-card h3 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.settings-choice-row,
+.settings-pie-theme-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-choice-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-choice-row button,
+.settings-pie-theme {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,.075);
+  color: var(--text);
+  font-weight: 800;
+  padding: 14px;
+}
+
+.settings-choice-row button.active,
+.settings-pie-theme.active {
+  border-color: rgba(21,231,255,.52);
+  box-shadow: 0 0 26px rgba(21,231,255,.16), inset 0 0 0 1px rgba(255,255,255,.08);
+  background: rgba(21,231,255,.12);
+}
+
+.settings-pie-theme-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.settings-pie-theme {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.settings-preview-ring {
+  width: 86px !important;
+  height: 86px !important;
+}
+
+.settings-preview-ring strong {
+  font-size: 22px !important;
+}
+
+.svg-score-ring.pie-theme-glass svg {
+  filter: drop-shadow(0 0 22px rgba(255,255,255,.16)) drop-shadow(0 0 32px rgba(21,231,255,.13));
+}
+
+.svg-score-ring.pie-theme-glass .svg-ring-inner {
+  fill: rgba(255,255,255,.075);
+  stroke: rgba(255,255,255,.22);
+}
+
+.svg-score-ring.pie-theme-neon svg {
+  filter: drop-shadow(0 0 12px currentColor) drop-shadow(0 0 34px currentColor);
+}
+
+.svg-score-ring.pie-theme-neon .svg-ring-track {
+  stroke: rgba(255,255,255,.045);
+}
+
+.svg-score-ring.pie-theme-minimal svg {
+  filter: none !important;
+}
+
+.svg-score-ring.pie-theme-minimal .svg-ring-track {
+  stroke: rgba(255,255,255,.13);
+}
+
+.svg-score-ring.pie-theme-minimal .svg-ring-inner {
+  fill: rgba(0,0,0,.28);
+  stroke: rgba(255,255,255,.08);
+}
+
+.svg-score-ring.pie-theme-pulse::before,
+.main-dashboard-pie-theme.pie-theme-pulse::before {
+  opacity: .5;
+}
+
+/* Manual portfolio editor: hide current holdings until requested and stack entries */
+.portfolio-manual-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.portfolio-edit-current-btn.open {
+  border-color: rgba(21,231,255,.42) !important;
+  background: rgba(21,231,255,.12) !important;
+}
+
+.portfolio-manual-table-stacked {
+  display: grid !important;
+  gap: 12px !important;
+}
+
+.portfolio-manual-table-stacked .portfolio-manual-row.header {
+  display: none !important;
+}
+
+.portfolio-manual-entry-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 42px !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  padding: 14px !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 18px !important;
+  background: rgba(0,0,0,.18) !important;
+}
+
+.portfolio-manual-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.portfolio-manual-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--soft);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  min-width: 0;
+}
+
+.portfolio-manual-fields input,
+.portfolio-manual-fields select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 13px;
+  background: rgba(0,0,0,.25);
+  color: var(--text);
+  padding: 11px 12px;
+  font-weight: 800;
+}
+
+.portfolio-manual-entry-trash {
+  align-self: stretch !important;
+  width: 42px !important;
+  height: auto !important;
+  border-radius: 15px !important;
+}
+
+@media (max-width: 720px) {
+  .settings-page-shell {
+    padding: 12px !important;
+  }
+
+  .settings-page-card {
+    padding: 14px !important;
+    border-radius: 22px !important;
+  }
+
+  .settings-page-head,
+  .settings-option-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .settings-page-head h2 {
+    font-size: 34px !important;
+  }
+
+  .settings-choice-row,
+  .settings-pie-theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .settings-preview-ring {
+    width: 62px !important;
+    height: 62px !important;
+  }
+
+  .settings-preview-ring strong {
+    font-size: 17px !important;
+  }
+
+  .portfolio-manual-head {
+    gap: 10px !important;
+  }
+
+  .portfolio-manual-head-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .portfolio-manual-head-actions button {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .portfolio-manual-entry-card {
+    grid-template-columns: minmax(0, 1fr) 36px !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .portfolio-manual-fields {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .portfolio-manual-fields input,
+  .portfolio-manual-fields select {
+    min-height: 36px !important;
+    padding: 8px 10px !important;
+    border-radius: 11px !important;
+    font-size: 13px !important;
+  }
+
+  .portfolio-manual-entry-trash {
+    width: 36px !important;
+  }
+}
