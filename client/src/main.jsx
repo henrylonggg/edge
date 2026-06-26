@@ -184,6 +184,22 @@ const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const STORAGE_KEY = "edge-watchlist-v8";
 const TERMS_VERSION = "2026-05-30";
 const MAX_WATCHLIST_ITEMS = 10;
+const DASHBOARD_START_STORAGE_KEY = "eval-dashboard-start-tab-v1";
+const PIE_THEME_STORAGE_KEY = "eval-main-pie-theme-v1";
+
+const DASHBOARD_START_OPTIONS = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "portfolio", label: "Portfolio" },
+  { key: "morningBrew", label: "Morning Mug" },
+  { key: "watchlist", label: "Watchlist" },
+];
+
+const MAIN_PIE_THEME_OPTIONS = [
+  { key: "pulse", label: "Pulse Ring" },
+  { key: "glass", label: "Glass Core" },
+  { key: "neon", label: "Neon Halo" },
+  { key: "minimal", label: "Clean Meter" },
+];
 
 function rawScore(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return null;
@@ -535,6 +551,14 @@ function App() {
   const [tickerLookupError, setTickerLookupError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
   const [showMorningMug, setShowMorningMug] = useState(() => isTheMorningMugWindow());
+  const [preferredDashboardStart, setPreferredDashboardStart] = useState(() => {
+    const saved = safeStorageGet(DASHBOARD_START_STORAGE_KEY, "dashboard");
+    return DASHBOARD_START_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
+  });
+  const [mainPieTheme, setMainPieTheme] = useState(() => {
+    const saved = safeStorageGet(PIE_THEME_STORAGE_KEY, "pulse");
+    return MAIN_PIE_THEME_OPTIONS.some((option) => option.key === saved) ? saved : "pulse";
+  });
 
   useEffect(() => {
     const update = () => setShowMorningMug(isTheMorningMugWindow());
@@ -687,6 +711,18 @@ function App() {
       window.removeEventListener("eval-account-sync-changed", onLocalSyncChange);
     };
   }, [user]);
+
+  function updatePreferredDashboardStart(next) {
+    const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
+    setPreferredDashboardStart(clean);
+    safeStorageSet(DASHBOARD_START_STORAGE_KEY, clean);
+  }
+
+  function updateMainPieTheme(next) {
+    const clean = MAIN_PIE_THEME_OPTIONS.some((option) => option.key === next) ? next : "pulse";
+    setMainPieTheme(clean);
+    safeStorageSet(PIE_THEME_STORAGE_KEY, clean);
+  }
 
   function goMenu(nextView) {
     setMenuOpen(false);
@@ -1046,10 +1082,10 @@ function App() {
   }
 
   function openDashboardFromLanding() {
-    const nextView = isSignedIn ? "dashboard" : "account";
+    const nextView = isSignedIn ? preferredDashboardStart : "account";
     setView(nextView);
 
-    if (nextView === "dashboard") {
+    if (["dashboard", "portfolio", "morningBrew", "watchlist"].includes(nextView)) {
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       });
@@ -1110,6 +1146,18 @@ function App() {
         onHome={() => setView("landing")}
         onTerms={() => setView("terms")}
         onSupport={() => setView("support")}
+      />
+    );
+  }
+
+  if (view === "settings") {
+    return (
+      <SettingsPage
+        dashboardStart={preferredDashboardStart}
+        pieTheme={mainPieTheme}
+        onDashboardStartChange={updatePreferredDashboardStart}
+        onPieThemeChange={updateMainPieTheme}
+        onBack={() => setView("dashboard")}
       />
     );
   }
@@ -1249,6 +1297,9 @@ function App() {
                       <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
                         Ticker Lookup
                       </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("settings")}>
+                        Settings
+                      </button>
                       <div className="dropdown-divider" />
 
                       <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
@@ -1289,6 +1340,9 @@ function App() {
                       </button>
                       <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
                         Ticker Lookup
+                      </button>
+                      <button type="button" role="menuitem" onClick={() => goMenu("settings")}>
+                        Settings
                       </button>
                       <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
                         Watchlist
@@ -1356,7 +1410,7 @@ function App() {
 
             {data ? (
               <>
-                <Report data={data} onAdd={() => addTicker(data.symbol)} onOpenIndustry={openIndustryPage} />
+                <Report data={data} onAdd={() => addTicker(data.symbol)} onOpenIndustry={openIndustryPage} pieTheme={mainPieTheme} />
                 <DashboardLinkRow
                   onHome={() => setView("landing")}
                   onTerms={() => setView("terms")}
@@ -1379,6 +1433,61 @@ function App() {
           />
         </section>
       )}
+    </main>
+  );
+}
+
+
+function SettingsPage({ dashboardStart, pieTheme, onDashboardStartChange, onPieThemeChange, onBack }) {
+  return (
+    <main className="app-shell settings-page-shell">
+      <section className="settings-page-card">
+        <div className="settings-page-head">
+          <button type="button" className="back-btn settings-back-btn" onClick={onBack} aria-label="Back to dashboard">
+            <ArrowLeft size={18} /> Back
+          </button>
+          <div>
+            <span className="section-title"><Gauge size={17}/> Settings</span>
+            <h2>Dashboard setup</h2>
+            <p>Choose where Eval opens and how the main dashboard score ring looks.</p>
+          </div>
+        </div>
+
+        <div className="settings-option-grid">
+          <article className="settings-option-card">
+            <h3>Open Dashboard to</h3>
+            <div className="settings-choice-row">
+              {DASHBOARD_START_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={dashboardStart === option.key ? "active" : ""}
+                  onClick={() => onDashboardStartChange(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="settings-option-card">
+            <h3>Main dashboard pie theme</h3>
+            <div className="settings-pie-theme-grid">
+              {MAIN_PIE_THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={`settings-pie-theme ${pieTheme === option.key ? "active" : ""}`}
+                  onClick={() => onPieThemeChange(option.key)}
+                >
+                  <ScoreRingSvg value={8.2} label="8.2" className={`settings-preview-ring pie-theme-${option.key}`} />
+                  <span>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </article>
+        </div>
+      </section>
     </main>
   );
 }
@@ -3030,6 +3139,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [csvError, setCsvError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualCurrentListOpen, setManualCurrentListOpen] = useState(false);
   const [portfolioToolsOpen, setPortfolioToolsOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
   const [hideHoldingsValue, setHideHoldingsValue] = useState(true);
@@ -3535,6 +3645,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true });
   }
 
+  const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
+  const editableManualRows = manualRows.filter((row) => !String(row.symbol || "").trim() || (row.mode || "current") !== "current" || manualCurrentListOpen);
+
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
@@ -3626,24 +3739,32 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               <div>
                 <span className="section-title"><Plus size={17}/> Manual</span>
                 <h3>Add positions</h3>
-                <p>Symbol, shares, average cost.</p>
+                <p>New entries stay visible. Current holdings stay hidden until editing.</p>
               </div>
-              <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
+              <div className="portfolio-manual-head-actions">
+                <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
+                {currentManualRows.length > 0 && (
+                  <button type="button" className={`portfolio-template-btn portfolio-edit-current-btn ${manualCurrentListOpen ? "open" : ""}`} onClick={() => setManualCurrentListOpen((open) => !open)}>
+                    {manualCurrentListOpen ? "Hide current holdings" : "Edit/remove current holdings"}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="portfolio-manual-table portfolio-manual-table-v3">
-              <div className="portfolio-manual-row header"><span>Action</span><span>Ticker</span><span>Shares</span><span>Avg cost</span><span></span></div>
-              {manualRows.map((row) => (
-                <div className="portfolio-manual-row" key={row.id}>
-                  <select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
-                    <option value="current">Current</option>
-                    <option value="add">Add shares</option>
-                    <option value="remove">Remove shares</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                  <input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} />
-                  <input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" />
-                  <input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" />
-                  <button type="button" className="delete-btn" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
+            <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked">
+              {editableManualRows.map((row) => (
+                <div className="portfolio-manual-row portfolio-manual-entry-card" key={row.id}>
+                  <div className="portfolio-manual-fields">
+                    <label><span>Action</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
+                      <option value="current">Current</option>
+                      <option value="add">Add shares</option>
+                      <option value="remove">Remove shares</option>
+                      <option value="closed">Closed</option>
+                    </select></label>
+                    <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
+                    <label><span>Shares</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" /></label>
+                    <label><span>Avg cost</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
+                  </div>
+                  <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
                 </div>
               ))}
             </div>
@@ -10555,7 +10676,7 @@ function EvalAiScoreSummaryCard({ summary, ticker }) {
   );
 }
 
-function Report({ data, onAdd, onOpenIndustry }) {
+function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
@@ -10823,7 +10944,7 @@ function Report({ data, onAdd, onOpenIndustry }) {
         <div className="score-panel">
           <ScoreRingSvg
             value={edge}
-            className="score-ring"
+            className={`score-ring main-dashboard-pie-theme pie-theme-${pieTheme}`}
           />
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
