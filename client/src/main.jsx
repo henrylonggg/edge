@@ -1838,7 +1838,7 @@ function IndustryRadar({ leaders }) {
 
       {!hasRealCategoryData ? (
         <div className="sector-radar-empty">
-          Category data is still loading. Refresh this sector page after the Top 5 reports finish caching.
+          Category data is still loading. Refresh this industry page after the Top 5 reports finish caching.
         </div>
       ) : (
         <>
@@ -1940,7 +1940,7 @@ function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
         <div className="sector-explain-card">
           <strong>How to use this page</strong>
           <p>
-            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this sector group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
+            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
           </p>
         </div>
 
@@ -2260,7 +2260,7 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
       <div className="portfolio-donut-copy">
         <span className="section-title"><PieChart size={17}/> Industry diversity</span>
         <h3>Portfolio mix</h3>
-        <p>Hover or tap an sector to see its portfolio weight and sector-weighted Eval Score.</p>
+        <p>Hover or tap an industry to see its portfolio weight and industry-weighted Eval Score.</p>
       </div>
       <div
         className="portfolio-sector-donut interactive"
@@ -2298,7 +2298,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
     <div className="portfolio-sector-bars-card portfolio-sector-bars-clickable-card">
       <div className="portfolio-card-title-row">
         <span className="section-title"><BarChart3 size={17}/> Industry scores</span>
-        <small>Click an sector to view weighted metric detail</small>
+        <small>Tap an industry for weighted metrics</small>
       </div>
       <div className="portfolio-sector-bars">
         {(groups || []).map((group) => {
@@ -2389,12 +2389,12 @@ function buildPortfolioProsCons(groups = []) {
   const weakestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.sectorEvalScore))).sort((a, b) => Number(a.sectorEvalScore || 0) - Number(b.sectorEvalScore || 0)).slice(0, 3);
 
   const pros = strongStocks.length
-    ? `The portfolio gets its strongest support from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These positions matter because they are not just high-scoring stocks; they also carry enough weight to move the total Portfolio Eval Score. The strongest sector areas are ${bestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, which means the portfolio's best quality is concentrated in groups with stronger weighted fundamentals, momentum, valuation, or news backdrop. The largest exposures are ${topIndustries.map((g) => `${g.sector} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those areas explain most of the portfolio's upside in the Eval model.`
-    : `The portfolio has exposure across ${groups.length || 0} sectors, which helps keep the overall score from depending on one single stock. Its strongest holdings and highest-scoring sectors will appear here after more holdings score above the stronger Eval threshold.`;
+    ? `The portfolio gets its strongest support from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These positions matter because they are not just high-scoring stocks; they also carry enough weight to move the total Portfolio Eval Score. The strongest industry areas are ${bestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, which means the portfolio's best quality is concentrated in groups with stronger weighted fundamentals, momentum, valuation, or news backdrop. The largest exposures are ${topIndustries.map((g) => `${g.sector} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those areas explain most of the portfolio's upside in the Eval model.`
+    : `The portfolio has exposure across ${groups.length || 0} industries, which helps keep the overall score from depending on one single stock. Its strongest holdings and highest-scoring industries will appear here after more holdings score above the stronger Eval threshold.`;
 
   const cons = weakStocks.length
-    ? `The biggest drag comes from ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These holdings hurt more when their scores are lower and their portfolio weights are meaningful, because the total Portfolio Eval Score is weighted by position size. The weakest sector areas are ${weakestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, so those sections deserve the closest review. If a lower-scoring stock or sector grows into a larger position, it can pull down the portfolio even if the rest of the holdings look stronger.`
-    : `The current report does not show many clearly weak holdings. The main weakness to monitor is concentration: even a strong stock can make the portfolio less balanced if it becomes too large, and one oversized sector can dominate the score's movement over time.`;
+    ? `The biggest drag comes from ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These holdings hurt more when their scores are lower and their portfolio weights are meaningful, because the total Portfolio Eval Score is weighted by position size. The weakest industry areas are ${weakestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, so those sections deserve the closest review. If a lower-scoring stock or industry grows into a larger position, it can pull down the portfolio even if the rest of the holdings look stronger.`
+    : `The current report does not show many clearly weak holdings. The main weakness to monitor is concentration: even a strong stock can make the portfolio less balanced if it becomes too large, and one oversized industry can dominate the score's movement over time.`;
 
   return { pros, cons };
 }
@@ -3004,80 +3004,6 @@ function currentHoldingPriceValue(holding) {
 }
 
 
-function SectorAllocationPie({ groups = [], onSelectSector }) {
-  const [active, setActive] = useState(null);
-  const clean = (groups || [])
-    .map((group) => ({
-      name: group.sector || group.industry || "Other",
-      weight: Number(group.totalWeightPercent || 0),
-      score: score10(group.sectorEvalScore ?? group.industryEvalScore),
-      value: Number(group.totalHoldingDollars || 0),
-    }))
-    .filter((item) => Number.isFinite(item.weight) && item.weight > 0)
-    .sort((a, b) => b.weight - a.weight);
-
-  if (!clean.length) return null;
-
-  const colors = [
-    "#15e7ff",
-    "#9f5cff",
-    "#85d713",
-    "#ffd66b",
-    "#ff5f73",
-    "#6f8cff",
-    "#38f5b3",
-    "#ff9f43",
-    "#d86bff",
-    "#78a8ff",
-  ];
-
-  let cursor = 0;
-  const stops = clean.map((item, index) => {
-    const start = cursor;
-    const end = cursor + item.weight;
-    cursor = end;
-    return `${colors[index % colors.length]} ${start}% ${end}%`;
-  }).join(", ");
-  const activeItem = active !== null ? clean[active] : clean[0];
-
-  return (
-    <article className="portfolio-sector-pie-card">
-      <div className="portfolio-card-title-row portfolio-sector-pie-title">
-        <div>
-          <span className="section-title"><PieChart size={17}/> Sectors</span>
-          <h3>Allocation</h3>
-        </div>
-        <small>{clean.length} sectors</small>
-      </div>
-      <div className="portfolio-sector-pie-layout">
-        <div className="portfolio-sector-pie-stage" style={{ "--sector-pie-gradient": `conic-gradient(${stops})` }}>
-          <div className="portfolio-sector-pie-3d" />
-          <div className="portfolio-sector-pie-core">
-            <b>{Number(activeItem?.weight || 0).toFixed(1)}%</b>
-            <span>{activeItem?.name || "Sector"}</span>
-          </div>
-        </div>
-        <div className="portfolio-sector-pie-list">
-          {clean.map((item, index) => (
-            <button
-              type="button"
-              key={item.name}
-              className={`portfolio-sector-pie-row ${active === index ? "active" : ""}`}
-              onMouseEnter={() => setActive(index)}
-              onFocus={() => setActive(index)}
-              onClick={() => onSelectSector?.(item.name)}
-            >
-              <span className="portfolio-sector-dot" style={{ "--sector-dot": colors[index % colors.length] }} />
-              <strong>{item.name}</strong>
-              <b>{item.weight.toFixed(1)}%</b>
-              <small>{item.score === null ? "N/A" : item.score.toFixed(1)}</small>
-            </button>
-          ))}
-        </div>
-      </div>
-    </article>
-  );
-}
 
 function PortfolioPage({ onBack, onAnalyze }) {
   const { user } = useUser();
@@ -3406,11 +3332,12 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   function holdingsGridTemplate() {
     const columns = visiblePortfolioColumnsList();
-    const units = ["minmax(118px, 1.35fr)"];
+    const units = ["minmax(58px, 1.15fr)"];
     columns.forEach((column) => {
-      if (column.key === "return") units.push("minmax(92px, .95fr)");
-      else if (column.key === "eval") units.push("minmax(48px, .5fr)");
-      else units.push("minmax(66px, .72fr)");
+      if (column.key === "return") units.push("minmax(62px, .86fr)");
+      else if (column.key === "eval") units.push("minmax(34px, .42fr)");
+      else if (column.key === "averageCost" || column.key === "currentPrice" || column.key === "value") units.push("minmax(52px, .66fr)");
+      else units.push("minmax(42px, .56fr)");
     });
     return units.join(" ");
   }
@@ -3570,17 +3497,17 @@ function PortfolioPage({ onBack, onAnalyze }) {
       const target = Number(strategyTargets[sectorName]);
       const diff = Number.isFinite(target) ? actual - target : null;
       const score = Number(group.sectorEvalScore ?? group.industryEvalScore ?? 0);
-      let action = "Set a target weight to compare this sector.";
+      let action = "Set a target weight to compare this industry.";
       let tone = "neutral";
       if (Number.isFinite(diff)) {
         if (diff >= 8 || (target > 0 && actual / target >= 1.25)) {
-          action = score >= 7.5 ? "Above target but high quality; consider trimming only if it keeps stretching past the strategy range." : "Above target by a wide margin; consider trimming or redirecting new cash into underweight sectors.";
+          action = score >= 7.5 ? "Above target but high quality; consider trimming only if it keeps stretching past the strategy range." : "Above target by a wide margin; consider trimming or redirecting new cash into underweight industries.";
           tone = "red";
         } else if (diff > 3) {
           action = "Slightly above target; watch the weight before adding more here.";
           tone = "yellow";
         } else if (diff <= -5) {
-          action = score >= 7.0 ? "Below target with a solid score; consider adding through the strongest holdings in this sector." : "Below target, but wait for stronger Eval Scores before adding heavily.";
+          action = score >= 7.0 ? "Below target with a solid score; consider adding through the strongest holdings in this industry." : "Below target, but wait for stronger Eval Scores before adding heavily.";
           tone = score >= 7 ? "green" : "yellow";
         } else {
           action = "Close to target; no major rebalance pressure.";
@@ -3672,7 +3599,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
           <div>
             <span className="section-title"><BarChart3 size={17}/> Upload</span>
             <h3>Import portfolio</h3>
-            <p>CSV headers accepted: <b>Symbol</b>, <b>Quantity</b>, <b>Purchase Price</b>. Eval calculates value, return, weights, sectors, and score.</p>
+            <p>CSV headers accepted: <b>Symbol</b>, <b>Quantity</b>, <b>Purchase Price</b>. Eval calculates value, return, weights, industries, and score.</p>
           </div>
           <div className="portfolio-csv-actions">
             <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>Template</button>
@@ -3724,7 +3651,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       </section>
       )}
 
-      {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, sectors, and weighted portfolio metrics.</p></div>}
+      {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, industries, and weighted portfolio metrics.</p></div>}
       {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
 
       {csvAnalysis && !csvLoading && (
@@ -3759,7 +3686,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
               <b>holdings</b>
               <strong>{sectorGroups.length}</strong>
-              <b>sectors</b>
+              <b>industries</b>
             </article>
 
           </div>
@@ -3774,7 +3701,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <small>Click to view</small>
             </button>
             <button type="button" className={`portfolio-action-tile industries ${sectorScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
-              <b>Sectors</b>
+              <b>Industries</b>
               <small>{sectorScoresOpen ? "Close" : "View"}</small>
             </button>
             <button type="button" className="portfolio-action-tile holdings portfolio-holdings-jump-arrow" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Jump to holdings">
@@ -3782,14 +3709,9 @@ function PortfolioPage({ onBack, onAnalyze }) {
             </button>
           </div>
 
-          <SectorAllocationPie groups={sectorGroups} onSelectSector={(sector) => {
-            setOpenIndustries((current) => ({ ...current, [sector]: true }));
-            setTimeout(() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-          }} />
-
           {sectorScoresOpen && (
             <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
-              <IndustryBars groups={sectorGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.sector} metrics`, subtitle: `Weighted metrics inside ${group.sector}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+              <IndustryBars groups={sectorGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.sector} metrics`, subtitle: `Weighted metrics inside this industry.`, entries: weightedMetricEntriesFromIndustry(group) })} />
             </div>
           )}
 
@@ -3799,7 +3721,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
             <div className="portfolio-section-head portfolio-holdings-control-head">
               <div>
                 <span className="section-title"><Activity size={17}/> Holdings</span>
-                <h3>By sector</h3>
+                <h3>By industry</h3>
               </div>
               <div className="portfolio-column-control-wrap">
                 <button type="button" className={`portfolio-column-toggle-btn ${columnsOpen ? "open" : ""}`} onClick={() => setColumnsOpen((open) => !open)}>
@@ -9647,7 +9569,7 @@ function buildEvalExtraFaqs() {
     ["Portfolio", "sector score", "Each sector score is a weighted average of the stocks inside that sector using each stock's weight within that sector."],
     ["Portfolio", "portfolio score", "The Portfolio Eval Score uses each sector score multiplied by that sector's current percentage of the portfolio."],
     ["Portfolio", "Eval Strategy", "Eval Strategy lets users set target sector weights. Eval then compares current weights to targets for educational trim or rebalance ideas."],
-    ["Portfolio", "trim ideas", "Trim ideas focus on sectors that are meaningfully above target and the holdings driving that overweight position."],
+    ["Portfolio", "trim ideas", "Trim ideas focus on industries that are meaningfully above target and the holdings driving that overweight position."],
     ["Portfolio", "earnings calendar", "The Portfolio earnings calendar shows upcoming earnings for portfolio stocks over the next four weeks."],
     ["The Morning Mug", "Morning Mug indexes", "The Morning Mug shows S&P 500, Dow Jones, and Nasdaq percent changes using ETF proxies behind the scenes while displaying clean index names."],
     ["The Morning Mug", "Morning Mug news", "The Morning Mug shows CNBC market headlines with brief summaries, links, and a strict 0.0 to 10.0 article score."],
