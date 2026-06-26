@@ -517,9 +517,9 @@ function App() {
   const [seenAlertsKey, setSeenAlertsKey] = useState(() => safeStorageGet("eval-morning-mugs-alerts-seen", ""));
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [industryPage, setIndustryPage] = useState(null);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [industryError, setIndustryError] = useState("");
+  const [sectorPage, setIndustryPage] = useState(null);
+  const [sectorLoading, setIndustryLoading] = useState(false);
+  const [sectorError, setIndustryError] = useState("");
   const [compareLeft, setCompareLeft] = useState("");
   const [compareRight, setCompareRight] = useState("");
   const [compareData, setCompareData] = useState(null);
@@ -870,18 +870,18 @@ function App() {
     }
   }
 
-  async function openIndustryPage(industry, sourceSymbol = data?.symbol || symbol) {
-    const cleanIndustry = String(industry || "").trim();
+  async function openIndustryPage(sector, sourceSymbol = data?.symbol || symbol) {
+    const cleanIndustry = String(sector || "").trim();
     if (!cleanIndustry || cleanIndustry === "Public company") return;
 
-    setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
+    setIndustryPage({ sector: cleanIndustry, leaders: [], sourceSymbol });
     setIndustryLoading(true);
     setIndustryError("");
-    setView("industry");
+    setView("sector");
 
     try {
       const res = await fetch(
-        `${API}/api/industry-top/${encodeURIComponent(cleanIndustry)}?symbol=${encodeURIComponent(sourceSymbol || "")}`,
+        `${API}/api/sector-top/${encodeURIComponent(cleanIndustry)}?symbol=${encodeURIComponent(sourceSymbol || "")}`,
         {
           method: "GET",
           mode: "cors",
@@ -892,22 +892,22 @@ function App() {
       const json = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(json?.error || "Could not load industry leaders.");
+        throw new Error(json?.error || "Could not load sector leaders.");
       }
 
       const leaders = Array.isArray(json?.leaders) ? json.leaders.slice(0, 5) : [];
 
-      // Do not re-analyze every industry leader on the frontend.
+      // Do not re-analyze every sector leader on the frontend.
       // The backend already ranks and caches leaders, so this avoids duplicate provider calls.
       setIndustryPage({
-        industry: json?.industry || cleanIndustry,
+        sector: json?.sector || cleanIndustry,
         leaders,
         sourceSymbol,
         cachedForHours: json?.cachedForHours || 24,
       });
     } catch (err) {
-      setIndustryError(err?.message || "Could not load industry leaders.");
-      setIndustryPage({ industry: cleanIndustry, leaders: [], sourceSymbol });
+      setIndustryError(err?.message || "Could not load sector leaders.");
+      setIndustryPage({ sector: cleanIndustry, leaders: [], sourceSymbol });
     } finally {
       setIndustryLoading(false);
     }
@@ -1168,11 +1168,11 @@ function App() {
         />
       ) : view === "plans" ? (
         <PlansPage onBack={() => setView("dashboard")} />
-      ) : view === "industry" ? (
+      ) : view === "sector" ? (
         <IndustryPage
-          industryPage={industryPage}
-          loading={industryLoading}
-          error={industryError}
+          sectorPage={sectorPage}
+          loading={sectorLoading}
+          error={sectorError}
           onBack={() => setView("dashboard")}
           onAnalyze={analyzeFromIndustry}
         />
@@ -1619,7 +1619,7 @@ function CompareSelectPage({
             {loading ? <RefreshCw className="spin" size={17} /> : <CheckCircle2 size={17} />}
             Save selected
           </button>
-          <span>Compare stocks within an industry or use industry rankings to find strong peers.</span>
+          <span>Compare stocks within an sector or use sector rankings to find strong peers.</span>
         </div>
       </div>
     </section>
@@ -1692,7 +1692,7 @@ function ComparePage({
             />
 
             <p className="compare-explain">
-              This comparison is based on Eval's current scoring data. You can compare stocks within the same industry, compare up to 5 stocks at once, and use industry rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
+              This comparison is based on Eval's current scoring data. You can compare stocks within the same sector, compare up to 5 stocks at once, and use sector rankings to see which companies lead their category. This is educational and is not a buy or sell recommendation.
             </p>
           </div>
         ) : (
@@ -1707,34 +1707,34 @@ function ComparePage({
   );
 }
 
-function industryDescription(industry = "") {
-  const text = String(industry || "").toLowerCase();
+function sectorDescription(sector = "") {
+  const text = String(sector || "").toLowerCase();
 
   if (text.includes("technology") || text.includes("software") || text.includes("semiconductor")) {
-    return "This industry is built around software, devices, chips, cloud platforms, and digital infrastructure. Strong companies here usually score well when they grow revenue, protect margins, and keep demand strong.";
+    return "This sector is built around software, devices, chips, cloud platforms, and digital infrastructure. Strong companies here usually score well when they grow revenue, protect margins, and keep demand strong.";
   }
 
   if (text.includes("health") || text.includes("pharma") || text.includes("biotech") || text.includes("medical")) {
-    return "This industry focuses on medicine, treatments, health services, and medical technology. Strong companies here usually have steady demand, strong profitability, and durable products or services.";
+    return "This sector focuses on medicine, treatments, health services, and medical technology. Strong companies here usually have steady demand, strong profitability, and durable products or services.";
   }
 
   if (text.includes("financial") || text.includes("bank") || text.includes("insurance")) {
-    return "This industry includes banks, payment networks, lenders, asset managers, and insurers. Strong companies usually score well when they have stable earnings, strong balance sheets, and controlled risk.";
+    return "This sector includes banks, payment networks, lenders, asset managers, and insurers. Strong companies usually score well when they have stable earnings, strong balance sheets, and controlled risk.";
   }
 
   if (text.includes("energy") || text.includes("oil") || text.includes("gas")) {
-    return "This industry is tied to oil, natural gas, energy production, and energy services. Scores can move with commodity prices, cash flow strength, debt levels, and profitability.";
+    return "This sector is tied to oil, natural gas, energy production, and energy services. Scores can move with commodity prices, cash flow strength, debt levels, and profitability.";
   }
 
   if (text.includes("consumer")) {
-    return "This industry depends on consumer spending. Strong companies usually have recognizable brands, steady demand, pricing power, and healthy margins.";
+    return "This sector depends on consumer spending. Strong companies usually have recognizable brands, steady demand, pricing power, and healthy margins.";
   }
 
   if (text.includes("industrial")) {
-    return "This industry includes machinery, transportation, aerospace, defense, and manufacturing. Strong companies usually benefit from stable demand, efficient operations, and solid balance sheets.";
+    return "This sector includes machinery, transportation, aerospace, defense, and manufacturing. Strong companies usually benefit from stable demand, efficient operations, and solid balance sheets.";
   }
 
-  return "This industry groups companies with similar business models. Comparing Eval Scores inside the same industry can make the ranking more useful because the stocks face similar risks and opportunities.";
+  return "This sector groups companies with similar business models. Comparing Eval Scores inside the same sector can make the ranking more useful because the stocks face similar risks and opportunities.";
 }
 
 function IndustryRadar({ leaders }) {
@@ -1811,20 +1811,20 @@ function IndustryRadar({ leaders }) {
       .join(" ");
 
   return (
-    <section className="industry-radar-card">
-      <div className="industry-radar-head">
+    <section className="sector-radar-card">
+      <div className="sector-radar-head">
         <div>
           <strong>Top 5 radar comparison</strong>
           <p>Each point uses that stock's real score for the matching Eval category.</p>
         </div>
 
-        <div className="industry-radar-legend clickable-radar-legend">
+        <div className="sector-radar-legend clickable-radar-legend">
           {stocks.map((stock, index) => {
             const hidden = hiddenSymbols.includes(stock.symbol);
             return (
               <button
                 type="button"
-                className={`industry-radar-legend-${index + 1} ${hidden ? "radar-hidden" : ""}`}
+                className={`sector-radar-legend-${index + 1} ${hidden ? "radar-hidden" : ""}`}
                 key={stock.symbol}
                 onClick={() => toggleSymbol(stock.symbol)}
                 title={hidden ? `Show ${stock.symbol}` : `Hide ${stock.symbol}`}
@@ -1837,12 +1837,12 @@ function IndustryRadar({ leaders }) {
       </div>
 
       {!hasRealCategoryData ? (
-        <div className="industry-radar-empty">
-          Category data is still loading. Refresh this industry page after the Top 5 reports finish caching.
+        <div className="sector-radar-empty">
+          Category data is still loading. Refresh this sector page after the Top 5 reports finish caching.
         </div>
       ) : (
         <>
-          <svg className="industry-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five industry stock radar chart">
+          <svg className="sector-radar-svg" viewBox="0 0 360 360" role="img" aria-label="Top five sector stock radar chart">
             {levels.map((level) => (
               <polygon key={level} points={gridPoints(level)} className="radar-grid" />
             ))}
@@ -1867,7 +1867,7 @@ function IndustryRadar({ leaders }) {
                 <polygon
                   key={`${stock.symbol}-poly`}
                   points={polygonPoints(stock.categories)}
-                  className={`industry-radar-poly industry-radar-poly-${originalIndex + 1}`}
+                  className={`sector-radar-poly sector-radar-poly-${originalIndex + 1}`}
                 />
               );
             })}
@@ -1885,7 +1885,7 @@ function IndustryRadar({ leaders }) {
                       cx={point.x}
                       cy={point.y}
                       r="4.2"
-                      className={`industry-radar-dot industry-radar-dot-${originalIndex + 1}`}
+                      className={`sector-radar-dot sector-radar-dot-${originalIndex + 1}`}
                     />
                   );
                 })}
@@ -1916,14 +1916,14 @@ function IndustryRadar({ leaders }) {
   );
 }
 
-function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
-  const industry = industryPage?.industry || "Industry";
-  const leaders = Array.isArray(industryPage?.leaders) ? industryPage.leaders : [];
+function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
+  const sector = sectorPage?.sector || "Industry";
+  const leaders = Array.isArray(sectorPage?.leaders) ? sectorPage.leaders : [];
 
   return (
-    <section className="industry-page">
-      <div className="industry-page-shell">
-        <div className="industry-page-head">
+    <section className="sector-page">
+      <div className="sector-page-shell">
+        <div className="sector-page-head">
           <button type="button" className="back-btn" onClick={onBack}>
             <ArrowLeft size={17} /> Dashboard
           </button>
@@ -1932,27 +1932,27 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
             <div className="section-title">
               <BarChart3 size={17} /> Industry ranking
             </div>
-            <h2>{industry}</h2>
-            <p>{industryDescription(industry)}</p>
+            <h2>{sector}</h2>
+            <p>{sectorDescription(sector)}</p>
           </div>
         </div>
 
-        <div className="industry-explain-card">
+        <div className="sector-explain-card">
           <strong>How to use this page</strong>
           <p>
-            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
+            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this sector group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
           </p>
         </div>
 
         {loading ? (
-          <div className="industry-loading-page">
-            <RefreshCw className="spin" size={22} /> Ranking industry stocks from cached Eval data...
+          <div className="sector-loading-page">
+            <RefreshCw className="spin" size={22} /> Ranking sector stocks from cached Eval data...
           </div>
         ) : error ? (
-          <div className="industry-error-page">{error}</div>
+          <div className="sector-error-page">{error}</div>
         ) : leaders.length ? (
           <>
-            <div className="industry-leader-grid">
+            <div className="sector-leader-grid">
               {leaders.slice(0, 5).map((item, index) => {
               const score = score10(item.score);
               const tone = scoreTone(score);
@@ -1961,17 +1961,17 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
               return (
                 <button
                   type="button"
-                  className={`industry-leader-card ${rankClass}`}
+                  className={`sector-leader-card ${rankClass}`}
                   key={item.symbol}
                   onClick={() => onAnalyze(item.symbol)}
                   title={`Open full Eval report for ${item.symbol}`}
                 >
-                  <div className="industry-medal">{index + 1}</div>
+                  <div className="sector-medal">{index + 1}</div>
                   <ScoreRingSvg
                     value={score}
-                    className="industry-score-pie"
+                    className="sector-score-pie"
                   />
-                  <div className="industry-leader-copy">
+                  <div className="sector-leader-copy">
                     <h3>{item.symbol}</h3>
                     <p>{item.name || item.symbol}</p>
                     <span>Tap to open full dashboard overview</span>
@@ -1984,7 +1984,7 @@ function IndustryPage({ industryPage, loading, error, onBack, onAnalyze }) {
             <IndustryRadar leaders={leaders} />
           </>
         ) : (
-          <div className="industry-error-page">No same-industry rankings are available yet.</div>
+          <div className="sector-error-page">No same-sector rankings are available yet.</div>
         )}
       </div>
     </section>
@@ -2234,10 +2234,10 @@ function buildPortfolioEvalHistory(previous = [], analysis) {
   return [...filtered, nextPoint].slice(-260);
 }
 
-function MiniScoreRing({ value, small = false, industry = false }) {
+function MiniScoreRing({ value, small = false, sector = false }) {
   const tone = scoreTone(value);
   return (
-    <div className={`portfolio-score-text-badge ${small ? "small" : "main"} ${industry ? "industry" : "stock"} ${tone}`}>
+    <div className={`portfolio-score-text-badge ${small ? "small" : "main"} ${sector ? "sector" : "stock"} ${tone}`}>
       {scoreText(value)}
     </div>
   );
@@ -2254,36 +2254,36 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
     return { ...group, color: palette[index % palette.length], donutStart: start, donutEnd: running, normalizedWeight: value };
   });
   const gradient = enriched.map((group) => `${group.color} ${group.donutStart.toFixed(2)}% ${group.donutEnd.toFixed(2)}%`).join(", ");
-  const active = enriched.find((g) => g.industry === activeIndustry) || enriched[0];
+  const active = enriched.find((g) => g.sector === activeIndustry) || enriched[0];
   return (
     <div className="portfolio-donut-card portfolio-donut-card-interactive">
       <div className="portfolio-donut-copy">
         <span className="section-title"><PieChart size={17}/> Industry diversity</span>
         <h3>Portfolio mix</h3>
-        <p>Hover or tap an industry to see its portfolio weight and industry-weighted Eval Score.</p>
+        <p>Hover or tap an sector to see its portfolio weight and sector-weighted Eval Score.</p>
       </div>
       <div
-        className="portfolio-industry-donut interactive"
+        className="portfolio-sector-donut interactive"
         style={{ background: `conic-gradient(${gradient || "rgba(255,255,255,.12) 0% 100%"})` }}
       >
         <div className="portfolio-donut-core">
-          <span>{active?.industry || "Industries"}</span>
+          <span>{active?.sector || "Industries"}</span>
           <strong>{active ? `${Number(active.totalWeightPercent || 0).toFixed(1)}%` : "N/A"}</strong>
-          <small>{active ? `Eval ${scoreText(active.industryEvalScore)}` : ""}</small>
+          <small>{active ? `Eval ${scoreText(active.sectorEvalScore)}` : ""}</small>
         </div>
       </div>
       <div className="portfolio-donut-list">
         {enriched.map((group) => (
           <button
             type="button"
-            key={group.industry}
-            className={group.industry === active?.industry ? "active" : ""}
-            onMouseEnter={() => onActiveIndustry?.(group.industry)}
-            onFocus={() => onActiveIndustry?.(group.industry)}
-            onClick={() => onActiveIndustry?.(group.industry)}
+            key={group.sector}
+            className={group.sector === active?.sector ? "active" : ""}
+            onMouseEnter={() => onActiveIndustry?.(group.sector)}
+            onFocus={() => onActiveIndustry?.(group.sector)}
+            onClick={() => onActiveIndustry?.(group.sector)}
           >
             <i style={{ background: group.color }} />
-            <span>{group.industry}</span>
+            <span>{group.sector}</span>
             <b>{Number(group.totalWeightPercent || 0).toFixed(1)}%</b>
           </button>
         ))}
@@ -2295,18 +2295,18 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
 
 function IndustryBars({ groups = [], onSelectIndustry }) {
   return (
-    <div className="portfolio-industry-bars-card portfolio-industry-bars-clickable-card">
+    <div className="portfolio-sector-bars-card portfolio-sector-bars-clickable-card">
       <div className="portfolio-card-title-row">
         <span className="section-title"><BarChart3 size={17}/> Industry scores</span>
-        <small>Click an industry to view weighted metric detail</small>
+        <small>Click an sector to view weighted metric detail</small>
       </div>
-      <div className="portfolio-industry-bars">
+      <div className="portfolio-sector-bars">
         {(groups || []).map((group) => {
-          const score = score10(group.industryEvalScore) || 0;
+          const score = score10(group.sectorEvalScore) || 0;
           return (
-            <button type="button" className={`portfolio-industry-bar-row ${scoreTone(score)}`} key={group.industry} onClick={() => onSelectIndustry?.(group)}>
-              <div><b>{group.industry}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
-              <div className="portfolio-industry-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
+            <button type="button" className={`portfolio-sector-bar-row ${scoreTone(score)}`} key={group.sector} onClick={() => onSelectIndustry?.(group)}>
+              <div><b>{group.sector}</b><span>{Number(group.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
+              <div className="portfolio-sector-bar-track"><span className={scoreTone(score)} style={{ width: `${Math.max(0, Math.min(100, score * 10))}%` }} /></div>
               <strong>{scoreText(score)}</strong>
             </button>
           );
@@ -2322,7 +2322,7 @@ function weightedMetricEntriesFromIndustry(group) {
   return metricKeys.map((key) => {
     const weighted = holdings.reduce((sum, holding) => {
       const value = Number(holding?.[key]);
-      const weight = Number(holding?.industryWeightPercent);
+      const weight = Number(holding?.sectorWeightPercent);
       if (!Number.isFinite(value) || value <= 0 || !Number.isFinite(weight) || weight <= 0) return sum;
       return sum + value * (weight / 100);
     }, 0);
@@ -2374,7 +2374,7 @@ function portfolioEvalScoreChange(points = [], currentScore) {
 }
 
 function buildPortfolioProsCons(groups = []) {
-  const holdings = (groups || []).flatMap((group) => (group.holdings || []).map((holding) => ({ ...holding, industry: group.industry })));
+  const holdings = (groups || []).flatMap((group) => (group.holdings || []).map((holding) => ({ ...holding, sector: group.sector })));
   const scored = holdings.filter((h) => Number.isFinite(Number(h.edgeScore)));
   const strongStocks = scored
     .filter((h) => Number(h.edgeScore) >= 7.0)
@@ -2385,16 +2385,16 @@ function buildPortfolioProsCons(groups = []) {
     .sort((a, b) => (Number(b.weightPercent || 0) * (10 - Number(b.edgeScore || 0))) - (Number(a.weightPercent || 0) * (10 - Number(a.edgeScore || 0))))
     .slice(0, 6);
   const topIndustries = [...(groups || [])].sort((a, b) => Number(b.totalWeightPercent || 0) - Number(a.totalWeightPercent || 0)).slice(0, 3);
-  const bestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.industryEvalScore))).sort((a, b) => Number(b.industryEvalScore || 0) - Number(a.industryEvalScore || 0)).slice(0, 3);
-  const weakestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.industryEvalScore))).sort((a, b) => Number(a.industryEvalScore || 0) - Number(b.industryEvalScore || 0)).slice(0, 3);
+  const bestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.sectorEvalScore))).sort((a, b) => Number(b.sectorEvalScore || 0) - Number(a.sectorEvalScore || 0)).slice(0, 3);
+  const weakestIndustries = [...(groups || [])].filter((g) => Number.isFinite(Number(g.sectorEvalScore))).sort((a, b) => Number(a.sectorEvalScore || 0) - Number(b.sectorEvalScore || 0)).slice(0, 3);
 
   const pros = strongStocks.length
-    ? `The portfolio gets its strongest support from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These positions matter because they are not just high-scoring stocks; they also carry enough weight to move the total Portfolio Eval Score. The strongest industry areas are ${bestIndustries.map((g) => `${g.industry} (${scoreText(g.industryEvalScore)})`).join(", ")}, which means the portfolio's best quality is concentrated in groups with stronger weighted fundamentals, momentum, valuation, or news backdrop. The largest exposures are ${topIndustries.map((g) => `${g.industry} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those areas explain most of the portfolio's upside in the Eval model.`
-    : `The portfolio has exposure across ${groups.length || 0} industries, which helps keep the overall score from depending on one single stock. Its strongest holdings and highest-scoring industries will appear here after more holdings score above the stronger Eval threshold.`;
+    ? `The portfolio gets its strongest support from ${strongStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These positions matter because they are not just high-scoring stocks; they also carry enough weight to move the total Portfolio Eval Score. The strongest sector areas are ${bestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, which means the portfolio's best quality is concentrated in groups with stronger weighted fundamentals, momentum, valuation, or news backdrop. The largest exposures are ${topIndustries.map((g) => `${g.sector} at ${Number(g.totalWeightPercent || 0).toFixed(1)}%`).join(", ")}, so those areas explain most of the portfolio's upside in the Eval model.`
+    : `The portfolio has exposure across ${groups.length || 0} sectors, which helps keep the overall score from depending on one single stock. Its strongest holdings and highest-scoring sectors will appear here after more holdings score above the stronger Eval threshold.`;
 
   const cons = weakStocks.length
-    ? `The biggest drag comes from ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These holdings hurt more when their scores are lower and their portfolio weights are meaningful, because the total Portfolio Eval Score is weighted by position size. The weakest industry areas are ${weakestIndustries.map((g) => `${g.industry} (${scoreText(g.industryEvalScore)})`).join(", ")}, so those sections deserve the closest review. If a lower-scoring stock or industry grows into a larger position, it can pull down the portfolio even if the rest of the holdings look stronger.`
-    : `The current report does not show many clearly weak holdings. The main weakness to monitor is concentration: even a strong stock can make the portfolio less balanced if it becomes too large, and one oversized industry can dominate the score's movement over time.`;
+    ? `The biggest drag comes from ${weakStocks.map((h) => `${h.symbol} (${scoreText(h.edgeScore)}, ${Number(h.weightPercent || 0).toFixed(1)}%)`).join(", ")}. These holdings hurt more when their scores are lower and their portfolio weights are meaningful, because the total Portfolio Eval Score is weighted by position size. The weakest sector areas are ${weakestIndustries.map((g) => `${g.sector} (${scoreText(g.sectorEvalScore)})`).join(", ")}, so those sections deserve the closest review. If a lower-scoring stock or sector grows into a larger position, it can pull down the portfolio even if the rest of the holdings look stronger.`
+    : `The current report does not show many clearly weak holdings. The main weakness to monitor is concentration: even a strong stock can make the portfolio less balanced if it becomes too large, and one oversized sector can dominate the score's movement over time.`;
 
   return { pros, cons };
 }
@@ -2498,8 +2498,8 @@ function getSavedMorningPortfolio(user) {
   try {
     const saved = JSON.parse(localStorage.getItem(portfolioStorageKeyFor(user)) || "null");
     const manualHoldings = Array.isArray(saved?.holdings) ? saved.holdings : [];
-    const analyzedHoldings = Array.isArray(saved?.analysis?.industryGroups)
-      ? saved.analysis.industryGroups.flatMap((group) => Array.isArray(group?.holdings) ? group.holdings : [])
+    const analyzedHoldings = Array.isArray(saved?.analysis?.sectorGroups)
+      ? saved.analysis.sectorGroups.flatMap((group) => Array.isArray(group?.holdings) ? group.holdings : [])
       : [];
     const symbols = [...new Set([
       ...manualHoldings.map((holding) => holding?.symbol),
@@ -2519,7 +2519,7 @@ function getSavedMorningPortfolio(user) {
         weightPercent: Number(analyzed.weightPercent ?? analyzed.weight ?? manual.weightPercent ?? manual.weight),
         holdingDollars: Number(analyzed.holdingDollars ?? analyzed.currentValue ?? manual.holdingDollars ?? manual.currentValue),
         edgeScore: score10(analyzed.edgeScore),
-        industry: analyzed.industry || analyzed.finnhubIndustry || manual.industry || "Unknown",
+        sector: analyzed.sector || analyzed.finnhubIndustry || manual.sector || "Unknown",
       };
     });
     return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio", analysis: saved?.analysis || null };
@@ -2962,6 +2962,123 @@ function MorningMugsDashboard({ onBack }) {
   );
 }
 
+
+const PORTFOLIO_HOLDING_COLUMNS = [
+  { key: "shares", label: "Shares", shortLabel: "Sh" },
+  { key: "averageCost", label: "Avg. cost", shortLabel: "Avg" },
+  { key: "currentPrice", label: "Current price", shortLabel: "Price" },
+  { key: "value", label: "Value", shortLabel: "Value" },
+  { key: "return", label: "Return", shortLabel: "Return" },
+  { key: "portfolioWeight", label: "Portfolio weight", shortLabel: "Port %" },
+  { key: "sectorWeight", label: "Sector weight", shortLabel: "Sec %" },
+  { key: "eval", label: "Eval", shortLabel: "Eval" },
+];
+
+const DEFAULT_PORTFOLIO_VISIBLE_COLUMNS = PORTFOLIO_HOLDING_COLUMNS.reduce((acc, column) => {
+  acc[column.key] = true;
+  return acc;
+}, {});
+
+function portfolioColumnStorageKeyFor(user) {
+  const id = user?.id || user?.primaryEmailAddress?.emailAddress || "guest";
+  return `eval-portfolio-columns-v1-${id}`;
+}
+
+function normalizePortfolioVisibleColumns(saved) {
+  const next = { ...DEFAULT_PORTFOLIO_VISIBLE_COLUMNS };
+  if (saved && typeof saved === "object") {
+    PORTFOLIO_HOLDING_COLUMNS.forEach((column) => {
+      if (typeof saved[column.key] === "boolean") next[column.key] = saved[column.key];
+    });
+  }
+  if (!Object.values(next).some(Boolean)) next.eval = true;
+  return next;
+}
+
+function currentHoldingPriceValue(holding) {
+  const direct = Number(holding?.currentPrice ?? holding?.price);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const value = holdingCurrentValue(holding);
+  const shares = Number(holding?.shares);
+  return Number.isFinite(value) && Number.isFinite(shares) && shares > 0 ? value / shares : null;
+}
+
+
+function SectorAllocationPie({ groups = [], onSelectSector }) {
+  const [active, setActive] = useState(null);
+  const clean = (groups || [])
+    .map((group) => ({
+      name: group.sector || group.industry || "Other",
+      weight: Number(group.totalWeightPercent || 0),
+      score: score10(group.sectorEvalScore ?? group.industryEvalScore),
+      value: Number(group.totalHoldingDollars || 0),
+    }))
+    .filter((item) => Number.isFinite(item.weight) && item.weight > 0)
+    .sort((a, b) => b.weight - a.weight);
+
+  if (!clean.length) return null;
+
+  const colors = [
+    "#15e7ff",
+    "#9f5cff",
+    "#85d713",
+    "#ffd66b",
+    "#ff5f73",
+    "#6f8cff",
+    "#38f5b3",
+    "#ff9f43",
+    "#d86bff",
+    "#78a8ff",
+  ];
+
+  let cursor = 0;
+  const stops = clean.map((item, index) => {
+    const start = cursor;
+    const end = cursor + item.weight;
+    cursor = end;
+    return `${colors[index % colors.length]} ${start}% ${end}%`;
+  }).join(", ");
+  const activeItem = active !== null ? clean[active] : clean[0];
+
+  return (
+    <article className="portfolio-sector-pie-card">
+      <div className="portfolio-card-title-row portfolio-sector-pie-title">
+        <div>
+          <span className="section-title"><PieChart size={17}/> Sectors</span>
+          <h3>Allocation</h3>
+        </div>
+        <small>{clean.length} sectors</small>
+      </div>
+      <div className="portfolio-sector-pie-layout">
+        <div className="portfolio-sector-pie-stage" style={{ "--sector-pie-gradient": `conic-gradient(${stops})` }}>
+          <div className="portfolio-sector-pie-3d" />
+          <div className="portfolio-sector-pie-core">
+            <b>{Number(activeItem?.weight || 0).toFixed(1)}%</b>
+            <span>{activeItem?.name || "Sector"}</span>
+          </div>
+        </div>
+        <div className="portfolio-sector-pie-list">
+          {clean.map((item, index) => (
+            <button
+              type="button"
+              key={item.name}
+              className={`portfolio-sector-pie-row ${active === index ? "active" : ""}`}
+              onMouseEnter={() => setActive(index)}
+              onFocus={() => setActive(index)}
+              onClick={() => onSelectSector?.(item.name)}
+            >
+              <span className="portfolio-sector-dot" style={{ "--sector-dot": colors[index % colors.length] }} />
+              <strong>{item.name}</strong>
+              <b>{item.weight.toFixed(1)}%</b>
+              <small>{item.score === null ? "N/A" : item.score.toFixed(1)}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function PortfolioPage({ onBack, onAnalyze }) {
   const { user } = useUser();
   const firstName =
@@ -2971,6 +3088,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     "Your";
   const portfolioTitle = `${firstName}'s Portfolio`;
   const storageKey = portfolioStorageKeyFor(user);
+  const columnStorageKey = portfolioColumnStorageKeyFor(user);
 
   const [csvName, setCsvName] = useState("");
   const [csvAnalysis, setCsvAnalysis] = useState(null);
@@ -2987,13 +3105,21 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const [activeIndustry, setActiveIndustry] = useState("");
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
-  const [industryScoresOpen, setIndustryScoresOpen] = useState(false);
+  const [sectorScoresOpen, setIndustryScoresOpen] = useState(false);
   const [portfolioInsightModal, setPortfolioInsightModal] = useState(null);
   const [metricModal, setMetricModal] = useState(null);
   const holdingsSectionRef = useRef(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [strategyTargets, setStrategyTargets] = useState({});
   const [strategySavedLabel, setStrategySavedLabel] = useState("");
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [visibleHoldingColumns, setVisibleHoldingColumns] = useState(() => {
+    try {
+      return normalizePortfolioVisibleColumns(JSON.parse(localStorage.getItem(columnStorageKey) || "null"));
+    } catch {
+      return normalizePortfolioVisibleColumns(null);
+    }
+  });
 
   useEffect(() => {
     const onRemotePortfolio = (event) => {
@@ -3030,17 +3156,41 @@ function PortfolioPage({ onBack, onAnalyze }) {
   }, [storageKey]);
 
   useEffect(() => {
-    if (!csvAnalysis?.industryGroups?.length) return;
-    setActiveIndustry((current) => current || csvAnalysis.industryGroups[0]?.industry || "");
-    setOpenIndustries({});
+    try {
+      localStorage.setItem(columnStorageKey, JSON.stringify(visibleHoldingColumns));
+    } catch {
+      // Column preferences are optional.
+    }
+  }, [visibleHoldingColumns, columnStorageKey]);
+
+  useEffect(() => {
+    try {
+      setVisibleHoldingColumns(normalizePortfolioVisibleColumns(JSON.parse(localStorage.getItem(columnStorageKey) || "null")));
+    } catch {
+      setVisibleHoldingColumns(normalizePortfolioVisibleColumns(null));
+    }
+  }, [columnStorageKey]);
+
+  useEffect(() => {
+    const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
+    if (!groups.length) return;
+    setActiveIndustry((current) => current || groups[0]?.sector || groups[0]?.industry || "");
+    setOpenIndustries(
+      groups.reduce((acc, group) => {
+        const name = group?.sector || group?.industry;
+        if (name) acc[name] = true;
+        return acc;
+      }, {})
+    );
   }, [csvAnalysis]);
 
   useEffect(() => {
-    if (!csvAnalysis?.industryGroups?.length) {
+    const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
+    if (!groups.length) {
       setPortfolioEarnings([]);
       return;
     }
-    const symbols = [...new Set(csvAnalysis.industryGroups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))];
+    const symbols = [...new Set(groups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))];
     if (!symbols.length) return;
     let alive = true;
     async function loadPortfolioEarnings() {
@@ -3183,12 +3333,18 @@ function PortfolioPage({ onBack, onAnalyze }) {
   }
 
   function removeManualRow(id) {
-    setManualRows((rows) => rows.length <= 1 ? rows : rows.filter((row) => row.id !== id));
+    setManualRows((rows) => {
+      if (rows.length <= 1) return rows;
+      const row = rows.find((item) => item.id === id);
+      const label = String(row?.symbol || "this entry").trim().toUpperCase() || "this entry";
+      if (!window.confirm(`Delete ${label} from manual entry?`)) return rows;
+      return rows.filter((row) => row.id !== id);
+    });
   }
   function loadSavedHoldingsIntoManualEntry() {
     const source = savedHoldings.length
       ? savedHoldings
-      : (csvAnalysis?.industryGroups || []).flatMap((group) => group.holdings || []);
+      : (csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || []).flatMap((group) => group.holdings || []);
     if (!source.length) {
       setManualRows((rows) => rows.length ? rows : [blankManualHolding()]);
       return;
@@ -3243,14 +3399,55 @@ function PortfolioPage({ onBack, onAnalyze }) {
     return [...bySymbol.values()].filter((holding) => holding.symbol && Number(holding.shares) > 0);
   }
 
-  function toggleIndustry(industry) {
-    setOpenIndustries((current) => ({ ...current, [industry]: !current?.[industry] }));
+  function visiblePortfolioColumnsList() {
+    const chosen = PORTFOLIO_HOLDING_COLUMNS.filter((column) => visibleHoldingColumns[column.key]);
+    return chosen.length ? chosen : PORTFOLIO_HOLDING_COLUMNS.filter((column) => column.key === "eval");
   }
 
-  function updateStrategyTarget(industry, value) {
+  function holdingsGridTemplate() {
+    const columns = visiblePortfolioColumnsList();
+    const units = ["minmax(118px, 1.35fr)"];
+    columns.forEach((column) => {
+      if (column.key === "return") units.push("minmax(92px, .95fr)");
+      else if (column.key === "eval") units.push("minmax(48px, .5fr)");
+      else units.push("minmax(66px, .72fr)");
+    });
+    return units.join(" ");
+  }
+
+  function toggleHoldingColumn(key) {
+    setVisibleHoldingColumns((current) => {
+      const next = { ...current, [key]: !current[key] };
+      if (!Object.values(next).some(Boolean)) next[key] = true;
+      return next;
+    });
+  }
+
+  function showAllHoldingColumns() {
+    setVisibleHoldingColumns({ ...DEFAULT_PORTFOLIO_VISIBLE_COLUMNS });
+  }
+
+  function compactHoldingColumns() {
+    setVisibleHoldingColumns({
+      shares: false,
+      averageCost: false,
+      currentPrice: false,
+      value: true,
+      return: true,
+      portfolioWeight: true,
+      sectorWeight: false,
+      eval: true,
+    });
+  }
+
+  function toggleIndustry(sector) {
+    setOpenIndustries((current) => ({ ...current, [sector]: !current?.[sector] }));
+  }
+
+  function updateStrategyTarget(sector, value) {
     const clean = String(value || "").replace(/[^0-9.]/g, "");
     setStrategySavedLabel("");
-    setStrategyTargets((current) => ({ ...current, [industry]: clean }));
+    setStrategyTargets((current) => ({ ...current, [sector]: clean }));
   }
 
   function saveStrategyTargets(nextTargets = strategyTargets) {
@@ -3270,8 +3467,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   function applyCurrentStrategyWeights() {
     const next = {};
-    (csvAnalysis?.industryGroups || []).forEach((group) => {
-      next[group.industry] = Number(group.totalWeightPercent || 0).toFixed(1);
+    (csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || []).forEach((group) => {
+      next[group.sector || group.industry] = Number(group.totalWeightPercent || 0).toFixed(1);
     });
     setStrategyTargets(next);
     setStrategySavedLabel("Review and save current weights");
@@ -3279,31 +3476,31 @@ function PortfolioPage({ onBack, onAnalyze }) {
 
   function normalizeStrategyWeights(rawWeights, groups) {
     const next = {};
-    const present = (groups || []).map((group) => group.industry).filter(Boolean);
+    const present = (groups || []).map((group) => group.sector || group.industry).filter(Boolean);
     if (!present.length) return next;
 
     let total = 0;
-    present.forEach((industry) => {
-      const exact = rawWeights[industry];
+    present.forEach((sector) => {
+      const exact = rawWeights[sector];
       const fuzzyKey = Object.keys(rawWeights).find((name) => {
         const a = String(name).toLowerCase();
-        const b = String(industry).toLowerCase();
+        const b = String(sector).toLowerCase();
         return a === b || a.includes(b) || b.includes(a);
       });
       const value = Number(exact ?? rawWeights[fuzzyKey] ?? 0);
       const cleaned = Number.isFinite(value) ? Math.max(0, value) : 0;
-      next[industry] = cleaned;
+      next[sector] = cleaned;
       total += cleaned;
     });
 
     if (total <= 0) {
       const equal = 100 / present.length;
-      present.forEach((industry) => { next[industry] = equal; });
+      present.forEach((sector) => { next[sector] = equal; });
       total = 100;
     }
 
-    Object.keys(next).forEach((industry) => {
-      next[industry] = Number(((next[industry] / total) * 100).toFixed(1));
+    Object.keys(next).forEach((sector) => {
+      next[sector] = Number(((next[sector] / total) * 100).toFixed(1));
     });
 
     const roundedTotal = Object.values(next).reduce((sum, value) => sum + Number(value || 0), 0);
@@ -3314,20 +3511,20 @@ function PortfolioPage({ onBack, onAnalyze }) {
     }
 
     const formatted = {};
-    Object.entries(next).forEach(([industry, value]) => {
-      formatted[industry] = Number(value).toFixed(1);
+    Object.entries(next).forEach(([sector, value]) => {
+      formatted[sector] = Number(value).toFixed(1);
     });
     return formatted;
   }
 
   function applyEvalStrategy() {
-    const groups = csvAnalysis?.industryGroups || [];
+    const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
     if (!groups.length) return;
 
     const ranked = [...groups]
       .map((group) => ({
-        industry: group.industry,
-        score: Number(group.industryEvalScore || group.score || 0),
+        sector: group.sector || group.industry,
+        score: Number(group.sectorEvalScore ?? group.industryEvalScore ?? group.score ?? 0),
         current: Number(group.totalWeightPercent || 0),
       }))
       .sort((a, b) => (b.score - a.score) || (b.current - a.current));
@@ -3356,7 +3553,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
       else if (group.score < 5.5) target *= 0.7;
       else if (group.score < 6.3) target *= 0.85;
 
-      rawTargets[group.industry] = target;
+      rawTargets[group.sector] = target;
     });
 
     const next = normalizeStrategyWeights(rawTargets, groups);
@@ -3365,31 +3562,32 @@ function PortfolioPage({ onBack, onAnalyze }) {
   }
 
   function buildStrategySuggestions() {
-    const groups = csvAnalysis?.industryGroups || [];
+    const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
     if (!groups.length) return [];
     return groups.map((group) => {
       const actual = Number(group.totalWeightPercent || 0);
-      const target = Number(strategyTargets[group.industry]);
+      const sectorName = group.sector || group.industry;
+      const target = Number(strategyTargets[sectorName]);
       const diff = Number.isFinite(target) ? actual - target : null;
-      const score = Number(group.industryEvalScore || 0);
-      let action = "Set a target weight to compare this industry.";
+      const score = Number(group.sectorEvalScore ?? group.industryEvalScore ?? 0);
+      let action = "Set a target weight to compare this sector.";
       let tone = "neutral";
       if (Number.isFinite(diff)) {
         if (diff >= 8 || (target > 0 && actual / target >= 1.25)) {
-          action = score >= 7.5 ? "Above target but high quality; consider trimming only if it keeps stretching past the strategy range." : "Above target by a wide margin; consider trimming or redirecting new cash into underweight industries.";
+          action = score >= 7.5 ? "Above target but high quality; consider trimming only if it keeps stretching past the strategy range." : "Above target by a wide margin; consider trimming or redirecting new cash into underweight sectors.";
           tone = "red";
         } else if (diff > 3) {
           action = "Slightly above target; watch the weight before adding more here.";
           tone = "yellow";
         } else if (diff <= -5) {
-          action = score >= 7.0 ? "Below target with a solid score; consider adding through the strongest holdings in this industry." : "Below target, but wait for stronger Eval Scores before adding heavily.";
+          action = score >= 7.0 ? "Below target with a solid score; consider adding through the strongest holdings in this sector." : "Below target, but wait for stronger Eval Scores before adding heavily.";
           tone = score >= 7 ? "green" : "yellow";
         } else {
           action = "Close to target; no major rebalance pressure.";
           tone = "green";
         }
       }
-      return { industry: group.industry, actual, target: Number.isFinite(target) ? target : null, diff, score, action, tone };
+      return { sector: sectorName, actual, target: Number.isFinite(target) ? target : null, diff, score, action, tone };
     });
   }
 
@@ -3398,7 +3596,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
     const holdings = aggregateManualPortfolioRows(manualRows);
 
     if (!holdings.length) {
-      setCsvError("Add at least one ticker and share count before analyzing.");
+      setCsvError("Add at least one ticker and share count before saving.");
       return;
     }
 
@@ -3408,8 +3606,14 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
 
-  const industryGroups = csvAnalysis?.industryGroups || [];
-  const portfolioScoreLookup = industryGroups.reduce((acc, group) => {
+  const sectorGroups = (csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || []).map((group) => ({
+    ...group,
+    sector: group?.sector || group?.industry || "Other",
+    industry: group?.sector || group?.industry || "Other",
+    sectorEvalScore: group?.sectorEvalScore ?? group?.industryEvalScore,
+    industryEvalScore: group?.sectorEvalScore ?? group?.industryEvalScore,
+  }));
+  const portfolioScoreLookup = sectorGroups.reduce((acc, group) => {
     (group?.holdings || []).forEach((holding) => {
       const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
       const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
@@ -3424,8 +3628,10 @@ function PortfolioPage({ onBack, onAnalyze }) {
   const totalHoldingsChangePct = csvAnalysis?.summary?.totalReturnPercent;
   const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
-  const prosCons = buildPortfolioProsCons(industryGroups);
+  const prosCons = buildPortfolioProsCons(sectorGroups);
   const strategySuggestions = buildStrategySuggestions();
+  const holdingColumns = visiblePortfolioColumnsList();
+  const holdingsTemplate = holdingsGridTemplate();
 
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
@@ -3466,7 +3672,7 @@ function PortfolioPage({ onBack, onAnalyze }) {
           <div>
             <span className="section-title"><BarChart3 size={17}/> Upload</span>
             <h3>Import portfolio</h3>
-            <p>CSV headers accepted: <b>Symbol</b>, <b>Quantity</b>, <b>Purchase Price</b>. Eval calculates value, return, weights, industries, and score.</p>
+            <p>CSV headers accepted: <b>Symbol</b>, <b>Quantity</b>, <b>Purchase Price</b>. Eval calculates value, return, weights, sectors, and score.</p>
           </div>
           <div className="portfolio-csv-actions">
             <button type="button" className="portfolio-template-btn" onClick={() => downloadPortfolioTemplate(firstName)}>Template</button>
@@ -3511,14 +3717,14 @@ function PortfolioPage({ onBack, onAnalyze }) {
               ))}
             </div>
             <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
-              <Sparkles size={16}/> Analyze
+              <Sparkles size={16}/> Save selected
             </button>
           </article>
         )}
       </section>
       )}
 
-      {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, industries, and weighted portfolio metrics.</p></div>}
+      {csvLoading && <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Scoring portfolio</h3><p>Eval is recalculating current prices, Eval Scores, sectors, and weighted portfolio metrics.</p></div>}
       {csvError && <div className="error-banner"><AlertTriangle size={18}/>{csvError}</div>}
 
       {csvAnalysis && !csvLoading && (
@@ -3552,8 +3758,8 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <span>Positions</span>
               <strong>{csvAnalysis?.summary?.holdingsScored || savedHoldings.length || 0}</strong>
               <b>holdings</b>
-              <strong>{industryGroups.length}</strong>
-              <b>industries</b>
+              <strong>{sectorGroups.length}</strong>
+              <b>sectors</b>
             </article>
 
           </div>
@@ -3567,93 +3773,89 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <b>CONS</b>
               <small>Click to view</small>
             </button>
-            <button type="button" className={`portfolio-action-tile industries ${industryScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
-              <b>Industries</b>
-              <small>{industryScoresOpen ? "Close" : "View"}</small>
+            <button type="button" className={`portfolio-action-tile industries ${sectorScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
+              <b>Sectors</b>
+              <small>{sectorScoresOpen ? "Close" : "View"}</small>
             </button>
-            <button type="button" className={`portfolio-action-tile strategy ${strategyOpen ? "open" : ""}`} onClick={() => setStrategyOpen((open) => !open)}>
-              <b>Targets</b>
-              <small>{strategyOpen ? "Close" : "Set"}</small>
-            </button>
-            <button type="button" className="portfolio-action-tile holdings" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-              <b>Holdings</b>
-              <small>Jump</small>
+            <button type="button" className="portfolio-action-tile holdings portfolio-holdings-jump-arrow" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Jump to holdings">
+              <b>↓</b>
             </button>
           </div>
 
-          {industryScoresOpen && (
+          <SectorAllocationPie groups={sectorGroups} onSelectSector={(sector) => {
+            setOpenIndustries((current) => ({ ...current, [sector]: true }));
+            setTimeout(() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+          }} />
+
+          {sectorScoresOpen && (
             <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
-              <IndustryBars groups={industryGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.industry} metrics`, subtitle: `Weighted metrics inside ${group.industry}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
+              <IndustryBars groups={sectorGroups} onSelectIndustry={(group) => setMetricModal({ title: `${group.sector} metrics`, subtitle: `Weighted metrics inside ${group.sector}.`, entries: weightedMetricEntriesFromIndustry(group) })} />
             </div>
           )}
 
-          <section className={`portfolio-strategy-panel-v1 ${strategyOpen ? "open" : "closed"}`}>
-            {strategyOpen && (
-              <div className="portfolio-strategy-body-v1">
-                <div className="portfolio-strategy-inline-head"><Target size={17}/> <b>Target weights</b></div>
-                <div className="portfolio-strategy-actions-v1">
-                  <button type="button" onClick={applyEvalStrategy}>Use Eval Strategy</button>
-                  <button type="button" onClick={applyCurrentStrategyWeights}>Use current weights</button>
-                  <button type="button" className="portfolio-strategy-save-btn" onClick={() => saveStrategyTargets(strategyTargets)}>Save Strategy</button>
-                  {strategySavedLabel ? <span className="portfolio-strategy-saved-label">{strategySavedLabel}</span> : null}
-                </div>
-                <div className="portfolio-strategy-target-grid-v1">
-                  {industryGroups.map((group) => (
-                    <label key={group.industry}>
-                      <span>{group.industry}</span>
-                      <small>Current {Number(group.totalWeightPercent || 0).toFixed(1)}% • Target {strategyTargets[group.industry] ? `${Number(strategyTargets[group.industry]).toFixed(1)}%` : "not set"}</small>
-                      <input value={strategyTargets[group.industry] || ""} onChange={(event) => updateStrategyTarget(group.industry, event.target.value)} placeholder={`${Number(group.totalWeightPercent || 0).toFixed(1)}%`} inputMode="decimal" />
-                    </label>
-                  ))}
-                </div>
-                <div className="portfolio-strategy-suggestions-v1">
-                  {strategySuggestions.map((item) => (
-                    <article className={`portfolio-strategy-suggestion ${item.tone}`} key={item.industry}>
-                      <strong>{item.industry}</strong>
-                      <span>Now {item.actual.toFixed(1)}%{item.target !== null ? ` / target ${item.target.toFixed(1)}%` : ""} • Eval {scoreText(item.score)}</span>
-                      <p>{item.action}</p>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
 
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
-            <div className="portfolio-section-head">
+            <div className="portfolio-section-head portfolio-holdings-control-head">
               <div>
                 <span className="section-title"><Activity size={17}/> Holdings</span>
-                <h3>By industry</h3>
+                <h3>By sector</h3>
+              </div>
+              <div className="portfolio-column-control-wrap">
+                <button type="button" className={`portfolio-column-toggle-btn ${columnsOpen ? "open" : ""}`} onClick={() => setColumnsOpen((open) => !open)}>
+                  Columns
+                </button>
+                {columnsOpen && (
+                  <div className="portfolio-column-menu">
+                    <div className="portfolio-column-menu-actions">
+                      <button type="button" onClick={showAllHoldingColumns}>All</button>
+                      <button type="button" onClick={compactHoldingColumns}>Compact</button>
+                    </div>
+                    {PORTFOLIO_HOLDING_COLUMNS.map((column) => (
+                      <label key={column.key} className={visibleHoldingColumns[column.key] ? "active" : ""}>
+                        <input type="checkbox" checked={Boolean(visibleHoldingColumns[column.key])} onChange={() => toggleHoldingColumn(column.key)} />
+                        <span>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            {industryGroups.map((group) => {
-              const isOpen = !!openIndustries[group.industry];
+            {sectorGroups.map((group) => {
+              const isOpen = openIndustries[group.sector] !== false;
               return (
-              <article className={`portfolio-industry-block portfolio-industry-block-v3 portfolio-industry-tab ${scoreTone(group.industryEvalScore)} ${isOpen ? "open" : "closed"}`} key={group.industry}>
-                <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.industry)}>
+              <article className={`portfolio-industry-block portfolio-industry-block-v3 portfolio-industry-tab ${scoreTone(group.sectorEvalScore)} ${isOpen ? "open" : "closed"}`} key={group.sector}>
+                <button type="button" className="portfolio-industry-head portfolio-industry-head-v3 portfolio-industry-tab-toggle" onClick={() => toggleIndustry(group.sector)}>
                   <div className="portfolio-industry-title-v3">
-                    <span>{group.industry}</span>
-                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% current{strategyTargets[group.industry] ? ` / ${Number(strategyTargets[group.industry]).toFixed(1)}% target` : ""} • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Close" : "Open"}</small>
+                    <span>{group.sector}</span>
+                    <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Close" : "Open"}</small>
                   </div>
-                  <MiniScoreRing value={group.industryEvalScore} small industry />
+                  <MiniScoreRing value={group.sectorEvalScore} small industry />
                 </button>
                 {isOpen && (
-                  <div className="portfolio-holdings-table portfolio-industry-table-v3">
-                    <div className="portfolio-holding-row header"><span>Stock</span><span>Shares</span><span>Avg. cost</span><span>Value</span><span>Return</span><span>Port. weight</span><span>Ind. weight</span><span>Eval</span></div>
-                    {(group.holdings || []).map((holding) => (
-                      <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)}>
+                  <div className="portfolio-holdings-table portfolio-industry-table-v3" style={{ "--holding-grid-template": holdingsTemplate }}>
+                    <div className="portfolio-holding-row header" style={{ gridTemplateColumns: holdingsTemplate }}>
+                      <span>Stock</span>
+                      {holdingColumns.map((column) => <span key={column.key}>{column.shortLabel || column.label}</span>)}
+                    </div>
+                    {(group.holdings || []).map((holding) => {
+                      const holdingCells = {
+                        shares: <span key="shares">{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>,
+                        averageCost: <span key="averageCost">{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>,
+                        currentPrice: <span key="currentPrice">{money(currentHoldingPriceValue(holding))}</span>,
+                        value: <span key="value">{money(holding.holdingDollars)}</span>,
+                        return: <span key="return" className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>,
+                        portfolioWeight: <span key="portfolioWeight">{Number(holding.weightPercent || 0).toFixed(2)}%</span>,
+                        sectorWeight: <span key="sectorWeight">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
+                        eval: <span key="eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
+                      };
+                      return (
+                      <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
                         <span><b>{holding.symbol}</b><small>{holding.name}</small></span>
-                        <span>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                        <span>{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>
-                        <span>{money(holding.holdingDollars)}</span>
-                        <span className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>
-                        <span>{Number(holding.weightPercent || 0).toFixed(2)}%</span>
-                        <span>{Number(holding.industryWeightPercent || 0).toFixed(1)}%</span>
-                        <span><MiniScoreRing value={holding.edgeScore} small /></span>
+                        {holdingColumns.map((column) => holdingCells[column.key])}
                       </button>
-                    ))}
+                    );})}
                   </div>
                 )}
               </article>
@@ -3740,7 +3942,7 @@ function LandingPage({ onContinue }) {
     {
       icon: <PieChart size={22} />,
       title: "Portfolio scoring",
-      text: "Users can upload a CSV or manually enter holdings. Eval calculates current holding value, returns, industry weights, weighted Portfolio Eval Score, and category-level portfolio metrics.",
+      text: "Users can upload a CSV or manually enter holdings. Eval calculates current holding value, returns, sector weights, weighted Portfolio Eval Score, and category-level portfolio metrics.",
     },
     {
       icon: <Newspaper size={22} />,
@@ -3788,7 +3990,7 @@ function LandingPage({ onContinue }) {
     {
       number: "07",
       title: "Upload a portfolio",
-      text: "Users can upload the CSV template or enter trades manually. Eval calculates current market value, returns, industry weights, and a weighted Portfolio Eval Score.",
+      text: "Users can upload the CSV template or enter trades manually. Eval calculates current market value, returns, sector weights, and a weighted Portfolio Eval Score.",
     },
     {
       number: "08",
@@ -7466,42 +7668,42 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "What is an industry ranking page?",
-    "answer": "It shows top-ranked stocks in a similar industry using Eval\u2019s cached analysis data."
+    "question": "What is an sector ranking page?",
+    "answer": "It shows top-ranked stocks in a similar sector using Eval\u2019s cached analysis data."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry ranking reuse cached stock data?",
+    "question": "Does sector ranking reuse cached stock data?",
     "answer": "Yes. Industry stocks use the same cached analysis system and category TTL rules as normal reports."
   },
   {
     "category": "Industry rankings",
-    "question": "Can I hide stocks on the industry radar?",
+    "question": "Can I hide stocks on the sector radar?",
     "answer": "Yes. Click the ticker label to hide or show that company on the radar."
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry page in Eval?",
-    "answer": "In Eval, industry page is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector page in Eval?",
+    "answer": "In Eval, sector page is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry page mean in Eval?",
-    "answer": "industry page is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector page mean in Eval?",
+    "answer": "sector page is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry page important?",
-    "answer": "industry page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector page important?",
+    "answer": "sector page helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry page?",
-    "answer": "Yes. Eval AI can explain industry page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector page?",
+    "answer": "Yes. Eval AI can explain sector page when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry page looks wrong?",
+    "question": "What should I do if sector page looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -7531,52 +7733,52 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry radar in Eval?",
-    "answer": "In Eval, industry radar is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector radar in Eval?",
+    "answer": "In Eval, sector radar is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry radar mean in Eval?",
-    "answer": "industry radar is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector radar mean in Eval?",
+    "answer": "sector radar is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry radar important?",
-    "answer": "industry radar helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector radar important?",
+    "answer": "sector radar helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry radar?",
-    "answer": "Yes. Eval AI can explain industry radar when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector radar?",
+    "answer": "Yes. Eval AI can explain sector radar when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry radar looks wrong?",
+    "question": "What should I do if sector radar looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry ranking in Eval?",
-    "answer": "In Eval, industry ranking is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector ranking in Eval?",
+    "answer": "In Eval, sector ranking is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry ranking mean in Eval?",
-    "answer": "industry ranking is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector ranking mean in Eval?",
+    "answer": "sector ranking is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry ranking important?",
-    "answer": "industry ranking helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector ranking important?",
+    "answer": "sector ranking helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry ranking?",
-    "answer": "Yes. Eval AI can explain industry ranking when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector ranking?",
+    "answer": "Yes. Eval AI can explain sector ranking when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry ranking looks wrong?",
+    "question": "What should I do if sector ranking looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -7606,27 +7808,27 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry ticker in Eval?",
-    "answer": "In Eval, industry ticker is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector ticker in Eval?",
+    "answer": "In Eval, sector ticker is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry ticker mean in Eval?",
-    "answer": "industry ticker is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector ticker mean in Eval?",
+    "answer": "sector ticker is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry ticker important?",
-    "answer": "industry ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector ticker important?",
+    "answer": "sector ticker helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry ticker?",
-    "answer": "Yes. Eval AI can explain industry ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector ticker?",
+    "answer": "Yes. Eval AI can explain sector ticker when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry ticker looks wrong?",
+    "question": "What should I do if sector ticker looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -7656,52 +7858,52 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry description in Eval?",
-    "answer": "In Eval, industry description is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector description in Eval?",
+    "answer": "In Eval, sector description is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry description mean in Eval?",
-    "answer": "industry description is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector description mean in Eval?",
+    "answer": "sector description is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry description important?",
-    "answer": "industry description helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector description important?",
+    "answer": "sector description helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry description?",
-    "answer": "Yes. Eval AI can explain industry description when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector description?",
+    "answer": "Yes. Eval AI can explain sector description when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry description looks wrong?",
+    "question": "What should I do if sector description looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
     "category": "Industry rankings",
-    "question": "How do I open industry cache in Eval?",
-    "answer": "In Eval, industry cache is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I open sector cache in Eval?",
+    "answer": "In Eval, sector cache is handled inside the Industry rankings area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Industry rankings",
-    "question": "What does industry cache mean in Eval?",
-    "answer": "industry cache is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector cache mean in Eval?",
+    "answer": "sector cache is part of the Industry rankings experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Industry rankings",
-    "question": "Why is industry cache important?",
-    "answer": "industry cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector cache important?",
+    "answer": "sector cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Industry rankings",
-    "question": "Can Eval AI explain industry cache?",
-    "answer": "Yes. Eval AI can explain industry cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector cache?",
+    "answer": "Yes. Eval AI can explain sector cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Industry rankings",
-    "question": "What should I do if industry cache looks wrong?",
+    "question": "What should I do if sector cache looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -7731,13 +7933,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "Can users open industry page from the dashboard?",
+    "question": "Can users open sector page from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry page update automatically?",
-    "answer": "industry page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector page update automatically?",
+    "answer": "sector page updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
@@ -7751,23 +7953,23 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "Can users compare industry radar from the dashboard?",
+    "question": "Can users compare sector radar from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry radar update automatically?",
-    "answer": "industry radar updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector radar update automatically?",
+    "answer": "sector radar updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
-    "question": "Can users read industry ranking from the dashboard?",
+    "question": "Can users read sector ranking from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry ranking update automatically?",
-    "answer": "industry ranking updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector ranking update automatically?",
+    "answer": "sector ranking updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
@@ -7781,13 +7983,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "Can users show industry ticker from the dashboard?",
+    "question": "Can users show sector ticker from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry ticker update automatically?",
-    "answer": "industry ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector ticker update automatically?",
+    "answer": "sector ticker updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
@@ -7801,23 +8003,23 @@ const EVAL_FAQS = [
   },
   {
     "category": "Industry rankings",
-    "question": "Can users review industry description from the dashboard?",
+    "question": "Can users review sector description from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry description update automatically?",
-    "answer": "industry description updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector description update automatically?",
+    "answer": "sector description updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
-    "question": "Can users select industry cache from the dashboard?",
+    "question": "Can users select sector cache from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Industry rankings",
-    "question": "Does industry cache update automatically?",
-    "answer": "industry cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector cache update automatically?",
+    "answer": "sector cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Industry rankings",
@@ -8436,27 +8638,27 @@ const EVAL_FAQS = [
   },
   {
     "category": "Eval AI",
-    "question": "How do I answer industry help in Eval?",
-    "answer": "In Eval, industry help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
+    "question": "How do I answer sector help in Eval?",
+    "answer": "In Eval, sector help is handled inside the Eval AI area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
   },
   {
     "category": "Eval AI",
-    "question": "What does industry help mean in Eval?",
-    "answer": "industry help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
+    "question": "What does sector help mean in Eval?",
+    "answer": "sector help is part of the Eval AI experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
   },
   {
     "category": "Eval AI",
-    "question": "Why is industry help important?",
-    "answer": "industry help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
+    "question": "Why is sector help important?",
+    "answer": "sector help helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
   },
   {
     "category": "Eval AI",
-    "question": "Can Eval AI explain industry help?",
-    "answer": "Yes. Eval AI can explain industry help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
+    "question": "Can Eval AI explain sector help?",
+    "answer": "Yes. Eval AI can explain sector help when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
   },
   {
     "category": "Eval AI",
-    "question": "What should I do if industry help looks wrong?",
+    "question": "What should I do if sector help looks wrong?",
     "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
   },
   {
@@ -8551,13 +8753,13 @@ const EVAL_FAQS = [
   },
   {
     "category": "Eval AI",
-    "question": "Can users clarify industry help from the dashboard?",
+    "question": "Can users clarify sector help from the dashboard?",
     "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
   },
   {
     "category": "Eval AI",
-    "question": "Does industry help update automatically?",
-    "answer": "industry help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
+    "question": "Does sector help update automatically?",
+    "answer": "sector help updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
     "category": "Account",
@@ -9439,13 +9641,13 @@ function buildEvalExtraFaqs() {
     ["Ticker Lookup", "ticker results", "Ticker Lookup is only a reference list. Copy the ticker or type it in the main search box when you want to run a full stock analysis."],
     ["Navigation", "Other dropdown", "Open the menu and click Other to reveal Homepage, FAQs, Terms & Conditions, and Contact as an indented list."],
     ["Navigation", "The Morning Mug", "The Morning Mug is the coffee-cup page for pre-market indexes, CNBC headlines, portfolio movers, alerts, insider transactions, and upcoming earnings when a portfolio is loaded."],
-    ["Portfolio", "portfolio upload", "Upload the Eval CSV template with ticker, shares, and average cost. Eval fetches current prices, calculates current value, returns, weights, industry scores, and the total Portfolio Eval Score."],
+    ["Portfolio", "portfolio upload", "Upload the Eval CSV template with ticker, shares, and average cost. Eval fetches current prices, calculates current value, returns, weights, sector scores, and the total Portfolio Eval Score."],
     ["Portfolio", "manual portfolio entry", "Manual Entry lets users add shares, remove shares, mark closed positions, and refresh the saved portfolio without starting over."],
-    ["Portfolio", "holdings section", "Holdings are grouped by industry. Each industry divider starts closed and opens when clicked."],
-    ["Portfolio", "industry score", "Each industry score is a weighted average of the stocks inside that industry using each stock's weight within that industry."],
-    ["Portfolio", "portfolio score", "The Portfolio Eval Score uses each industry score multiplied by that industry's current percentage of the portfolio."],
-    ["Portfolio", "Eval Strategy", "Eval Strategy lets users set target industry weights. Eval then compares current weights to targets for educational trim or rebalance ideas."],
-    ["Portfolio", "trim ideas", "Trim ideas focus on industries that are meaningfully above target and the holdings driving that overweight position."],
+    ["Portfolio", "holdings section", "Holdings are grouped by sector. Each sector divider starts closed and opens when clicked."],
+    ["Portfolio", "sector score", "Each sector score is a weighted average of the stocks inside that sector using each stock's weight within that sector."],
+    ["Portfolio", "portfolio score", "The Portfolio Eval Score uses each sector score multiplied by that sector's current percentage of the portfolio."],
+    ["Portfolio", "Eval Strategy", "Eval Strategy lets users set target sector weights. Eval then compares current weights to targets for educational trim or rebalance ideas."],
+    ["Portfolio", "trim ideas", "Trim ideas focus on sectors that are meaningfully above target and the holdings driving that overweight position."],
     ["Portfolio", "earnings calendar", "The Portfolio earnings calendar shows upcoming earnings for portfolio stocks over the next four weeks."],
     ["The Morning Mug", "Morning Mug indexes", "The Morning Mug shows S&P 500, Dow Jones, and Nasdaq percent changes using ETF proxies behind the scenes while displaying clean index names."],
     ["The Morning Mug", "Morning Mug news", "The Morning Mug shows CNBC market headlines with brief summaries, links, and a strict 0.0 to 10.0 article score."],
@@ -9454,7 +9656,7 @@ function buildEvalExtraFaqs() {
     ["The Morning Mug", "portfolio movers", "Portfolio movers show the strongest and weakest pre-market moves from the user's saved portfolio."],
     ["Eval AI", "AI Assistant password", "Eval AI is locked during testing. Enter the testing password before asking questions."],
     ["Eval AI", "watchlist questions", "Eval AI can answer brief questions about saved watchlist stocks, strongest names, saved scores, and ticker lookup."],
-    ["Eval AI", "portfolio questions", "Eval AI can answer brief questions about portfolio weights, industry weights, largest holdings, Eval Strategy targets, and trim ideas using saved portfolio data."],
+    ["Eval AI", "portfolio questions", "Eval AI can answer brief questions about portfolio weights, sector weights, largest holdings, Eval Strategy targets, and trim ideas using saved portfolio data."],
     ["Eval AI", "earnings questions", "Eval AI can answer earnings-date questions when the earnings data is already loaded or saved in portfolio context."],
     ["Eval AI", "unknown answers", "When Eval AI cannot answer cleanly from saved, cached, or loaded Eval data, it should respond with: Please try again."],
   ];
@@ -10421,12 +10623,12 @@ function Report({ data, onAdd, onOpenIndustry }) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
-  const [industryOpen, setIndustryOpen] = useState(false);
-  const [industryLoading, setIndustryLoading] = useState(false);
-  const [industryError, setIndustryError] = useState("");
-  const [industryLeaders, setIndustryLeaders] = useState([]);
+  const [sectorOpen, setIndustryOpen] = useState(false);
+  const [sectorLoading, setIndustryLoading] = useState(false);
+  const [sectorError, setIndustryError] = useState("");
+  const [sectorLeaders, setIndustryLeaders] = useState([]);
 
-  const industryName = data.profile?.finnhubIndustry || "Public company";
+  const sectorName = data.profile?.finnhubIndustry || "Public company";
   const newsTopics = Array.isArray(data.newsSentiment?.topics)
     ? data.newsSentiment.topics.slice(0, 3)
     : [];
@@ -10471,8 +10673,8 @@ function Report({ data, onAdd, onOpenIndustry }) {
   }
 
   async function openIndustryPopup() {
-    if (!industryName || industryName === "Public company") return;
-    onOpenIndustry?.(industryName, data.symbol);
+    if (!sectorName || sectorName === "Public company") return;
+    onOpenIndustry?.(sectorName, data.symbol);
   }
 
   const strongest = useMemo(
@@ -10738,12 +10940,12 @@ function Report({ data, onAdd, onOpenIndustry }) {
             <span> · </span>
             <button
               type="button"
-              className="industry-link"
+              className="sector-link"
               onClick={openIndustryPopup}
-              disabled={!industryName || industryName === "Public company"}
-              title={`View top Eval stocks in ${industryName}`}
+              disabled={!sectorName || sectorName === "Public company"}
+              title={`View top Eval stocks in ${sectorName}`}
             >
-              {industryName}
+              {sectorName}
             </button>
           </p>
 
