@@ -3342,14 +3342,14 @@ app.post("/api/portfolio-csv", async (req, res) => {
 
     const weightedCategoryScores = weightedCategoryScoresFromHoldings(holdings);
 
-    const sectorMap = new Map();
+    const industryMap = new Map();
     for (const holding of holdings) {
-      const sector = holding.sector || sectorFromFinnhubIndustry(holding.industry) || "Other";
-      if (!sectorMap.has(sector)) sectorMap.set(sector, []);
-      sectorMap.get(sector).push({ ...holding, sector });
+      const industry = holding.industry || holding.finnhubIndustry || holding.sector || "Other";
+      if (!industryMap.has(industry)) industryMap.set(industry, []);
+      industryMap.get(industry).push({ ...holding, industry });
     }
 
-    const sectorGroups = [...sectorMap.entries()].map(([sector, groupHoldings]) => {
+    const industryGroups = [...industryMap.entries()].map(([industry, groupHoldings]) => {
       const totalWeightPercent = groupHoldings.reduce((sum, row) => sum + row.weightPercent, 0);
       const totalHoldingDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
       const totalCostBasisDollars = groupHoldings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
@@ -3357,30 +3357,31 @@ app.post("/api/portfolio-csv", async (req, res) => {
       const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
       const decorated = groupHoldings
         .map((row) => {
-          const sectorWeightPercent = totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null;
+          const industryWeightPercent = totalWeightPercent > 0 ? Number(((row.weightPercent / totalWeightPercent) * 100).toFixed(1)) : null;
           return {
             ...row,
-            sector,
-            sectorWeightPercent,
-            industryWeightPercent: sectorWeightPercent,
+            industry,
+            sector: row.sector || sectorFromFinnhubIndustry(industry) || industry,
+            industryWeightPercent,
+            sectorWeightPercent: industryWeightPercent,
           };
         })
         .sort((a, b) => b.weightPercent - a.weightPercent);
 
-      const sectorEvalScore = totalWeightPercent > 0
+      const industryEvalScore = totalWeightPercent > 0
         ? Number(decorated.reduce((sum, row) => {
             const score = Number(row.edgeScore);
-            const sectorWeight = Number(row.sectorWeightPercent);
-            if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(sectorWeight) || sectorWeight <= 0) return sum;
-            return sum + score * (sectorWeight / 100);
+            const industryWeight = Number(row.industryWeightPercent);
+            if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(industryWeight) || industryWeight <= 0) return sum;
+            return sum + score * (industryWeight / 100);
           }, 0).toFixed(1))
         : null;
 
       return {
-        sector,
-        industry: sector,
-        sectorEvalScore,
-        industryEvalScore: sectorEvalScore,
+        industry,
+        sector: industry,
+        industryEvalScore,
+        sectorEvalScore: industryEvalScore,
         totalWeightPercent: Number(totalWeightPercent.toFixed(2)),
         totalHoldingDollars: totalHoldingDollars > 0 ? Number(totalHoldingDollars.toFixed(2)) : null,
         totalCostBasisDollars: totalCostBasisDollars > 0 ? Number(totalCostBasisDollars.toFixed(2)) : null,
@@ -3390,17 +3391,17 @@ app.post("/api/portfolio-csv", async (req, res) => {
       };
     }).sort((a, b) => b.totalWeightPercent - a.totalWeightPercent);
 
-    const industryGroups = sectorGroups;
+    const sectorGroups = industryGroups;
 
-    const portfolioEvalScore = Number(sectorGroups.reduce((sum, group) => {
-      const score = Number(group.sectorEvalScore ?? group.industryEvalScore);
+    const portfolioEvalScore = Number(industryGroups.reduce((sum, group) => {
+      const score = Number(group.industryEvalScore ?? group.sectorEvalScore);
       const weight = Number(group.totalWeightPercent);
       if (!Number.isFinite(score) || score <= 0 || !Number.isFinite(weight) || weight <= 0) return sum;
       return sum + score * (weight / 100);
     }, 0).toFixed(1));
 
-    const sectorCount = sectorGroups.length;
-    const industryCount = sectorCount;
+    const industryCount = industryGroups.length;
+    const sectorCount = industryCount;
     const totalCostBasisDollars = holdings.reduce((sum, row) => sum + (Number(row.costBasisDollars) || 0), 0);
     const totalDollarChange = holdings.reduce((sum, row) => sum + (Number(row.dollarChange) || 0), 0);
     const totalReturnPercent = totalCostBasisDollars > 0 ? (totalDollarChange / totalCostBasisDollars) * 100 : null;
