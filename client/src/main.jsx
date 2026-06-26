@@ -1159,7 +1159,7 @@ function App() {
       )}
 
       {view === "portfolio" ? (
-        <PortfolioPage onBack={() => setView("dashboard")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <PortfolioPage onBack={() => setView("dashboard")} onMorning={() => setView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); setView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
@@ -2962,13 +2962,13 @@ function MorningMugsDashboard({ onBack }) {
 
 
 const PORTFOLIO_HOLDING_COLUMNS = [
-  { key: "shares", label: "Shares", shortLabel: "Sh" },
+  { key: "shares", label: "Quantity", shortLabel: "Q" },
   { key: "averageCost", label: "Avg. cost", shortLabel: "Avg" },
   { key: "currentPrice", label: "Current price", shortLabel: "Price" },
   { key: "value", label: "Value", shortLabel: "Value" },
   { key: "return", label: "Return", shortLabel: "Return" },
   { key: "portfolioWeight", label: "Portfolio weight", shortLabel: "Port %" },
-  { key: "sectorWeight", label: "Sector weight", shortLabel: "Sec %" },
+  { key: "sectorWeight", label: "Industry weight", shortLabel: "Ind %" },
   { key: "eval", label: "Eval", shortLabel: "Eval" },
 ];
 
@@ -3003,7 +3003,7 @@ function currentHoldingPriceValue(holding) {
 
 
 
-function PortfolioPage({ onBack, onAnalyze }) {
+function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const { user } = useUser();
   const firstName =
     user?.firstName ||
@@ -3561,10 +3561,9 @@ function PortfolioPage({ onBack, onAnalyze }) {
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
       <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
-        <button type="button" className="back-btn" onClick={onBack}><ArrowLeft size={18}/> Back to dashboard</button>
-        <div className="portfolio-title-mainline">
+        <button type="button" className="back-btn portfolio-back-icon-only" onClick={onBack} aria-label="Back to dashboard"><ArrowLeft size={18}/></button>
+        <div className="portfolio-title-mainline portfolio-title-mainline-clean">
           <div>
-            <span className="assistant-kicker"><Sparkles size={16}/> Portfolio</span>
             <h2>{portfolioTitle}</h2>
           </div>
           {csvAnalysis && (
@@ -3705,10 +3704,15 @@ function PortfolioPage({ onBack, onAnalyze }) {
               <b>Industries</b>
               <small>{sectorScoresOpen ? "Close" : "View"}</small>
             </button>
-            <button type="button" className="portfolio-action-tile holdings portfolio-holdings-jump-arrow" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Jump to holdings">
-              <b>↓</b>
+            <button type="button" className="portfolio-action-tile morning-mug" onClick={onMorning} aria-label="Open The Morning Mug" title="The Morning Mug">
+              <b>☕</b>
+              <small>Mug</small>
             </button>
           </div>
+
+          <button type="button" className="portfolio-holdings-wide-arrow" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Jump to holdings">
+            ↓
+          </button>
 
           {sectorScoresOpen && (
             <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
@@ -3768,13 +3772,13 @@ function PortfolioPage({ onBack, onAnalyze }) {
                     </div>
                     {(group.holdings || []).map((holding) => {
                       const holdingCells = {
-                        shares: <span key="shares" data-label="Shares">{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>,
+                        shares: <span key="shares" data-label="Q">{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>,
                         averageCost: <span key="averageCost" data-label="Avg cost">{money(holding.averageCost ?? holding.avgCost ?? 0)}</span>,
                         currentPrice: <span key="currentPrice" data-label="Price">{money(currentHoldingPriceValue(holding))}</span>,
                         value: <span key="value" data-label="Value">{money(holding.holdingDollars)}</span>,
                         return: <span key="return" data-label="Return" className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>,
                         portfolioWeight: <span key="portfolioWeight" data-label="Weight">{Number(holding.weightPercent || 0).toFixed(2)}%</span>,
-                        sectorWeight: <span key="sectorWeight" data-label="Industry wt">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
+                        sectorWeight: <span key="sectorWeight" data-label="Ind %">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
                         eval: <span key="eval" data-label="Eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
                       };
                       return (
