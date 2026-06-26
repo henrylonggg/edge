@@ -221,7 +221,7 @@ button {
   margin-bottom: 18px;
   padding: 14px 16px;
   border: 1px solid rgba(255,95,115,.35);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(255,95,115,.1);
   color: #ffd9df;
 }
@@ -642,7 +642,7 @@ button {
 .icon-btn,
 .delete-btn {
   width: 38px;
-  height: 38px;
+  height: 42px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.1);
   background: rgba(255,255,255,.08);
@@ -1553,7 +1553,7 @@ button {
   width: 100%;
   min-height: 56px;
   border: 1px solid rgba(255,255,255,.16);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 15px 18px;
   display: inline-flex;
   align-items: center;
@@ -1936,7 +1936,7 @@ button:active,
   top: 98px;
   z-index: 50;
   padding: 15px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.16);
   background:
     radial-gradient(circle at 18% 0%, rgba(21,231,255,.14), transparent 36%),
@@ -2200,7 +2200,7 @@ button:active,
   align-items: flex-start;
   gap: 10px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.17);
   color: rgba(248,251,255,.84);
@@ -2995,7 +2995,7 @@ button:active,
   height: 56px;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.10);
   box-shadow:
@@ -3245,7 +3245,7 @@ button:active,
   gap: 10px;
   padding: 7px;
   margin: 18px 0 18px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.11);
   background: rgba(0,0,0,.22);
 }
@@ -3933,7 +3933,7 @@ button:active,
   align-items: flex-start;
   padding: 14px;
   border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(255,255,255,.045);
   color: rgba(248,251,255,.82);
   line-height: 1.55;
@@ -3952,7 +3952,7 @@ button:active,
 .terms-confirm-input {
   width: 100%;
   border: 1px solid rgba(255,255,255,.12);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(0,0,0,.26);
   color: #ffffff;
   outline: none;
@@ -3970,7 +3970,7 @@ button:active,
 .terms-agree-btn {
   width: 100%;
   border: 1px solid rgba(133,215,19,.45);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 16px 18px;
   display: inline-flex;
   align-items: center;
@@ -5311,7 +5311,7 @@ button:active,
   width: 100%;
   text-align: left;
   border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 13px;
   color: #ffffff;
   background: rgba(255,255,255,.06);
@@ -5323,7 +5323,7 @@ button:active,
 
 .industry-rank {
   width: 38px;
-  height: 38px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 13px;
@@ -7780,7 +7780,7 @@ button:active,
   width: 56px;
   min-width: 56px;
   height: 56px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(0, 180, 176, .72);
   display: inline-flex;
   align-items: center;
@@ -9055,7 +9055,7 @@ button:active,
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.08);
   background: rgba(0,0,0,.12);
   color: #ffffff;
@@ -9127,7 +9127,7 @@ button:active,
 .mag7-summary {
   margin-top: 14px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.09);
   background: rgba(0,0,0,.14);
   display: grid;
@@ -9167,7 +9167,7 @@ button:active,
   display: grid;
   place-items: center;
   text-align: center;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px dashed rgba(255,255,255,.16);
   color: var(--muted);
   background: rgba(255,255,255,.04);
@@ -10229,7 +10229,7 @@ button:active,
 .news-topic-head span {
   display: block;
   color: rgba(226,234,242,.55);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 1000;
   line-height: 1.2;
   text-transform: uppercase;
@@ -14098,7 +14098,7 @@ body::after {
   z-index: 9999;
   pointer-events: none;
   text-align: center;
-  font-size: 9px;
+  font-size: 9.5px;
   line-height: 1;
   letter-spacing: .08em;
   color: rgba(255,255,255,.34);
@@ -14905,7 +14905,7 @@ a[title*="sofi"], a[title*="SoFi"], a[title*="SOFI"] {
 
 .ai-rules-grid > div {
   padding: 13px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.08);
   background: rgba(0,0,0,.16);
 }
@@ -16198,7 +16198,7 @@ aside .ai-rules-card {
 }
 
 .compare-form input {
-  height: 48px;
+  height: 56px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.11);
   background: rgba(0,0,0,.18);
@@ -16212,7 +16212,7 @@ aside .ai-rules-card {
 }
 
 .compare-vs {
-  height: 48px;
+  height: 56px;
   display: grid;
   place-items: center;
   color: rgba(255,255,255,.72);
@@ -16221,7 +16221,7 @@ aside .ai-rules-card {
 }
 
 .compare-form button {
-  height: 48px;
+  height: 56px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.12);
   background: linear-gradient(135deg, rgba(133,255,71,.92), rgba(21,231,255,.74));
@@ -16292,7 +16292,7 @@ aside .ai-rules-card {
 
 .compare-score-divider {
   width: 44px;
-  height: 44px;
+  height: 50px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -16307,7 +16307,7 @@ aside .ai-rules-card {
 .compare-empty {
   margin-top: 14px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(0,0,0,.16);
   border: 1px solid rgba(255,255,255,.07);
 }
@@ -19301,7 +19301,7 @@ body {
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.09);
   background: rgba(255,255,255,.04);
   margin-bottom: 14px;
@@ -21574,7 +21574,7 @@ textarea[placeholder*="Eval interface"]::placeholder {
 }
 
 .faq-mini-nav button {
-  height: 38px;
+  height: 42px;
   border-radius: 13px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.055);
@@ -21623,7 +21623,7 @@ textarea[placeholder*="Eval interface"]::placeholder {
 }
 
 .faq-search-card input {
-  height: 48px;
+  height: 56px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,.11);
   background: linear-gradient(135deg, rgba(7,13,20,.85), rgba(20,18,34,.88));
@@ -21706,7 +21706,7 @@ textarea[placeholder*="Eval interface"]::placeholder {
   color: rgba(133,255,71,.92);
   background: rgba(133,255,71,.08);
   border: 1px solid rgba(133,255,71,.12);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 1000;
   letter-spacing: .10em;
   text-transform: uppercase;
@@ -22219,7 +22219,7 @@ button[aria-label="Open Eval menu"]::after {
 
 .lookup-search-card input {
   height: 52px;
-  border-radius: 17px;
+  border-radius: 19px;
   border: 1px solid rgba(255,255,255,.11);
   background: linear-gradient(135deg, rgba(7,13,20,.86), rgba(20,18,34,.88));
   color: #fff;
@@ -24217,7 +24217,7 @@ body:has(.landing-page-static) .landing-shell-static {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 13px;
-  border-radius: 17px;
+  border-radius: 19px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.20);
   color: var(--text);
@@ -24347,7 +24347,7 @@ body:has(.landing-page-static) .landing-shell-static {
 .ai-score-takeaway {
   margin-top: 14px;
   padding: 13px 15px;
-  border-radius: 18px;
+  border-radius: 20px;
   color: rgba(248,251,255,.78);
   font-size: 12px;
   font-weight: 900;
@@ -24523,7 +24523,7 @@ body:has(.landing-page-static) .landing-shell-static {
 .ai-score-point-card {
   position: relative;
   padding: 15px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.09);
   background:
     radial-gradient(circle at 16% 0%, rgba(255,255,255,.06), transparent 35%),
@@ -24675,7 +24675,7 @@ body:has(.landing-page-static) .landing-shell-static {
 .portfolio-builder-controls select {
   width: 100%;
   min-height: 54px;
-  border-radius: 17px;
+  border-radius: 19px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(0,0,0,.25);
   color: var(--text);
@@ -24689,7 +24689,7 @@ body:has(.landing-page-static) .landing-shell-static {
   grid-template-columns: auto 1fr;
   align-items: center;
   min-height: 54px;
-  border-radius: 17px;
+  border-radius: 19px;
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(0,0,0,.25);
   overflow: hidden;
@@ -24709,7 +24709,7 @@ body:has(.landing-page-static) .landing-shell-static {
 .portfolio-builder-controls > button {
   min-height: 54px;
   border: 1px solid rgba(21,231,255,.36);
-  border-radius: 17px;
+  border-radius: 19px;
   padding: 0 20px;
   color: #fff;
   background: linear-gradient(135deg, rgba(21,231,255,.22), rgba(159,92,255,.28));
@@ -25155,7 +25155,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 .portfolio-csv-upload-btn {
   min-width: 150px;
   min-height: 54px;
-  border-radius: 18px;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -25246,7 +25246,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 .portfolio-skipped-note {
   margin-top: 14px;
   padding: 12px 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   color: rgba(248,251,255,.72);
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.09);
@@ -25818,7 +25818,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   .portfolio-saved-strip {
     align-items: flex-start;
     flex-direction: column;
-    border-radius: 18px;
+    border-radius: 20px;
   }
 }
 
@@ -25885,7 +25885,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 
 .portfolio-manual-row input {
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   border: 1px solid rgba(255,255,255,.115);
   border-radius: 16px;
   background: rgba(0,0,0,.24);
@@ -27198,7 +27198,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 .portfolio-manual-row select,
 .portfolio-manual-row input {
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   border: 1px solid rgba(255,255,255,.115);
   border-radius: 16px;
   background: rgba(0,0,0,.24);
@@ -27442,7 +27442,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   cursor: pointer;
   color: inherit;
   background: rgba(255,255,255,.025);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 12px 14px;
   transition: transform .16s ease, background .16s ease;
 }
@@ -27952,8 +27952,8 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   border: 1px solid rgba(255,255,255,.16);
   background: rgba(255,255,255,.09);
   color: #fff;
-  border-radius: 18px;
-  height: 48px;
+  border-radius: 20px;
+  height: 56px;
   padding: 0 16px;
   display: inline-flex;
   align-items: center;
@@ -28086,7 +28086,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 
 .morning-news-item > span {
   width: 44px;
-  height: 44px;
+  height: 50px;
   display: grid;
   place-items: center;
   border-radius: 16px;
@@ -28738,7 +28738,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
   gap: 10px;
 }
 .portfolio-strategy-suggestion {
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 12px;
   border: 1px solid rgba(255,255,255,.11);
   background: rgba(255,255,255,.045);
@@ -28884,7 +28884,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 
 .earnings-mini-date {
   border: 1px solid rgba(255, 224, 92, 0.22);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(255, 224, 92, 0.08);
   color: rgba(255, 255, 255, 0.94);
   font-weight: 950;
@@ -28901,7 +28901,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 
 .earnings-mini-event {
   border: 1px solid rgba(99, 241, 255, 0.16);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(9, 13, 29, 0.48);
   padding: 12px 14px;
   display: flex;
@@ -28973,7 +28973,7 @@ button.portfolio-holding-row:hover { border-color:rgba(21,231,255,.35); transfor
 .portfolio-earnings-day > div {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 7px;
   align-items: flex-end;
 }
 
@@ -29316,7 +29316,7 @@ body:has(.morning-brew-page-shell) {
   grid-template-columns: 1fr auto;
   gap: 10px 16px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255, 205, 116, .16);
   background: rgba(255,255,255,.045);
 }
@@ -29526,7 +29526,7 @@ body:has(.morning-brew-page-shell) {
 .portfolio-earnings-mobile-list { display: none; }
 .portfolio-earnings-mobile-day {
   border: 1px solid rgba(255, 224, 92, 0.22);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 14px;
   background: rgba(9, 13, 29, 0.46);
   display: grid;
@@ -29544,7 +29544,7 @@ body:has(.morning-brew-page-shell) {
 }
 .portfolio-earnings-mobile-empty {
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 16px;
   color: rgba(255,255,255,.68);
   font-weight: 900;
@@ -29847,7 +29847,7 @@ body:has(.morning-brew-page-shell) {
   position: relative;
   overflow: hidden;
   min-height: 132px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,214,107,.18);
   background: rgba(3,7,18,.42);
   margin-bottom: 8px;
@@ -29921,7 +29921,7 @@ body:has(.morning-brew-page-shell) {
   width: 100%;
   height: 145px;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(255,255,255,.12);
   margin-bottom: 14px;
   background: rgba(5,10,24,.42);
@@ -30062,7 +30062,7 @@ body:has(.morning-brew-page-shell) {
 .morning-insider-toggle {
   width: 100%;
   border: 1px solid rgba(255, 214, 107, 0.22);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 14px 16px;
   background: linear-gradient(135deg, rgba(255, 214, 107, 0.12), rgba(24, 9, 3, 0.40));
   color: #fff2ce;
@@ -30083,7 +30083,7 @@ body:has(.morning-brew-page-shell) {
 .morning-alert-toggle b,
 .morning-insider-toggle b {
   min-width: 42px;
-  height: 32px;
+  height: 36px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -30635,7 +30635,7 @@ body:has(.morning-brew-page-shell) {
 .ticker-lookup-results {
   margin-top: 10px;
   display: grid;
-  gap: 6px;
+  gap: 7px;
   max-height: 320px;
   overflow: auto;
   padding-right: 2px;
@@ -30691,7 +30691,7 @@ body:has(.morning-brew-page-shell) {
 }
 
 .faq-card {
-  border-radius: 18px;
+  border-radius: 20px;
   background: linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035));
 }
 
@@ -30783,7 +30783,7 @@ body:has(.morning-brew-page-shell) {
 .ticker-lookup-page-card input {
   width: 100%;
   min-height: 56px;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid rgba(99, 241, 255, 0.24);
   background: rgba(0,0,0,.34);
   color: #fff;
@@ -30821,7 +30821,7 @@ body:has(.morning-brew-page-shell) {
 .ticker-lookup-page-results { display: grid; gap: 10px; }
 .ticker-lookup-page-row {
   border: 1px solid rgba(255,255,255,.10);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 14px 16px;
   background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
 }
@@ -31496,7 +31496,7 @@ body:has(.morning-brew-page-shell) {
 }
 
 .portfolio-column-toggle-btn {
-  min-height: 38px;
+  min-height: 42px;
   border-radius: 15px;
   padding: 0 14px;
   border: 1px solid rgba(255,255,255,.13);
@@ -31759,7 +31759,7 @@ body:has(.morning-brew-page-shell) {
 
 .portfolio-sector-pie-row {
   border: 1px solid rgba(255,255,255,.105);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(0,0,0,.18);
   color: var(--text);
   min-width: 0;
@@ -31900,7 +31900,7 @@ body:has(.morning-brew-page-shell) {
   .portfolio-sector-pie-row small {
     width: 26px;
     height: 20px;
-    font-size: 9px;
+    font-size: 9.5px;
   }
 }
 
@@ -35761,9 +35761,9 @@ body:has(.morning-brew-page-shell) {
 
 .portfolio-dashboard-v3 .portfolio-holdings-wide-arrow {
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   border: 1px solid rgba(255,255,255,.13);
-  border-radius: 18px;
+  border-radius: 20px;
   margin: 10px 0 0;
   display: grid;
   place-items: center;
@@ -36303,7 +36303,7 @@ body:has(.morning-brew-page-shell) {
 .settings-choice-row button,
 .settings-pie-theme {
   border: 1px solid rgba(255,255,255,.12);
-  border-radius: 18px;
+  border-radius: 20px;
   background: rgba(255,255,255,.075);
   color: var(--text);
   font-weight: 800;
@@ -36413,7 +36413,7 @@ body:has(.morning-brew-page-shell) {
 
 .portfolio-manual-fields label {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   color: var(--soft);
   font-size: 11px;
   font-weight: 800;
@@ -36634,7 +36634,7 @@ body:has(.morning-brew-page-shell) {
   overflow: hidden;
 }
 .ticker-lookup-page-row-upgraded {
-  border-radius: 18px;
+  border-radius: 20px;
   transition: transform .15s ease, border-color .15s ease, background .15s ease;
 }
 .ticker-lookup-page-row-upgraded:hover {
@@ -36769,23 +36769,23 @@ body:has(.morning-brew-page-shell) {
 
 @media (max-width: 680px) {
   body {
-    padding-bottom: 74px !important;
+    padding-bottom: 90px !important;
   }
 
   .mobile-bottom-nav {
     position: fixed;
     left: 50%;
-    bottom: calc(9px + env(safe-area-inset-bottom));
+    bottom: calc(22px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
-    width: min(344px, calc(100vw - 22px));
-    height: 48px;
+    width: min(392px, calc(100vw - 10px));
+    height: 56px;
     z-index: 999999;
     display: grid;
-    grid-template-columns: 34px 1fr 58px 1fr 34px;
+    grid-template-columns: 38px minmax(0, 1fr) 68px minmax(0, 1fr) 38px;
     align-items: center;
-    gap: 6px;
-    padding: 5px 7px;
-    border-radius: 18px;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 20px;
     border: 1px solid rgba(255,255,255,.18);
     background:
       radial-gradient(circle at 50% -40%, rgba(255,255,255,.18), transparent 44%),
@@ -36810,7 +36810,7 @@ body:has(.morning-brew-page-shell) {
     justify-content: center;
     gap: 4px;
     padding: 0;
-    font-size: 9px;
+    font-size: 9.5px;
     line-height: 1;
     font-weight: 800;
     box-shadow: none;
@@ -36824,24 +36824,24 @@ body:has(.morning-brew-page-shell) {
   }
 
   .mobile-bottom-nav-btn.nav-arrow {
-    height: 32px;
+    height: 36px;
     border-radius: 12px;
     opacity: .82;
   }
 
   .mobile-bottom-nav-btn.nav-shortcut {
-    height: 38px;
+    height: 42px;
     border-radius: 14px;
   }
 
   .mobile-bottom-nav-btn.nav-home {
-    height: 44px;
-    border-radius: 17px;
+    height: 50px;
+    border-radius: 19px;
     background:
       radial-gradient(circle at 50% 12%, rgba(255,255,255,.28), transparent 28%),
-      linear-gradient(135deg, rgba(159,92,255,.95), rgba(111,140,255,.78));
-    border-color: rgba(214,190,255,.44);
-    box-shadow: 0 0 24px rgba(159,92,255,.32);
+      linear-gradient(135deg, color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 94%, white 4%), color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 68%, #15e7ff 18%));
+    border-color: color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 52%, rgba(255,255,255,.28));
+    box-shadow: 0 0 26px color-mix(in srgb, var(--mobile-home-button-color, #9f5cff) 38%, transparent);
   }
 
   .ticker-lookup-page {
@@ -36938,23 +36938,6 @@ body:has(.morning-brew-page-shell) {
 /* =========================================================
    MOBILE NAV HISTORY + SETTINGS POLISH
 ========================================================= */
-.landing-page-static {
-  --landing-logo-accent: #9f5cff;
-}
-
-.landing-page-static .landing-brand-home img,
-.landing-brand-row-static .landing-brand-home img {
-  background:
-    radial-gradient(circle at 28% 20%, color-mix(in srgb, var(--landing-logo-accent) 38%, white 20%), transparent 34%),
-    linear-gradient(145deg, color-mix(in srgb, var(--landing-logo-accent) 44%, transparent), rgba(21,231,255,.10) 48%, rgba(2,7,17,.08)) !important;
-  border-color: color-mix(in srgb, var(--landing-logo-accent) 46%, rgba(255,255,255,.18)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.22),
-    inset 0 -18px 32px rgba(0,0,0,.18),
-    0 18px 46px color-mix(in srgb, var(--landing-logo-accent) 36%, transparent),
-    0 0 42px color-mix(in srgb, var(--landing-logo-accent) 28%, transparent) !important;
-}
-
 .settings-color-row {
   display: flex;
   align-items: center;
@@ -36988,6 +36971,6 @@ body:has(.morning-brew-page-shell) {
 
 @media (max-width: 680px) {
   .mobile-bottom-nav {
-    bottom: calc(15px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(23px + env(safe-area-inset-bottom)) !important;
   }
 }
