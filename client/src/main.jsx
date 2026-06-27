@@ -2496,6 +2496,23 @@ function blankManualHolding() {
   return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, mode: "current", symbol: "", shares: "", averageCost: "" };
 }
 
+function holdingsToManualRows(holdings = []) {
+  const rows = (Array.isArray(holdings) ? holdings : [])
+    .map((holding) => ({
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      mode: "current",
+      symbol: String(holding?.symbol || holding?.ticker || "").toUpperCase(),
+      shares: Number(holding?.shares || 0) ? String(holding.shares) : "",
+      averageCost: Number(holding?.averageCost ?? holding?.avgCost ?? holding?.purchasePrice ?? 0) ? String(holding.averageCost ?? holding.avgCost ?? holding.purchasePrice) : "",
+    }))
+    .filter((row) => row.symbol);
+  return rows.length ? rows : [blankManualHolding()];
+}
+
+function holdingAnchorId(symbol) {
+  return `portfolio-holding-${String(symbol || "").toUpperCase().replace(/[^A-Z0-9]/g, "")}`;
+}
+
 const PORTFOLIO_UPLOAD_STORAGE_KEY = "eval-portfolio-upload-v8";
 
 function portfolioStorageKeyFor(user) {
@@ -3378,6 +3395,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [openIndustries, setOpenIndustries] = useState({});
   const [sectorScoresOpen, setIndustryScoresOpen] = useState(false);
   const [portfolioInsightModal, setPortfolioInsightModal] = useState(null);
+  const [portfolioInsightPage, setPortfolioInsightPage] = useState(null);
+  const [holdingSearch, setHoldingSearch] = useState("");
   const [metricModal, setMetricModal] = useState(null);
   const holdingsSectionRef = useRef(null);
   const [strategyOpen, setStrategyOpen] = useState(false);
@@ -3514,7 +3533,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -3538,7 +3557,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setPortfolioHistory(nextHistory);
       setEvalScoreHistory(nextEvalScoreHistory);
       setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
-      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRows, nextHistory, nextEvalScoreHistory);
+      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRowsOverride || manualRows, nextHistory, nextEvalScoreHistory);
       setPortfolioToolsOpen(false);
       setManualOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3558,7 +3577,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     try {
       const text = await file.text();
       const holdings = parsePortfolioCsv(text);
-      await analyzeCsvHoldings(holdings, file.name);
+      const nextManualRows = holdingsToManualRows(holdings);
+      setManualRows(nextManualRows);
+      await analyzeCsvHoldings(holdings, file.name, { manualRowsOverride: nextManualRows });
     } catch (err) {
       setCsvAnalysis(null);
       setCsvError(err?.message || "Could not read that CSV file.");
@@ -3620,13 +3641,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setManualRows((rows) => rows.length ? rows : [blankManualHolding()]);
       return;
     }
-    setManualRows(source.map((holding) => ({
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      mode: "current",
-      symbol: String(holding.symbol || "").toUpperCase(),
-      shares: Number(holding.shares || 0) ? String(holding.shares) : "",
-      averageCost: Number(holding.averageCost || holding.avgCost || 0) ? String(holding.averageCost || holding.avgCost) : "",
-    })));
+    setManualRows(holdingsToManualRows(source));
   }
 
   function toggleManualEntry() {
@@ -3639,35 +3654,56 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
   function aggregateManualPortfolioRows(rows) {
     const bySymbol = new Map();
-    rows.forEach((row) => {
+    const cleanRows = Array.isArray(rows) ? rows : [];
+
+    cleanRows.forEach((row) => {
       const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
       const shares = parseHoldingDollars(row.shares);
       const averageCost = parseHoldingDollars(row.averageCost);
       const mode = row.mode || "current";
       if (!symbol || shares === null) return;
       const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: averageCost || 0 };
+
       if (mode === "closed") {
-        bySymbol.set(symbol, { ...current, shares: 0, averageCost: averageCost || current.averageCost || 0 });
+        bySymbol.delete(symbol);
         return;
       }
-      if (mode === "remove") {
-        current.shares = Math.max(0, Number(current.shares || 0) - Number(shares || 0));
-        bySymbol.set(symbol, current);
-        return;
-      }
-      if (mode === "add") {
+
+      if (mode === "add" || mode === "remove") {
         const oldShares = Number(current.shares || 0);
-        const addShares = Number(shares || 0);
+        const deltaShares = mode === "remove" ? -Math.abs(Number(shares || 0)) : Number(shares || 0);
+        const nextShares = oldShares + deltaShares;
+        if (nextShares <= 0) {
+          bySymbol.delete(symbol);
+          return;
+        }
         const oldCost = Number(current.averageCost || 0);
         const addCost = Number(averageCost || oldCost || 0);
-        const nextShares = oldShares + addShares;
-        const nextCost = nextShares > 0 ? ((oldShares * oldCost) + (addShares * addCost)) / nextShares : addCost;
+        const nextCost = deltaShares > 0 && addCost > 0
+          ? ((oldShares * oldCost) + (deltaShares * addCost)) / nextShares
+          : oldCost;
         bySymbol.set(symbol, { symbol, shares: nextShares, averageCost: nextCost });
         return;
       }
-      bySymbol.set(symbol, { symbol, shares: Number(shares || 0), averageCost: Number(averageCost || current.averageCost || 0) });
+
+      const finalShares = Number(shares || 0);
+      if (finalShares <= 0) {
+        bySymbol.delete(symbol);
+        return;
+      }
+      bySymbol.set(symbol, { symbol, shares: finalShares, averageCost: Number(averageCost || current.averageCost || 0) });
     });
-    return [...bySymbol.values()].filter((holding) => holding.symbol && Number(holding.shares) > 0);
+
+    return [...bySymbol.values()]
+      .filter((holding) => holding.symbol && Number(holding.shares) > 0)
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }
+
+  function saveManualRowsAsCurrentHoldings(holdings) {
+    const rows = holdingsToManualRows(holdings);
+    setManualRows(rows);
+    setManualCurrentListOpen(false);
+    return rows;
   }
 
   function visiblePortfolioColumnsList() {
@@ -3872,7 +3908,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       return;
     }
 
-    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true });
+    const nextManualRows = saveManualRowsAsCurrentHoldings(holdings);
+    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows });
   }
 
   const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
@@ -3904,9 +3941,70 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
   const prosCons = buildPortfolioProsCons(sectorGroups);
+  const allPortfolioHoldings = sectorGroups.flatMap((group) => (group.holdings || []).map((holding) => ({ ...holding, sector: group.sector })));
+  const rankedPortfolioHoldings = [...allPortfolioHoldings]
+    .map((holding) => ({ ...holding, evalScoreValue: score10(holding.edgeScore ?? holding.score ?? holding.evalScore) }))
+    .filter((holding) => holding.symbol && holding.evalScoreValue !== null)
+    .sort((a, b) => b.evalScoreValue - a.evalScoreValue);
+  const topPortfolioHoldings = rankedPortfolioHoldings.slice(0, 5);
+  const bottomPortfolioHoldings = [...rankedPortfolioHoldings].reverse().slice(0, 5);
   const strategySuggestions = buildStrategySuggestions();
   const holdingColumns = visiblePortfolioColumnsList();
   const holdingsTemplate = holdingsGridTemplate();
+
+  function openPortfolioInsightPage(type) {
+    setPortfolioInsightPage(type);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function jumpToPortfolioHolding(event) {
+    event?.preventDefault?.();
+    const query = String(holdingSearch || "").trim().toUpperCase();
+    if (!query) return;
+    const match = allPortfolioHoldings.find((holding) => String(holding.symbol || "").toUpperCase() === query);
+    if (!match) {
+      setCsvError(`Ticker ${query} is not in this portfolio.`);
+      return;
+    }
+    setCsvError("");
+    const group = sectorGroups.find((item) => (item.holdings || []).some((holding) => String(holding.symbol || "").toUpperCase() === query));
+    if (group?.sector) setOpenIndustries((current) => ({ ...current, [group.sector]: true }));
+    window.setTimeout(() => {
+      const node = document.getElementById(holdingAnchorId(query));
+      node?.scrollIntoView({ behavior: "smooth", block: "center" });
+      node?.classList.add("portfolio-holding-row-highlight");
+      window.setTimeout(() => node?.classList.remove("portfolio-holding-row-highlight"), 1800);
+    }, 80);
+  }
+
+  if (csvAnalysis && portfolioInsightPage) {
+    const isPros = portfolioInsightPage === "pros";
+    const ranked = isPros ? topPortfolioHoldings : bottomPortfolioHoldings;
+    return (
+      <main className={`portfolio-builder-page portfolio-insight-page-full ${isPros ? "pros" : "cons"}`}>
+        <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
+          <button type="button" className="back-btn portfolio-back-icon-only" onClick={() => setPortfolioInsightPage(null)} aria-label="Back to portfolio"><ArrowLeft size={18}/></button>
+          <div className="portfolio-title-mainline portfolio-title-mainline-clean"><div><h2>{isPros ? "Portfolio Pros" : "Portfolio Cons"}</h2></div></div>
+        </div>
+        <section className={`portfolio-insight-full-card ai-score-long-summary ${isPros ? "ai-score-pros-panel" : "ai-score-cons-panel"}`}>
+          <div className="ai-score-panel-kicker"><span className="ai-score-panel-dot" /> {isPros ? "PROS" : "CONS"}</div>
+          <h3>{isPros ? `${portfolioTitle} strengths` : `${portfolioTitle} weaknesses`}</h3>
+          <p>{isPros ? prosCons.pros : prosCons.cons}</p>
+        </section>
+        <section className="portfolio-ranked-holdings-section">
+          <div className="portfolio-section-head"><h3>{isPros ? "Top 5 Eval Score holdings" : "Bottom 5 Eval Score holdings"}</h3></div>
+          <div className="portfolio-ranked-holdings-grid">
+            {ranked.map((holding, index) => (
+              <button type="button" className={`portfolio-ranked-holding-card ${scoreTone(holding.evalScoreValue)}`} key={`${holding.symbol}-${index}`} onClick={() => onAnalyze?.(holding.symbol)}>
+                <MiniScoreRing value={holding.evalScoreValue} small />
+                <div><strong>{holding.symbol}</strong><span>{holding.name || holding.sector || "Holding"}</span></div>
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
@@ -3968,8 +4066,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             <div className="portfolio-manual-head">
               <div>
                 <span className="section-title"><Plus size={17}/> Manual</span>
-                <h3>Add positions</h3>
-                <p>New entries stay visible. Current holdings stay hidden until editing.</p>
+                <h3>Add or sell shares</h3>
+                <p>Type positive shares to add or negative shares like <b>-15</b> to sell.</p>
               </div>
               <div className="portfolio-manual-head-actions">
                 <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
@@ -3986,12 +4084,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                   <div className="portfolio-manual-fields">
                     <label><span>Action</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
                       <option value="current">Current</option>
-                      <option value="add">Add shares</option>
-                      <option value="remove">Remove shares</option>
+                      <option value="add">Add/sell shares</option>
                       <option value="closed">Closed</option>
                     </select></label>
                     <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
-                    <label><span>Shares</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" /></label>
+                    <label><span>Shares</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10 or -15" inputMode="decimal" /></label>
                     <label><span>Avg cost</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
                   <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
@@ -4050,11 +4147,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
           </div>
 
           <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-four">
-            <button type="button" className="portfolio-action-tile pros" onClick={() => setPortfolioInsightModal({ type: "pros", title: `${portfolioTitle} strengths`, text: prosCons.pros })}>
+            <button type="button" className="portfolio-action-tile pros" onClick={() => openPortfolioInsightPage("pros")}>
               <b>PROS</b>
               <small>Click to view</small>
             </button>
-            <button type="button" className="portfolio-action-tile cons" onClick={() => setPortfolioInsightModal({ type: "cons", title: `${portfolioTitle} weaknesses`, text: prosCons.cons })}>
+            <button type="button" className="portfolio-action-tile cons" onClick={() => openPortfolioInsightPage("cons")}>
               <b>CONS</b>
               <small>Click to view</small>
             </button>
@@ -4081,6 +4178,10 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
+            <form className="portfolio-holding-search-bar" onSubmit={jumpToPortfolioHolding}>
+              <input value={holdingSearch} onChange={(event) => setHoldingSearch(event.target.value.toUpperCase())} placeholder="Search holding ticker" maxLength={8} />
+              <button type="submit"><Search size={15}/> Find</button>
+            </form>
             <div className="portfolio-section-head portfolio-holdings-control-head">
               <div className="portfolio-industry-open-controls">
                 <button type="button" onClick={() => {
@@ -4148,7 +4249,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                         eval: <span key="eval" data-label="Eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
                       };
                       return (
-                      <button type="button" className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
+                      <button type="button" id={holdingAnchorId(holding.symbol)} className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
                         <span className="portfolio-mobile-stock-main" data-label="Stock"><b>{holding.symbol}</b><small>{holding.name}</small></span>
                         {holdingColumns.map((column) => holdingCells[column.key])}
                       </button>
