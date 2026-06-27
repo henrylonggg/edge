@@ -38223,3 +38223,195 @@ body:has(.morning-brew-page-shell) {
     letter-spacing: .045em !important;
   }
 }
+
+/* Portfolio detailed holdings + manual reset patch */
+.portfolio-delete-all-btn {
+  border-color: rgba(255, 95, 115, .42) !important;
+  background: rgba(255, 95, 115, .13) !important;
+  color: #ffd9df !important;
+}
+
+.portfolio-detail-view-btn {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 11px 14px;
+  color: var(--text);
+  background: rgba(255,255,255,.09);
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.portfolio-detail-page-full {
+  display: grid;
+  gap: 18px;
+}
+
+.portfolio-detail-table-shell {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.074);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.portfolio-detail-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.portfolio-detail-table-head h3 {
+  margin: 7px 0 4px;
+  font-size: clamp(26px, 4vw, 42px);
+  letter-spacing: -1.7px;
+  line-height: .95;
+}
+
+.portfolio-detail-table-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.portfolio-detail-column-control {
+  position: relative;
+  z-index: 80;
+}
+
+.portfolio-detail-column-menu {
+  right: 0;
+  left: auto;
+  max-height: min(72vh, 520px);
+  overflow: auto;
+}
+
+.portfolio-detail-table-scroll {
+  overflow: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.16);
+}
+
+.portfolio-detail-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.portfolio-detail-table th,
+.portfolio-detail-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.075);
+  text-align: left;
+  vertical-align: middle;
+  color: rgba(248,251,255,.88);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.portfolio-detail-table th {
+  position: sticky;
+  top: 0;
+  background: rgba(3,8,18,.96);
+  z-index: 2;
+}
+
+.portfolio-detail-table th button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 0;
+}
+
+.portfolio-detail-symbol button {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+}
+
+.portfolio-detail-symbol b {
+  font-size: 15px;
+  letter-spacing: .04em;
+}
+
+.portfolio-detail-symbol small {
+  color: var(--soft);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portfolio-detail-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-weight: 900;
+  font-size: 12px;
+  color: #061018;
+}
+
+.portfolio-detail-score-pill.green { background: var(--green); }
+.portfolio-detail-score-pill.yellow { background: var(--yellow); }
+.portfolio-detail-score-pill.red { background: var(--red); color: #fff; }
+.portfolio-detail-score-pill.neutral { background: rgba(255,255,255,.18); color: var(--text); }
+
+.portfolio-detail-table td.up b,
+.portfolio-detail-table td.up small { color: var(--green); display: block; }
+.portfolio-detail-table td.down b,
+.portfolio-detail-table td.down small { color: var(--red); display: block; }
+
+@media (max-width: 760px) {
+  .portfolio-detail-table-shell {
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  .portfolio-detail-table-head {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .portfolio-detail-table-head h3 {
+    font-size: 24px;
+  }
+
+  .portfolio-detail-view-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+    min-height: 34px;
+  }
+
+  .portfolio-delete-all-btn {
+    min-height: 34px;
+  }
+
+  .portfolio-detail-table {
+    min-width: 920px;
+  }
+
+  .portfolio-detail-table th,
+  .portfolio-detail-table td {
+    padding: 9px 8px;
+    font-size: 11px;
+  }
+}
