@@ -618,10 +618,62 @@ function App() {
     return String(email || user?.id || "").trim().toLowerCase();
   }
 
+  function readJsonStorage(key, fallback = null) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  }
+
+  function getLocalPortfolioSyncRecord() {
+    const key = portfolioStorageKeyFor(user);
+    const saved = readJsonStorage(key, null);
+    return saved && typeof saved === "object" ? saved : null;
+  }
+
+  function applyPortfolioSyncRecord(record) {
+    const key = portfolioStorageKeyFor(user);
+    try {
+      if (record && typeof record === "object") {
+        localStorage.setItem(key, JSON.stringify(record));
+      }
+    } catch {
+      // Account sync should never break the dashboard if storage is blocked.
+    }
+    window.dispatchEvent(new CustomEvent("eval-portfolio-sync-imported", { detail: { storageKey: key } }));
+  }
+
+  function portfolioRecordTime(record) {
+    if (!record || typeof record !== "object") return 0;
+    return Math.max(
+      Date.parse(record.savedAt || "") || 0,
+      Date.parse(record.updatedAt || "") || 0,
+      Date.parse(record.display?.savedAt || "") || 0
+    );
+  }
+
+  function getLocalPortfolioRecordTime() {
+    return portfolioRecordTime(getLocalPortfolioSyncRecord());
+  }
+
+
   function getLocalSyncPayload() {
     return {
+      version: 4,
+      syncScope: "account",
       watchlist: readWatchlist(),
       alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
+      settings: {
+        dashboardStart: safeStorageGet(DASHBOARD_START_STORAGE_KEY, "dashboard"),
+        mobileNavLeft: safeStorageGet(MOBILE_NAV_LEFT_STORAGE_KEY, "watchlist"),
+        mobileNavRight: safeStorageGet(MOBILE_NAV_RIGHT_STORAGE_KEY, "assistant"),
+        mobileHomeTarget: safeStorageGet(MOBILE_HOME_TARGET_STORAGE_KEY, "dashboard"),
+        navHomeColor: safeStorageGet(LANDING_LOGO_COLOR_STORAGE_KEY, "#9f5cff"),
+      },
+      portfolio: getLocalPortfolioSyncRecord(),
       syncedAt: new Date().toISOString(),
     };
   }
@@ -629,15 +681,54 @@ function App() {
   function applyRemoteSyncData(remote) {
     if (!remote || typeof remote !== "object") return false;
     let changed = false;
+
     if (Array.isArray(remote.watchlist)) {
-      saveWatchlist(remote.watchlist);
-      setWatchlist(remote.watchlist);
+      const cleanWatchlist = remote.watchlist
+        .map((item) => ({ ...item, symbol: String(item?.symbol || item?.ticker || "").toUpperCase() }))
+        .filter((item) => item.symbol)
+        .slice(0, MAX_WATCHLIST_ITEMS);
+      saveWatchlist(cleanWatchlist);
+      setWatchlist(cleanWatchlist);
       changed = true;
     }
+
     if (remote.alertsSeen) {
       safeStorageSet("eval-morning-mugs-alerts-seen", remote.alertsSeen);
       changed = true;
     }
+
+    const settings = remote.settings && typeof remote.settings === "object" ? remote.settings : {};
+    if (settings.dashboardStart && DASHBOARD_START_OPTIONS.some((option) => option.key === settings.dashboardStart)) {
+      setPreferredDashboardStart(settings.dashboardStart);
+      safeStorageSet(DASHBOARD_START_STORAGE_KEY, settings.dashboardStart);
+      changed = true;
+    }
+    if (settings.mobileNavLeft && MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === settings.mobileNavLeft)) {
+      setMobileNavLeft(settings.mobileNavLeft);
+      safeStorageSet(MOBILE_NAV_LEFT_STORAGE_KEY, settings.mobileNavLeft);
+      changed = true;
+    }
+    if (settings.mobileNavRight && MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === settings.mobileNavRight)) {
+      setMobileNavRight(settings.mobileNavRight);
+      safeStorageSet(MOBILE_NAV_RIGHT_STORAGE_KEY, settings.mobileNavRight);
+      changed = true;
+    }
+    if (settings.mobileHomeTarget && DASHBOARD_START_OPTIONS.some((option) => option.key === settings.mobileHomeTarget)) {
+      setMobileHomeTarget(settings.mobileHomeTarget);
+      safeStorageSet(MOBILE_HOME_TARGET_STORAGE_KEY, settings.mobileHomeTarget);
+      changed = true;
+    }
+    if (settings.navHomeColor && /^#[0-9a-f]{6}$/i.test(String(settings.navHomeColor))) {
+      setLandingLogoColor(String(settings.navHomeColor));
+      safeStorageSet(LANDING_LOGO_COLOR_STORAGE_KEY, String(settings.navHomeColor));
+      changed = true;
+    }
+
+    if (remote.portfolio && typeof remote.portfolio === "object") {
+      applyPortfolioSyncRecord(remote.portfolio);
+      changed = true;
+    }
+
     return changed;
   }
 
@@ -651,26 +742,32 @@ function App() {
     return json?.data || null;
   }
 
-  async function pushLocalSyncData(userKey) {
+  async function pushLocalSyncData(userKey, payload = getLocalSyncPayload()) {
     const response = await fetch(`${API}/api/user-sync`, {
       method: "POST",
       mode: "cors",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ userKey, data: getLocalSyncPayload() }),
+      body: JSON.stringify({ userKey, data: payload }),
     });
     if (!response.ok) throw new Error("Sync failed");
     const json = await response.json().catch(() => null);
     return json?.data || null;
   }
 
-  async function importRemoteAccountData({ silent = false } = {}) {
+  async function importRemoteAccountData({ silent = false, force = false } = {}) {
     const userKey = getSyncUserKey();
     if (!userKey) return false;
     try {
       const remote = await fetchRemoteSyncData(userKey);
       if (!remote) return false;
+      const remoteTime = Date.parse(remote.syncedAt || remote.updatedAt || "") || 0;
+      const lastLocalSync = Number(safeStorageGet(`eval-sync-last:${userKey}`, "0")) || 0;
+      const remotePortfolioTime = portfolioRecordTime(remote.portfolio);
+      const localPortfolioTime = getLocalPortfolioRecordTime();
+      if (!force && lastLocalSync && remoteTime && remoteTime <= lastLocalSync && remotePortfolioTime <= localPortfolioTime) return false;
+      if (!force && remotePortfolioTime && localPortfolioTime && remotePortfolioTime < localPortfolioTime && remoteTime <= lastLocalSync) return false;
       applyRemoteSyncData(remote);
-      safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || remote.syncedAt || "") || Date.now()));
+      safeStorageSet(`eval-sync-last:${userKey}`, String(Math.max(remoteTime || 0, remotePortfolioTime || 0, Date.now())));
       safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
       if (!silent) {
         setSyncStatus("synced");
@@ -697,11 +794,14 @@ function App() {
 
     setSyncStatus("syncing");
     try {
-      const remote = await fetchRemoteSyncData(userKey);
-      if (remote) applyRemoteSyncData(remote);
-      const pushed = await pushLocalSyncData(userKey);
-      safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(pushed?.updatedAt || remote?.updatedAt || "") || Date.now()));
-
+      const payload = getLocalSyncPayload();
+      const pushed = await pushLocalSyncData(userKey, payload);
+      const syncedAt = Math.max(
+        Date.parse(pushed?.syncedAt || payload.syncedAt || "") || 0,
+        portfolioRecordTime(pushed?.portfolio || payload.portfolio) || 0,
+        Date.now()
+      );
+      safeStorageSet(`eval-sync-last:${userKey}`, String(syncedAt));
       safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
       setSyncStatus("synced");
       setTimeout(() => setSyncStatus("idle"), 2500);
@@ -721,18 +821,31 @@ function App() {
     const interval = window.setInterval(() => {
       if (!alive) return;
       importRemoteAccountData({ silent: true });
-    }, 45_000);
+    }, 90_000);
 
     const onLocalSyncChange = () => {
       if (!alive) return;
       pushLocalSyncData(userKey).catch(() => {});
     };
 
+    const onAccountFocus = () => {
+      if (!alive) return;
+      importRemoteAccountData({ silent: true });
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") onAccountFocus();
+    };
+
     window.addEventListener("eval-account-sync-changed", onLocalSyncChange);
+    window.addEventListener("focus", onAccountFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       alive = false;
       window.clearInterval(interval);
       window.removeEventListener("eval-account-sync-changed", onLocalSyncChange);
+      window.removeEventListener("focus", onAccountFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [user]);
 
@@ -769,6 +882,7 @@ function App() {
     const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
     setPreferredDashboardStart(clean);
     safeStorageSet(DASHBOARD_START_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
   function updateMainPieTheme(next) {
@@ -781,12 +895,14 @@ function App() {
     const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "watchlist";
     setMobileNavLeft(clean);
     safeStorageSet(MOBILE_NAV_LEFT_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
   function updateMobileNavRight(next) {
     const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "assistant";
     setMobileNavRight(clean);
     safeStorageSet(MOBILE_NAV_RIGHT_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
 
@@ -794,12 +910,14 @@ function App() {
     const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
     setMobileHomeTarget(clean);
     safeStorageSet(MOBILE_HOME_TARGET_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
   function updateLandingLogoColor(next) {
     const clean = /^#[0-9a-f]{6}$/i.test(String(next || "")) ? String(next) : "#9f5cff";
     setLandingLogoColor(clean);
     safeStorageSet(LANDING_LOGO_COLOR_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
   function goMobileNav(target) {
@@ -3575,6 +3693,47 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }, [storageKey]);
 
   useEffect(() => {
+    const reloadSyncedPortfolio = (event) => {
+      if (event?.detail?.storageKey && event.detail.storageKey !== storageKey) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+        const holdings = Array.isArray(saved?.holdings) ? saved.holdings : [];
+        const fileName = saved?.csvName || saved?.fileName || `${firstName} Portfolio.csv`;
+        const nextManualRows = holdings.length ? holdingsToManualRows(holdings) : [blankManualHolding(), blankManualHolding(), blankManualHolding()];
+        const savedDisplay = saved?.display && typeof saved.display === "object" ? saved.display : null;
+        const savedAnalysis = savedDisplay?.analysis && typeof savedDisplay.analysis === "object" ? savedDisplay.analysis : null;
+        const savedValueHistory = Array.isArray(savedDisplay?.portfolioHistory) ? savedDisplay.portfolioHistory : [];
+        const savedEvalHistory = Array.isArray(savedDisplay?.evalScoreHistory) ? savedDisplay.evalScoreHistory : [];
+        const savedTransactions = Array.isArray(saved?.manualTransactions) ? saved.manualTransactions : [];
+        const savedCash = Number(saved?.cashHoldings || 0);
+
+        setCsvName(fileName);
+        setSavedHoldings(holdings);
+        setManualRows(nextManualRows);
+        setManualTransactions(savedTransactions);
+        setCashHoldings(Number.isFinite(savedCash) ? savedCash : 0);
+        setCashInput(String(Number.isFinite(savedCash) ? savedCash : 0));
+        setPortfolioHistory(savedValueHistory);
+        setEvalScoreHistory(savedEvalHistory);
+        if (savedAnalysis && holdings.length) {
+          setCsvAnalysis({
+            ...savedAnalysis,
+            history: savedAnalysis?.history || savedValueHistory,
+            evalScoreHistory: savedAnalysis?.evalScoreHistory || savedEvalHistory,
+          });
+        } else if (!holdings.length) {
+          setCsvAnalysis(null);
+        }
+      } catch {
+        // Ignore malformed synced portfolio data.
+      }
+    };
+
+    window.addEventListener("eval-portfolio-sync-imported", reloadSyncedPortfolio);
+    return () => window.removeEventListener("eval-portfolio-sync-imported", reloadSyncedPortfolio);
+  }, [storageKey, firstName]);
+
+  useEffect(() => {
     const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
     if (!groups.length) return;
     setActiveIndustry((current) => current || groups[0]?.sector || groups[0]?.industry || "");
@@ -3605,6 +3764,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const numericCash = Number(cashValue || 0);
       if (!cleanHoldings.length && !(Number.isFinite(numericCash) && numericCash > 0) && !(Array.isArray(transactions) && transactions.length)) {
         localStorage.removeItem(storageKey);
+        window.dispatchEvent(new Event("eval-account-sync-changed"));
         return;
       }
 
@@ -3626,6 +3786,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         cashHoldings: Number.isFinite(numericCash) ? numericCash : 0,
         display: safeDisplay,
       }));
+      window.dispatchEvent(new Event("eval-account-sync-changed"));
     } catch {
       // Uploaded holdings/display persistence is optional and should never block analysis.
     }
@@ -3762,6 +3923,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
     try {
       localStorage.removeItem(storageKey);
+      window.dispatchEvent(new Event("eval-account-sync-changed"));
     } catch {
       // Reset is local-only and should never break the page.
     }
