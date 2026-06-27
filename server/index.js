@@ -2366,8 +2366,6 @@ async function getMorningInsiderContext(symbol) {
 
 
 
-const portfolioEarningsCache = new Map();
-
 function addCalendarDaysIso(days = 0, fromDate = new Date()) {
   const d = new Date(fromDate);
   d.setDate(d.getDate() + Number(days || 0));
@@ -2437,19 +2435,7 @@ async function getPortfolioEarnings(symbols = [], options = {}) {
   const symbolSet = new Set(cleanSymbols);
   const from = morningBrewDateKey();
   const to = options.tradingDays ? nextTradingDayEndIso(options.tradingDays) : addCalendarDaysIso(options.days || 14);
-  const cacheKey = `${from}:${to}`;
-  const cached = portfolioEarningsCache.get(cacheKey);
-  let allEvents = cached?.events;
-  if (!allEvents) {
-    allEvents = await fetchFinnhubEarningsCalendar(from, to);
-    portfolioEarningsCache.set(cacheKey, { savedAt: Date.now(), events: allEvents });
-    if (portfolioEarningsCache.size > 12) {
-      for (const key of portfolioEarningsCache.keys()) {
-        if (key !== cacheKey) portfolioEarningsCache.delete(key);
-        if (portfolioEarningsCache.size <= 8) break;
-      }
-    }
-  }
+  const allEvents = await fetchFinnhubEarningsCalendar(from, to);
   const events = (allEvents || [])
     .filter((item) => !symbolSet.size || symbolSet.has(item.symbol))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.symbol).localeCompare(String(b.symbol)));
@@ -3146,38 +3132,12 @@ function cleanSubmittedDollars(value) {
   return number;
 }
 
-const portfolioQuoteCache = new Map();
-
-function portfolioDailyPriceBucket(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(date).reduce((acc, part) => {
-    acc[part.type] = part.value;
-    return acc;
-  }, {});
-
-  const hour = Number(parts.hour);
-  const bucketDate = new Date(`${parts.year}-${parts.month}-${parts.day}T12:00:00Z`);
-  if (Number.isFinite(hour) && hour < 5) bucketDate.setUTCDate(bucketDate.getUTCDate() - 1);
-  return bucketDate.toISOString().slice(0, 10);
-}
-
-async function fetchFinnhubPortfolioQuote(symbol, options = {}) {
+async function fetchFinnhubPortfolioQuote(symbol) {
+  // No portfolio-page quote cache: each portfolio refresh fetches current quote data.
+  // Individual stock Eval Score caching remains inside buildStockAnalysis/main dashboard cache.
   const apiKey = process.env.FINNHUB_API_KEY;
   const cleanSymbol = cleanTicker(symbol);
   if (!apiKey || !cleanSymbol) return null;
-
-  const bucket = portfolioDailyPriceBucket();
-  const key = `${cleanSymbol}:${bucket}`;
-  const cached = portfolioQuoteCache.get(key);
-  if (!options.forceRefresh && cached && Number.isFinite(Number(cached.price)) && Number(cached.price) > 0) {
-    return Number(cached.price);
-  }
 
   try {
     const url = new URL("https://finnhub.io/api/v1/quote");
@@ -3187,25 +3147,12 @@ async function fetchFinnhubPortfolioQuote(symbol, options = {}) {
     const timeout = setTimeout(() => controller.abort(), Number(process.env.PROVIDER_TIMEOUT_MS || 3500));
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    if (!response.ok) {
-      if (cached?.price) return Number(cached.price);
-      return null;
-    }
+    if (!response.ok) return null;
     const quote = await response.json();
     const current = Number(quote?.c);
-    if (Number.isFinite(current) && current > 0) {
-      portfolioQuoteCache.set(key, { price: current, fetchedAt: Date.now(), bucket });
-      // Keep cache compact: one daily portfolio quote per symbol is enough for the line chart.
-      if (portfolioQuoteCache.size > 1000) {
-        for (const cacheKey of portfolioQuoteCache.keys()) {
-          if (!cacheKey.endsWith(`:${bucket}`)) portfolioQuoteCache.delete(cacheKey);
-        }
-      }
-      return current;
-    }
-    return cached?.price ? Number(cached.price) : null;
+    return Number.isFinite(current) && current > 0 ? current : null;
   } catch {
-    return cached?.price ? Number(cached.price) : null;
+    return null;
   }
 }
 
