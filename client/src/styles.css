@@ -38127,3 +38127,99 @@ body:has(.morning-brew-page-shell) {
     margin-top: 2px !important;
   }
 }
+
+/* =========================================================
+   FINAL PATCH — Pros / Cons / Industries row no-overlap
+   Desktop composition preserved, mobile scaled cleanly.
+========================================================= */
+.portfolio-dashboard-v3 .portfolio-dashboard-action-row-three {
+  width: min(100%, 860px) !important;
+  margin: 18px auto 16px !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: clamp(12px, 1.6vw, 20px) !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: clamp(78px, 7.4vw, 112px) !important;
+  padding: clamp(12px, 1.4vw, 18px) !important;
+  border-radius: clamp(18px, 1.8vw, 24px) !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 5px !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile b {
+  display: block !important;
+  width: 100% !important;
+  font-size: clamp(1.15rem, 2.4vw, 2.3rem) !important;
+  line-height: .92 !important;
+  letter-spacing: -.055em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: center !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile small {
+  display: block !important;
+  width: 100% !important;
+  font-size: clamp(.58rem, .9vw, .78rem) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: center !important;
+}
+
+@media (max-width: 720px) {
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three,
+  body .portfolio-dashboard-v3.portfolio-builder-page .portfolio-dashboard-action-row-three {
+    width: calc(100% - 18px) !important;
+    max-width: 390px !important;
+    margin: 12px auto 12px !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile,
+  body .portfolio-dashboard-v3.portfolio-builder-page .portfolio-dashboard-action-row-three .portfolio-action-tile {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 58px !important;
+    padding: 8px 5px !important;
+    border-radius: 15px !important;
+    margin: 0 !important;
+    gap: 3px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile b,
+  body .portfolio-dashboard-v3.portfolio-builder-page .portfolio-dashboard-action-row-three .portfolio-action-tile b {
+    font-size: clamp(15px, 4vw, 18px) !important;
+    line-height: .9 !important;
+    letter-spacing: -.045em !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile small,
+  body .portfolio-dashboard-v3.portfolio-builder-page .portfolio-dashboard-action-row-three .portfolio-action-tile small {
+    font-size: 8px !important;
+    line-height: 1 !important;
+    letter-spacing: .045em !important;
+  }
+}
