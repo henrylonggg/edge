@@ -2492,8 +2492,8 @@ function portfolioMetricSummary(key, value) {
   return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} in the overall Portfolio Score.`;
 }
 
-function blankManualHolding() {
-  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, mode: "current", symbol: "", shares: "", averageCost: "" };
+function blankManualHolding(mode = "add") {
+  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, mode, symbol: "", shares: "", averageCost: "" };
 }
 
 function holdingsToManualRows(holdings = []) {
@@ -3756,11 +3756,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }, [savedHoldings.length, portfolioHistory, evalScoreHistory, csvLoading]);
 
   function updateManualRow(id, field, value) {
-    setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value } : row));
+    setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value, __touched: true } : row));
   }
 
   function addManualRow() {
-    setManualRows((rows) => [...rows, blankManualHolding()]);
+    setManualRows((rows) => [...rows, blankManualHolding("add")]);
   }
 
   function removeManualRow(id) {
@@ -3782,13 +3782,15 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         const averageCost = parseHoldingDollars(row.averageCost);
         const mode = row.mode || "current";
         if (!symbol || shares === null) return null;
-        let action = mode === "closed" ? "Closed" : mode === "current" ? "Set position" : Number(shares) < 0 ? "Sell" : "Buy";
+        if (mode === "current" && !row.__touched) return null;
+        const numericShares = Number(shares || 0);
+        let action = mode === "closed" ? "Closed" : mode === "current" ? "Set position" : numericShares < 0 ? "Sell" : "Buy";
         return {
           id: `${now}-${symbol}-${Math.random().toString(16).slice(2)}`,
           date: now,
           symbol,
           action,
-          shares: Number(shares),
+          shares: numericShares,
           averageCost: Number.isFinite(Number(averageCost)) ? Number(averageCost) : null,
         };
       })
@@ -4093,11 +4095,17 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }
 
   const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
-  const editableManualRows = manualRows.filter((row) => !String(row.symbol || "").trim() || (row.mode || "current") !== "current" || manualCurrentListOpen);
+  const manualSearchQuery = String(manualTransactionSearch || "").trim().toUpperCase();
+  const editableManualRows = manualRows
+    .filter((row) => !String(row.symbol || "").trim() || (row.mode || "current") !== "current" || manualCurrentListOpen)
+    .filter((row) => {
+      if (!manualSearchQuery || !manualCurrentListOpen) return true;
+      const symbol = String(row.symbol || "").toUpperCase();
+      return !symbol || symbol.includes(manualSearchQuery);
+    });
   const filteredManualTransactions = manualTransactions.filter((transaction) => {
-    const query = String(manualTransactionSearch || "").trim().toUpperCase();
-    if (!query) return true;
-    return String(transaction?.symbol || "").toUpperCase().includes(query);
+    if (!manualSearchQuery) return true;
+    return String(transaction?.symbol || "").toUpperCase().includes(manualSearchQuery);
   });
 
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
@@ -4253,7 +4261,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               <div>
                 <span className="section-title"><Plus size={17}/> Transactions</span>
                 <h3>Buy or sell shares</h3>
-                <p>Enter shares bought. Use a negative number, like <b>-15</b>, to sell shares.</p>
+                <p>Buy shares with a positive quantity. Sell shares by entering a negative quantity, like <b>-15</b>.</p>
               </div>
               <div className="portfolio-manual-head-actions">
                 <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add transaction</button>
@@ -4265,25 +4273,38 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               </div>
             </div>
 
-            <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked portfolio-transaction-entry-list">
+            {manualCurrentListOpen && (
+              <div className="portfolio-manual-search-strip">
+                <div>
+                  <strong>Find ticker transactions</strong>
+                  <span>Search filters editable holdings and transaction history.</span>
+                </div>
+                <input value={manualTransactionSearch} onChange={(event) => setManualTransactionSearch(event.target.value.toUpperCase())} placeholder="Search ticker" maxLength={8} />
+              </div>
+            )}
+
+            <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked portfolio-transaction-entry-list portfolio-transaction-entry-list-clean">
               {editableManualRows.map((row) => {
                 const shareNumber = parseHoldingDollars(row.shares);
                 const actionText = (row.mode || "current") === "closed" ? "Close" : (row.mode || "current") === "current" ? "Set" : Number(shareNumber || 0) < 0 ? "Sell" : "Buy";
                 return (
                 <div className={`portfolio-manual-row portfolio-manual-entry-card portfolio-transaction-entry-card ${String(actionText).toLowerCase()}`} key={row.id}>
                   <div className="portfolio-transaction-entry-topline">
-                    <strong>{String(row.symbol || "Ticker").toUpperCase()}</strong>
+                    <div>
+                      <strong>{String(row.symbol || "Ticker").toUpperCase()}</strong>
+                      <small>{(row.mode || "current") === "current" ? "Current holding" : Number(shareNumber || 0) < 0 ? "Sell shares" : "Buy shares"}</small>
+                    </div>
                     <span>{actionText}</span>
                   </div>
                   <div className="portfolio-manual-fields portfolio-transaction-fields">
                     <label><span>Type</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
-                      <option value="current">Set current</option>
-                      <option value="add">Buy / sell</option>
+                      <option value="current">Set current holding</option>
+                      <option value="add">Buy / sell transaction</option>
                       <option value="closed">Close position</option>
                     </select></label>
                     <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
                     <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10 or -15" inputMode="decimal" /></label>
-                    <label><span>Price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
+                    <label><span>Trade price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
                   <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove transaction"><Trash2 size={15}/></button>
                 </div>
@@ -4294,9 +4315,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               <div className="portfolio-transaction-history-head">
                 <div>
                   <h4>Transaction history</h4>
-                  <span>{filteredManualTransactions.length} shown</span>
+                  <span>{manualSearchQuery ? `${filteredManualTransactions.length} for ${manualSearchQuery}` : `${filteredManualTransactions.length} shown`}</span>
                 </div>
-                <input value={manualTransactionSearch} onChange={(event) => setManualTransactionSearch(event.target.value.toUpperCase())} placeholder="Search ticker" maxLength={8} />
               </div>
               <div className="portfolio-transaction-history-list">
                 {filteredManualTransactions.length ? filteredManualTransactions.slice(0, 40).map((transaction) => (
@@ -4307,7 +4327,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                     <em>{transaction.averageCost ? money(transaction.averageCost) : "—"}</em>
                     <small>{formatTransactionDate(transaction.date)}</small>
                   </div>
-                )) : <p>No transactions yet.</p>}
+                )) : <p>{manualSearchQuery ? `No transactions found for ${manualSearchQuery}.` : "No transactions yet."}</p>}
               </div>
             </div>
 
