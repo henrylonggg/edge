@@ -37745,3 +37745,150 @@ body:has(.morning-brew-page-shell) {
     font-size: 12px !important;
   }
 }
+
+/* Portfolio no-cache sector summary: replaces donut visual with clean weighted sector rows */
+.portfolio-sector-summary-card .portfolio-sector-allocation-layout,
+.portfolio-sector-summary-card {
+  overflow: visible;
+}
+
+.portfolio-sector-summary-feature {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0 16px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.075);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.portfolio-sector-summary-feature.green { background: rgba(133,215,19,.12); }
+.portfolio-sector-summary-feature.yellow { background: rgba(255,214,107,.12); }
+.portfolio-sector-summary-feature.red { background: rgba(255,95,115,.12); }
+
+.portfolio-sector-summary-feature span {
+  display: block;
+  color: rgba(248,251,255,.66);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.portfolio-sector-summary-feature strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.portfolio-sector-summary-feature b {
+  min-width: 74px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  color: #fff;
+  text-align: center;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+  background: rgba(0,0,0,.28);
+}
+
+.portfolio-sector-summary-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.portfolio-sector-summary-list button {
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+}
+
+.portfolio-sector-summary-list button::before {
+  content: "";
+  width: 8px;
+  height: 100%;
+  min-height: 30px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.18);
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .portfolio-sector-summary-feature {
+    padding: 10px 11px;
+    border-radius: 16px;
+    gap: 8px;
+  }
+
+  .portfolio-sector-summary-feature strong {
+    font-size: 22px;
+  }
+
+  .portfolio-sector-summary-feature b {
+    min-width: 50px;
+    padding: 8px 9px;
+    border-radius: 13px;
+    font-size: 18px;
+  }
+
+  .portfolio-sector-summary-list {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+
+/* Render repair: sector summary rows replace the removed portfolio donut chart. */
+.portfolio-sector-summary-card.no-donut {
+  overflow: visible;
+}
+.portfolio-sector-summary-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.065);
+  border: 1px solid rgba(255,255,255,.09);
+}
+.portfolio-sector-summary-row span {
+  color: var(--text);
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portfolio-sector-summary-row b,
+.portfolio-sector-summary-row em {
+  justify-self: end;
+  font-style: normal;
+  font-weight: 900;
+  color: #fff;
+}
+.portfolio-sector-summary-row.green em { background: rgba(133,215,19,.22); }
+.portfolio-sector-summary-row.yellow em { background: rgba(255,214,107,.22); }
+.portfolio-sector-summary-row.red em { background: rgba(255,95,115,.22); }
+.portfolio-sector-summary-row em {
+  min-width: 46px;
+  text-align: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+@media (max-width: 760px) {
+  .portfolio-sector-summary-row {
+    grid-template-columns: minmax(0, 1fr) 52px 42px;
+    gap: 6px;
+    padding: 8px 9px;
+    border-radius: 12px;
+  }
+  .portfolio-sector-summary-row span { font-size: 10px; }
+  .portfolio-sector-summary-row b,
+  .portfolio-sector-summary-row em { font-size: 10px; }
+  .portfolio-sector-summary-row em { min-width: 34px; padding: 4px 5px; }
+}
