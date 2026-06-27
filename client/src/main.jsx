@@ -559,7 +559,6 @@ function App() {
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [insidersOpen, setInsidersOpen] = useState(false);
   const [seenAlertsKey, setSeenAlertsKey] = useState(() => safeStorageGet("eval-morning-mugs-alerts-seen", ""));
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -1702,17 +1701,6 @@ function App() {
 
               <button disabled={loading} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-              </button>
-
-
-              <button
-                type="button"
-                className="morning-brew-trigger"
-                onClick={() => navigateView("morningBrew")}
-                aria-label="Open The Morning Mug"
-                title="The Morning Mug"
-              >
-                <span className="morning-coffee-symbol" aria-hidden="true">☕</span>
               </button>
             </form>
 
@@ -3386,7 +3374,6 @@ function MorningMugsDashboard({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const [insidersOpen, setInsidersOpen] = useState(false);
   const [seenAlertsKey, setSeenAlertsKey] = useState(() => safeStorageGet("eval-morning-mugs-alerts-seen", ""));
 
   async function loadBrew(forceRefresh = false) {
@@ -3425,12 +3412,11 @@ function MorningMugsDashboard({ onBack }) {
   const hasSavedPortfolio = Array.isArray(savedMorningPortfolio.symbols) && savedMorningPortfolio.symbols.length > 0;
   const indexes = brew?.market?.indexes || [];
   const movers = hasSavedPortfolio ? (brew?.market?.movers || { gainers: [], losers: [] }) : { gainers: [], losers: [] };
-  const insiders = hasSavedPortfolio ? (brew?.market?.insiders?.transactions || []) : [];
+  const marketMovers = brew?.market?.marketMovers || { gainers: [], losers: [] };
   const articles = brew?.market?.articles || [];
   const alerts = hasSavedPortfolio ? (brew?.portfolio?.alerts || []) : [];
   const alertsKey = `${new Date().toISOString().slice(0, 10)}-${alerts.length}-${alerts.map((a) => a.headline).join("|")}`;
   const hasNewAlerts = alerts.length > 0 && seenAlertsKey !== alertsKey;
-  const earnings = hasSavedPortfolio ? (brew?.market?.earnings?.events || []) : [];
   const morningScoreLookup = (Array.isArray(savedMorningPortfolio?.holdings) ? savedMorningPortfolio.holdings : []).reduce((acc, holding) => {
     const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
     const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
@@ -3482,6 +3468,28 @@ function MorningMugsDashboard({ onBack }) {
                   );
                 }) : <p className="morning-muted">Index data is unavailable right now.</p>}
               </div>
+              {((marketMovers.gainers || []).length || (marketMovers.losers || []).length) ? (
+                <div className="morning-portfolio-movers morning-market-movers">
+                  <div className="morning-movers-column">
+                    <span className="morning-movers-label up">Top 3 gainers today</span>
+                    {(marketMovers.gainers || []).length ? marketMovers.gainers.map((item) => (
+                      <div className="morning-mover-row positive" key={`market-gain-${item.symbol}`}>
+                        <b>{item.symbol}</b>
+                        <strong>{formatBrewPercent(item.changePercent)}</strong>
+                      </div>
+                    )) : <p className="morning-muted compact">No gainers available.</p>}
+                  </div>
+                  <div className="morning-movers-column">
+                    <span className="morning-movers-label down">Top 3 losers today</span>
+                    {(marketMovers.losers || []).length ? marketMovers.losers.map((item) => (
+                      <div className="morning-mover-row negative" key={`market-loss-${item.symbol}`}>
+                        <b>{item.symbol}</b>
+                        <strong>{formatBrewPercent(item.changePercent)}</strong>
+                      </div>
+                    )) : <p className="morning-muted compact">No losers available.</p>}
+                  </div>
+                </div>
+              ) : null}
               {hasSavedPortfolio && ((movers.gainers || []).length || (movers.losers || []).length) ? (
                 <div className="morning-portfolio-movers">
                   <div className="morning-movers-column">
@@ -3501,26 +3509,6 @@ function MorningMugsDashboard({ onBack }) {
                         <strong>{formatBrewPercent(item.changePercent)}</strong>
                       </div>
                     )) : <p className="morning-muted compact">No negative movers yet.</p>}
-                  </div>
-                </div>
-              ) : null}
-              {hasSavedPortfolio && insiders.length ? (
-                <div className={`morning-insider-section ${insidersOpen ? "open" : ""}`}>
-                  <button type="button" className="morning-insider-toggle" onClick={() => setInsidersOpen(!insidersOpen)}>
-                    <span>Portfolio insider transactions</span>
-                    <b>{insidersOpen ? "Hide" : "View"}</b>
-                  </button>
-                  <div className="morning-insider-list">
-                    {insiders.map((item, index) => (
-                      <div className={`morning-insider-row ${item.tone || "neutral"}`} key={`${item.symbol}-${item.date}-${index}`}>
-                        <div>
-                          <b>{item.symbol}</b>
-                          <span>{item.label}</span>
-                          {item.reason ? <em>{item.reason}</em> : null}
-                        </div>
-                        <strong>{Number(item.rating || 5).toFixed(1)}</strong>
-                      </div>
-                    ))}
                   </div>
                 </div>
               ) : null}
