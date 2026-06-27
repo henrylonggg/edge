@@ -2597,6 +2597,139 @@ function MiniScoreRing({ value, small = false, sector = false }) {
   );
 }
 
+
+const PORTFOLIO_SECTOR_ORDER = [
+  "Information Technology",
+  "Financials",
+  "Health Care",
+  "Consumer Discretionary",
+  "Consumer Staples",
+  "Industrials",
+  "Energy",
+  "Communication Services",
+  "Materials",
+  "Utilities",
+  "Real Estate",
+];
+
+function portfolioSectorFromIndustry(industry = "") {
+  const text = String(industry || "").toLowerCase();
+  if (/semiconductor|software|technology|information technology|hardware|computer|cloud|it service|electronic|internet software|application software|systems software/.test(text)) return "Information Technology";
+  if (/bank|financial|insurance|capital market|asset management|broker|credit|payment|consumer finance|mortgage|fintech/.test(text)) return "Financials";
+  if (/health|pharma|biotech|medical|life science|drug|diagnostic|hospital|care|therapeutic/.test(text)) return "Health Care";
+  if (/discretionary|auto|automobile|retail|restaurant|hotel|leisure|apparel|luxury|consumer cyclical|e-commerce|home improvement|specialty retail/.test(text)) return "Consumer Discretionary";
+  if (/staple|food|beverage|tobacco|household|personal product|grocery|consumer defensive/.test(text)) return "Consumer Staples";
+  if (/industrial|aerospace|defense|machinery|transport|airline|rail|freight|construction|building product|electrical equipment|manufacturing|logistics/.test(text)) return "Industrials";
+  if (/energy|oil|gas|drilling|exploration|production|pipeline|refining|coal|renewable/.test(text)) return "Energy";
+  if (/communication|telecom|media|entertainment|broadcast|interactive media|advertising|publishing|streaming/.test(text)) return "Communication Services";
+  if (/material|chemical|mining|metal|steel|gold|copper|paper|packaging|forest|agricultural input/.test(text)) return "Materials";
+  if (/utilit|electric|water|multi-utilities|regulated gas|independent power/.test(text)) return "Utilities";
+  if (/real estate|reit|property|mortgage reit|equity reit/.test(text)) return "Real Estate";
+  return "Information Technology";
+}
+
+function buildPortfolioSectorAllocations(industryGroups = []) {
+  const buckets = new Map();
+  const ensure = (sector) => {
+    if (!buckets.has(sector)) {
+      buckets.set(sector, { sector, totalWeightPercent: 0, scoreWeight: 0, weightedScoreSum: 0, holdings: [], industries: new Set() });
+    }
+    return buckets.get(sector);
+  };
+
+  (Array.isArray(industryGroups) ? industryGroups : []).forEach((group) => {
+    const industryName = group?.industry || group?.sector || "Other";
+    const sector = portfolioSectorFromIndustry(industryName);
+    const bucket = ensure(sector);
+    bucket.industries.add(industryName);
+
+    const holdings = Array.isArray(group?.holdings) ? group.holdings : [];
+    holdings.forEach((holding) => {
+      const weight = Number(holding?.weightPercent ?? holding?.portfolioWeightPercent ?? 0);
+      const fallbackWeight = Number(holding?.holdingDollars) > 0 && Number(group?.totalHoldingDollars) > 0 && Number(group?.totalWeightPercent) > 0
+        ? (Number(holding.holdingDollars) / Number(group.totalHoldingDollars)) * Number(group.totalWeightPercent)
+        : 0;
+      const finalWeight = Number.isFinite(weight) && weight > 0 ? weight : fallbackWeight;
+      const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
+      bucket.holdings.push({ ...holding, industry: industryName, sector });
+      if (Number.isFinite(finalWeight) && finalWeight > 0) {
+        bucket.totalWeightPercent += finalWeight;
+        if (score !== null) {
+          bucket.scoreWeight += finalWeight;
+          bucket.weightedScoreSum += score * finalWeight;
+        }
+      }
+    });
+  });
+
+  return PORTFOLIO_SECTOR_ORDER.map((sector) => ensure(sector))
+    .map((bucket) => ({
+      ...bucket,
+      industryCount: bucket.industries.size,
+      stockCount: bucket.holdings.length,
+      weightedEvalScore: bucket.scoreWeight > 0 ? Number((bucket.weightedScoreSum / bucket.scoreWeight).toFixed(1)) : null,
+      industries: Array.from(bucket.industries).sort(),
+    }))
+    .filter((bucket) => Number(bucket.totalWeightPercent) > 0)
+    .sort((a, b) => Number(b.totalWeightPercent || 0) - Number(a.totalWeightPercent || 0));
+}
+
+function SectorAllocationDonut({ sectors = [], activeSector, onActiveSector }) {
+  const palette = ["#8b5cf6", "#15e7ff", "#85ff47", "#ffd66b", "#f97316", "#ff5f73", "#22c55e", "#60a5fa", "#e879f9", "#a3e635", "#facc15"];
+  const total = sectors.reduce((sum, item) => sum + (Number(item.totalWeightPercent) || 0), 0);
+  let running = 0;
+  const enriched = sectors.map((sector, index) => {
+    const normalized = total > 0 ? ((Number(sector.totalWeightPercent) || 0) / total) * 100 : 0;
+    const start = running;
+    running += normalized;
+    return { ...sector, color: palette[index % palette.length], donutStart: start, donutEnd: running, normalizedWeight: normalized };
+  });
+  const active = enriched.find((item) => item.sector === activeSector) || enriched[0];
+  const gradient = enriched.map((item) => `${item.color} ${item.donutStart.toFixed(2)}% ${item.donutEnd.toFixed(2)}%`).join(", ");
+
+  if (!enriched.length) return null;
+
+  return (
+    <article className="portfolio-sector-allocation-card">
+      <div className="portfolio-sector-allocation-head">
+        <span className="section-title"><PieChart size={17}/> Sector allocation</span>
+        <h3>Sector weight & Eval Score</h3>
+      </div>
+      <div className="portfolio-sector-allocation-layout">
+        <div
+          className="portfolio-sector-allocation-donut"
+          style={{ background: `conic-gradient(${gradient})` }}
+          role="img"
+          aria-label="Portfolio sector allocation donut chart"
+        >
+          <div className="portfolio-sector-allocation-core">
+            <span>{active?.sector || "Sector"}</span>
+            <strong>{active ? `${Number(active.totalWeightPercent || 0).toFixed(1)}%` : "N/A"}</strong>
+            <small>{active?.weightedEvalScore !== null ? `Eval ${scoreText(active.weightedEvalScore)}` : "Eval N/A"}</small>
+          </div>
+        </div>
+        <div className="portfolio-sector-allocation-list">
+          {enriched.map((sector) => (
+            <button
+              type="button"
+              key={sector.sector}
+              className={`${sector.sector === active?.sector ? "active" : ""} ${scoreTone(sector.weightedEvalScore)}`}
+              onMouseEnter={() => onActiveSector?.(sector.sector)}
+              onFocus={() => onActiveSector?.(sector.sector)}
+              onClick={() => onActiveSector?.(sector.sector)}
+            >
+              <i style={{ background: sector.color }} />
+              <span>{sector.sector}</span>
+              <b>{Number(sector.totalWeightPercent || 0).toFixed(1)}%</b>
+              <em>{sector.weightedEvalScore !== null ? scoreText(sector.weightedEvalScore) : "N/A"}</em>
+            </button>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry }) {
   const palette = ["#85ff47", "#15e7ff", "#9f5cff", "#ffe45f", "#ff7a18", "#ff4f67", "#23f0c7", "#f472b6", "#a3e635", "#60a5fa"];
   const total = groups.reduce((sum, group) => sum + (Number(group.totalWeightPercent) || 0), 0);
@@ -2648,7 +2781,7 @@ function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry 
 
 
 function IndustryBars({ groups = [], onSelectIndustry }) {
-  const safeGroups = Array.isArray(groups) ? groups.filter(Boolean) : [];
+  const safeGroups = (Array.isArray(groups) ? groups.filter(Boolean) : []).sort((a, b) => Number(b?.sectorEvalScore ?? b?.industryEvalScore ?? b?.score ?? -1) - Number(a?.sectorEvalScore ?? a?.industryEvalScore ?? a?.score ?? -1));
 
   return (
     <div className="portfolio-industry-bars-card portfolio-industry-bars-clickable-card">
@@ -3389,8 +3522,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [manualCurrentListOpen, setManualCurrentListOpen] = useState(false);
   const [portfolioToolsOpen, setPortfolioToolsOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
+  const [manualTransactions, setManualTransactions] = useState([]);
+  const [manualTransactionSearch, setManualTransactionSearch] = useState("");
   const [hideHoldingsValue, setHideHoldingsValue] = useState(true);
   const [activeIndustry, setActiveIndustry] = useState("");
+  const [activeSectorAllocation, setActiveSectorAllocation] = useState("");
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
   const [sectorScoresOpen, setIndustryScoresOpen] = useState(false);
@@ -3419,6 +3555,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       if (saved.fileName) setCsvName(saved.fileName);
       if (saved.analysis) setCsvAnalysis(saved.analysis);
       if (Array.isArray(saved.manualRows)) setManualRows(saved.manualRows);
+      if (Array.isArray(saved.manualTransactions)) setManualTransactions(saved.manualTransactions);
       if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
       if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
       if (saved.strategyTargets) setStrategyTargets(saved.strategyTargets);
@@ -3439,6 +3576,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       if (saved.fileName) setCsvName(saved.fileName);
       if (saved.analysis) setCsvAnalysis(saved.analysis);
       if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
+      if (Array.isArray(saved.manualTransactions)) setManualTransactions(saved.manualTransactions);
       if (saved.strategyTargets && typeof saved.strategyTargets === "object") setStrategyTargets(saved.strategyTargets);
     } catch {
       // Ignore damaged local portfolio state.
@@ -3515,13 +3653,14 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   }, [strategyTargets, csvAnalysis, storageKey]);
 
-  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory) {
+  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory, nextManualTransactions = manualTransactions) {
     try {
       localStorage.setItem(storageKey, JSON.stringify({
         holdings: nextHoldings,
         fileName,
         analysis,
         manualRows: nextManualRows,
+        manualTransactions: nextManualTransactions,
         history: nextHistory,
         evalScoreHistory: nextEvalScoreHistory,
         strategyTargets,
@@ -3533,7 +3672,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -3557,7 +3696,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setPortfolioHistory(nextHistory);
       setEvalScoreHistory(nextEvalScoreHistory);
       setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
-      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRowsOverride || manualRows, nextHistory, nextEvalScoreHistory);
+      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRowsOverride || manualRows, nextHistory, nextEvalScoreHistory, manualTransactionsOverride || manualTransactions);
       setPortfolioToolsOpen(false);
       setManualOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3633,6 +3772,44 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       return rows.filter((row) => row.id !== id);
     });
   }
+
+  function buildManualTransactionEntries(rows) {
+    const now = new Date().toISOString();
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => {
+        const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
+        const shares = parseHoldingDollars(row.shares);
+        const averageCost = parseHoldingDollars(row.averageCost);
+        const mode = row.mode || "current";
+        if (!symbol || shares === null) return null;
+        let action = mode === "closed" ? "Closed" : mode === "current" ? "Set position" : Number(shares) < 0 ? "Sell" : "Buy";
+        return {
+          id: `${now}-${symbol}-${Math.random().toString(16).slice(2)}`,
+          date: now,
+          symbol,
+          action,
+          shares: Number(shares),
+          averageCost: Number.isFinite(Number(averageCost)) ? Number(averageCost) : null,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function transactionActionClass(action) {
+    const text = String(action || "").toLowerCase();
+    if (text.includes("sell") || text.includes("closed")) return "sell";
+    if (text.includes("buy")) return "buy";
+    return "set";
+  }
+
+  function formatTransactionDate(value) {
+    try {
+      return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+    } catch {
+      return "Recent";
+    }
+  }
+
   function loadSavedHoldingsIntoManualEntry() {
     const source = savedHoldings.length
       ? savedHoldings
@@ -3908,12 +4085,20 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       return;
     }
 
+    const newTransactions = buildManualTransactionEntries(manualRows);
+    const nextManualTransactions = [...newTransactions, ...manualTransactions].slice(0, 250);
+    setManualTransactions(nextManualTransactions);
     const nextManualRows = saveManualRowsAsCurrentHoldings(holdings);
-    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows });
+    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows, manualTransactionsOverride: nextManualTransactions });
   }
 
   const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
   const editableManualRows = manualRows.filter((row) => !String(row.symbol || "").trim() || (row.mode || "current") !== "current" || manualCurrentListOpen);
+  const filteredManualTransactions = manualTransactions.filter((transaction) => {
+    const query = String(manualTransactionSearch || "").trim().toUpperCase();
+    if (!query) return true;
+    return String(transaction?.symbol || "").toUpperCase().includes(query);
+  });
 
   const categoryEntries = Object.entries(csvAnalysis?.summary?.weightedCategoryScores || {})
     .filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0);
@@ -3925,6 +4110,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     sectorEvalScore: group?.sectorEvalScore ?? group?.industryEvalScore,
     industryEvalScore: group?.sectorEvalScore ?? group?.industryEvalScore,
   }));
+  const sectorAllocations = buildPortfolioSectorAllocations(sectorGroups);
   const portfolioScoreLookup = sectorGroups.reduce((acc, group) => {
     (group?.holdings || []).forEach((holding) => {
       const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
@@ -4062,41 +4248,71 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         </article>
 
         {manualOpen && (
-          <article className="portfolio-manual-card portfolio-input-card-v3 portfolio-manual-panel-open">
-            <div className="portfolio-manual-head">
+          <article className="portfolio-manual-card portfolio-input-card-v3 portfolio-manual-panel-open portfolio-manual-card-clean">
+            <div className="portfolio-manual-head portfolio-manual-head-clean">
               <div>
-                <span className="section-title"><Plus size={17}/> Manual</span>
-                <h3>Add or sell shares</h3>
-                <p>Type positive shares to add or negative shares like <b>-15</b> to sell.</p>
+                <span className="section-title"><Plus size={17}/> Transactions</span>
+                <h3>Buy or sell shares</h3>
+                <p>Enter shares bought. Use a negative number, like <b>-15</b>, to sell shares.</p>
               </div>
               <div className="portfolio-manual-head-actions">
-                <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add row</button>
+                <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add transaction</button>
                 {currentManualRows.length > 0 && (
                   <button type="button" className={`portfolio-template-btn portfolio-edit-current-btn ${manualCurrentListOpen ? "open" : ""}`} onClick={() => setManualCurrentListOpen((open) => !open)}>
-                    {manualCurrentListOpen ? "Hide current holdings" : "Edit/remove current holdings"}
+                    {manualCurrentListOpen ? "Hide holdings" : "Edit/remove holdings"}
                   </button>
                 )}
               </div>
             </div>
-            <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked">
-              {editableManualRows.map((row) => (
-                <div className="portfolio-manual-row portfolio-manual-entry-card" key={row.id}>
-                  <div className="portfolio-manual-fields">
-                    <label><span>Action</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
-                      <option value="current">Current</option>
-                      <option value="add">Add/sell shares</option>
-                      <option value="closed">Closed</option>
+
+            <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked portfolio-transaction-entry-list">
+              {editableManualRows.map((row) => {
+                const shareNumber = parseHoldingDollars(row.shares);
+                const actionText = (row.mode || "current") === "closed" ? "Close" : (row.mode || "current") === "current" ? "Set" : Number(shareNumber || 0) < 0 ? "Sell" : "Buy";
+                return (
+                <div className={`portfolio-manual-row portfolio-manual-entry-card portfolio-transaction-entry-card ${String(actionText).toLowerCase()}`} key={row.id}>
+                  <div className="portfolio-transaction-entry-topline">
+                    <strong>{String(row.symbol || "Ticker").toUpperCase()}</strong>
+                    <span>{actionText}</span>
+                  </div>
+                  <div className="portfolio-manual-fields portfolio-transaction-fields">
+                    <label><span>Type</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
+                      <option value="current">Set current</option>
+                      <option value="add">Buy / sell</option>
+                      <option value="closed">Close position</option>
                     </select></label>
                     <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
-                    <label><span>Shares</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10 or -15" inputMode="decimal" /></label>
-                    <label><span>Avg cost</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
+                    <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10 or -15" inputMode="decimal" /></label>
+                    <label><span>Price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
-                  <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove holding"><Trash2 size={15}/></button>
+                  <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove transaction"><Trash2 size={15}/></button>
                 </div>
-              ))}
+              );})}
             </div>
+
+            <div className="portfolio-transaction-history-card">
+              <div className="portfolio-transaction-history-head">
+                <div>
+                  <h4>Transaction history</h4>
+                  <span>{filteredManualTransactions.length} shown</span>
+                </div>
+                <input value={manualTransactionSearch} onChange={(event) => setManualTransactionSearch(event.target.value.toUpperCase())} placeholder="Search ticker" maxLength={8} />
+              </div>
+              <div className="portfolio-transaction-history-list">
+                {filteredManualTransactions.length ? filteredManualTransactions.slice(0, 40).map((transaction) => (
+                  <div className={`portfolio-transaction-history-row ${transactionActionClass(transaction.action)}`} key={transaction.id}>
+                    <strong>{transaction.symbol}</strong>
+                    <span>{transaction.action}</span>
+                    <b>{Number(transaction.shares) > 0 ? "+" : ""}{Number(transaction.shares || 0).toLocaleString()}</b>
+                    <em>{transaction.averageCost ? money(transaction.averageCost) : "—"}</em>
+                    <small>{formatTransactionDate(transaction.date)}</small>
+                  </div>
+                )) : <p>No transactions yet.</p>}
+              </div>
+            </div>
+
             <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
-              <Sparkles size={16}/> Save selected
+              <Sparkles size={16}/> Save transactions
             </button>
           </article>
         )}
@@ -4146,7 +4362,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
           </div>
 
-          <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-four">
+          <div className="portfolio-dashboard-action-row portfolio-dashboard-action-row-three">
             <button type="button" className="portfolio-action-tile pros" onClick={() => openPortfolioInsightPage("pros")}>
               <b>PROS</b>
               <small>Click to view</small>
@@ -4158,10 +4374,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             <button type="button" className={`portfolio-action-tile industries ${sectorScoresOpen ? "open" : ""}`} onClick={() => setIndustryScoresOpen((open) => !open)}>
               <b>Industries</b>
               <small>{sectorScoresOpen ? "Close" : "View"}</small>
-            </button>
-            <button type="button" className="portfolio-action-tile morning-mug" onClick={onMorning} aria-label="Open The Morning Mug" title="The Morning Mug">
-              <b>☕</b>
-              <small>Mug</small>
             </button>
           </div>
 
@@ -4175,7 +4387,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </div>
           )}
 
-
+          <SectorAllocationDonut sectors={sectorAllocations} activeSector={activeSectorAllocation} onActiveSector={setActiveSectorAllocation} />
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
             <form className="portfolio-holding-search-bar" onSubmit={jumpToPortfolioHolding}>
