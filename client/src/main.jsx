@@ -3470,11 +3470,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [portfolioEarnings, setPortfolioEarnings] = useState([]);
   const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
-  // Portfolio analysis, quotes, charts, and page calculations are session-only.
-  // Persisted portfolio items are intentionally limited to:
-  // 1) the user's uploaded/current holdings list,
-  // 2) portfolio earnings dates for 48 hours, and
-  // 3) individual stock Eval Scores through the main dashboard analysis cache.
+  // Portfolio display is saved so reopening the Portfolio page does not rescore automatically.
+  // A full rescore runs only after CSV upload, manual transaction save, or the Refresh button.
+  // Earnings remain cached for 48 hours, and individual stock Eval Scores use the main dashboard cache.
 
   const loadedSavedUploadRef = useRef(false);
 
@@ -3505,16 +3503,35 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
       const fileName = saved?.csvName || saved?.fileName || `${firstName} Portfolio.csv`;
       const nextManualRows = holdingsToManualRows(holdings);
+      const savedDisplay = saved?.display && typeof saved.display === "object" ? saved.display : null;
+      const savedAnalysis = savedDisplay?.analysis && typeof savedDisplay.analysis === "object" ? savedDisplay.analysis : null;
+      const savedValueHistory = Array.isArray(savedDisplay?.portfolioHistory) ? savedDisplay.portfolioHistory : [];
+      const savedEvalHistory = Array.isArray(savedDisplay?.evalScoreHistory) ? savedDisplay.evalScoreHistory : [];
+      const savedTransactions = Array.isArray(saved?.manualTransactions) ? saved.manualTransactions : [];
+
       setCsvName(fileName);
       setSavedHoldings(holdings);
       setManualRows(nextManualRows);
-      analyzeCsvHoldings(holdings, fileName, {
-        silent: false,
-        recordValueHistory: false,
-        recordEvalHistory: false,
-        manualRowsOverride: nextManualRows,
-        skipPersist: true,
-      });
+      setManualTransactions(savedTransactions);
+      setPortfolioHistory(savedValueHistory);
+      setEvalScoreHistory(savedEvalHistory);
+
+      if (savedAnalysis) {
+        setCsvAnalysis({
+          ...savedAnalysis,
+          history: savedAnalysis?.history || savedValueHistory,
+          evalScoreHistory: savedAnalysis?.evalScoreHistory || savedEvalHistory,
+        });
+      } else {
+        analyzeCsvHoldings(holdings, fileName, {
+          silent: false,
+          recordValueHistory: false,
+          recordEvalHistory: false,
+          manualRowsOverride: nextManualRows,
+          manualTransactionsOverride: savedTransactions,
+          skipPersist: false,
+        });
+      }
     } catch {
       // Saved CSV restoration is optional. A bad local entry should never break the portfolio page.
     }
@@ -3598,7 +3615,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
   // Portfolio strategy targets stay in the current session only.
 
-  function persistPortfolioState(nextHoldings, fileName) {
+  function persistPortfolioState(nextHoldings, fileName, display = null, transactions = manualTransactions) {
     try {
       const cleanHoldings = (Array.isArray(nextHoldings) ? nextHoldings : [])
         .map((holding) => ({
@@ -3613,14 +3630,25 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         return;
       }
 
+      const safeDisplay = display && typeof display === "object"
+        ? {
+            savedAt: new Date().toISOString(),
+            analysis: display.analysis || null,
+            portfolioHistory: Array.isArray(display.portfolioHistory) ? display.portfolioHistory.slice(-260) : [],
+            evalScoreHistory: Array.isArray(display.evalScoreHistory) ? display.evalScoreHistory.slice(-260) : [],
+          }
+        : null;
+
       localStorage.setItem(storageKey, JSON.stringify({
-        version: 1,
+        version: 2,
         csvName: fileName || `${firstName} Portfolio.csv`,
         savedAt: new Date().toISOString(),
         holdings: cleanHoldings,
+        manualTransactions: Array.isArray(transactions) ? transactions.slice(0, 250) : [],
+        display: safeDisplay,
       }));
     } catch {
-      // Uploaded holdings persistence is optional and should never block analysis.
+      // Uploaded holdings/display persistence is optional and should never block analysis.
     }
   }
 
@@ -3645,10 +3673,19 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       if (!response.ok) throw new Error(json?.error || "Could not analyze this portfolio.");
       const nextHistory = recordValueHistory ? buildPortfolioHistory(portfolioHistory, json) : portfolioHistory;
       const nextEvalScoreHistory = recordEvalHistory ? buildPortfolioEvalHistory(evalScoreHistory, json) : evalScoreHistory;
+      const nextTransactions = Array.isArray(manualTransactionsOverride) ? manualTransactionsOverride : manualTransactions;
+      const nextAnalysis = { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory };
       setPortfolioHistory(nextHistory);
       setEvalScoreHistory(nextEvalScoreHistory);
-      setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
-      if (!skipPersist) persistPortfolioState(holdings, fileName);
+      setCsvAnalysis(nextAnalysis);
+      if (Array.isArray(manualTransactionsOverride)) setManualTransactions(manualTransactionsOverride);
+      if (!skipPersist) {
+        persistPortfolioState(holdings, fileName, {
+          analysis: nextAnalysis,
+          portfolioHistory: nextHistory,
+          evalScoreHistory: nextEvalScoreHistory,
+        }, nextTransactions);
+      }
       setPortfolioToolsOpen(false);
       setManualOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -3716,7 +3753,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         if (!symbol || shares === null) return null;
         if (mode === "current" && !row.__touched) return null;
         const numericShares = Number(shares || 0);
-        let action = mode === "closed" ? "Closed" : mode === "current" ? "Set position" : numericShares < 0 ? "Sell" : "Buy";
+        let action = mode === "closed" ? "Closed" : (numericShares < 0 || mode === "remove") ? "Sell" : mode === "current" ? "Set position" : "Buy";
         return {
           id: `${now}-${symbol}-${Math.random().toString(16).slice(2)}`,
           date: now,
@@ -3767,31 +3804,43 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     const bySymbol = new Map();
     const cleanRows = Array.isArray(rows) ? rows : [];
 
+    // Start from the saved portfolio so buy/sell transactions modify the current position
+    // instead of accidentally mixing partial CSV data with partial manual rows.
+    (Array.isArray(savedHoldings) ? savedHoldings : []).forEach((holding) => {
+      const symbol = String(holding?.symbol || holding?.ticker || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
+      const shares = Number(holding?.shares ?? holding?.quantity ?? 0);
+      const averageCost = Number(holding?.averageCost ?? holding?.avgCost ?? holding?.purchasePrice ?? 0) || 0;
+      if (symbol && Number.isFinite(shares) && shares > 0) bySymbol.set(symbol, { symbol, shares, averageCost });
+    });
+
     cleanRows.forEach((row) => {
       const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
       const shares = parseHoldingDollars(row.shares);
       const averageCost = parseHoldingDollars(row.averageCost);
       const mode = row.mode || "current";
       if (!symbol || shares === null) return;
-      const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: averageCost || 0 };
+      if (mode === "current" && !row.__touched && bySymbol.has(symbol)) return;
+
+      const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: Number(averageCost || 0) };
+      const numericShares = Number(shares || 0);
 
       if (mode === "closed") {
         bySymbol.delete(symbol);
         return;
       }
 
-      if (mode === "add" || mode === "remove") {
+      if (mode === "add" || mode === "remove" || numericShares < 0) {
         const oldShares = Number(current.shares || 0);
-        const deltaShares = mode === "remove" ? -Math.abs(Number(shares || 0)) : Number(shares || 0);
+        const deltaShares = mode === "remove" ? -Math.abs(numericShares) : numericShares;
         const nextShares = oldShares + deltaShares;
         if (nextShares <= 0) {
           bySymbol.delete(symbol);
           return;
         }
         const oldCost = Number(current.averageCost || 0);
-        const addCost = Number(averageCost || oldCost || 0);
-        const nextCost = deltaShares > 0 && addCost > 0
-          ? ((oldShares * oldCost) + (deltaShares * addCost)) / nextShares
+        const tradeCost = Number(averageCost || oldCost || 0);
+        const nextCost = deltaShares > 0 && tradeCost > 0
+          ? ((oldShares * oldCost) + (deltaShares * tradeCost)) / nextShares
           : oldCost;
         bySymbol.set(symbol, { symbol, shares: nextShares, averageCost: nextCost });
         return;
@@ -4208,13 +4257,13 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked portfolio-transaction-entry-list portfolio-transaction-entry-list-clean">
               {editableManualRows.map((row) => {
                 const shareNumber = parseHoldingDollars(row.shares);
-                const actionText = (row.mode || "current") === "closed" ? "Close" : (row.mode || "current") === "current" ? "Set" : Number(shareNumber || 0) < 0 ? "Sell" : "Buy";
+                const actionText = (row.mode || "current") === "closed" ? "Close" : Number(shareNumber || 0) < 0 ? "Sell" : (row.mode || "current") === "current" ? "Set" : "Buy";
                 return (
                 <div className={`portfolio-manual-row portfolio-manual-entry-card portfolio-transaction-entry-card ${String(actionText).toLowerCase()}`} key={row.id}>
                   <div className="portfolio-transaction-entry-topline">
                     <div>
                       <strong>{String(row.symbol || "Ticker").toUpperCase()}</strong>
-                      <small>{(row.mode || "current") === "current" ? "Current holding" : Number(shareNumber || 0) < 0 ? "Sell shares" : "Buy shares"}</small>
+                      <small>{Number(shareNumber || 0) < 0 ? "Sell shares" : (row.mode || "current") === "current" ? "Current holding" : "Buy shares"}</small>
                     </div>
                     <span>{actionText}</span>
                   </div>
