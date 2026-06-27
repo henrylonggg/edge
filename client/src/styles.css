@@ -38526,3 +38526,52 @@ body:has(.morning-brew-page-shell) {
     display: none !important;
   }
 }
+
+
+/* Account sync + wider mobile nav shortcut buttons */
+@media (max-width: 680px) {
+  .mobile-bottom-nav {
+    width: min(452px, calc(100vw - 6px)) !important;
+    height: 86px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .mobile-bottom-nav-arrow-cluster {
+    left: 10px !important;
+    grid-template-columns: 28px 28px !important;
+    gap: 4px !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-arrow {
+    width: 28px !important;
+    min-width: 28px !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-shortcut {
+    width: 54px !important;
+    min-width: 54px !important;
+    height: 50px !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-left-shortcut {
+    left: calc(50% - 125px) !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-home {
+    width: 72px !important;
+    height: 62px !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-right-shortcut {
+    left: calc(50% + 43px) !important;
+    right: auto !important;
+  }
+
+  .mobile-bottom-nav-btn.nav-settings-shortcut {
+    left: calc(50% + 103px) !important;
+    right: auto !important;
+  }
+}
