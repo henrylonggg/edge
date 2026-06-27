@@ -4030,19 +4030,13 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
   function manualRowsConfirmationText(rows, label = "Save these transactions?") {
     const transactions = buildManualTransactionEntries(rows);
-    if (!transactions.length) return `${label}
-
-No valid transaction rows were found.`;
+    if (!transactions.length) return `${label}\n\nNo valid transaction rows were found.`;
     const lines = transactions.slice(0, 12).map((transaction) => {
       const priceText = transaction.averageCost ? ` @ ${money(transaction.averageCost)}` : "";
       return `${transaction.action}: ${transaction.symbol} — ${Number(transaction.shares || 0).toLocaleString()} shares${priceText}`;
     });
-    const extra = transactions.length > 12 ? `
-+${transactions.length - 12} more` : "";
-    return `${label}
-
-${lines.join("
-")}${extra}`;
+    const extra = transactions.length > 12 ? `\n+${transactions.length - 12} more` : "";
+    return `${label}\n\n${lines.join("\n")}${extra}`;
   }
 
   async function saveManualTransactionRows(rowsToSave, { all = false } = {}) {
