@@ -38080,3 +38080,50 @@ body:has(.morning-brew-page-shell) {
     font-size: 11px !important;
   }
 }
+
+/* === Final readability patch: bigger Holdings + total value/change text === */
+.portfolio-dashboard-v3 .portfolio-action-tile.holdings b {
+  font-size: clamp(1.45rem, 2.4vw, 2.25rem) !important;
+  line-height: .95 !important;
+  letter-spacing: -.05em !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-total-value-line strong {
+  font-size: clamp(2rem, 3.4vw, 3.25rem) !important;
+  line-height: .88 !important;
+  letter-spacing: -.07em !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-value-change {
+  font-size: clamp(1rem, 1.55vw, 1.45rem) !important;
+  line-height: 1.05 !important;
+  font-weight: 1000 !important;
+}
+
+@media (max-width: 720px) {
+  body .portfolio-dashboard-v3 .portfolio-action-tile.holdings b {
+    font-size: 24px !important;
+    line-height: .9 !important;
+    letter-spacing: -.06em !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-wide,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-no-label {
+    padding: 10px 8px !important;
+    gap: 3px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-line strong {
+    font-size: 26px !important;
+    line-height: .86 !important;
+    letter-spacing: -.075em !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-value-change {
+    font-size: 14px !important;
+    line-height: 1 !important;
+    font-weight: 1000 !important;
+    margin-top: 2px !important;
+  }
+}
