@@ -2652,46 +2652,32 @@ function buildPortfolioSectorAllocations(industryGroups = []) {
     .sort((a, b) => Number(b.totalWeightPercent || 0) - Number(a.totalWeightPercent || 0));
 }
 
-function SectorAllocationDonut({ sectors = [], activeSector, onActiveSector }) {
-  const enriched = (Array.isArray(sectors) ? sectors : []).filter((sector) => Number(sector?.totalWeightPercent) > 0);
-  const active = enriched.find((item) => item.sector === activeSector) || enriched[0];
+function SectorAllocationSummary({ sectors = [] }) {
+  const rows = (Array.isArray(sectors) ? sectors : [])
+    .filter((sector) => Number(sector?.totalWeightPercent) > 0)
+    .sort((a, b) => Number(b.weightedEvalScore ?? -1) - Number(a.weightedEvalScore ?? -1));
 
-  if (!enriched.length) return null;
+  if (!rows.length) return null;
 
   return (
-    <article className="portfolio-sector-allocation-card portfolio-sector-summary-card">
+    <article className="portfolio-sector-allocation-card portfolio-sector-summary-card no-donut">
       <div className="portfolio-sector-allocation-head">
-        <span className="section-title"><BarChart3 size={17}/> Sector allocation</span>
+        <span className="section-title"><BarChart3 size={17}/> Sector weights</span>
         <h3>Sector weight & Eval Score</h3>
       </div>
-      {active && (
-        <div className={`portfolio-sector-summary-feature ${scoreTone(active.weightedEvalScore)}`}>
-          <div>
-            <span>{active.sector}</span>
-            <strong>{Number(active.totalWeightPercent || 0).toFixed(1)}%</strong>
-          </div>
-          <b>{active.weightedEvalScore !== null ? scoreText(active.weightedEvalScore) : "N/A"}</b>
-        </div>
-      )}
       <div className="portfolio-sector-allocation-list portfolio-sector-summary-list">
-        {enriched.map((sector) => (
-          <button
-            type="button"
-            key={sector.sector}
-            className={`${sector.sector === active?.sector ? "active" : ""} ${scoreTone(sector.weightedEvalScore)}`}
-            onMouseEnter={() => onActiveSector?.(sector.sector)}
-            onFocus={() => onActiveSector?.(sector.sector)}
-            onClick={() => onActiveSector?.(sector.sector)}
-          >
+        {rows.map((sector) => (
+          <div className={`portfolio-sector-summary-row ${scoreTone(sector.weightedEvalScore)}`} key={sector.sector}>
             <span>{sector.sector}</span>
             <b>{Number(sector.totalWeightPercent || 0).toFixed(1)}%</b>
             <em>{sector.weightedEvalScore !== null ? scoreText(sector.weightedEvalScore) : "N/A"}</em>
-          </button>
+          </div>
         ))}
       </div>
     </article>
   );
 }
+
 
 function IndustryDiversityDonut({ groups = [], activeIndustry, onActiveIndustry }) {
   const palette = ["#85ff47", "#15e7ff", "#9f5cff", "#ffe45f", "#ff7a18", "#ff4f67", "#23f0c7", "#f472b6", "#a3e635", "#60a5fa"];
@@ -3461,8 +3447,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [manualTransactionSearch, setManualTransactionSearch] = useState("");
   const [hideHoldingsValue, setHideHoldingsValue] = useState(true);
   const [activeIndustry, setActiveIndustry] = useState("");
-  const [activeSectorAllocation, setActiveSectorAllocation] = useState("");
-  const [metricsOpen, setMetricsOpen] = useState(false);
+    const [metricsOpen, setMetricsOpen] = useState(false);
   const [openIndustries, setOpenIndustries] = useState({});
   const [sectorScoresOpen, setIndustryScoresOpen] = useState(false);
   const [portfolioInsightModal, setPortfolioInsightModal] = useState(null);
@@ -3485,8 +3470,13 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [portfolioEarnings, setPortfolioEarnings] = useState([]);
   const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
-  // Portfolio holdings and analysis are intentionally session-only.
-  // Individual stock Eval Scores still use the main dashboard analysis cache.
+  // Portfolio analysis, quotes, charts, and page calculations are session-only.
+  // Persisted portfolio items are intentionally limited to:
+  // 1) the user's uploaded/current holdings list,
+  // 2) portfolio earnings dates for 48 hours, and
+  // 3) individual stock Eval Scores through the main dashboard analysis cache.
+
+  const loadedSavedUploadRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -3503,6 +3493,32 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setVisibleHoldingColumns(normalizePortfolioVisibleColumns(null));
     }
   }, [columnStorageKey]);
+
+  useEffect(() => {
+    if (loadedSavedUploadRef.current) return;
+    loadedSavedUploadRef.current = true;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+      const holdings = Array.isArray(saved?.holdings) ? saved.holdings : [];
+      if (!holdings.length) return;
+
+      const fileName = saved?.csvName || saved?.fileName || `${firstName} Portfolio.csv`;
+      const nextManualRows = holdingsToManualRows(holdings);
+      setCsvName(fileName);
+      setSavedHoldings(holdings);
+      setManualRows(nextManualRows);
+      analyzeCsvHoldings(holdings, fileName, {
+        silent: false,
+        recordValueHistory: false,
+        recordEvalHistory: false,
+        manualRowsOverride: nextManualRows,
+        skipPersist: true,
+      });
+    } catch {
+      // Saved CSV restoration is optional. A bad local entry should never break the portfolio page.
+    }
+  }, [storageKey]);
 
   useEffect(() => {
     const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
@@ -3523,9 +3539,33 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setPortfolioEarnings([]);
       return;
     }
-    const symbols = [...new Set(groups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))];
-    if (!symbols.length) return;
+
+    const symbols = [...new Set(groups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))]
+      .map((symbol) => String(symbol).trim().toUpperCase())
+      .filter(Boolean)
+      .sort();
+
+    if (!symbols.length) {
+      setPortfolioEarnings([]);
+      return;
+    }
+
+    const ttlMs = 48 * 60 * 60 * 1000;
+    const earningsCacheKey = `${storageKey}:earnings:${symbols.join("|")}:28d`;
     let alive = true;
+
+    try {
+      const cached = JSON.parse(localStorage.getItem(earningsCacheKey) || "null");
+      const savedAt = Number(cached?.savedAt || 0);
+      if (Array.isArray(cached?.events) && savedAt && Date.now() - savedAt < ttlMs) {
+        setPortfolioEarnings(cached.events);
+        setPortfolioEarningsLoading(false);
+        return () => { alive = false; };
+      }
+    } catch {
+      // Earnings cache is optional and should never block the page.
+    }
+
     async function loadPortfolioEarnings() {
       setPortfolioEarningsLoading(true);
       try {
@@ -3536,25 +3576,55 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
           body: JSON.stringify({ symbols, days: 28 }),
         });
         const json = await response.json().catch(() => null);
-        if (alive && response.ok) setPortfolioEarnings(Array.isArray(json?.events) ? json.events : []);
+        const events = Array.isArray(json?.events) ? json.events : [];
+        if (alive && response.ok) {
+          setPortfolioEarnings(events);
+          try {
+            localStorage.setItem(earningsCacheKey, JSON.stringify({ savedAt: Date.now(), events }));
+          } catch {
+            // Ignore storage limits/private mode.
+          }
+        }
       } catch {
         if (alive) setPortfolioEarnings([]);
       } finally {
         if (alive) setPortfolioEarningsLoading(false);
       }
     }
+
     loadPortfolioEarnings();
     return () => { alive = false; };
-  }, [csvAnalysis]);
+  }, [csvAnalysis, storageKey]);
 
   // Portfolio strategy targets stay in the current session only.
 
-  function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory, nextManualTransactions = manualTransactions) {
-    // No portfolio-page cache: keep current portfolio data in React state only.
-    // Individual stock Eval Scores still cache through the shared analysis cache used by the dashboard.
+  function persistPortfolioState(nextHoldings, fileName) {
+    try {
+      const cleanHoldings = (Array.isArray(nextHoldings) ? nextHoldings : [])
+        .map((holding) => ({
+          symbol: String(holding?.symbol || holding?.ticker || "").trim().toUpperCase(),
+          shares: Number(holding?.shares ?? holding?.quantity ?? 0),
+          averageCost: Number(holding?.averageCost ?? holding?.avgCost ?? holding?.purchasePrice ?? 0) || 0,
+        }))
+        .filter((holding) => holding.symbol && Number.isFinite(holding.shares) && holding.shares > 0);
+
+      if (!cleanHoldings.length) {
+        localStorage.removeItem(storageKey);
+        return;
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify({
+        version: 1,
+        csvName: fileName || `${firstName} Portfolio.csv`,
+        savedAt: new Date().toISOString(),
+        holdings: cleanHoldings,
+      }));
+    } catch {
+      // Uploaded holdings persistence is optional and should never block analysis.
+    }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null, skipPersist = false } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -3578,7 +3648,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setPortfolioHistory(nextHistory);
       setEvalScoreHistory(nextEvalScoreHistory);
       setCsvAnalysis({ ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory });
-      persistPortfolioState(holdings, fileName, { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory }, manualRowsOverride || manualRows, nextHistory, nextEvalScoreHistory, manualTransactionsOverride || manualTransactions);
+      if (!skipPersist) persistPortfolioState(holdings, fileName);
       setPortfolioToolsOpen(false);
       setManualOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4259,7 +4329,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </div>
           )}
 
-          <SectorAllocationDonut sectors={sectorAllocations} activeSector={activeSectorAllocation} onActiveSector={setActiveSectorAllocation} />
+          <SectorAllocationSummary sectors={sectorAllocations} />
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
             <form className="portfolio-holding-search-bar" onSubmit={jumpToPortfolioHolding}>
