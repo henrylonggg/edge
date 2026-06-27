@@ -216,9 +216,16 @@ const MOBILE_NAV_SHORTCUT_OPTIONS = [
 ];
 
 const LOGO_COLOR_PRESETS = [
-  "#9f5cff", "#7d4dff", "#b56cff", "#15e7ff", "#00b7ff", "#4dffdf",
-  "#85d713", "#32ff7e", "#ffd66b", "#ff9f1c", "#ff5f73", "#ff2bd6",
-  "#ffffff", "#c7d2fe", "#a3e635", "#f43f5e", "#38bdf8", "#111827"
+  "#9f5cff", "#7d4dff", "#6d28d9", "#8b5cf6", "#a855f7", "#b56cff",
+  "#c084fc", "#d946ef", "#ff2bd6", "#ec4899", "#f43f5e", "#ff5f73",
+  "#ef4444", "#dc2626", "#b91c1c", "#fb7185", "#f97316", "#ea580c",
+  "#ff9f1c", "#f59e0b", "#fbbf24", "#ffd66b", "#eab308", "#ca8a04",
+  "#85d713", "#a3e635", "#65a30d", "#22c55e", "#16a34a", "#32ff7e",
+  "#10b981", "#059669", "#14b8a6", "#0d9488", "#4dffdf", "#15e7ff",
+  "#06b6d4", "#0891b2", "#38bdf8", "#00b7ff", "#3b82f6", "#2563eb",
+  "#1d4ed8", "#60a5fa", "#6366f1", "#4f46e5", "#818cf8", "#c7d2fe",
+  "#f8fafc", "#ffffff", "#e5e7eb", "#cbd5e1", "#94a3b8", "#64748b",
+  "#334155", "#111827", "#020617", "#000000"
 ];
 
 function rawScore(v) {
@@ -1661,13 +1668,13 @@ function SettingsPage({
 
 function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, homeButtonColor = "#9f5cff", onNavigate, onBack, onForward }) {
   const shortcutMap = {
-    watchlist: { label: "Watchlist", icon: <Star size={17} /> },
-    settings: { label: "Settings", icon: <SettingsIcon size={17} /> },
-    search: { label: "Search", icon: <Search size={17} /> },
-    assistant: { label: "Eval AI", icon: <BrainCircuit size={17} /> },
-    portfolio: { label: "Portfolio", icon: <PieChart size={17} /> },
-    morningBrew: { label: "Morning Mug", icon: <Coffee size={18} className="mobile-mug-icon" /> },
-    tickerLookup: { label: "Ticker Lookup", icon: <Search size={17} /> },
+    watchlist: { label: "Watchlist", icon: <Star size={18} /> },
+    settings: { label: "Settings", icon: <SettingsIcon size={18} /> },
+    search: { label: "Search", icon: <Search size={18} /> },
+    assistant: { label: "Eval AI", icon: <BrainCircuit size={18} /> },
+    portfolio: { label: "Portfolio", icon: <PieChart size={18} /> },
+    morningBrew: { label: "Morning Mug", icon: <Coffee size={19} className="mobile-mug-icon" /> },
+    tickerLookup: { label: "Ticker Lookup", icon: <Search size={18} /> },
   };
 
   const runShortcut = (key) => {
@@ -1680,20 +1687,29 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": homeButtonColor }}>
-      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onBack} aria-label="Back">
-        <ArrowLeft size={15} />
-      </button>
-      <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(leftShortcut)}>
+      <div className="mobile-bottom-nav-arrow-cluster" aria-label="History controls">
+        <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onBack} aria-label="Back">
+          <ArrowLeft size={15} />
+        </button>
+        <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onForward} aria-label="Forward">
+          <ArrowRight size={15} />
+        </button>
+      </div>
+
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut" onClick={() => runShortcut(leftShortcut)} aria-label={left.label}>
         {left.icon}
       </button>
+
       <button type="button" className="mobile-bottom-nav-btn nav-home" onClick={() => onNavigate(homeView || "dashboard")} aria-label="Home">
-        <Home size={18} />
+        <Home size={22} />
       </button>
-      <button type="button" className="mobile-bottom-nav-btn nav-shortcut" onClick={() => runShortcut(rightShortcut)}>
+
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-right-shortcut" onClick={() => runShortcut(rightShortcut)} aria-label={right.label}>
         {right.icon}
       </button>
-      <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onForward} aria-label="Forward">
-        <ArrowRight size={15} />
+
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-settings-shortcut" onClick={() => onNavigate("settings")} aria-label="Settings">
+        <SettingsIcon size={18} />
       </button>
     </nav>
   );
