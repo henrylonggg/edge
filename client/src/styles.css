@@ -38022,3 +38022,61 @@ body:has(.morning-brew-page-shell) {
     font-size: 28px !important;
   }
 }
+
+/* Patch: mobile spacing + separator + manual transaction save controls */
+.portfolio-top-bottom-separator {
+  width: min(920px, 92%);
+  height: 1px;
+  margin: 18px auto 22px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  border: 0;
+}
+
+.portfolio-manual-entry-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.portfolio-manual-entry-save {
+  border: 1px solid rgba(133,255,71,.28);
+  background: rgba(133,255,71,.12);
+  color: #ffffff;
+  border-radius: 13px;
+  padding: 10px 14px;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: .03em;
+}
+
+@media (max-width: 720px) {
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three {
+    gap: 12px !important;
+    justify-content: center !important;
+    padding-inline: 6px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile {
+    margin-inline: 2px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-top-bottom-separator {
+    width: calc(100% - 18px) !important;
+    margin: 14px auto 16px !important;
+    height: 1px !important;
+    opacity: .86 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-manual-entry-actions {
+    margin-top: 8px !important;
+    gap: 7px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-manual-entry-save {
+    padding: 8px 11px !important;
+    border-radius: 11px !important;
+    font-size: 11px !important;
+  }
+}
