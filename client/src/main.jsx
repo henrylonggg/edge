@@ -612,17 +612,8 @@ function App() {
   }
 
   function getLocalSyncPayload() {
-    const portfolioKey = portfolioStorageKeyFor(user);
-    const localPortfolioRaw = safeStorageGet(portfolioKey, "");
-    let portfolio = null;
-    try {
-      portfolio = localPortfolioRaw ? JSON.parse(localPortfolioRaw) : null;
-    } catch {
-      portfolio = null;
-    }
     return {
       watchlist: readWatchlist(),
-      portfolio,
       alertsSeen: safeStorageGet("eval-morning-mugs-alerts-seen", ""),
       syncedAt: new Date().toISOString(),
     };
@@ -634,11 +625,6 @@ function App() {
     if (Array.isArray(remote.watchlist)) {
       saveWatchlist(remote.watchlist);
       setWatchlist(remote.watchlist);
-      changed = true;
-    }
-    if (remote.portfolio) {
-      safeStorageSet(portfolioStorageKeyFor(user), JSON.stringify(remote.portfolio));
-      window.dispatchEvent(new CustomEvent("eval-portfolio-remote-sync", { detail: remote.portfolio }));
       changed = true;
     }
     if (remote.alertsSeen) {
@@ -704,18 +690,10 @@ function App() {
 
     setSyncStatus("syncing");
     try {
-      const local = getLocalSyncPayload();
       const remote = await fetchRemoteSyncData(userKey);
-      const hasLocalPortfolio = Boolean(local.portfolio);
-      const hasRemotePortfolio = Boolean(remote?.portfolio);
-
-      if (!hasLocalPortfolio && hasRemotePortfolio) {
-        applyRemoteSyncData(remote);
-        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(remote.updatedAt || "") || Date.now()));
-      } else {
-        const pushed = await pushLocalSyncData(userKey);
-        safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(pushed?.updatedAt || "") || Date.now()));
-      }
+      if (remote) applyRemoteSyncData(remote);
+      const pushed = await pushLocalSyncData(userKey);
+      safeStorageSet(`eval-sync-last:${userKey}`, String(Date.parse(pushed?.updatedAt || remote?.updatedAt || "") || Date.now()));
 
       safeStorageSet(`eval-sync-enabled:${userKey}`, "true");
       setSyncStatus("synced");
@@ -2675,56 +2653,41 @@ function buildPortfolioSectorAllocations(industryGroups = []) {
 }
 
 function SectorAllocationDonut({ sectors = [], activeSector, onActiveSector }) {
-  const palette = ["#8b5cf6", "#15e7ff", "#85ff47", "#ffd66b", "#f97316", "#ff5f73", "#22c55e", "#60a5fa", "#e879f9", "#a3e635", "#facc15"];
-  const total = sectors.reduce((sum, item) => sum + (Number(item.totalWeightPercent) || 0), 0);
-  let running = 0;
-  const enriched = sectors.map((sector, index) => {
-    const normalized = total > 0 ? ((Number(sector.totalWeightPercent) || 0) / total) * 100 : 0;
-    const start = running;
-    running += normalized;
-    return { ...sector, color: palette[index % palette.length], donutStart: start, donutEnd: running, normalizedWeight: normalized };
-  });
+  const enriched = (Array.isArray(sectors) ? sectors : []).filter((sector) => Number(sector?.totalWeightPercent) > 0);
   const active = enriched.find((item) => item.sector === activeSector) || enriched[0];
-  const gradient = enriched.map((item) => `${item.color} ${item.donutStart.toFixed(2)}% ${item.donutEnd.toFixed(2)}%`).join(", ");
 
   if (!enriched.length) return null;
 
   return (
-    <article className="portfolio-sector-allocation-card">
+    <article className="portfolio-sector-allocation-card portfolio-sector-summary-card">
       <div className="portfolio-sector-allocation-head">
-        <span className="section-title"><PieChart size={17}/> Sector allocation</span>
+        <span className="section-title"><BarChart3 size={17}/> Sector allocation</span>
         <h3>Sector weight & Eval Score</h3>
       </div>
-      <div className="portfolio-sector-allocation-layout">
-        <div
-          className="portfolio-sector-allocation-donut"
-          style={{ background: `conic-gradient(${gradient})` }}
-          role="img"
-          aria-label="Portfolio sector allocation donut chart"
-        >
-          <div className="portfolio-sector-allocation-core">
-            <span>{active?.sector || "Sector"}</span>
-            <strong>{active ? `${Number(active.totalWeightPercent || 0).toFixed(1)}%` : "N/A"}</strong>
-            <small>{active?.weightedEvalScore !== null ? `Eval ${scoreText(active.weightedEvalScore)}` : "Eval N/A"}</small>
+      {active && (
+        <div className={`portfolio-sector-summary-feature ${scoreTone(active.weightedEvalScore)}`}>
+          <div>
+            <span>{active.sector}</span>
+            <strong>{Number(active.totalWeightPercent || 0).toFixed(1)}%</strong>
           </div>
+          <b>{active.weightedEvalScore !== null ? scoreText(active.weightedEvalScore) : "N/A"}</b>
         </div>
-        <div className="portfolio-sector-allocation-list">
-          {enriched.map((sector) => (
-            <button
-              type="button"
-              key={sector.sector}
-              className={`${sector.sector === active?.sector ? "active" : ""} ${scoreTone(sector.weightedEvalScore)}`}
-              onMouseEnter={() => onActiveSector?.(sector.sector)}
-              onFocus={() => onActiveSector?.(sector.sector)}
-              onClick={() => onActiveSector?.(sector.sector)}
-            >
-              <i style={{ background: sector.color }} />
-              <span>{sector.sector}</span>
-              <b>{Number(sector.totalWeightPercent || 0).toFixed(1)}%</b>
-              <em>{sector.weightedEvalScore !== null ? scoreText(sector.weightedEvalScore) : "N/A"}</em>
-            </button>
-          ))}
-        </div>
+      )}
+      <div className="portfolio-sector-allocation-list portfolio-sector-summary-list">
+        {enriched.map((sector) => (
+          <button
+            type="button"
+            key={sector.sector}
+            className={`${sector.sector === active?.sector ? "active" : ""} ${scoreTone(sector.weightedEvalScore)}`}
+            onMouseEnter={() => onActiveSector?.(sector.sector)}
+            onFocus={() => onActiveSector?.(sector.sector)}
+            onClick={() => onActiveSector?.(sector.sector)}
+          >
+            <span>{sector.sector}</span>
+            <b>{Number(sector.totalWeightPercent || 0).toFixed(1)}%</b>
+            <em>{sector.weightedEvalScore !== null ? scoreText(sector.weightedEvalScore) : "N/A"}</em>
+          </button>
+        ))}
       </div>
     </article>
   );
@@ -2989,37 +2952,9 @@ function PortfolioHiddenDataTable({ valueHistory = [], evalHistory = [] }) {
 
 
 function getSavedMorningPortfolio(user) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(portfolioStorageKeyFor(user)) || "null");
-    const manualHoldings = Array.isArray(saved?.holdings) ? saved.holdings : [];
-    const analyzedHoldings = Array.isArray(saved?.analysis?.sectorGroups)
-      ? saved.analysis.sectorGroups.flatMap((group) => Array.isArray(group?.holdings) ? group.holdings : [])
-      : [];
-    const symbols = [...new Set([
-      ...manualHoldings.map((holding) => holding?.symbol),
-      ...analyzedHoldings.map((holding) => holding?.symbol),
-    ].map((symbol) => String(symbol || "").trim().toUpperCase()).filter(Boolean))];
-    const previousScores = {};
-    analyzedHoldings.forEach((holding) => {
-      const symbol = String(holding?.symbol || "").trim().toUpperCase();
-      const score = score10(holding?.edgeScore);
-      if (symbol && score !== null) previousScores[symbol] = score;
-    });
-    const holdings = symbols.map((symbol) => {
-      const analyzed = analyzedHoldings.find((holding) => String(holding?.symbol || "").trim().toUpperCase() === symbol) || {};
-      const manual = manualHoldings.find((holding) => String(holding?.symbol || "").trim().toUpperCase() === symbol) || {};
-      return {
-        symbol,
-        weightPercent: Number(analyzed.weightPercent ?? analyzed.weight ?? manual.weightPercent ?? manual.weight),
-        holdingDollars: Number(analyzed.holdingDollars ?? analyzed.currentValue ?? manual.holdingDollars ?? manual.currentValue),
-        edgeScore: score10(analyzed.edgeScore),
-        sector: analyzed.sector || analyzed.finnhubIndustry || manual.sector || "Unknown",
-      };
-    });
-    return { symbols, previousScores, holdings, strategyTargets: saved?.strategyTargets || {}, portfolioName: saved?.analysis?.portfolioName || "Saved Portfolio", analysis: saved?.analysis || null };
-  } catch {
-    return { symbols: [], previousScores: {}, holdings: [], strategyTargets: {}, portfolioName: "Saved Portfolio" };
-  }
+  // Portfolio data is no longer cached to localStorage or account sync.
+  // Return an empty live-safe shape instead of reading saved portfolio state.
+  return { symbols: [], previousScores: {}, holdings: [], strategyTargets: {}, portfolioName: "Session Portfolio", analysis: null };
 }
 
 function formatBrewCurrency(value) {
@@ -3547,41 +3482,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   });
 
-  useEffect(() => {
-    const onRemotePortfolio = (event) => {
-      const saved = event?.detail;
-      if (!saved || typeof saved !== "object") return;
-      if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
-      if (saved.fileName) setCsvName(saved.fileName);
-      if (saved.analysis) setCsvAnalysis(saved.analysis);
-      if (Array.isArray(saved.manualRows)) setManualRows(saved.manualRows);
-      if (Array.isArray(saved.manualTransactions)) setManualTransactions(saved.manualTransactions);
-      if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
-      if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
-      if (saved.strategyTargets) setStrategyTargets(saved.strategyTargets);
-    };
-    window.addEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
-    return () => window.removeEventListener("eval-portfolio-remote-sync", onRemotePortfolio);
-  }, []);
   const [portfolioEarnings, setPortfolioEarnings] = useState([]);
   const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
-      if (!saved) return;
-      if (Array.isArray(saved.holdings)) setSavedHoldings(saved.holdings);
-      if (Array.isArray(saved.history)) setPortfolioHistory(saved.history);
-      if (Array.isArray(saved.evalScoreHistory)) setEvalScoreHistory(saved.evalScoreHistory);
-      if (saved.fileName) setCsvName(saved.fileName);
-      if (saved.analysis) setCsvAnalysis(saved.analysis);
-      if (Array.isArray(saved.manualRows) && saved.manualRows.length) setManualRows(saved.manualRows);
-      if (Array.isArray(saved.manualTransactions)) setManualTransactions(saved.manualTransactions);
-      if (saved.strategyTargets && typeof saved.strategyTargets === "object") setStrategyTargets(saved.strategyTargets);
-    } catch {
-      // Ignore damaged local portfolio state.
-    }
-  }, [storageKey]);
+  // Portfolio holdings and analysis are intentionally session-only.
+  // Individual stock Eval Scores still use the main dashboard analysis cache.
 
   useEffect(() => {
     try {
@@ -3642,34 +3547,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     return () => { alive = false; };
   }, [csvAnalysis]);
 
-  useEffect(() => {
-    if (!csvAnalysis) return;
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
-      localStorage.setItem(storageKey, JSON.stringify({ ...saved, strategyTargets, savedAt: new Date().toISOString() }));
-      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
-    } catch {
-      // Ignore local storage failures.
-    }
-  }, [strategyTargets, csvAnalysis, storageKey]);
+  // Portfolio strategy targets stay in the current session only.
 
   function persistPortfolioState(nextHoldings, fileName, analysis, nextManualRows = manualRows, nextHistory = portfolioHistory, nextEvalScoreHistory = evalScoreHistory, nextManualTransactions = manualTransactions) {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({
-        holdings: nextHoldings,
-        fileName,
-        analysis,
-        manualRows: nextManualRows,
-        manualTransactions: nextManualTransactions,
-        history: nextHistory,
-        evalScoreHistory: nextEvalScoreHistory,
-        strategyTargets,
-        savedAt: new Date().toISOString(),
-      }));
-      window.dispatchEvent(new CustomEvent("eval-account-sync-changed"));
-    } catch {
-      // Local storage can fail in private browsing; the page still works for the current session.
-    }
+    // No portfolio-page cache: keep current portfolio data in React state only.
+    // Individual stock Eval Scores still cache through the shared analysis cache used by the dashboard.
   }
 
   async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null } = {}) {
@@ -3733,27 +3615,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     analyzeCsvHoldings(savedHoldings, csvName || `${firstName} Portfolio.csv`, { silent, recordValueHistory, recordEvalHistory });
   }
 
-  useEffect(() => {
-    if (!savedHoldings.length) return undefined;
-    const autoRefreshIfNeeded = () => {
-      const today = easternDateKey();
-      const hasValueToday = portfolioHistory.some((point) => point?.date === today);
-      const hasEvalToday = evalScoreHistory.some((point) => point?.date === today);
-      if (csvLoading) return;
-      if (isAfterEtTime(5, 0) && !hasValueToday) {
-        refreshSavedPortfolio({ silent: true, recordValueHistory: true, recordEvalHistory: false });
-        return;
-      }
-      if (isAfterEtTime(5, 15) && !hasEvalToday) {
-        refreshSavedPortfolio({ silent: true, recordValueHistory: false, recordEvalHistory: true });
-      }
-    };
-    autoRefreshIfNeeded();
-    const nextValueMs = minutesUntilNextEtTime(5, 0);
-    const nextEvalMs = minutesUntilNextEtTime(5, 15);
-    const timer = window.setTimeout(autoRefreshIfNeeded, Math.min(nextValueMs, nextEvalMs, 2147483647));
-    return () => window.clearTimeout(timer);
-  }, [savedHoldings.length, portfolioHistory, evalScoreHistory, csvLoading]);
+  // Automatic portfolio cache refresh removed. Refresh only runs when the user uploads, edits, or taps Refresh.
 
   function updateManualRow(id, field, value) {
     setManualRows((rows) => rows.map((row) => row.id === id ? { ...row, [field]: value, __touched: true } : row));
@@ -3938,18 +3800,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }
 
   function saveStrategyTargets(nextTargets = strategyTargets) {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || "null") || {};
-      localStorage.setItem(storageKey, JSON.stringify({
-        ...saved,
-        strategyTargets: nextTargets,
-        strategySavedAt: new Date().toISOString(),
-      }));
-      setStrategyTargets(nextTargets);
-      setStrategySavedLabel("Strategy saved");
-    } catch {
-      setStrategySavedLabel("Could not save strategy");
-    }
+    setStrategyTargets(nextTargets);
+    setStrategySavedLabel("Strategy saved for this session");
   }
 
   function applyCurrentStrategyWeights() {
