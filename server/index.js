@@ -2469,6 +2469,97 @@ async function getPortfolioEarnings(symbols = [], options = {}) {
 }
 
 
+const MORNING_INDEX_PROXIES = [
+  { name: "S&P 500", proxy: "SPY" },
+  { name: "Dow Jones", proxy: "DIA" },
+  { name: "Nasdaq", proxy: "QQQ" },
+];
+
+const MORNING_MOVER_UNIVERSE = [
+  "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","AMD","NFLX",
+  "CRM","ORCL","ADBE","NOW","PANW","CRWD","MU","QCOM","INTC","ARM",
+  "JPM","BAC","WFC","GS","MS","AXP","V","MA","PYPL","COIN",
+  "LLY","UNH","JNJ","ABBV","MRK","TMO","ABT","PFE","ISRG","DHR",
+  "WMT","COST","HD","LOW","MCD","SBUX","NKE","TGT","KO","PEP",
+  "XOM","CVX","COP","SLB","CAT","DE","GE","BA","LMT","RTX",
+  "DIS","UBER","ABNB","SHOP","SNOW","PLTR","SOFI","RIVN","LCID","F",
+  "GM","BABA","NIO","PDD","TSM","ASML","SMCI","LULU","CMG","ELF"
+];
+
+async function getMorningMarketMovers(forceRefresh = false) {
+  const key = `${morningBrewMinuteKey()}-market`;
+  if (!forceRefresh) {
+    const cached = morningBrewPortfolioMoversCache.get(key);
+    if (cached) return cached;
+  }
+
+  const quotes = await Promise.all(MORNING_MOVER_UNIVERSE.map(async (symbol) => {
+    const quote = await fetchMorningQuote(symbol);
+    const changePercent = Number(quote?.changePercent);
+    if (!quote || !Number.isFinite(changePercent)) return null;
+    return {
+      symbol,
+      changePercent,
+      change: Number.isFinite(Number(quote.change)) ? Number(quote.change) : null,
+      current: Number.isFinite(Number(quote.current)) ? Number(quote.current) : null,
+    };
+  }));
+
+  const valid = quotes.filter(Boolean);
+  const gainers = valid
+    .filter((item) => Number(item.changePercent) > 0)
+    .sort((a, b) => Number(b.changePercent) - Number(a.changePercent))
+    .slice(0, 3);
+  const losers = valid
+    .filter((item) => Number(item.changePercent) < 0)
+    .sort((a, b) => Number(a.changePercent) - Number(b.changePercent))
+    .slice(0, 3);
+
+  const result = { gainers, losers, universeSize: MORNING_MOVER_UNIVERSE.length };
+  morningBrewPortfolioMoversCache.set(key, result);
+  return result;
+}
+
+async function buildMorningBrewMarket(forceRefresh = false) {
+  const key = morningBrewMinuteKey();
+  if (!forceRefresh) {
+    const cached = morningBrewIndexCache.get(key);
+    if (cached) return cached;
+  }
+
+  const [indexQuotes, articles, marketMovers] = await Promise.all([
+    Promise.all(MORNING_INDEX_PROXIES.map(async (item) => {
+      const quote = await fetchMorningQuote(item.proxy);
+      return {
+        name: item.name,
+        proxy: item.proxy,
+        changePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
+        change: Number.isFinite(Number(quote?.change)) ? Number(quote.change) : null,
+        current: Number.isFinite(Number(quote?.current)) ? Number(quote.current) : null,
+      };
+    })),
+    getMorningBrewArticles(forceRefresh).catch(() => []),
+    getMorningMarketMovers(forceRefresh).catch(() => ({ gainers: [], losers: [] })),
+  ]);
+
+  const result = {
+    indexes: indexQuotes,
+    articles,
+    marketMovers,
+    generatedAt: new Date().toISOString(),
+    source: "Finnhub quotes + CNBC headlines",
+  };
+
+  morningBrewIndexCache.set(key, result);
+  if (morningBrewIndexCache.size > 8) {
+    for (const cacheKey of morningBrewIndexCache.keys()) {
+      if (cacheKey !== key) morningBrewIndexCache.delete(cacheKey);
+      if (morningBrewIndexCache.size <= 4) break;
+    }
+  }
+  return result;
+}
+
 app.post("/api/portfolio-earnings", async (req, res) => {
   try {
     const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols : [];
@@ -2487,20 +2578,18 @@ app.post("/api/morning-brew", async (req, res) => {
     const forceRefresh = String(req.query.refresh || "0") === "1";
     const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols.map(cleanTicker).filter(Boolean) : [];
     const hasPortfolio = symbols.length > 0;
-    const [market, portfolio, earnings, movers, insiders] = await Promise.all([
+    const [market, portfolio, movers] = await Promise.all([
       buildMorningBrewMarket(forceRefresh),
       hasPortfolio
         ? buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {})
         : Promise.resolve({ hasPortfolio: false, alerts: [], message: "" }),
-      hasPortfolio ? getPortfolioEarnings(symbols, { days: 7 }) : Promise.resolve({ events: [], symbols: [], cached: true }),
       hasPortfolio ? getMorningPortfolioMovers(symbols) : Promise.resolve({ gainers: [], losers: [] }),
-      hasPortfolio ? getMorningInsiderTransactions(symbols) : Promise.resolve({ transactions: [], cached: true }),
     ]);
     res.json({
       ok: true,
       title: "The Morning Mug",
       generatedAt: new Date().toISOString(),
-      market: { ...market, earnings, movers, insiders },
+      market: { ...market, movers },
       portfolio,
     });
   } catch (error) {
