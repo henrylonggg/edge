@@ -190,6 +190,9 @@ const DASHBOARD_START_STORAGE_KEY = "eval-dashboard-start-tab-v1";
 const PIE_THEME_STORAGE_KEY = "eval-main-pie-theme-v1";
 const MOBILE_NAV_LEFT_STORAGE_KEY = "eval-mobile-nav-left-v1";
 const MOBILE_NAV_RIGHT_STORAGE_KEY = "eval-mobile-nav-right-v1";
+const MOBILE_NAV_SECOND_LEFT_STORAGE_KEY = "eval-mobile-nav-second-left-v1";
+const MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY = "eval-mobile-nav-second-right-v1";
+const MOBILE_NAV_ARROW_COLOR_STORAGE_KEY = "eval-mobile-nav-arrow-color-v1";
 const MOBILE_SEARCH_TARGET_STORAGE_KEY = "eval-mobile-search-target-v1";
 const MOBILE_HOME_TARGET_STORAGE_KEY = "eval-mobile-home-target-v1";
 const LANDING_LOGO_COLOR_STORAGE_KEY = "eval-landing-logo-color-v1";
@@ -594,6 +597,18 @@ function App() {
     const saved = safeStorageGet(MOBILE_NAV_RIGHT_STORAGE_KEY, "assistant");
     return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "assistant";
   });
+  const [mobileNavSecondLeft, setMobileNavSecondLeft] = useState(() => {
+    const saved = safeStorageGet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, "settings");
+    return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "settings";
+  });
+  const [mobileNavSecondRight, setMobileNavSecondRight] = useState(() => {
+    const saved = safeStorageGet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, "portfolio");
+    return MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === saved) ? saved : "portfolio";
+  });
+  const [mobileNavArrowColor, setMobileNavArrowColor] = useState(() => {
+    const saved = safeStorageGet(MOBILE_NAV_ARROW_COLOR_STORAGE_KEY, "#151826");
+    return /^#[0-9a-f]{6}$/i.test(saved) ? saved : "#151826";
+  });
   const mobileSearchTarget = "dashboard";
   const [mobileHomeTarget, setMobileHomeTarget] = useState(() => {
     const saved = safeStorageGet(MOBILE_HOME_TARGET_STORAGE_KEY, "dashboard");
@@ -670,6 +685,9 @@ function App() {
         dashboardStart: safeStorageGet(DASHBOARD_START_STORAGE_KEY, "dashboard"),
         mobileNavLeft: safeStorageGet(MOBILE_NAV_LEFT_STORAGE_KEY, "watchlist"),
         mobileNavRight: safeStorageGet(MOBILE_NAV_RIGHT_STORAGE_KEY, "assistant"),
+        mobileNavSecondLeft: safeStorageGet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, "settings"),
+        mobileNavSecondRight: safeStorageGet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, "portfolio"),
+        mobileNavArrowColor: safeStorageGet(MOBILE_NAV_ARROW_COLOR_STORAGE_KEY, "#151826"),
         mobileHomeTarget: safeStorageGet(MOBILE_HOME_TARGET_STORAGE_KEY, "dashboard"),
         navHomeColor: safeStorageGet(LANDING_LOGO_COLOR_STORAGE_KEY, "#9f5cff"),
       },
@@ -711,6 +729,21 @@ function App() {
     if (settings.mobileNavRight && MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === settings.mobileNavRight)) {
       setMobileNavRight(settings.mobileNavRight);
       safeStorageSet(MOBILE_NAV_RIGHT_STORAGE_KEY, settings.mobileNavRight);
+      changed = true;
+    }
+    if (settings.mobileNavSecondLeft && MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === settings.mobileNavSecondLeft)) {
+      setMobileNavSecondLeft(settings.mobileNavSecondLeft);
+      safeStorageSet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, settings.mobileNavSecondLeft);
+      changed = true;
+    }
+    if (settings.mobileNavSecondRight && MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === settings.mobileNavSecondRight)) {
+      setMobileNavSecondRight(settings.mobileNavSecondRight);
+      safeStorageSet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, settings.mobileNavSecondRight);
+      changed = true;
+    }
+    if (settings.mobileNavArrowColor && /^#[0-9a-f]{6}$/i.test(String(settings.mobileNavArrowColor))) {
+      setMobileNavArrowColor(String(settings.mobileNavArrowColor));
+      safeStorageSet(MOBILE_NAV_ARROW_COLOR_STORAGE_KEY, String(settings.mobileNavArrowColor));
       changed = true;
     }
     if (settings.mobileHomeTarget && DASHBOARD_START_OPTIONS.some((option) => option.key === settings.mobileHomeTarget)) {
@@ -905,6 +938,26 @@ function App() {
     window.dispatchEvent(new Event("eval-account-sync-changed"));
   }
 
+  function updateMobileNavSecondLeft(next) {
+    const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "settings";
+    setMobileNavSecondLeft(clean);
+    safeStorageSet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
+  }
+
+  function updateMobileNavSecondRight(next) {
+    const clean = MOBILE_NAV_SHORTCUT_OPTIONS.some((option) => option.key === next) ? next : "portfolio";
+    setMobileNavSecondRight(clean);
+    safeStorageSet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
+  }
+
+  function updateMobileNavArrowColor(next) {
+    const clean = /^#[0-9a-f]{6}$/i.test(String(next || "")) ? String(next) : "#151826";
+    setMobileNavArrowColor(clean);
+    safeStorageSet(MOBILE_NAV_ARROW_COLOR_STORAGE_KEY, clean);
+    window.dispatchEvent(new Event("eval-account-sync-changed"));
+  }
 
   function updateMobileHomeTarget(next) {
     const clean = DASHBOARD_START_OPTIONS.some((option) => option.key === next) ? next : "dashboard";
@@ -1341,6 +1394,9 @@ function App() {
           homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
+          secondLeftShortcut={mobileNavSecondLeft}
+          secondRightShortcut={mobileNavSecondRight}
+          arrowButtonColor={mobileNavArrowColor}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
           onBack={goBackInApp}
@@ -1368,12 +1424,18 @@ function App() {
           dashboardStart={preferredDashboardStart}
           mobileNavLeft={mobileNavLeft}
           mobileNavRight={mobileNavRight}
+          mobileNavSecondLeft={mobileNavSecondLeft}
+          mobileNavSecondRight={mobileNavSecondRight}
+          mobileNavArrowColor={mobileNavArrowColor}
           mobileSearchTarget={mobileSearchTarget}
           mobileHomeTarget={mobileHomeTarget}
           landingLogoColor={landingLogoColor}
           onDashboardStartChange={updatePreferredDashboardStart}
           onMobileNavLeftChange={updateMobileNavLeft}
           onMobileNavRightChange={updateMobileNavRight}
+          onMobileNavSecondLeftChange={updateMobileNavSecondLeft}
+          onMobileNavSecondRightChange={updateMobileNavSecondRight}
+          onMobileNavArrowColorChange={updateMobileNavArrowColor}
           onMobileHomeTargetChange={updateMobileHomeTarget}
           onLandingLogoColorChange={updateLandingLogoColor}
           onBack={() => navigateView("dashboard")}
@@ -1383,6 +1445,9 @@ function App() {
           homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
+          secondLeftShortcut={mobileNavSecondLeft}
+          secondRightShortcut={mobileNavSecondRight}
+          arrowButtonColor={mobileNavArrowColor}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
           onBack={goBackInApp}
@@ -1401,6 +1466,9 @@ function App() {
           homeButtonColor={landingLogoColor}
           leftShortcut={mobileNavLeft}
           rightShortcut={mobileNavRight}
+          secondLeftShortcut={mobileNavSecondLeft}
+          secondRightShortcut={mobileNavSecondRight}
+          arrowButtonColor={mobileNavArrowColor}
           searchTarget={mobileSearchTarget}
           onNavigate={goMobileNav}
           onBack={goBackInApp}
@@ -1678,6 +1746,9 @@ function App() {
         homeButtonColor={landingLogoColor}
         leftShortcut={mobileNavLeft}
         rightShortcut={mobileNavRight}
+        secondLeftShortcut={mobileNavSecondLeft}
+        secondRightShortcut={mobileNavSecondRight}
+        arrowButtonColor={mobileNavArrowColor}
         searchTarget={mobileSearchTarget}
         onNavigate={goMobileNav}
         onBack={goBackInApp}
@@ -1692,12 +1763,18 @@ function SettingsPage({
   dashboardStart,
   mobileNavLeft,
   mobileNavRight,
+  mobileNavSecondLeft,
+  mobileNavSecondRight,
+  mobileNavArrowColor,
   mobileSearchTarget,
   mobileHomeTarget,
   landingLogoColor,
   onDashboardStartChange,
   onMobileNavLeftChange,
   onMobileNavRightChange,
+  onMobileNavSecondLeftChange,
+  onMobileNavSecondRightChange,
+  onMobileNavArrowColorChange,
   onMobileHomeTargetChange,
   onLandingLogoColorChange,
   onBack,
@@ -1764,18 +1841,37 @@ function SettingsPage({
                   <option key={option.key} value={option.key}>{option.label}</option>
                 ))}
               </select>
-              <label>Left shortcut</label>
+              <label>Left outer shortcut</label>
               <select value={mobileNavLeft} onChange={(e) => onMobileNavLeftChange(e.target.value)}>
                 {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
                   <option key={option.key} value={option.key}>{option.label}</option>
                 ))}
               </select>
-              <label>Right shortcut</label>
+              <label>Left inner shortcut</label>
+              <select value={mobileNavSecondLeft} onChange={(e) => onMobileNavSecondLeftChange(e.target.value)}>
+                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+              <label>Right inner shortcut</label>
               <select value={mobileNavRight} onChange={(e) => onMobileNavRightChange(e.target.value)}>
                 {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
                   <option key={option.key} value={option.key}>{option.label}</option>
                 ))}
               </select>
+              <label>Right outer shortcut</label>
+              <select value={mobileNavSecondRight} onChange={(e) => onMobileNavSecondRightChange(e.target.value)}>
+                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+              <label>Arrow button background</label>
+              <input
+                type="color"
+                value={mobileNavArrowColor}
+                onChange={(e) => onMobileNavArrowColorChange(e.target.value)}
+                aria-label="Mobile arrow button background color"
+              />
             </div>
           </article>
         </div>
@@ -1784,7 +1880,7 @@ function SettingsPage({
   );
 }
 
-function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, homeButtonColor = "#9f5cff", onNavigate, onBack, onForward }) {
+function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShortcut, secondRightShortcut, searchTarget, homeButtonColor = "#9f5cff", arrowButtonColor = "#151826", onNavigate, onBack, onForward }) {
   const shortcutMap = {
     watchlist: { label: "Watchlist", icon: <Star size={18} /> },
     settings: { label: "Settings", icon: <SettingsIcon size={18} /> },
@@ -1800,22 +1896,25 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
     onNavigate(target || "dashboard");
   };
 
+  const resolvedSecondLeftShortcut = secondLeftShortcut || safeStorageGet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, "settings");
+  const resolvedSecondRightShortcut = secondRightShortcut || safeStorageGet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, "portfolio");
   const left = shortcutMap[leftShortcut] || shortcutMap.watchlist;
+  const secondLeft = shortcutMap[resolvedSecondLeftShortcut] || shortcutMap.settings;
   const right = shortcutMap[rightShortcut] || shortcutMap.assistant;
+  const secondRight = shortcutMap[resolvedSecondRightShortcut] || shortcutMap.portfolio;
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": homeButtonColor }}>
-      <div className="mobile-bottom-nav-arrow-cluster" aria-label="History controls">
-        <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onBack} aria-label="Back">
-          <ArrowLeft size={15} />
-        </button>
-        <button type="button" className="mobile-bottom-nav-btn nav-arrow" onClick={onForward} aria-label="Forward">
-          <ArrowRight size={15} />
-        </button>
-      </div>
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": homeButtonColor, "--mobile-arrow-button-color": arrowButtonColor }}>
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow nav-back-arrow" onClick={onBack} aria-label="Back">
+        <ArrowLeft size={15} />
+      </button>
 
       <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut" onClick={() => runShortcut(leftShortcut)} aria-label={left.label}>
         {left.icon}
+      </button>
+
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-second-left-shortcut" onClick={() => runShortcut(resolvedSecondLeftShortcut)} aria-label={secondLeft.label}>
+        {secondLeft.icon}
       </button>
 
       <button type="button" className="mobile-bottom-nav-btn nav-home" onClick={() => onNavigate(homeView || "dashboard")} aria-label="Home">
@@ -1826,8 +1925,12 @@ function MobileBottomNav({ homeView, leftShortcut, rightShortcut, searchTarget, 
         {right.icon}
       </button>
 
-      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-settings-shortcut" onClick={() => onNavigate("settings")} aria-label="Settings">
-        <SettingsIcon size={18} />
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-second-right-shortcut" onClick={() => runShortcut(resolvedSecondRightShortcut)} aria-label={secondRight.label}>
+        {secondRight.icon}
+      </button>
+
+      <button type="button" className="mobile-bottom-nav-btn nav-arrow nav-forward-arrow" onClick={onForward} aria-label="Forward">
+        <ArrowRight size={15} />
       </button>
     </nav>
   );
