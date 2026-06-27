@@ -2470,7 +2470,7 @@ function portfolioMetricSummary(key, value) {
   return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} in the overall Portfolio Score.`;
 }
 
-function blankManualHolding(mode = "add") {
+function blankManualHolding(mode = "buy") {
   return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, mode, symbol: "", shares: "", averageCost: "" };
 }
 
@@ -3332,16 +3332,6 @@ function MorningMugsDashboard({ onBack }) {
               </section>
             ) : null}
 
-            {hasSavedPortfolio ? (
-              <PortfolioEarningsCalendar
-                earnings={earnings}
-                title="Portfolio earnings"
-                subtitle="Next week • saved holdings only"
-                className="morning-mugs-earnings-calendar wide"
-                days={7}
-                scoreLookup={morningScoreLookup}
-              />
-            ) : null}
 
             <section className="morning-brew-card news-card wide">
               <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
@@ -3444,6 +3434,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const [portfolioToolsOpen, setPortfolioToolsOpen] = useState(false);
   const [manualRows, setManualRows] = useState([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
   const [manualTransactions, setManualTransactions] = useState([]);
+  const [cashHoldings, setCashHoldings] = useState(0);
+  const [cashInput, setCashInput] = useState("0");
   const [manualTransactionSearch, setManualTransactionSearch] = useState("");
   const [hideHoldingsValue, setHideHoldingsValue] = useState(true);
   const [activeIndustry, setActiveIndustry] = useState("");
@@ -3466,9 +3458,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       return normalizePortfolioVisibleColumns(null);
     }
   });
-
-  const [portfolioEarnings, setPortfolioEarnings] = useState([]);
-  const [portfolioEarningsLoading, setPortfolioEarningsLoading] = useState(false);
 
   // Portfolio display is saved so reopening the Portfolio page does not rescore automatically.
   // A full rescore runs only after CSV upload, manual transaction save, or the Refresh button.
@@ -3508,11 +3497,14 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const savedValueHistory = Array.isArray(savedDisplay?.portfolioHistory) ? savedDisplay.portfolioHistory : [];
       const savedEvalHistory = Array.isArray(savedDisplay?.evalScoreHistory) ? savedDisplay.evalScoreHistory : [];
       const savedTransactions = Array.isArray(saved?.manualTransactions) ? saved.manualTransactions : [];
+      const savedCash = Number(saved?.cashHoldings || 0);
 
       setCsvName(fileName);
       setSavedHoldings(holdings);
       setManualRows(nextManualRows);
       setManualTransactions(savedTransactions);
+      setCashHoldings(Number.isFinite(savedCash) ? savedCash : 0);
+      setCashInput(String(Number.isFinite(savedCash) ? savedCash : 0));
       setPortfolioHistory(savedValueHistory);
       setEvalScoreHistory(savedEvalHistory);
 
@@ -3550,72 +3542,12 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     );
   }, [csvAnalysis]);
 
-  useEffect(() => {
-    const groups = csvAnalysis?.sectorGroups || csvAnalysis?.industryGroups || [];
-    if (!groups.length) {
-      setPortfolioEarnings([]);
-      return;
-    }
+  // Earnings calendar removed from Portfolio and Morning Mug for now.
 
-    const symbols = [...new Set(groups.flatMap((group) => (group.holdings || []).map((holding) => holding.symbol)).filter(Boolean))]
-      .map((symbol) => String(symbol).trim().toUpperCase())
-      .filter(Boolean)
-      .sort();
-
-    if (!symbols.length) {
-      setPortfolioEarnings([]);
-      return;
-    }
-
-    const ttlMs = 48 * 60 * 60 * 1000;
-    const earningsCacheKey = `${storageKey}:earnings:${symbols.join("|")}:28d`;
-    let alive = true;
-
-    try {
-      const cached = JSON.parse(localStorage.getItem(earningsCacheKey) || "null");
-      const savedAt = Number(cached?.savedAt || 0);
-      if (Array.isArray(cached?.events) && savedAt && Date.now() - savedAt < ttlMs) {
-        setPortfolioEarnings(cached.events);
-        setPortfolioEarningsLoading(false);
-        return () => { alive = false; };
-      }
-    } catch {
-      // Earnings cache is optional and should never block the page.
-    }
-
-    async function loadPortfolioEarnings() {
-      setPortfolioEarningsLoading(true);
-      try {
-        const response = await fetch(`${API}/api/portfolio-earnings`, {
-          method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ symbols, days: 28 }),
-        });
-        const json = await response.json().catch(() => null);
-        const events = Array.isArray(json?.events) ? json.events : [];
-        if (alive && response.ok) {
-          setPortfolioEarnings(events);
-          try {
-            localStorage.setItem(earningsCacheKey, JSON.stringify({ savedAt: Date.now(), events }));
-          } catch {
-            // Ignore storage limits/private mode.
-          }
-        }
-      } catch {
-        if (alive) setPortfolioEarnings([]);
-      } finally {
-        if (alive) setPortfolioEarningsLoading(false);
-      }
-    }
-
-    loadPortfolioEarnings();
-    return () => { alive = false; };
-  }, [csvAnalysis, storageKey]);
 
   // Portfolio strategy targets stay in the current session only.
 
-  function persistPortfolioState(nextHoldings, fileName, display = null, transactions = manualTransactions) {
+  function persistPortfolioState(nextHoldings, fileName, display = null, transactions = manualTransactions, cashValue = cashHoldings) {
     try {
       const cleanHoldings = (Array.isArray(nextHoldings) ? nextHoldings : [])
         .map((holding) => ({
@@ -3645,6 +3577,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         savedAt: new Date().toISOString(),
         holdings: cleanHoldings,
         manualTransactions: Array.isArray(transactions) ? transactions.slice(0, 250) : [],
+        cashHoldings: Number(cashValue || 0),
         display: safeDisplay,
       }));
     } catch {
@@ -3652,7 +3585,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   }
 
-  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null, skipPersist = false } = {}) {
+  async function analyzeCsvHoldings(holdings, fileName = `${firstName} Portfolio.csv`, { silent = false, recordValueHistory = true, recordEvalHistory = true, manualRowsOverride = null, manualTransactionsOverride = null, cashOverride = null, skipPersist = false } = {}) {
     setCsvLoading(true);
     setCsvError("");
     if (!silent) setCsvAnalysis(null);
@@ -3674,17 +3607,20 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const nextHistory = recordValueHistory ? buildPortfolioHistory(portfolioHistory, json) : portfolioHistory;
       const nextEvalScoreHistory = recordEvalHistory ? buildPortfolioEvalHistory(evalScoreHistory, json) : evalScoreHistory;
       const nextTransactions = Array.isArray(manualTransactionsOverride) ? manualTransactionsOverride : manualTransactions;
+      const nextCash = Number.isFinite(Number(cashOverride)) ? Number(cashOverride) : cashHoldings;
       const nextAnalysis = { ...json, history: nextHistory, evalScoreHistory: nextEvalScoreHistory };
       setPortfolioHistory(nextHistory);
       setEvalScoreHistory(nextEvalScoreHistory);
       setCsvAnalysis(nextAnalysis);
       if (Array.isArray(manualTransactionsOverride)) setManualTransactions(manualTransactionsOverride);
+      setCashHoldings(nextCash);
+      setCashInput(String(nextCash));
       if (!skipPersist) {
         persistPortfolioState(holdings, fileName, {
           analysis: nextAnalysis,
           portfolioHistory: nextHistory,
           evalScoreHistory: nextEvalScoreHistory,
-        }, nextTransactions);
+        }, nextTransactions, nextCash);
       }
       setPortfolioToolsOpen(false);
       setManualOpen(false);
@@ -3749,22 +3685,23 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
         const shares = parseHoldingDollars(row.shares);
         const averageCost = parseHoldingDollars(row.averageCost);
-        const mode = row.mode || "current";
+        const mode = row.mode || "buy";
         if (!symbol || shares === null) return null;
         if (mode === "current" && !row.__touched) return null;
-        const numericShares = Number(shares || 0);
-        let action = mode === "closed" ? "Closed" : (numericShares < 0 || mode === "remove") ? "Sell" : mode === "current" ? "Set position" : "Buy";
+        const absShares = Math.abs(Number(shares || 0));
+        const action = mode === "closed" ? "Closed" : mode === "sell" ? "Sell" : mode === "current" ? "Set position" : "Buy";
         return {
           id: `${now}-${symbol}-${Math.random().toString(16).slice(2)}`,
           date: now,
           symbol,
           action,
-          shares: numericShares,
+          shares: action === "Sell" ? -absShares : absShares,
           averageCost: Number.isFinite(Number(averageCost)) ? Number(averageCost) : null,
         };
       })
       .filter(Boolean);
   }
+
 
   function transactionActionClass(action) {
     const text = String(action || "").toLowerCase();
@@ -3800,12 +3737,49 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     });
   }
 
+  function calculateManualCashDelta(rows) {
+    const bySymbol = new Map();
+    (Array.isArray(savedHoldings) ? savedHoldings : []).forEach((holding) => {
+      const symbol = String(holding?.symbol || holding?.ticker || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
+      const shares = Number(holding?.shares ?? holding?.quantity ?? 0);
+      const averageCost = Number(holding?.averageCost ?? holding?.avgCost ?? holding?.purchasePrice ?? 0) || 0;
+      if (symbol && Number.isFinite(shares) && shares > 0) bySymbol.set(symbol, { shares, averageCost });
+    });
+
+    return (Array.isArray(rows) ? rows : []).reduce((cashDelta, row) => {
+      const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
+      const shares = parseHoldingDollars(row.shares);
+      const price = parseHoldingDollars(row.averageCost);
+      const mode = row.mode || "buy";
+      if (!symbol || shares === null || mode === "current" || mode === "closed") return cashDelta;
+      const current = bySymbol.get(symbol) || { shares: 0, averageCost: Number(price || 0) };
+      const absShares = Math.abs(Number(shares || 0));
+
+      if (mode === "sell") {
+        const sellShares = Math.min(absShares, Number(current.shares || 0));
+        const sellPrice = Number(current.averageCost || price || 0);
+        const remainingShares = Number(current.shares || 0) - sellShares;
+        if (remainingShares > 0) bySymbol.set(symbol, { shares: remainingShares, averageCost: Number(current.averageCost || sellPrice || 0) });
+        else bySymbol.delete(symbol);
+        return cashDelta + (sellShares * sellPrice);
+      }
+
+      const oldShares = Number(current.shares || 0);
+      const buyPrice = Number(price || current.averageCost || 0);
+      const nextShares = oldShares + absShares;
+      const nextAverageCost = nextShares > 0
+        ? ((oldShares * Number(current.averageCost || 0)) + (absShares * buyPrice)) / nextShares
+        : buyPrice;
+      bySymbol.set(symbol, { shares: nextShares, averageCost: nextAverageCost });
+      return cashDelta - (absShares * buyPrice);
+    }, 0);
+  }
+
+
   function aggregateManualPortfolioRows(rows) {
     const bySymbol = new Map();
     const cleanRows = Array.isArray(rows) ? rows : [];
 
-    // Start from the saved portfolio so buy/sell transactions modify the current position
-    // instead of accidentally mixing partial CSV data with partial manual rows.
     (Array.isArray(savedHoldings) ? savedHoldings : []).forEach((holding) => {
       const symbol = String(holding?.symbol || holding?.ticker || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
       const shares = Number(holding?.shares ?? holding?.quantity ?? 0);
@@ -3817,32 +3791,35 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
       const shares = parseHoldingDollars(row.shares);
       const averageCost = parseHoldingDollars(row.averageCost);
-      const mode = row.mode || "current";
+      const mode = row.mode || "buy";
       if (!symbol || shares === null) return;
       if (mode === "current" && !row.__touched && bySymbol.has(symbol)) return;
 
       const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: Number(averageCost || 0) };
-      const numericShares = Number(shares || 0);
+      const absShares = Math.abs(Number(shares || 0));
 
       if (mode === "closed") {
         bySymbol.delete(symbol);
         return;
       }
 
-      if (mode === "add" || mode === "remove" || numericShares < 0) {
+      if (mode === "buy") {
         const oldShares = Number(current.shares || 0);
-        const deltaShares = mode === "remove" ? -Math.abs(numericShares) : numericShares;
-        const nextShares = oldShares + deltaShares;
-        if (nextShares <= 0) {
-          bySymbol.delete(symbol);
-          return;
-        }
+        const nextShares = oldShares + absShares;
         const oldCost = Number(current.averageCost || 0);
         const tradeCost = Number(averageCost || oldCost || 0);
-        const nextCost = deltaShares > 0 && tradeCost > 0
-          ? ((oldShares * oldCost) + (deltaShares * tradeCost)) / nextShares
+        const nextCost = nextShares > 0 && tradeCost > 0
+          ? ((oldShares * oldCost) + (absShares * tradeCost)) / nextShares
           : oldCost;
         bySymbol.set(symbol, { symbol, shares: nextShares, averageCost: nextCost });
+        return;
+      }
+
+      if (mode === "sell") {
+        const oldShares = Number(current.shares || 0);
+        const nextShares = oldShares - absShares;
+        if (nextShares <= 0) bySymbol.delete(symbol);
+        else bySymbol.set(symbol, { symbol, shares: nextShares, averageCost: Number(current.averageCost || averageCost || 0) });
         return;
       }
 
@@ -3858,6 +3835,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       .filter((holding) => holding.symbol && Number(holding.shares) > 0)
       .sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
+
 
   function saveManualRowsAsCurrentHoldings(holdings) {
     const rows = holdingsToManualRows(holdings);
@@ -4060,9 +4038,13 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
     const newTransactions = buildManualTransactionEntries(manualRows);
     const nextManualTransactions = [...newTransactions, ...manualTransactions].slice(0, 250);
+    const enteredCash = Number(parseHoldingDollars(cashInput) ?? cashHoldings ?? 0);
+    const nextCashHoldings = Math.max(0, Number((enteredCash + calculateManualCashDelta(manualRows)).toFixed(2)));
     setManualTransactions(nextManualTransactions);
+    setCashHoldings(nextCashHoldings);
+    setCashInput(String(nextCashHoldings));
     const nextManualRows = saveManualRowsAsCurrentHoldings(holdings);
-    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows, manualTransactionsOverride: nextManualTransactions });
+    await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows, manualTransactionsOverride: nextManualTransactions, cashOverride: nextCashHoldings });
   }
 
   const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
@@ -4232,7 +4214,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               <div>
                 <span className="section-title"><Plus size={17}/> Transactions</span>
                 <h3>Buy or sell shares</h3>
-                <p>Buy shares with a positive quantity. Sell shares by entering a negative quantity, like <b>-15</b>.</p>
+                <p>Choose Buy or Sell, enter the share count, and Eval updates the current position.</p>
               </div>
               <div className="portfolio-manual-head-actions">
                 <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add transaction</button>
@@ -4254,27 +4236,33 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               </div>
             )}
 
+            <div className="portfolio-manual-cash-editor">
+              <div><strong>Cash holdings</strong><span>Sells add to cash at average cost.</span></div>
+              <input value={cashInput} onChange={(event) => setCashInput(event.target.value)} placeholder="$0" inputMode="decimal" />
+            </div>
+
             <div className="portfolio-manual-table portfolio-manual-table-v3 portfolio-manual-table-stacked portfolio-transaction-entry-list portfolio-transaction-entry-list-clean">
               {editableManualRows.map((row) => {
                 const shareNumber = parseHoldingDollars(row.shares);
-                const actionText = (row.mode || "current") === "closed" ? "Close" : Number(shareNumber || 0) < 0 ? "Sell" : (row.mode || "current") === "current" ? "Set" : "Buy";
+                const actionText = (row.mode || "buy") === "closed" ? "Close" : (row.mode || "buy") === "sell" ? "Sell" : (row.mode || "buy") === "current" ? "Set" : "Buy";
                 return (
                 <div className={`portfolio-manual-row portfolio-manual-entry-card portfolio-transaction-entry-card ${String(actionText).toLowerCase()}`} key={row.id}>
                   <div className="portfolio-transaction-entry-topline">
                     <div>
                       <strong>{String(row.symbol || "Ticker").toUpperCase()}</strong>
-                      <small>{Number(shareNumber || 0) < 0 ? "Sell shares" : (row.mode || "current") === "current" ? "Current holding" : "Buy shares"}</small>
+                      <small>{(row.mode || "buy") === "sell" ? "Sell shares" : (row.mode || "buy") === "current" ? "Current holding" : "Buy shares"}</small>
                     </div>
                     <span>{actionText}</span>
                   </div>
                   <div className="portfolio-manual-fields portfolio-transaction-fields">
-                    <label><span>Type</span><select value={row.mode || "current"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
+                    <label><span>Type</span><select value={row.mode || "buy"} onChange={(event) => updateManualRow(row.id, "mode", event.target.value)}>
+                      <option value="buy">Buy</option>
+                      <option value="sell">Sell</option>
                       <option value="current">Set current holding</option>
-                      <option value="add">Buy / sell transaction</option>
                       <option value="closed">Close position</option>
                     </select></label>
                     <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
-                    <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10 or -15" inputMode="decimal" /></label>
+                    <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" /></label>
                     <label><span>Trade price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
                   <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove transaction"><Trash2 size={15}/></button>
@@ -4368,9 +4356,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </button>
           </div>
 
-          <button type="button" className="portfolio-holdings-wide-arrow" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} aria-label="Jump to holdings">
+          <span role="button" tabIndex={0} className="portfolio-holdings-wide-arrow portfolio-holdings-arrow-symbol" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} aria-label="Jump to holdings">
             ↓
-          </button>
+          </span>
 
           {sectorScoresOpen && (
             <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
@@ -4378,7 +4366,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </div>
           )}
 
-          <SectorAllocationSummary sectors={sectorAllocations} />
 
           <div className="portfolio-industry-results portfolio-industry-results-premium portfolio-industries-v3" ref={holdingsSectionRef}>
             <form className="portfolio-holding-search-bar" onSubmit={jumpToPortfolioHolding}>
@@ -4464,7 +4451,14 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             })}
           </div>
 
-          <PortfolioEarningsCalendar earnings={portfolioEarnings} loading={portfolioEarningsLoading} days={28} subtitle="Next four weeks • portfolio holdings only" scoreLookup={portfolioScoreLookup} />
+
+          <article className="portfolio-cash-folder-card">
+            <div>
+              <span>Cash</span>
+              <strong>{hideHoldingsValue ? "******" : money(cashHoldings)}</strong>
+            </div>
+            <small>Manual cash holdings and sale proceeds.</small>
+          </article>
 
           <article className="portfolio-history-card-v3 portfolio-history-dual-card-v4 portfolio-history-bottom-v5 portfolio-user-hidden-history">
             <div className="portfolio-card-title-row">
