@@ -4028,23 +4028,54 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }
 
 
-  async function analyzeManualPortfolio() {
-    const holdings = aggregateManualPortfolioRows(manualRows);
+  function manualRowsConfirmationText(rows, label = "Save these transactions?") {
+    const transactions = buildManualTransactionEntries(rows);
+    if (!transactions.length) return `${label}
 
-    if (!holdings.length) {
-      setCsvError("Add at least one ticker and share count before saving.");
+No valid transaction rows were found.`;
+    const lines = transactions.slice(0, 12).map((transaction) => {
+      const priceText = transaction.averageCost ? ` @ ${money(transaction.averageCost)}` : "";
+      return `${transaction.action}: ${transaction.symbol} — ${Number(transaction.shares || 0).toLocaleString()} shares${priceText}`;
+    });
+    const extra = transactions.length > 12 ? `
++${transactions.length - 12} more` : "";
+    return `${label}
+
+${lines.join("
+")}${extra}`;
+  }
+
+  async function saveManualTransactionRows(rowsToSave, { all = false } = {}) {
+    const rows = (Array.isArray(rowsToSave) ? rowsToSave : []).filter(Boolean);
+    const newTransactions = buildManualTransactionEntries(rows);
+
+    if (!newTransactions.length) {
+      setCsvError("Add a valid ticker, action, quantity, and price before saving.");
       return;
     }
 
-    const newTransactions = buildManualTransactionEntries(manualRows);
+    const confirmed = window.confirm(manualRowsConfirmationText(rows, all ? "Save all pending transactions?" : "Save this transaction?"));
+    if (!confirmed) return;
+
+    const holdings = aggregateManualPortfolioRows(rows);
+
+    if (!holdings.length) {
+      setCsvError("This transaction would leave no active stock holdings.");
+      return;
+    }
+
     const nextManualTransactions = [...newTransactions, ...manualTransactions].slice(0, 250);
     const enteredCash = Number(parseHoldingDollars(cashInput) ?? cashHoldings ?? 0);
-    const nextCashHoldings = Math.max(0, Number((enteredCash + calculateManualCashDelta(manualRows)).toFixed(2)));
+    const nextCashHoldings = Math.max(0, Number((enteredCash + calculateManualCashDelta(rows)).toFixed(2)));
     setManualTransactions(nextManualTransactions);
     setCashHoldings(nextCashHoldings);
     setCashInput(String(nextCashHoldings));
     const nextManualRows = saveManualRowsAsCurrentHoldings(holdings);
     await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows, manualTransactionsOverride: nextManualTransactions, cashOverride: nextCashHoldings });
+  }
+
+  async function analyzeManualPortfolio() {
+    await saveManualTransactionRows(manualRows, { all: true });
   }
 
   const currentManualRows = manualRows.filter((row) => String(row.symbol || "").trim() && (row.mode || "current") === "current");
@@ -4082,9 +4113,12 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   }, {});
   const historyPoints = csvAnalysis?.history || portfolioHistory || [];
   const evalHistoryPoints = csvAnalysis?.evalScoreHistory || evalScoreHistory || [];
-  const totalHoldings = csvAnalysis?.summary?.totalHoldingDollars;
-  const totalHoldingsDollarChange = csvAnalysis?.summary?.totalDollarChange;
-  const totalHoldingsChangePct = csvAnalysis?.summary?.totalReturnPercent;
+  const stockHoldingsTotal = Number(csvAnalysis?.summary?.totalHoldingDollars || 0);
+  const cashTotal = Number(cashHoldings || 0);
+  const totalHoldings = stockHoldingsTotal + cashTotal;
+  const totalHoldingsDollarChange = Number(csvAnalysis?.summary?.totalDollarChange || 0);
+  const totalHoldingsCostBase = Math.max(0.01, stockHoldingsTotal - totalHoldingsDollarChange + cashTotal);
+  const totalHoldingsChangePct = Number(((totalHoldingsDollarChange / totalHoldingsCostBase) * 100).toFixed(2));
   const portfolioEvalScore = csvAnalysis?.summary?.portfolioEvalScore;
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
   const prosCons = buildPortfolioProsCons(sectorGroups);
@@ -4265,7 +4299,10 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                     <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" /></label>
                     <label><span>Trade price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
-                  <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove transaction"><Trash2 size={15}/></button>
+                  <div className="portfolio-manual-entry-actions">
+                    <button type="button" className="portfolio-manual-entry-save" onClick={() => saveManualTransactionRows([row])} disabled={csvLoading}>Save</button>
+                    <button type="button" className="delete-btn portfolio-manual-entry-trash" onClick={() => removeManualRow(row.id)} aria-label="Remove transaction"><Trash2 size={15}/></button>
+                  </div>
                 </div>
               );})}
             </div>
@@ -4291,7 +4328,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </div>
 
             <button type="button" className="portfolio-manual-analyze-btn" onClick={analyzeManualPortfolio} disabled={csvLoading}>
-              <Sparkles size={16}/> Save transactions
+              <Sparkles size={16}/> Save all
             </button>
           </article>
         )}
@@ -4356,9 +4393,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
             </button>
           </div>
 
-          <span role="button" tabIndex={0} className="portfolio-holdings-wide-arrow portfolio-holdings-arrow-symbol" onClick={() => holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") holdingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} aria-label="Jump to holdings">
-            ↓
-          </span>
+          <div className="portfolio-top-bottom-separator" aria-hidden="true" />
 
           {sectorScoresOpen && (
             <div className="portfolio-industry-score-panel-wrap portfolio-industry-score-dropdown-wrap">
