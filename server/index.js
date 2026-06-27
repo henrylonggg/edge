@@ -15,12 +15,10 @@ const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const SCORE_BREAKDOWN_MODEL = process.env.OPENAI_SCORE_SUMMARY_MODEL || process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 const SCORE_BREAKDOWN_TIMEOUT_MS = Number(process.env.OPENAI_SCORE_SUMMARY_TIMEOUT_MS || 6000);
 
-const PORTFOLIO_CACHE_TTL_MS = 15 * 60 * 1000;
 const OFFICIAL_PORTFOLIO_AMOUNT = 1_000_000;
 const OFFICIAL_PORTFOLIO_SIZE = 30;
 const OFFICIAL_PORTFOLIO_RISK_MODE = "balanced";
 const OFFICIAL_PORTFOLIO_VERSION = process.env.EVAL_PORTFOLIO_VERSION || "2026-ytd-v1";
-const portfolioCache = new Map();
 const accountSyncCache = new Map();
 const ACCOUNT_SYNC_STORE_PATH = process.env.EVAL_ACCOUNT_SYNC_STORE_PATH || path.join("/tmp", "eval-account-sync-store.json");
 function loadAccountSyncStore() {
