@@ -1948,13 +1948,15 @@ app.get("/api/user-sync/:userKey", (req, res) => {
   res.json({ ok: true, data: record || null });
 });
 
-app.post("/api/user-sync", express.json({ limit: "2mb" }), (req, res) => {
+app.post("/api/user-sync", express.json({ limit: "5mb" }), (req, res) => {
   const userKey = String(req.body?.userKey || "").trim().toLowerCase();
   if (!userKey) return res.status(400).json({ ok: false, error: "Missing sync user key." });
   const data = req.body?.data && typeof req.body.data === "object" ? req.body.data : {};
+  const now = new Date().toISOString();
   const record = {
     ...data,
-    updatedAt: new Date().toISOString(),
+    syncedAt: data.syncedAt || now,
+    updatedAt: now,
   };
   accountSyncCache.set(userKey, record);
   saveAccountSyncStore();
