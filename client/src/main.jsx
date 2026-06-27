@@ -3384,6 +3384,30 @@ const DEFAULT_PORTFOLIO_VISIBLE_COLUMNS = PORTFOLIO_HOLDING_COLUMNS.reduce((acc,
   return acc;
 }, {});
 
+
+const PORTFOLIO_DETAILED_COLUMNS = [
+  { key: "symbol", label: "Ticker", type: "text" },
+  { key: "eval", label: "Eval", type: "score" },
+  { key: "growth", label: "Growth", type: "score" },
+  { key: "profitability", label: "Profitability", type: "score" },
+  { key: "financialHealth", label: "Financial Health", type: "score" },
+  { key: "valuation", label: "Valuation", type: "score" },
+  { key: "momentum", label: "Momentum", type: "score" },
+  { key: "reversal", label: "Pullback", type: "score" },
+  { key: "newsSentiment", label: "News", type: "score" },
+  { key: "shares", label: "Quantity", type: "number" },
+  { key: "averageCost", label: "Avg. Cost", type: "money" },
+  { key: "currentPrice", label: "Current Price", type: "money" },
+  { key: "value", label: "Value", type: "money" },
+  { key: "return", label: "Return", type: "return" },
+  { key: "portfolioWeight", label: "Portfolio %", type: "percent" },
+];
+
+const DEFAULT_PORTFOLIO_DETAILED_COLUMNS = PORTFOLIO_DETAILED_COLUMNS.reduce((acc, column) => {
+  acc[column.key] = true;
+  return acc;
+}, {});
+
 function portfolioColumnStorageKeyFor(user) {
   const id = user?.id || user?.primaryEmailAddress?.emailAddress || "guest";
   return `eval-portfolio-columns-v1-${id}`;
@@ -3459,6 +3483,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     }
   });
 
+  const [portfolioDetailedPage, setPortfolioDetailedPage] = useState(false);
+  const [detailedSort, setDetailedSort] = useState({ key: "eval", direction: "desc" });
+  const [detailedColumnsOpen, setDetailedColumnsOpen] = useState(false);
+  const [visibleDetailedColumns, setVisibleDetailedColumns] = useState(DEFAULT_PORTFOLIO_DETAILED_COLUMNS);
+
   // Portfolio display is saved so reopening the Portfolio page does not rescore automatically.
   // A full rescore runs only after CSV upload, manual transaction save, or the Refresh button.
   // Earnings remain cached for 48 hours, and individual stock Eval Scores use the main dashboard cache.
@@ -3488,16 +3517,16 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
       const holdings = Array.isArray(saved?.holdings) ? saved.holdings : [];
-      if (!holdings.length) return;
-
       const fileName = saved?.csvName || saved?.fileName || `${firstName} Portfolio.csv`;
-      const nextManualRows = holdingsToManualRows(holdings);
+      const nextManualRows = holdings.length ? holdingsToManualRows(holdings) : [blankManualHolding(), blankManualHolding(), blankManualHolding()];
       const savedDisplay = saved?.display && typeof saved.display === "object" ? saved.display : null;
       const savedAnalysis = savedDisplay?.analysis && typeof savedDisplay.analysis === "object" ? savedDisplay.analysis : null;
       const savedValueHistory = Array.isArray(savedDisplay?.portfolioHistory) ? savedDisplay.portfolioHistory : [];
       const savedEvalHistory = Array.isArray(savedDisplay?.evalScoreHistory) ? savedDisplay.evalScoreHistory : [];
       const savedTransactions = Array.isArray(saved?.manualTransactions) ? saved.manualTransactions : [];
       const savedCash = Number(saved?.cashHoldings || 0);
+
+      if (!holdings.length && !savedTransactions.length && !(Number.isFinite(savedCash) && savedCash > 0)) return;
 
       setCsvName(fileName);
       setSavedHoldings(holdings);
@@ -3508,7 +3537,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       setPortfolioHistory(savedValueHistory);
       setEvalScoreHistory(savedEvalHistory);
 
-      if (savedAnalysis) {
+      if (savedAnalysis && holdings.length) {
         setCsvAnalysis({
           ...savedAnalysis,
           history: savedAnalysis?.history || savedValueHistory,
@@ -3557,7 +3586,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         }))
         .filter((holding) => holding.symbol && Number.isFinite(holding.shares) && holding.shares > 0);
 
-      if (!cleanHoldings.length) {
+      const numericCash = Number(cashValue || 0);
+      if (!cleanHoldings.length && !(Number.isFinite(numericCash) && numericCash > 0) && !(Array.isArray(transactions) && transactions.length)) {
         localStorage.removeItem(storageKey);
         return;
       }
@@ -3577,7 +3607,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
         savedAt: new Date().toISOString(),
         holdings: cleanHoldings,
         manualTransactions: Array.isArray(transactions) ? transactions.slice(0, 250) : [],
-        cashHoldings: Number(cashValue || 0),
+        cashHoldings: Number.isFinite(numericCash) ? numericCash : 0,
         display: safeDisplay,
       }));
     } catch {
@@ -3668,35 +3698,94 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
     setManualRows((rows) => [...rows, blankManualHolding("add")]);
   }
 
-  function removeManualRow(id) {
+  async function removeManualRow(id) {
+    const row = manualRows.find((item) => item.id === id);
+    const label = String(row?.symbol || "this entry").trim().toUpperCase() || "this entry";
+
+    if ((row?.mode || "") === "current" && label !== "this entry") {
+      if (!window.confirm(`Delete ${label} completely? This removes the holding without adding anything to cash.`)) return;
+      const nextHoldings = savedHoldings.filter((holding) => String(holding?.symbol || holding?.ticker || "").toUpperCase() !== label);
+      const nextRows = holdingsToManualRows(nextHoldings);
+      setManualRows(nextRows);
+      setSavedHoldings(nextHoldings);
+      if (!nextHoldings.length) {
+        setCsvAnalysis(null);
+        persistPortfolioState([], csvName || `${firstName} Portfolio.csv`, null, manualTransactions, cashHoldings);
+        return;
+      }
+      await analyzeCsvHoldings(nextHoldings, csvName || `${firstName} Portfolio.csv`, { manualRowsOverride: nextRows, manualTransactionsOverride: manualTransactions, cashOverride: cashHoldings });
+      return;
+    }
+
     setManualRows((rows) => {
       if (rows.length <= 1) return rows;
-      const row = rows.find((item) => item.id === id);
-      const label = String(row?.symbol || "this entry").trim().toUpperCase() || "this entry";
       if (!window.confirm(`Delete ${label} from manual entry?`)) return rows;
-      return rows.filter((row) => row.id !== id);
+      return rows.filter((item) => item.id !== id);
     });
+  }
+
+  async function deleteAllManualPortfolio() {
+    const confirmed = window.confirm(
+      "Delete all portfolio holdings? This completely resets the portfolio, clears cash, transactions, saved display, and removes the uploaded/manual holdings. This does not create sell trades."
+    );
+    if (!confirmed) return;
+
+    setManualRows([blankManualHolding(), blankManualHolding(), blankManualHolding()]);
+    setManualTransactions([]);
+    setCashHoldings(0);
+    setCashInput("0");
+    setSavedHoldings([]);
+    setCsvAnalysis(null);
+    setPortfolioHistory([]);
+    setEvalScoreHistory([]);
+    setCsvName("");
+    setCsvError("");
+    setPortfolioToolsOpen(true);
+    setManualOpen(true);
+    setManualCurrentListOpen(false);
+
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // Reset is local-only and should never break the page.
+    }
   }
 
   function buildManualTransactionEntries(rows) {
     const now = new Date().toISOString();
+    const savedBySymbol = new Map((Array.isArray(savedHoldings) ? savedHoldings : []).map((holding) => [
+      String(holding?.symbol || holding?.ticker || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", "."),
+      holding,
+    ]));
+
     return (Array.isArray(rows) ? rows : [])
       .map((row) => {
         const symbol = String(row.symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").replace("-", ".");
-        const shares = parseHoldingDollars(row.shares);
-        const averageCost = parseHoldingDollars(row.averageCost);
+        const rawShares = parseHoldingDollars(row.shares);
+        const rawPrice = parseHoldingDollars(row.averageCost);
         const mode = row.mode || "buy";
-        if (!symbol || shares === null) return null;
+        if (!symbol) return null;
         if (mode === "current" && !row.__touched) return null;
-        const absShares = Math.abs(Number(shares || 0));
-        const action = mode === "closed" ? "Closed" : mode === "sell" ? "Sell" : mode === "current" ? "Set position" : "Buy";
+
+        const current = savedBySymbol.get(symbol) || {};
+        const currentShares = Number(current?.shares ?? current?.quantity ?? 0);
+        const currentAverageCost = Number(current?.averageCost ?? current?.avgCost ?? current?.purchasePrice ?? 0);
+        const isClose = mode === "closed";
+        const absShares = isClose ? Math.max(0, currentShares) : Math.abs(Number(rawShares || 0));
+        if (!absShares) return null;
+        const action = isClose ? "Close position" : mode === "sell" ? "Sell" : mode === "current" ? "Set position" : "Buy";
+        const averageCost = Number.isFinite(Number(rawPrice)) && Number(rawPrice) > 0
+          ? Number(rawPrice)
+          : Number.isFinite(currentAverageCost) && currentAverageCost > 0
+            ? currentAverageCost
+            : null;
         return {
           id: `${now}-${symbol}-${Math.random().toString(16).slice(2)}`,
           date: now,
           symbol,
           action,
-          shares: action === "Sell" ? -absShares : absShares,
-          averageCost: Number.isFinite(Number(averageCost)) ? Number(averageCost) : null,
+          shares: action === "Sell" || action === "Close position" ? -absShares : absShares,
+          averageCost,
         };
       })
       .filter(Boolean);
@@ -3751,11 +3840,12 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const shares = parseHoldingDollars(row.shares);
       const price = parseHoldingDollars(row.averageCost);
       const mode = row.mode || "buy";
-      if (!symbol || shares === null || mode === "current" || mode === "closed") return cashDelta;
+      if (!symbol || mode === "current") return cashDelta;
       const current = bySymbol.get(symbol) || { shares: 0, averageCost: Number(price || 0) };
-      const absShares = Math.abs(Number(shares || 0));
+      const absShares = mode === "closed" ? Math.max(0, Number(current.shares || 0)) : Math.abs(Number(shares || 0));
+      if (!absShares) return cashDelta;
 
-      if (mode === "sell") {
+      if (mode === "sell" || mode === "closed") {
         const sellShares = Math.min(absShares, Number(current.shares || 0));
         const sellPrice = Number(current.averageCost || price || 0);
         const remainingShares = Number(current.shares || 0) - sellShares;
@@ -3792,11 +3882,12 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       const shares = parseHoldingDollars(row.shares);
       const averageCost = parseHoldingDollars(row.averageCost);
       const mode = row.mode || "buy";
-      if (!symbol || shares === null) return;
+      if (!symbol) return;
+      if (mode !== "closed" && shares === null) return;
       if (mode === "current" && !row.__touched && bySymbol.has(symbol)) return;
 
       const current = bySymbol.get(symbol) || { symbol, shares: 0, averageCost: Number(averageCost || 0) };
-      const absShares = Math.abs(Number(shares || 0));
+      const absShares = mode === "closed" ? Math.max(0, Number(current.shares || 0)) : Math.abs(Number(shares || 0));
 
       if (mode === "closed") {
         bySymbol.delete(symbol);
@@ -3884,6 +3975,75 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       sectorWeight: false,
       eval: true,
     });
+  }
+
+
+  function toggleDetailedColumn(key) {
+    setVisibleDetailedColumns((current) => {
+      const next = { ...current, [key]: !current[key] };
+      if (!Object.values(next).some(Boolean)) next[key] = true;
+      return next;
+    });
+  }
+
+  function showAllDetailedColumns() {
+    setVisibleDetailedColumns({ ...DEFAULT_PORTFOLIO_DETAILED_COLUMNS });
+  }
+
+  function compactDetailedColumns() {
+    setVisibleDetailedColumns({
+      symbol: true,
+      eval: true,
+      growth: true,
+      profitability: true,
+      financialHealth: true,
+      valuation: true,
+      momentum: true,
+      reversal: false,
+      newsSentiment: false,
+      shares: false,
+      averageCost: false,
+      currentPrice: false,
+      value: true,
+      return: true,
+      portfolioWeight: true,
+    });
+  }
+
+  function detailedMetricValue(holding, key) {
+    if (key === "symbol") return String(holding?.symbol || "");
+    if (key === "eval") return score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
+    if (key === "shares") return Number(holding?.shares || 0);
+    if (key === "averageCost") return Number(holding?.averageCost ?? holding?.avgCost ?? 0);
+    if (key === "currentPrice") return Number(currentHoldingPriceValue(holding));
+    if (key === "value") return Number(holding?.holdingDollars || 0);
+    if (key === "return") return Number(holdingDollarChangeValue(holding) || 0);
+    if (key === "portfolioWeight") return Number(holding?.weightPercent || 0);
+    return score10(holding?.[key]);
+  }
+
+  function sortDetailedBy(key) {
+    setDetailedSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "desc" ? "asc" : "desc",
+    }));
+  }
+
+  function renderDetailedCell(holding, column) {
+    const key = column.key;
+    if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
+    if (key === "eval") return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(holding.edgeScore)}`}>{scoreText(holding.edgeScore)}</span></td>;
+    if (["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal", "newsSentiment"].includes(key)) {
+      const value = score10(holding?.[key]);
+      return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(value)}`}>{value === null ? "N/A" : value.toFixed(1)}</span></td>;
+    }
+    if (key === "shares") return <td key={key}>{Number(holding.shares || 0).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>;
+    if (key === "averageCost") return <td key={key}>{money(holding.averageCost ?? holding.avgCost ?? 0)}</td>;
+    if (key === "currentPrice") return <td key={key}>{money(currentHoldingPriceValue(holding))}</td>;
+    if (key === "value") return <td key={key}>{money(holding.holdingDollars)}</td>;
+    if (key === "return") return <td key={key} className={Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></td>;
+    if (key === "portfolioWeight") return <td key={key}>{Number(holding.weightPercent || 0).toFixed(2)}%</td>;
+    return <td key={key}>N/A</td>;
   }
 
   function toggleIndustry(sector) {
@@ -4053,18 +4213,22 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
 
     const holdings = aggregateManualPortfolioRows(rows);
 
-    if (!holdings.length) {
-      setCsvError("This transaction would leave no active stock holdings.");
-      return;
-    }
-
     const nextManualTransactions = [...newTransactions, ...manualTransactions].slice(0, 250);
     const enteredCash = Number(parseHoldingDollars(cashInput) ?? cashHoldings ?? 0);
     const nextCashHoldings = Math.max(0, Number((enteredCash + calculateManualCashDelta(rows)).toFixed(2)));
     setManualTransactions(nextManualTransactions);
     setCashHoldings(nextCashHoldings);
     setCashInput(String(nextCashHoldings));
-    const nextManualRows = saveManualRowsAsCurrentHoldings(holdings);
+    const nextManualRows = holdings.length ? saveManualRowsAsCurrentHoldings(holdings) : [blankManualHolding(), blankManualHolding(), blankManualHolding()];
+    if (!holdings.length) {
+      setManualRows(nextManualRows);
+      setSavedHoldings([]);
+      setCsvAnalysis(null);
+      setPortfolioHistory([]);
+      setEvalScoreHistory([]);
+      persistPortfolioState([], `${firstName} Manual Portfolio`, null, nextManualTransactions, nextCashHoldings);
+      return;
+    }
     await analyzeCsvHoldings(holdings, `${firstName} Manual Portfolio`, { silent: false, recordValueHistory: true, recordEvalHistory: true, manualRowsOverride: nextManualRows, manualTransactionsOverride: nextManualTransactions, cashOverride: nextCashHoldings });
   }
 
@@ -4126,6 +4290,18 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   const strategySuggestions = buildStrategySuggestions();
   const holdingColumns = visiblePortfolioColumnsList();
   const holdingsTemplate = holdingsGridTemplate();
+  const detailedColumns = PORTFOLIO_DETAILED_COLUMNS.filter((column) => visibleDetailedColumns[column.key]);
+  const sortedDetailedHoldings = [...allPortfolioHoldings]
+    .sort((a, b) => {
+      const av = detailedMetricValue(a, detailedSort.key);
+      const bv = detailedMetricValue(b, detailedSort.key);
+      if (typeof av === "string" || typeof bv === "string") {
+        const result = String(av || "").localeCompare(String(bv || ""));
+        return detailedSort.direction === "desc" ? -result : result;
+      }
+      const result = Number(av ?? -9999) - Number(bv ?? -9999);
+      return detailedSort.direction === "desc" ? -result : result;
+    });
 
   function openPortfolioInsightPage(type) {
     setPortfolioInsightPage(type);
@@ -4150,6 +4326,74 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
       node?.classList.add("portfolio-holding-row-highlight");
       window.setTimeout(() => node?.classList.remove("portfolio-holding-row-highlight"), 1800);
     }, 80);
+  }
+
+  if (csvAnalysis && portfolioDetailedPage) {
+    return (
+      <main className="portfolio-builder-page portfolio-detail-page-full">
+        <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
+          <button type="button" className="back-btn portfolio-back-icon-only" onClick={() => setPortfolioDetailedPage(false)} aria-label="Back to portfolio"><ArrowLeft size={18}/></button>
+          <div className="portfolio-title-mainline portfolio-title-mainline-clean"><div><h2>Detailed Holdings</h2></div></div>
+        </div>
+
+        <section className="portfolio-detail-table-shell">
+          <div className="portfolio-detail-table-head">
+            <div>
+              <span className="section-title"><BarChart3 size={17}/> Full table</span>
+              <h3>All holdings</h3>
+              <p>Sorted by Eval Score by default. Click any column heading to sort.</p>
+            </div>
+            <div className="portfolio-column-control-wrap portfolio-detail-column-control">
+              <button type="button" className={`portfolio-column-toggle-btn ${detailedColumnsOpen ? "open" : ""}`} onClick={() => setDetailedColumnsOpen((open) => !open)}>
+                Columns
+              </button>
+              {detailedColumnsOpen && (
+                <div className="portfolio-column-menu portfolio-column-menu-front portfolio-detail-column-menu">
+                  <div className="portfolio-column-menu-head">
+                    <strong>Table Columns</strong>
+                    <button type="button" className="portfolio-column-menu-close" onClick={() => setDetailedColumnsOpen(false)} aria-label="Close columns menu">×</button>
+                  </div>
+                  <div className="portfolio-column-menu-actions">
+                    <button type="button" onClick={showAllDetailedColumns}>All</button>
+                    <button type="button" onClick={compactDetailedColumns}>Compact</button>
+                  </div>
+                  {PORTFOLIO_DETAILED_COLUMNS.map((column) => (
+                    <label key={column.key} className={visibleDetailedColumns[column.key] ? "active" : ""}>
+                      <input type="checkbox" checked={Boolean(visibleDetailedColumns[column.key])} onChange={() => toggleDetailedColumn(column.key)} />
+                      <span>{column.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="portfolio-detail-table-scroll">
+            <table className="portfolio-detail-table">
+              <thead>
+                <tr>
+                  {detailedColumns.map((column) => (
+                    <th key={column.key}>
+                      <button type="button" onClick={() => sortDetailedBy(column.key)}>
+                        {column.label}
+                        {detailedSort.key === column.key && <span>{detailedSort.direction === "desc" ? "↓" : "↑"}</span>}
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedDetailedHoldings.map((holding) => (
+                  <tr key={holding.symbol}>
+                    {detailedColumns.map((column) => renderDetailedCell(holding, column))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   if (csvAnalysis && portfolioInsightPage) {
@@ -4246,6 +4490,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
               </div>
               <div className="portfolio-manual-head-actions">
                 <button type="button" className="portfolio-template-btn" onClick={addManualRow}><Plus size={16}/> Add transaction</button>
+                <button type="button" className="portfolio-template-btn portfolio-delete-all-btn" onClick={deleteAllManualPortfolio}><Trash2 size={16}/> Delete all</button>
                 {currentManualRows.length > 0 && (
                   <button type="button" className={`portfolio-template-btn portfolio-edit-current-btn ${manualCurrentListOpen ? "open" : ""}`} onClick={() => setManualCurrentListOpen((open) => !open)}>
                     {manualCurrentListOpen ? "Hide holdings" : "Edit/remove holdings"}
@@ -4290,7 +4535,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                       <option value="closed">Close position</option>
                     </select></label>
                     <label><span>Ticker</span><input value={row.symbol} onChange={(event) => updateManualRow(row.id, "symbol", event.target.value.toUpperCase())} placeholder="AAPL" maxLength={8} /></label>
-                    <label><span>Quantity</span><input value={row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder="10" inputMode="decimal" /></label>
+                    <label><span>Quantity</span><input value={(row.mode || "buy") === "closed" ? "All" : row.shares} onChange={(event) => updateManualRow(row.id, "shares", event.target.value)} placeholder={(row.mode || "buy") === "closed" ? "All shares" : "10"} inputMode="decimal" disabled={(row.mode || "buy") === "closed"} /></label>
                     <label><span>Trade price</span><input value={row.averageCost} onChange={(event) => updateManualRow(row.id, "averageCost", event.target.value)} placeholder="$175" inputMode="decimal" /></label>
                   </div>
                   <div className="portfolio-manual-entry-actions">
@@ -4414,6 +4659,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
                   setOpenIndustries(next);
                 }}>Close all</button>
               </div>
+              <button type="button" className="portfolio-detail-view-btn" onClick={() => setPortfolioDetailedPage(true)}>
+                Detailed view
+              </button>
               <div className="portfolio-column-control-wrap">
                 <button type="button" className={`portfolio-column-toggle-btn ${columnsOpen ? "open" : ""}`} onClick={() => setColumnsOpen((open) => !open)}>
                   Columns
