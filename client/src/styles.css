@@ -37892,3 +37892,133 @@ body:has(.morning-brew-page-shell) {
   .portfolio-sector-summary-row em { font-size: 10px; }
   .portfolio-sector-summary-row em { min-width: 34px; padding: 4px 5px; }
 }
+
+/* Portfolio patch: centered actions, plain arrow symbol, cash folder, no earnings/sectors display */
+.portfolio-dashboard-v3 .portfolio-dashboard-action-row-three {
+  justify-content: center !important;
+  align-items: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  max-width: 720px !important;
+  width: 100% !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holdings-arrow-symbol {
+  display: block !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  height: auto !important;
+  margin: 10px auto 18px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  font-size: 34px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  text-shadow: 0 0 18px rgba(255,255,255,.28) !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holdings-arrow-symbol:hover,
+.portfolio-dashboard-v3 .portfolio-holdings-arrow-symbol:focus-visible {
+  outline: none !important;
+  color: #ffffff !important;
+  background: rgba(255,255,255,.06) !important;
+  border-radius: 14px !important;
+}
+
+.portfolio-manual-cash-editor,
+.portfolio-cash-folder-card {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.22);
+  border-radius: 22px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.portfolio-manual-cash-editor strong,
+.portfolio-cash-folder-card strong {
+  display: block;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.portfolio-manual-cash-editor span,
+.portfolio-cash-folder-card span,
+.portfolio-cash-folder-card small {
+  color: rgba(248,251,255,.62);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.portfolio-manual-cash-editor input {
+  width: 150px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  padding: 12px 13px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.portfolio-cash-folder-card {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.portfolio-cash-folder-card strong {
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: -1.6px;
+}
+
+.portfolio-transaction-entry-card.buy .portfolio-transaction-entry-topline > span {
+  color: #85d713;
+}
+
+.portfolio-transaction-entry-card.sell .portfolio-transaction-entry-topline > span {
+  color: #ff5f73;
+}
+
+@media (max-width: 760px) {
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three {
+    width: min(100%, 330px) !important;
+    gap: 7px !important;
+    justify-content: center !important;
+    transform: none !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-dashboard-action-row-three .portfolio-action-tile {
+    min-width: 96px !important;
+    max-width: 104px !important;
+    padding: 9px 7px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-holdings-arrow-symbol {
+    font-size: 28px !important;
+    margin: 8px auto 12px !important;
+  }
+
+  body .portfolio-manual-cash-editor,
+  body .portfolio-cash-folder-card {
+    padding: 11px 12px !important;
+    border-radius: 16px !important;
+    gap: 10px !important;
+  }
+
+  body .portfolio-manual-cash-editor input {
+    width: 112px !important;
+    padding: 9px 10px !important;
+    font-size: 13px !important;
+  }
+
+  body .portfolio-cash-folder-card strong {
+    font-size: 28px !important;
+  }
+}
