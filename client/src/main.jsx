@@ -1342,7 +1342,7 @@ function App() {
   }
 
   if (view === "landing") {
-    return <LandingPage onContinue={openDashboardFromLanding} />;
+    return <LandingPage onContinue={openDashboardFromLanding} startTarget={isSignedIn ? preferredDashboardStart : "dashboard"} />;
   }
 
   if (view === "account") {
@@ -1371,6 +1371,33 @@ function App() {
         onHome={() => navigateView("landing")}
         onTerms={() => navigateView("terms")}
       />
+    );
+  }
+
+
+  if (view === "mobileMenu") {
+    return (
+      <>
+        <MobileMenuPage
+          syncStatus={syncStatus}
+          onSync={handleSyncAccountData}
+          onNavigate={navigateView}
+          onBack={() => navigateView("dashboard")}
+        />
+        <MobileBottomNav
+          homeView={mobileHomeTarget}
+          homeButtonColor={landingLogoColor}
+          leftShortcut={mobileNavLeft}
+          rightShortcut={mobileNavRight}
+          secondLeftShortcut={mobileNavSecondLeft}
+          secondRightShortcut={mobileNavSecondRight}
+          arrowButtonColor={mobileNavArrowColor}
+          searchTarget={mobileSearchTarget}
+          onNavigate={goMobileNav}
+          onBack={goBackInApp}
+          onForward={goForwardInApp}
+        />
+      </>
     );
   }
 
@@ -1765,6 +1792,69 @@ function App() {
 }
 
 
+function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack }) {
+  const primaryTabs = [
+    { label: "Dashboard", view: "dashboard" },
+    { label: "Portfolio", view: "portfolio" },
+    { label: "Morning Mug", view: "morningBrew" },
+    { label: "Watchlist", view: "watchlist" },
+    { label: "Ticker Lookup", view: "tickerLookup" },
+    { label: "Eval AI Assistant", view: "assistant" },
+  ];
+
+  const otherTabs = [
+    { label: syncStatus === "syncing" ? "Syncing Account..." : syncStatus === "synced" ? "Synced Account" : "Sync Account", action: onSync },
+    { label: "Settings", view: "settings" },
+    { label: "Homepage", view: "landing" },
+    { label: "FAQs", view: "faqs" },
+    { label: "Terms & Conditions", view: "terms" },
+    { label: "Contact", view: "support" },
+  ];
+
+  const go = (item) => {
+    if (item.action) {
+      item.action();
+      return;
+    }
+    onNavigate(item.view);
+  };
+
+  return (
+    <main className="app-shell mobile-menu-page-shell">
+      <section className="mobile-menu-page-card">
+        <div className="mobile-menu-page-head">
+          <button type="button" className="mobile-menu-page-back" onClick={onBack} aria-label="Back to dashboard">
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <span className="section-title"><Menu size={17}/> Menu</span>
+            <h2>All Eval tabs</h2>
+          </div>
+        </div>
+
+        <div className="mobile-menu-link-grid">
+          {primaryTabs.map((item) => (
+            <button key={item.label} type="button" className="mobile-menu-text-link" onClick={() => go(item)}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mobile-menu-other-block">
+          <h3>Other</h3>
+          <div className="mobile-menu-link-grid other-open">
+            {otherTabs.map((item) => (
+              <button key={item.label} type="button" className="mobile-menu-text-link" onClick={() => go(item)} disabled={item.action && syncStatus === "syncing"}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function SettingsPage({
   dashboardStart,
   mobileNavLeft,
@@ -1848,11 +1938,7 @@ function SettingsPage({
                 ))}
               </select>
               <label>Left outer shortcut</label>
-              <select value={mobileNavLeft} onChange={(e) => onMobileNavLeftChange(e.target.value)}>
-                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
-                  <option key={option.key} value={option.key}>{option.label}</option>
-                ))}
-              </select>
+              <div className="settings-fixed-menu-slot"><Menu size={15} /> Menu — fixed</div>
               <label>Left inner shortcut</label>
               <select value={mobileNavSecondLeft} onChange={(e) => onMobileNavSecondLeftChange(e.target.value)}>
                 {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
@@ -1888,6 +1974,7 @@ function SettingsPage({
 
 function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShortcut, secondRightShortcut, searchTarget, homeButtonColor = "#9f5cff", arrowButtonColor = "#151826", onNavigate, onBack, onForward }) {
   const shortcutMap = {
+    menu: { label: "Menu", icon: <Menu size={20} /> },
     watchlist: { label: "Watchlist", icon: <Star size={18} /> },
     settings: { label: "Settings", icon: <SettingsIcon size={18} /> },
     search: { label: "Search", icon: <Search size={18} /> },
@@ -1898,13 +1985,13 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
   };
 
   const runShortcut = (key) => {
-    const target = key === "search" ? searchTarget : key;
+    const target = key === "search" ? searchTarget : key === "menu" ? "mobileMenu" : key;
     onNavigate(target || "dashboard");
   };
 
   const resolvedSecondLeftShortcut = secondLeftShortcut || safeStorageGet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, "settings");
   const resolvedSecondRightShortcut = secondRightShortcut || safeStorageGet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, "portfolio");
-  const left = shortcutMap[leftShortcut] || shortcutMap.watchlist;
+  const left = shortcutMap.menu;
   const secondLeft = shortcutMap[resolvedSecondLeftShortcut] || shortcutMap.settings;
   const right = shortcutMap[rightShortcut] || shortcutMap.assistant;
   const secondRight = shortcutMap[resolvedSecondRightShortcut] || shortcutMap.portfolio;
@@ -1915,7 +2002,7 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
         <ArrowLeft size={15} />
       </button>
 
-      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut" onClick={() => runShortcut(leftShortcut)} aria-label={left.label}>
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut nav-menu-shortcut" onClick={() => runShortcut("menu")} aria-label={left.label}>
         {left.icon}
       </button>
 
@@ -5027,7 +5114,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   );
 }
 
-function LandingPage({ onContinue }) {
+function LandingPage({ onContinue, startTarget = "dashboard" }) {
+  const startLabel = ({ dashboard: "Open dashboard", portfolio: "Open portfolio", morningBrew: "Open Morning Mug", watchlist: "Open watchlist" }[startTarget] || "Open dashboard");
+
   const productPillars = [
     {
       icon: <Gauge size={22} />,
@@ -5119,7 +5208,7 @@ function LandingPage({ onContinue }) {
           </button>
 
           <button type="button" className="landing-continue-top" onClick={onContinue}>
-            Open dashboard <ArrowRight size={18} />
+            {startLabel} <ArrowRight size={18} />
           </button>
         </header>
 
@@ -5214,7 +5303,7 @@ function LandingPage({ onContinue }) {
             </p>
           </div>
           <button type="button" className="landing-continue-btn secondary" onClick={onContinue}>
-            Start evaluating <ArrowRight size={18} />
+            {startLabel} <ArrowRight size={18} />
           </button>
         </section>
 
