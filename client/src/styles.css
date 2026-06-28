@@ -39671,3 +39671,109 @@ body:has(.morning-brew-page-shell) {
 @media (max-width: 760px) {
   .landing-hero-static { position: relative !important; }
 }
+
+/* Morning Mug title icon + refresh icon polish */
+.morning-brew-title-clean,
+.morning-brew-title-wrap {
+  color: #ffffff;
+}
+
+.morning-brew-title-clean h2,
+.morning-brew-title-wrap h2 {
+  color: inherit !important;
+}
+
+.morning-brew-title-mug-icon {
+  color: currentColor !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  flex: 0 0 auto !important;
+  width: 1em !important;
+  height: 1em !important;
+  min-width: 1em !important;
+  min-height: 1em !important;
+  filter: drop-shadow(0 0 14px rgba(255,255,255,.22));
+}
+
+.morning-brew-refresh-icon,
+.morning-brew-page .morning-brew-refresh.morning-brew-refresh-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  cursor: pointer !important;
+  opacity: .96 !important;
+  transform: translateY(1px);
+}
+
+.morning-brew-refresh-icon svg,
+.morning-brew-page .morning-brew-refresh.morning-brew-refresh-icon svg {
+  width: 21px !important;
+  height: 21px !important;
+  stroke-width: 2.7 !important;
+  color: currentColor !important;
+  stroke: currentColor !important;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.35));
+}
+
+.morning-brew-refresh-icon:hover,
+.morning-brew-refresh-icon:focus-visible {
+  background: rgba(255,255,255,.08) !important;
+  color: #ffffff !important;
+}
+
+.morning-brew-refresh-icon:disabled {
+  opacity: .58 !important;
+  cursor: wait !important;
+}
+
+@media (max-width: 760px) {
+  .morning-brew-top-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 34px !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .morning-brew-title-clean,
+  .morning-brew-title-wrap {
+    min-width: 0 !important;
+    gap: 7px !important;
+  }
+
+  .morning-brew-title-mug-icon {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+  }
+
+  .morning-brew-title-clean h2,
+  .morning-brew-title-wrap h2 {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: clamp(24px, 7.25vw, 31px) !important;
+    line-height: .92 !important;
+    letter-spacing: -1.2px !important;
+  }
+
+  .morning-brew-refresh-icon,
+  .morning-brew-page .morning-brew-refresh.morning-brew-refresh-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+}
