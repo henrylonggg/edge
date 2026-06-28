@@ -40849,3 +40849,79 @@ body {
     line-height: 1.48 !important;
   }
 }
+
+/* =========================================================
+   PATCH: watchlist no stock stars + vertical Eval tabs menu
+========================================================= */
+.watchlist-page-panel .watch-rank-number::after,
+.watch-panel .watch-rank-number::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Keep the rank as a clean number badge, not a star badge */
+.watchlist-page-panel .watch-rank-number,
+.watch-panel .watch-rank-number {
+  overflow: hidden !important;
+}
+
+/* Eval Tabs page becomes a premium vertical menu interface */
+.mobile-menu-page-card {
+  max-width: 760px !important;
+}
+
+.mobile-menu-link-grid,
+.mobile-menu-link-grid.other-open {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+  margin-top: 14px !important;
+}
+
+.mobile-menu-text-link {
+  width: 100% !important;
+  min-height: 58px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 15px 18px !important;
+  border-radius: 18px !important;
+  text-align: left !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.095), rgba(255,255,255,.045)),
+    radial-gradient(circle at 8% 0%, rgba(159,92,255,.20), transparent 40%) !important;
+  border: 1px solid rgba(255,255,255,.105) !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+.mobile-menu-text-link.synced {
+  color: #b7ff7c !important;
+  border-color: rgba(133,255,71,.30) !important;
+  background:
+    linear-gradient(135deg, rgba(133,255,71,.12), rgba(255,255,255,.045)),
+    radial-gradient(circle at 8% 0%, rgba(133,255,71,.18), transparent 40%) !important;
+}
+
+.mobile-menu-text-link.synced::after {
+  content: "✓" !important;
+  color: #b7ff7c !important;
+  font-size: 18px !important;
+  transform: translateY(-50%) !important;
+}
+
+.mobile-menu-other-block h3 {
+  padding-left: 2px !important;
+}
+
+@media (max-width: 760px) {
+  .mobile-menu-page-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .mobile-menu-text-link {
+    min-height: 52px !important;
+    padding: 13px 15px !important;
+    font-size: 14px !important;
+  }
+}
