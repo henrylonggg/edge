@@ -3414,9 +3414,7 @@ function MorningMugsDashboard({ onBack }) {
   const movers = hasSavedPortfolio ? (brew?.market?.movers || { gainers: [], losers: [] }) : { gainers: [], losers: [] };
   const marketMovers = brew?.market?.marketMovers || { gainers: [], losers: [] };
   const articles = brew?.market?.articles || [];
-  const alerts = hasSavedPortfolio ? (brew?.portfolio?.alerts || []) : [];
-  const alertsKey = `${new Date().toISOString().slice(0, 10)}-${alerts.length}-${alerts.map((a) => a.headline).join("|")}`;
-  const hasNewAlerts = alerts.length > 0 && seenAlertsKey !== alertsKey;
+  const morningEarnings = hasSavedPortfolio ? (Array.isArray(brew?.portfolio?.earnings?.events) ? brew.portfolio.earnings.events : []) : [];
   const morningScoreLookup = (Array.isArray(savedMorningPortfolio?.holdings) ? savedMorningPortfolio.holdings : []).reduce((acc, holding) => {
     const symbol = String(holding?.symbol || holding?.ticker || "").toUpperCase();
     const score = score10(holding?.edgeScore ?? holding?.score ?? holding?.evalScore);
@@ -3516,50 +3514,26 @@ function MorningMugsDashboard({ onBack }) {
             </section>
 
             {hasSavedPortfolio ? (
-              <section className={`morning-brew-card portfolio-alert-card ${alertsOpen ? "open" : ""}`}>
-                <button
-                  type="button"
-                  className="morning-alert-toggle"
-                  onClick={() => {
-                    const next = !alertsOpen;
-                    setAlertsOpen(next);
-                    if (next && alerts.length) {
-                      safeStorageSet("eval-morning-mugs-alerts-seen", alertsKey);
-                      setSeenAlertsKey(alertsKey);
-                    }
-                  }}
-                >
-                  <span><AlertTriangle size={17}/> Portfolio alerts</span>
-                  <b>{alerts.length || 0}</b>
-                  {hasNewAlerts ? <i aria-label="New alerts" /> : null}
-                </button>
-                <div className="morning-alert-dropdown">
-                  {alerts.length ? (
-                    <div className="morning-alert-list">
-                      {alerts.map((alert, index) => (
-                        <div className={`morning-alert ${alert.type || "watch"}`} key={`${alert.symbol || "alert"}-${index}`}>
-                          <div className="morning-alert-topline">
-                            <b>{alert.headline}</b>
-                            {alert.dayChangePercent !== null && alert.dayChangePercent !== undefined ? (
-                              <strong className={`morning-alert-move ${Number(alert.dayChangePercent) >= 0 ? "up" : "down"}`}>
-                                {formatBrewPercent(alert.dayChangePercent)} today
-                              </strong>
-                            ) : null}
-                          </div>
-                          <p>{alert.shortDetail || alert.detail}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="morning-muted">{brew?.portfolio?.message || "No major saved-portfolio alerts yet."}</p>
-                  )}
-                </div>
-              </section>
+              <PortfolioEarningsCalendar
+                earnings={morningEarnings}
+                loading={loading && !brew}
+                title="Portfolio earnings: next 2 weeks"
+                days={14}
+                scoreLookup={morningScoreLookup}
+                className="morning-mugs-earnings-calendar"
+              />
             ) : null}
+
 
 
             <section className="morning-brew-card news-card wide">
               <div className="morning-section-title"><Newspaper size={17}/> Top pre-market headlines</div>
+              {brew?.market?.headliner?.headline ? (
+                <div className="morning-headliner-chip">
+                  <span>Headliner</span>
+                  <b>{brew.market.headliner.headline}</b>
+                </div>
+              ) : null}
               <div className="morning-news-list morning-news-cards">
                 {articles.length ? articles.map((article, index) => {
                   const articleScore = score10(article.score);
