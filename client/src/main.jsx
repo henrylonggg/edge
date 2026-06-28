@@ -1705,10 +1705,20 @@ function App() {
 
               <button
                 type="button"
-                className="searchbar-watchlist-add-btn"
-                aria-label="Add current ticker to watchlist"
-                title="Add current ticker to watchlist"
-                onClick={() => addTicker(symbol)}
+                className="searchbar-morning-mug-btn desktop-search-mug-btn"
+                aria-label="Open Morning Mug"
+                title="Morning Mug"
+                onClick={() => navigateView("morningBrew")}
+              >
+                <Coffee size={18} />
+              </button>
+
+              <button
+                type="button"
+                className="searchbar-watchlist-add-btn mobile-search-watchlist-btn"
+                aria-label="Open Watchlist"
+                title="Watchlist"
+                onClick={() => navigateView("watchlist")}
               >
                 <Star size={18} />
               </button>
