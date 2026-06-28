@@ -558,8 +558,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
-  const [alertsOpen, setAlertsOpen] = useState(false);
-  const [seenAlertsKey, setSeenAlertsKey] = useState(() => safeStorageGet("eval-morning-mugs-alerts-seen", ""));
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [sectorPage, setIndustryPage] = useState(null);
@@ -3393,8 +3391,6 @@ function MorningMugsDashboard({ onBack }) {
   const [brew, setBrew] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [alertsOpen, setAlertsOpen] = useState(false);
-  const [seenAlertsKey, setSeenAlertsKey] = useState(() => safeStorageGet("eval-morning-mugs-alerts-seen", ""));
 
   async function loadBrew(forceRefresh = false) {
     setLoading(true);
@@ -3432,7 +3428,6 @@ function MorningMugsDashboard({ onBack }) {
   const hasSavedPortfolio = Array.isArray(savedMorningPortfolio.symbols) && savedMorningPortfolio.symbols.length > 0;
   const indexes = brew?.market?.indexes || [];
   const movers = hasSavedPortfolio ? (brew?.market?.movers || { gainers: [], losers: [] }) : { gainers: [], losers: [] };
-  const marketMovers = brew?.market?.marketMovers || { gainers: [], losers: [] };
   const articles = brew?.market?.articles || [];
   const morningEarnings = hasSavedPortfolio ? (Array.isArray(brew?.portfolio?.earnings?.events) ? brew.portfolio.earnings.events : []) : [];
   const morningScoreLookup = (Array.isArray(savedMorningPortfolio?.holdings) ? savedMorningPortfolio.holdings : []).reduce((acc, holding) => {
@@ -3454,16 +3449,18 @@ function MorningMugsDashboard({ onBack }) {
 
       <section className="morning-brew-page">
         <div className="morning-brew-hero morning-brew-hero-clean">
-          <div className="morning-brew-title-wrap morning-brew-title-clean">
-            <Coffee className="morning-brew-title-mug-icon" aria-hidden="true" />
-            <h2><strong>The Morning Mug</strong></h2>
+          <div className="morning-brew-top-row">
+            <div className="morning-brew-title-wrap morning-brew-title-clean">
+              <Coffee className="morning-brew-title-mug-icon" aria-hidden="true" />
+              <h2><strong>The Morning Mug</strong></h2>
+            </div>
+            <button type="button" className="morning-brew-refresh morning-brew-refresh-icon" onClick={() => loadBrew(true)} disabled={loading} aria-label="Refresh Morning Mug">
+              {loading ? <RefreshCw className="spin" size={18}/> : <RefreshCw size={18}/>}
+            </button>
           </div>
-          <div className="morning-brew-actions-clean">
+          <div className="morning-brew-back-row">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
               <ArrowLeft size={18} /> Back to dashboard
-            </button>
-            <button type="button" className="morning-brew-refresh" onClick={() => loadBrew(true)} disabled={loading}>
-              {loading ? <RefreshCw className="spin" size={16}/> : <RefreshCw size={16}/>} Refresh
             </button>
           </div>
         </div>
@@ -3486,32 +3483,10 @@ function MorningMugsDashboard({ onBack }) {
                   );
                 }) : <p className="morning-muted">Index data is unavailable right now.</p>}
               </div>
-              {((marketMovers.gainers || []).length || (marketMovers.losers || []).length) ? (
-                <div className="morning-portfolio-movers morning-market-movers">
-                  <div className="morning-movers-column">
-                    <span className="morning-movers-label up">Top 3 gainers today</span>
-                    {(marketMovers.gainers || []).length ? marketMovers.gainers.map((item) => (
-                      <div className="morning-mover-row positive" key={`market-gain-${item.symbol}`}>
-                        <b>{item.symbol}</b>
-                        <strong>{formatBrewPercent(item.changePercent)}</strong>
-                      </div>
-                    )) : <p className="morning-muted compact">No gainers available.</p>}
-                  </div>
-                  <div className="morning-movers-column">
-                    <span className="morning-movers-label down">Top 3 losers today</span>
-                    {(marketMovers.losers || []).length ? marketMovers.losers.map((item) => (
-                      <div className="morning-mover-row negative" key={`market-loss-${item.symbol}`}>
-                        <b>{item.symbol}</b>
-                        <strong>{formatBrewPercent(item.changePercent)}</strong>
-                      </div>
-                    )) : <p className="morning-muted compact">No losers available.</p>}
-                  </div>
-                </div>
-              ) : null}
               {hasSavedPortfolio && ((movers.gainers || []).length || (movers.losers || []).length) ? (
                 <div className="morning-portfolio-movers">
                   <div className="morning-movers-column">
-                    <span className="morning-movers-label up">Top portfolio gainers</span>
+                    <span className="morning-movers-label up">Top 3 portfolio gainers</span>
                     {(movers.gainers || []).length ? movers.gainers.map((item) => (
                       <div className="morning-mover-row positive" key={`gain-${item.symbol}`}>
                         <b>{item.symbol}</b>
@@ -3520,7 +3495,7 @@ function MorningMugsDashboard({ onBack }) {
                     )) : <p className="morning-muted compact">No positive movers yet.</p>}
                   </div>
                   <div className="morning-movers-column">
-                    <span className="morning-movers-label down">Top portfolio laggards</span>
+                    <span className="morning-movers-label down">Bottom 3 portfolio losers</span>
                     {(movers.losers || []).length ? movers.losers.map((item) => (
                       <div className="morning-mover-row negative" key={`loss-${item.symbol}`}>
                         <b>{item.symbol}</b>
