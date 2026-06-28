@@ -1702,6 +1702,16 @@ function App() {
               <button disabled={loading} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
               </button>
+
+              <button
+                type="button"
+                className="searchbar-watchlist-add-btn"
+                aria-label="Add current ticker to watchlist"
+                title="Add current ticker to watchlist"
+                onClick={() => addTicker(symbol)}
+              >
+                <Star size={18} />
+              </button>
             </form>
 
             {data ? (
@@ -3435,7 +3445,7 @@ function MorningMugsDashboard({ onBack }) {
       <section className="morning-brew-page">
         <div className="morning-brew-hero morning-brew-hero-clean">
           <div className="morning-brew-title-wrap morning-brew-title-clean">
-            <span className="morning-brew-giant-cup" aria-hidden="true">☕</span>
+            <Coffee className="morning-brew-title-mug-icon" aria-hidden="true" />
             <h2><strong>The Morning Mug</strong></h2>
           </div>
           <div className="morning-brew-actions-clean">
@@ -5145,6 +5155,12 @@ function LandingPage({ onContinue }) {
 
             <div className="landing-action-row-static landing-action-row-static-copy-only">
               <span>Built for quick research, watchlist ranking, portfolio scoring, The Morning Mug, and easier company comparison.</span>
+            </div>
+
+            <div className="mobile-homepage-feature-strip" aria-label="Eval key features">
+              <div><b>Eval Score</b><span>0–10 company-quality score</span></div>
+              <div><b>Portfolio</b><span>Upload holdings, track weighted scores</span></div>
+              <div><b>Morning Mug</b><span>Daily headlines, movers, earnings</span></div>
             </div>
           </div>
 
