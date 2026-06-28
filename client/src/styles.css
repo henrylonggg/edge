@@ -39261,3 +39261,141 @@ body:has(.morning-brew-page-shell) {
     color: rgba(248,251,255,.48) !important;
   }
 }
+
+/* === Patch: Morning Mug desktop shortcut, clean header, mobile portfolio background removal === */
+.searchbar-morning-mug-btn,
+.searchbar-watchlist-add-btn {
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 56px !important;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 0 18px rgba(159,92,255,.18) !important;
+}
+.searchbar-morning-mug-btn svg,
+.searchbar-watchlist-add-btn svg {
+  color: #ffffff !important;
+  stroke-width: 2.8 !important;
+}
+.searchbar-morning-mug-btn:hover,
+.searchbar-watchlist-add-btn:hover {
+  background: rgba(159,92,255,.22) !important;
+  border-color: rgba(159,92,255,.45) !important;
+}
+.mobile-search-watchlist-btn { display: none !important; }
+.desktop-search-mug-btn { display: inline-flex !important; }
+
+.morning-brew-hero-clean {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+  overflow: visible !important;
+}
+.morning-brew-title-clean {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: clamp(10px, 1.2vw, 16px) !important;
+  overflow: hidden !important;
+}
+.morning-brew-title-clean h2 {
+  min-width: 0 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.morning-brew-title-mug-icon {
+  flex: 0 0 auto !important;
+  width: 1.05em !important;
+  height: 1.05em !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 58px !important;
+  max-height: 58px !important;
+  color: currentColor !important;
+  stroke-width: 3.1 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 14px rgba(255,255,255,.22)) !important;
+}
+.morning-brew-actions-clean {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  min-width: max-content !important;
+}
+
+@media (max-width: 760px) {
+  .desktop-search-mug-btn { display: none !important; }
+  .mobile-search-watchlist-btn { display: inline-flex !important; }
+
+  .searchbar-morning-mug-btn,
+  .searchbar-watchlist-add-btn {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    border-radius: 14px !important;
+  }
+
+  .morning-brew-hero-clean {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    border-radius: 20px !important;
+  }
+  .morning-brew-title-clean {
+    gap: 7px !important;
+    overflow: hidden !important;
+  }
+  .morning-brew-title-clean h2,
+  .morning-brew-title-clean h2 strong {
+    font-size: clamp(23px, 6.7vw, 31px) !important;
+    line-height: .95 !important;
+    letter-spacing: -1.4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .morning-brew-title-mug-icon {
+    width: clamp(23px, 6.7vw, 31px) !important;
+    height: clamp(23px, 6.7vw, 31px) !important;
+    min-width: clamp(23px, 6.7vw, 31px) !important;
+    min-height: clamp(23px, 6.7vw, 31px) !important;
+  }
+  .morning-brew-actions-clean {
+    gap: 5px !important;
+    min-width: 0 !important;
+  }
+  .morning-brew-actions-clean .back-btn,
+  .morning-brew-refresh {
+    min-height: 36px !important;
+    padding: 7px 9px !important;
+    font-size: 10.5px !important;
+    border-radius: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  body .portfolio-builder-page.portfolio-dashboard-v3,
+  body .portfolio-dashboard-v3.portfolio-builder-page {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  body .portfolio-builder-page.portfolio-dashboard-v3::before,
+  body .portfolio-builder-page.portfolio-dashboard-v3::after,
+  body .portfolio-dashboard-v3.portfolio-builder-page::before,
+  body .portfolio-dashboard-v3.portfolio-builder-page::after {
+    display: none !important;
+    content: none !important;
+  }
+}
