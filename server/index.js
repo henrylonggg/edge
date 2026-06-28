@@ -2067,6 +2067,7 @@ app.get("/api/score-breakdown/:symbol", async (req, res) => {
 
 
 const morningBrewNewsCache = new Map();
+const morningBrewHeadlinerCache = new Map();
 const morningBrewIndexCache = new Map();
 const morningBrewPortfolioAlertsCache = new Map();
 
@@ -2542,9 +2543,20 @@ async function buildMorningBrewMarket(forceRefresh = false) {
     getMorningMarketMovers(forceRefresh).catch(() => ({ gainers: [], losers: [] })),
   ]);
 
+  const headlinerKey = morningBrewDateKey();
+  const headliner = articles?.[0] || morningBrewHeadlinerCache.get(headlinerKey) || null;
+  if (articles?.[0]) morningBrewHeadlinerCache.set(headlinerKey, articles[0]);
+  if (morningBrewHeadlinerCache.size > 5) {
+    for (const cacheKey of morningBrewHeadlinerCache.keys()) {
+      if (cacheKey !== headlinerKey) morningBrewHeadlinerCache.delete(cacheKey);
+      if (morningBrewHeadlinerCache.size <= 3) break;
+    }
+  }
+
   const result = {
     indexes: indexQuotes,
     articles,
+    headliner,
     marketMovers,
     generatedAt: new Date().toISOString(),
     source: "Finnhub quotes + CNBC headlines",
@@ -2578,11 +2590,9 @@ app.post("/api/morning-brew", async (req, res) => {
     const forceRefresh = String(req.query.refresh || "0") === "1";
     const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols.map(cleanTicker).filter(Boolean) : [];
     const hasPortfolio = symbols.length > 0;
-    const [market, portfolio, movers] = await Promise.all([
+    const [market, earnings, movers] = await Promise.all([
       buildMorningBrewMarket(forceRefresh),
-      hasPortfolio
-        ? buildMorningPortfolioAlerts(symbols, req.body?.previousScores || {}, req.body?.holdings || [], req.body?.strategyTargets || {})
-        : Promise.resolve({ hasPortfolio: false, alerts: [], message: "" }),
+      hasPortfolio ? getPortfolioEarnings(symbols, { days: 14 }) : Promise.resolve({ events: [], symbols: [], cached: false }),
       hasPortfolio ? getMorningPortfolioMovers(symbols) : Promise.resolve({ gainers: [], losers: [] }),
     ]);
     res.json({
@@ -2590,7 +2600,7 @@ app.post("/api/morning-brew", async (req, res) => {
       title: "The Morning Mug",
       generatedAt: new Date().toISOString(),
       market: { ...market, movers },
-      portfolio,
+      portfolio: { hasPortfolio, earnings, alerts: [], message: "" },
     });
   } catch (error) {
     console.error("The Morning Mug route failed:", error?.stack || error?.message || error);
