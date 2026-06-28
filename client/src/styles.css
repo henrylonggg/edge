@@ -38733,3 +38733,127 @@ body:has(.morning-brew-page-shell) {
     padding: 7px 13px !important;
   }
 }
+
+/* === Mobile-only portfolio total holdings sizing correction ===
+   Total value uses the former change-size scale; change/% are stepped down so
+   very large values like $100,000,000.00 fit inside the bubble cleanly. */
+@media (max-width: 680px) {
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide.portfolio-total-value-card-no-label {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 10px !important;
+    overflow: hidden !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-total-value-line {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    overflow: hidden !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-total-value-line strong,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide strong {
+    font-size: clamp(18px, 5.4vw, 22px) !important;
+    line-height: .98 !important;
+    letter-spacing: -.045em !important;
+    font-weight: 900 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.up,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.down {
+    font-size: clamp(11px, 3.1vw, 13px) !important;
+    line-height: 1.05 !important;
+    font-weight: 800 !important;
+    margin-top: 2px !important;
+    letter-spacing: -.018em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    max-width: 100% !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.up,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.down {
+    font-size: clamp(14px, 3.8vw, 16px) !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    min-height: 28px !important;
+    padding: 5px 9px !important;
+  }
+}
+
+
+/* Morning Mug mobile cleanup + earnings calendar */
+.morning-headliner-chip {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.18);
+}
+.morning-headliner-chip span {
+  color: var(--soft);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.morning-headliner-chip b {
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+.morning-brew-page .morning-mugs-earnings-calendar {
+  grid-column: 1 / -1;
+}
+@media (max-width: 760px) {
+  .morning-brew-title-clean h2,
+  .morning-brew-title-wrap h2 {
+    font-size: clamp(25px, 8.3vw, 34px) !important;
+    line-height: .92 !important;
+    letter-spacing: -1.7px !important;
+    white-space: nowrap !important;
+  }
+  .morning-brew-title-clean,
+  .morning-brew-title-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+  .morning-brew-giant-cup {
+    font-size: 34px !important;
+    line-height: 1 !important;
+    flex: 0 0 auto !important;
+  }
+  .morning-headliner-chip {
+    padding: 10px 11px !important;
+    border-radius: 15px !important;
+  }
+  .morning-headliner-chip b {
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .morning-brew-page .morning-mugs-earnings-calendar {
+    margin-top: 0 !important;
+  }
+}
