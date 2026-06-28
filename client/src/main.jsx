@@ -200,7 +200,7 @@ const LANDING_LOGO_COLOR_STORAGE_KEY = "eval-landing-logo-color-v1";
 const DASHBOARD_START_OPTIONS = [
   { key: "dashboard", label: "Dashboard" },
   { key: "portfolio", label: "Portfolio" },
-  { key: "morningBrew", label: "Morning Mug" },
+  { key: "morningBrew", label: "The Morning Mug" },
   { key: "watchlist", label: "Watchlist" },
 ];
 
@@ -214,7 +214,7 @@ const MOBILE_NAV_SHORTCUT_OPTIONS = [
   { key: "search", label: "Search" },
   { key: "assistant", label: "Eval AI" },
   { key: "portfolio", label: "Portfolio" },
-  { key: "morningBrew", label: "Morning Mug" },
+  { key: "morningBrew", label: "The Morning Mug" },
   { key: "tickerLookup", label: "Ticker Lookup" },
 ];
 
@@ -1796,14 +1796,14 @@ function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack }) {
   const primaryTabs = [
     { label: "Dashboard", view: "dashboard" },
     { label: "Portfolio", view: "portfolio" },
-    { label: "Morning Mug", view: "morningBrew" },
+    { label: "The Morning Mug", view: "morningBrew" },
     { label: "Watchlist", view: "watchlist" },
     { label: "Ticker Lookup", view: "tickerLookup" },
-    { label: "Eval AI Assistant", view: "assistant" },
+    { label: "Eval AI", view: "assistant" },
   ];
 
   const otherTabs = [
-    { label: syncStatus === "syncing" ? "Syncing Account..." : syncStatus === "synced" ? "Synced Account" : "Sync Account", action: onSync },
+    { label: syncStatus === "syncing" ? "Syncing Account..." : syncStatus === "synced" ? "✓ Synced Account" : "Sync Account", action: onSync, synced: syncStatus === "synced" },
     { label: "Settings", view: "settings" },
     { label: "Homepage", view: "landing" },
     { label: "FAQs", view: "faqs" },
@@ -1844,7 +1844,7 @@ function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack }) {
           <h3>Other</h3>
           <div className="mobile-menu-link-grid other-open">
             {otherTabs.map((item) => (
-              <button key={item.label} type="button" className="mobile-menu-text-link" onClick={() => go(item)} disabled={item.action && syncStatus === "syncing"}>
+              <button key={item.label} type="button" className={`mobile-menu-text-link ${item.synced ? "synced" : ""}`} onClick={() => go(item)} disabled={item.action && syncStatus === "syncing"}>
                 {item.label}
               </button>
             ))}
