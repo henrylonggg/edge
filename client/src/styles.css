@@ -38675,3 +38675,61 @@ body:has(.morning-brew-page-shell) {
     left: calc(50% + 91px) !important;
   }
 }
+
+/* Forced portfolio hero stat sizing: total holdings must visually match the count bubble. */
+.portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-total-value-line strong,
+.portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide strong {
+  font-size: clamp(52px, 4.2vw, 76px) !important;
+  line-height: .9 !important;
+  letter-spacing: -.065em !important;
+  font-weight: 900 !important;
+  transform: none !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change,
+.portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.up,
+.portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.down {
+  font-size: clamp(18px, 1.6vw, 28px) !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  margin-top: 6px !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill,
+.portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.up,
+.portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.down {
+  font-size: clamp(17px, 1.45vw, 24px) !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  padding: 8px 15px !important;
+  min-height: 36px !important;
+}
+
+@media (max-width: 680px) {
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-total-value-line strong,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide strong {
+    font-size: 52px !important;
+    line-height: .88 !important;
+    letter-spacing: -.07em !important;
+    font-weight: 900 !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.up,
+  body .portfolio-dashboard-v3 .portfolio-total-value-card-v3.portfolio-total-value-card-wide .portfolio-value-change.down {
+    font-size: 21px !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    margin-top: 5px !important;
+  }
+
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.up,
+  body .portfolio-dashboard-v3 .portfolio-score-card-v3 .portfolio-score-change-pill.down {
+    font-size: 18px !important;
+    line-height: 1.05 !important;
+    font-weight: 900 !important;
+    min-height: 34px !important;
+    padding: 7px 13px !important;
+  }
+}
