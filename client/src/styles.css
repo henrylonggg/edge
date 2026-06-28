@@ -38857,3 +38857,407 @@ body:has(.morning-brew-page-shell) {
     margin-top: 0 !important;
   }
 }
+
+/* === Patch: Morning Mug icon, mobile dropdown front layer, watchlist shortcut, mobile homepage upgrade === */
+.morning-brew-title-clean {
+  align-items: center !important;
+}
+
+.morning-brew-title-mug-icon {
+  width: clamp(34px, 5vw, 58px) !important;
+  height: clamp(34px, 5vw, 58px) !important;
+  color: #ffffff !important;
+  stroke-width: 3 !important;
+  flex: 0 0 auto !important;
+  filter: drop-shadow(0 0 14px rgba(255,255,255,.24)) drop-shadow(0 0 22px rgba(159,92,255,.22)) !important;
+}
+
+.morning-brew-giant-cup,
+.morning-brew-title-clean .morning-brew-giant-cup {
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.searchbar-watchlist-add-btn {
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 56px !important;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 0 18px rgba(159,92,255,.18) !important;
+}
+
+.searchbar-watchlist-add-btn svg {
+  color: #ffffff !important;
+  fill: transparent !important;
+  stroke-width: 2.8 !important;
+}
+
+.searchbar-watchlist-add-btn:hover {
+  background: rgba(159,92,255,.22) !important;
+  border-color: rgba(159,92,255,.45) !important;
+}
+
+/* Force mobile dropdown above every card/nav/graphic. */
+@media (max-width: 760px) {
+  .dropdown-click-away {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483600 !important;
+    pointer-events: auto !important;
+  }
+
+  .dashboard-dropdown-menu,
+  .dashboard-dropdown-mobile,
+  .eval-select-menu,
+  .menu-wrap .dashboard-dropdown-menu,
+  .searchbar .dashboard-dropdown-menu {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 74px) !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 118px - env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 2147483647 !important;
+    isolation: isolate !important;
+    transform: none !important;
+    clip-path: none !important;
+    contain: none !important;
+  }
+
+  .dashboard-dropdown-menu button,
+  .dashboard-dropdown-mobile button {
+    position: relative !important;
+    z-index: 2147483647 !important;
+  }
+
+  .searchbar-watchlist-add-btn {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    border-radius: 14px !important;
+  }
+
+  .morning-brew-page-shell {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .morning-brew-hero-clean {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 8px !important;
+    align-items: center !important;
+    padding: 12px !important;
+  }
+
+  .morning-brew-title-clean {
+    gap: 7px !important;
+    min-width: 0 !important;
+  }
+
+  .morning-brew-title-clean h2,
+  .morning-brew-title-clean h2 strong {
+    font-size: clamp(24px, 7vw, 32px) !important;
+    letter-spacing: -1.5px !important;
+    white-space: nowrap !important;
+    line-height: .95 !important;
+  }
+
+  .morning-brew-title-mug-icon {
+    width: clamp(24px, 7vw, 32px) !important;
+    height: clamp(24px, 7vw, 32px) !important;
+  }
+
+  .morning-brew-actions-clean {
+    gap: 6px !important;
+  }
+
+  .morning-brew-actions-clean .back-btn,
+  .morning-brew-refresh {
+    min-height: 38px !important;
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    border-radius: 13px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Mobile homepage: premium app-store style, one browser scrollbar only. */
+.mobile-homepage-feature-strip {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  html,
+  body,
+  #root {
+    overflow-x: hidden !important;
+  }
+
+  .landing-page-clean,
+  .landing-page-static,
+  .landing-shell,
+  .landing-shell-static {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  .landing-page-clean {
+    padding: 10px 10px calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    background:
+      radial-gradient(circle at 12% 7%, rgba(159,92,255,.45), transparent 24%),
+      radial-gradient(circle at 86% 8%, rgba(21,231,255,.28), transparent 27%),
+      radial-gradient(circle at 48% 35%, rgba(133,215,19,.13), transparent 34%),
+      linear-gradient(160deg, #02050d 0%, #07021a 44%, #020711 100%) !important;
+  }
+
+  .landing-shell-static {
+    width: 100% !important;
+    padding: 0 !important;
+    display: grid !important;
+    gap: 14px !important;
+  }
+
+  .landing-brand-row-static {
+    position: sticky !important;
+    top: 8px !important;
+    z-index: 20 !important;
+    padding: 10px !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 22px !important;
+    background: rgba(2,7,17,.72) !important;
+    backdrop-filter: blur(22px) !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,.34) !important;
+  }
+
+  .landing-brand-home {
+    gap: 8px !important;
+  }
+
+  .landing-brand-home img {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .landing-brand-home h1 {
+    font-size: 34px !important;
+    letter-spacing: -1.5px !important;
+  }
+
+  .landing-continue-top {
+    min-height: 42px !important;
+    padding: 10px 12px !important;
+    border-radius: 16px !important;
+    font-size: 12px !important;
+  }
+
+  .landing-hero-static {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 16px !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(255,255,255,.14) !important;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.045)),
+      radial-gradient(circle at 15% 8%, rgba(159,92,255,.30), transparent 34%),
+      radial-gradient(circle at 85% 18%, rgba(21,231,255,.18), transparent 32%) !important;
+    box-shadow: 0 22px 70px rgba(0,0,0,.40) !important;
+    overflow: hidden !important;
+  }
+
+  .landing-kicker-static {
+    width: fit-content !important;
+    padding: 8px 10px !important;
+    border: 1px solid rgba(159,92,255,.28) !important;
+    border-radius: 999px !important;
+    background: rgba(159,92,255,.12) !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .landing-copy-static h2 {
+    font-size: clamp(34px, 11vw, 52px) !important;
+    line-height: .88 !important;
+    letter-spacing: -2.7px !important;
+    margin: 12px 0 10px !important;
+    background: linear-gradient(120deg, #ffffff 0%, #d8c7ff 44%, #8ef6ff 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+  }
+
+  .landing-copy-static p {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    color: rgba(248,251,255,.78) !important;
+    margin-bottom: 12px !important;
+  }
+
+  .landing-action-row-static-copy-only {
+    display: none !important;
+  }
+
+  .mobile-homepage-feature-strip {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  .mobile-homepage-feature-strip div {
+    display: grid !important;
+    gap: 3px !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    background: rgba(0,0,0,.22) !important;
+    border: 1px solid rgba(255,255,255,.11) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+  }
+
+  .mobile-homepage-feature-strip b {
+    font-size: 13px !important;
+    color: #ffffff !important;
+  }
+
+  .mobile-homepage-feature-strip span {
+    font-size: 11px !important;
+    color: rgba(248,251,255,.62) !important;
+  }
+
+  .landing-preview-static {
+    padding: 14px !important;
+    border-radius: 24px !important;
+    min-height: 0 !important;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(133,215,19,.15), transparent 36%),
+      rgba(0,0,0,.24) !important;
+  }
+
+  .landing-preview-static .preview-score-ring,
+  .preview-score-ring {
+    width: 150px !important;
+    height: 150px !important;
+    margin: 10px auto !important;
+  }
+
+  .preview-mini-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .preview-mini-grid div {
+    padding: 9px 6px !important;
+    border-radius: 14px !important;
+  }
+
+  .preview-mini-grid span {
+    font-size: 9px !important;
+  }
+
+  .preview-mini-grid strong {
+    font-size: 17px !important;
+  }
+
+  .landing-product-breakdown,
+  .landing-workflow-static,
+  .landing-data-note {
+    padding: 15px !important;
+    border-radius: 26px !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    background: rgba(255,255,255,.065) !important;
+    backdrop-filter: blur(18px) !important;
+    overflow: visible !important;
+  }
+
+  .landing-section-head span {
+    font-size: 10px !important;
+    color: #c7a7ff !important;
+  }
+
+  .landing-section-head h2 {
+    font-size: 28px !important;
+    line-height: .95 !important;
+    letter-spacing: -1.4px !important;
+    margin: 6px 0 8px !important;
+  }
+
+  .landing-section-head p,
+  .landing-data-note p {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+  }
+
+  .landing-pillar-grid,
+  .landing-step-grid {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+    margin-top: 12px !important;
+  }
+
+  .landing-pillar-card,
+  .landing-step-card {
+    padding: 13px !important;
+    border-radius: 20px !important;
+    background:
+      linear-gradient(145deg, rgba(159,92,255,.12), rgba(255,255,255,.045)) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+  }
+
+  .landing-pillar-icon {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 13px !important;
+    background: rgba(159,92,255,.16) !important;
+  }
+
+  .landing-pillar-card h3,
+  .landing-step-card h3 {
+    font-size: 15px !important;
+    margin: 8px 0 5px !important;
+  }
+
+  .landing-pillar-card p,
+  .landing-step-card p {
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
+  }
+
+  .landing-step-card b {
+    font-size: 18px !important;
+    color: rgba(159,92,255,.95) !important;
+  }
+
+  .landing-data-note {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .landing-data-note h2 {
+    font-size: 27px !important;
+    line-height: .95 !important;
+  }
+
+  .landing-continue-btn.secondary {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 48px !important;
+    border-radius: 18px !important;
+  }
+
+  .landing-footnote {
+    font-size: 10px !important;
+    padding: 0 6px 4px !important;
+    color: rgba(248,251,255,.48) !important;
+  }
+}
