@@ -1635,6 +1635,16 @@ function App() {
 
               <button
                 type="button"
+                className="searchbar-desktop-add-btn"
+                aria-label="Add ticker"
+                title="Add ticker"
+                onClick={() => addTicker(symbol)}
+              >
+                <Plus size={18} />
+              </button>
+
+              <button
+                type="button"
                 className="searchbar-watchlist-add-btn mobile-search-watchlist-btn"
                 aria-label="Open Watchlist"
                 title="Watchlist"
