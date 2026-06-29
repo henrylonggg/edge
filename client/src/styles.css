@@ -41069,3 +41069,72 @@ body {
     gap: 8px !important;
   }
 }
+
+/* =========================================================
+   DESKTOP DASHBOARD SEARCH ROW FINAL ALIGNMENT
+   Desktop only: Add ticker input | Search | + Add.
+   Mobile rules remain unchanged.
+========================================================= */
+@media (min-width: 761px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu {
+    display: grid !important;
+    grid-template-columns: minmax(520px, 1fr) 56px 56px !important;
+    grid-template-areas: "input search add" !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    width: min(760px, 100%) !important;
+    max-width: 760px !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu .ticker-field {
+    grid-area: input !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    order: 0 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu .eval-clean-ticker-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu > button[aria-label="Search stock"] {
+    grid-area: search !important;
+    order: 1 !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    height: 56px !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu .searchbar-desktop-add-btn {
+    grid-area: add !important;
+    order: 2 !important;
+    width: 56px !important;
+    min-width: 56px !important;
+    height: 56px !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu .mobile-search-watchlist-btn {
+    display: none !important;
+  }
+
+  .hero-card .hero-add-corner-btn,
+  .eval-clean-hero .hero-add-corner-btn,
+  .eval-stack-report .hero-add-corner-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .searchbar.compact-searchbar.score-searchbar.eval-menu-searchbar.dashboard-searchbar-no-menu .searchbar-desktop-add-btn {
+    display: none !important;
+  }
+}
