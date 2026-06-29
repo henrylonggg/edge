@@ -979,6 +979,16 @@ function App() {
     navigateView(nextView);
   }
 
+  const resolvedAppHomeView = DASHBOARD_START_OPTIONS.some((option) => option.key === preferredDashboardStart)
+    ? preferredDashboardStart
+    : "dashboard";
+  const resolvedAppHomeLabel = DASHBOARD_START_OPTIONS.find((option) => option.key === resolvedAppHomeView)?.label || "Dashboard";
+  const backHomeText = `Back to ${resolvedAppHomeLabel}`;
+
+  function goAppHome() {
+    navigateView(resolvedAppHomeView);
+  }
+
   async function analyze(e, overrideSymbol, options = {}) {
     e?.preventDefault();
 
@@ -1358,7 +1368,8 @@ function App() {
     return (
       <TermsPage
         onAgree={acceptTerms}
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         requireAgreement={!termsAccepted}
       />
     );
@@ -1367,7 +1378,8 @@ function App() {
   if (view === "support") {
     return (
       <SupportContactPage
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         onHome={() => navigateView("landing")}
         onTerms={() => navigateView("terms")}
       />
@@ -1382,7 +1394,8 @@ function App() {
           syncStatus={syncStatus}
           onSync={handleSyncAccountData}
           onNavigate={navigateView}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
@@ -1411,7 +1424,8 @@ function App() {
           loading={tickerLookupLoading}
           error={tickerLookupError}
           onQueryChange={setTickerLookupQuery}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
@@ -1433,7 +1447,8 @@ function App() {
   if (view === "faqs") {
     return (
       <FaqPage
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         onHome={() => navigateView("landing")}
         onTerms={() => navigateView("terms")}
         onSupport={() => navigateView("support")}
@@ -1462,7 +1477,8 @@ function App() {
           onMobileNavArrowColorChange={updateMobileNavArrowColor}
           onMobileHomeTargetChange={updateMobileHomeTarget}
           onLandingLogoColorChange={updateLandingLogoColor}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
@@ -1484,7 +1500,7 @@ function App() {
   if (view === "morningBrew") {
     return (
       <>
-        <MorningMugsDashboard onBack={() => navigateView("dashboard")} />
+        <MorningMugsDashboard onBack={goAppHome} backLabel={backHomeText} />
         <MobileBottomNav
           homeView={mobileHomeTarget}
           homeButtonColor={landingLogoColor}
@@ -1543,21 +1559,23 @@ function App() {
       )}
 
       {view === "portfolio" ? (
-        <PortfolioPage onBack={() => navigateView("dashboard")} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <PortfolioPage onBack={goAppHome} backLabel={backHomeText} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
           watchlist={watchlist}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
       ) : view === "plans" ? (
-        <PlansPage onBack={() => navigateView("dashboard")} />
+        <PlansPage onBack={goAppHome} backLabel={backHomeText} />
       ) : view === "sector" ? (
         <IndustryPage
           sectorPage={sectorPage}
           loading={sectorLoading}
           error={sectorError}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
           onAnalyze={analyzeFromIndustry}
         />
       ) : view === "compareSelect" ? (
@@ -1568,7 +1586,8 @@ function App() {
           loading={compareLoading}
           onToggle={toggleCompareSelection}
           onSave={() => loadSelectedComparison(compareSelected)}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
       ) : view === "compare" ? (
         <ComparePage
@@ -1578,8 +1597,8 @@ function App() {
         />
       ) : view === "watchlist" ? (
         <main className="watchlist-page mobile-watchlist-clean">
-          <button type="button" className="back-btn watchlist-page-back" onClick={() => navigateView("dashboard")}>
-            <ArrowLeft size={18} /> Back to dashboard
+          <button type="button" className="back-btn watchlist-page-back" onClick={goAppHome}>
+            <ArrowLeft size={18} /> {backHomeText}
           </button>
 
           <Watchlist
@@ -1792,7 +1811,7 @@ function App() {
 }
 
 
-function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack }) {
+function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack, backLabel = "Back" }) {
   const primaryTabs = [
     { label: "Dashboard", view: "dashboard" },
     { label: "Portfolio", view: "portfolio" },
@@ -1823,7 +1842,7 @@ function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack }) {
     <main className="app-shell mobile-menu-page-shell">
       <section className="mobile-menu-page-card">
         <div className="mobile-menu-page-head">
-          <button type="button" className="mobile-menu-page-back" onClick={onBack} aria-label="Back to dashboard">
+          <button type="button" className="mobile-menu-page-back" onClick={onBack} aria-label={backLabel}>
             <ArrowLeft size={16} />
           </button>
           <div>
@@ -1874,13 +1893,14 @@ function SettingsPage({
   onMobileHomeTargetChange,
   onLandingLogoColorChange,
   onBack,
+  backLabel = "Back",
 }) {
   return (
     <main className="app-shell settings-page-shell">
       <section className="settings-page-card">
         <div className="settings-page-head">
-          <button type="button" className="back-btn settings-back-btn" onClick={onBack} aria-label="Back to dashboard">
-            <ArrowLeft size={18} /> Back
+          <button type="button" className="back-btn settings-back-btn" onClick={onBack} aria-label={backLabel}>
+            <ArrowLeft size={18} /> {backLabel}
           </button>
           <div>
             <span className="section-title"><Gauge size={17}/> Settings</span>
@@ -2196,6 +2216,7 @@ function CompareSelectPage({
   onToggle,
   onSave,
   onBack,
+  backLabel = "Back to dashboard",
 }) {
   const activeStocks = [...watchlist].sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -2203,7 +2224,7 @@ function CompareSelectPage({
     <section className="compare-page compare-select-page">
       <div className="compare-page-shell">
         <button type="button" className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Back to dashboard
+          <ArrowLeft size={18} /> {backLabel}
         </button>
 
         <div className="compare-page-head">
@@ -2275,6 +2296,7 @@ function ComparePage({
   data,
   error,
   onBack,
+  backLabel = "Back",
 }) {
   const categories = [
     "growth",
@@ -2561,7 +2583,7 @@ function IndustryRadar({ leaders }) {
   );
 }
 
-function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
+function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze, backLabel = "Back to dashboard" }) {
   const sector = sectorPage?.sector || "Industry";
   const leaders = Array.isArray(sectorPage?.leaders) ? sectorPage.leaders : [];
 
@@ -2570,7 +2592,7 @@ function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
       <div className="sector-page-shell">
         <div className="sector-page-head">
           <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={17} /> Dashboard
+            <ArrowLeft size={17} /> {backLabel}
           </button>
 
           <div>
@@ -3473,7 +3495,7 @@ function PortfolioEarningsCalendar({
   );
 }
 
-function MorningMugsDashboard({ onBack }) {
+function MorningMugsDashboard({ onBack, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const [brew, setBrew] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3547,7 +3569,7 @@ function MorningMugsDashboard({ onBack }) {
           </div>
           <div className="morning-brew-back-row">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
-              <ArrowLeft size={18} /> Back to dashboard
+              <ArrowLeft size={18} /> {backLabel}
             </button>
           </div>
         </div>
@@ -3715,7 +3737,7 @@ function currentHoldingPriceValue(holding) {
 
 
 
-function PortfolioPage({ onBack, onAnalyze, onMorning }) {
+function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const firstName =
     user?.firstName ||
@@ -4753,7 +4775,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
       <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
-        <button type="button" className="back-btn portfolio-back-icon-only" onClick={onBack} aria-label="Back to dashboard"><ArrowLeft size={18}/></button>
+        <button type="button" className="back-btn portfolio-back-icon-only" onClick={onBack} aria-label={backLabel}><ArrowLeft size={18}/></button>
         <div className="portfolio-title-mainline portfolio-title-mainline-clean">
           <div>
             <h2>{portfolioTitle}</h2>
@@ -5467,14 +5489,14 @@ function ClerkAccessPage({ onBack, onSuccess }) {
 }
 
 
-function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack }) {
+function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack, backLabel = "Back to dashboard" }) {
   const cleanQuery = query.trim();
   return (
     <main className="ticker-lookup-page ticker-lookup-purple-page">
       <section className="ticker-lookup-page-shell ticker-lookup-purple-shell">
         <div className="ticker-lookup-topbar">
           <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
         </div>
 
@@ -10886,7 +10908,7 @@ function buildEvalExtraFaqs() {
   return out;
 }
 
-function FaqPage({ onBack, onHome, onTerms, onSupport }) {
+function FaqPage({ onBack, onHome, onTerms, onSupport, backLabel = "Back to dashboard" }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
@@ -10909,7 +10931,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
       <section className="faq-shell">
         <div className="faq-topbar">
           <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div className="faq-mini-nav">
@@ -10990,7 +11012,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
   );
 }
 
-function SupportContactPage({ onBack, onHome, onTerms }) {
+function SupportContactPage({ onBack, onHome, onTerms, backLabel = "Back to dashboard" }) {
   return (
     <main className="support-page">
       <div className="support-orb support-orb-one" />
@@ -10999,7 +11021,7 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
       <section className="support-shell">
         <div className="support-topbar">
           <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div className="support-mini-nav">
@@ -11073,7 +11095,7 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
   );
 }
 
-function TermsPage({ onAgree, onBack, requireAgreement = true }) {
+function TermsPage({ onAgree, onBack, backLabel = "Back to dashboard", requireAgreement = true }) {
   const [checked, setChecked] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
@@ -11306,7 +11328,7 @@ function TermsPage({ onAgree, onBack, requireAgreement = true }) {
             </div>
 
             <button type="button" className="terms-agree-btn" onClick={onBack}>
-              Back to dashboard <ArrowRight size={18} />
+              {backLabel} <ArrowRight size={18} />
             </button>
           </div>
         )}
@@ -11476,7 +11498,7 @@ function Watchlist({
   );
 }
 
-function PlansPage({ onBack }) {
+function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
   const plan = {
     name: "Eval Pro",
     price: "$9.99/mo",
@@ -11500,7 +11522,7 @@ function PlansPage({ onBack }) {
       <div className="plans-shell pro-only-shell">
         <div className="plans-page-head">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div>
@@ -11563,7 +11585,7 @@ function PlansPage({ onBack }) {
   );
 }
 
-function AssistantPage({ current, watchlist, onBack }) {
+function AssistantPage({ current, watchlist, onBack, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -11654,7 +11676,7 @@ function AssistantPage({ current, watchlist, onBack }) {
       <section className="assistant-page">
         <div className="assistant-shell assistant-lock-shell">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
           <div className="assistant-lock-card">
             <div className="assistant-kicker"><BrainCircuit size={16} /> Eval AI Assistant</div>
@@ -11682,7 +11704,7 @@ function AssistantPage({ current, watchlist, onBack }) {
       <div className="assistant-shell">
         <div className="assistant-page-head">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div>
