@@ -1618,121 +1618,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
-              <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  className={`menu-trigger ${menuOpen ? "open" : ""}`}
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Open navigation menu"
-                  title="Menu"
-                >
-                  <Menu size={22} />
-                </button>
-
-                {menuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      className="dropdown-click-away"
-                      onPointerDown={() => setMenuOpen(false)}
-                      onMouseDown={() => setMenuOpen(false)}
-                      onTouchStart={() => setMenuOpen(false)}
-                      onClick={() => setMenuOpen(false)}
-                      aria-label="Close menu"
-                    />
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
-                        Ticker Lookup
-                      </button>
-                      <div className="dropdown-divider" />
-
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={`eval-sync-menu-tab ${syncStatus}`}
-                              onClick={handleSyncAccountData}
-                              disabled={syncStatus === "syncing"}
-                            >
-                              {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
-                            </button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
-                        Ticker Lookup
-                      </button>
-                      <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
-                        Watchlist
-                      </button>
-
-                      <div className="dropdown-divider" />
-
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={`eval-sync-menu-tab ${syncStatus}`}
-                              onClick={handleSyncAccountData}
-                              disabled={syncStatus === "syncing"}
-                            >
-                              {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
-                            </button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar dashboard-searchbar-no-menu">
               <div className="ticker-field eval-safe-ticker-field">
                 <input
                   className="eval-clean-ticker-input"
@@ -1745,16 +1631,6 @@ function App() {
 
               <button disabled={loading} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
-              </button>
-
-              <button
-                type="button"
-                className="searchbar-morning-mug-btn desktop-search-mug-btn"
-                aria-label="Open Morning Mug"
-                title="Morning Mug"
-                onClick={() => navigateView("morningBrew")}
-              >
-                <Coffee size={18} />
               </button>
 
               <button
