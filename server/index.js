@@ -1508,7 +1508,7 @@ function enhancedAssistantContextAnswer(question = "", ctx = {}) {
   if (token && (watch || holding || token === currentSymbol)) {
     if (holding) return `${token}: Eval ${round1(holding.edgeScore ?? holding.score)}, weight ${round1(holding.weightPercent ?? holding.weight)}%, industry ${holding.industry || "N/A"}.`;
     if (watch) return `${token}: saved in watchlist with Eval ${round1(watch.edgeScore ?? watch.score)}.`;
-    if (token === currentSymbol) return `${token}: loaded report Eval ${round1(current?.grades?.edgeScore)}, price ${current?.quote?.c ?? "N/A"}.`;
+    if (token === currentSymbol) return `${token}: loaded report Eval ${round1(current?.grades?.edgeScore)}.`;
   }
 
   return null;
@@ -2093,21 +2093,6 @@ function historicalSeriesTtlMs(interval = "1day") {
 async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 180 } = {}) {
   // Historical chart calls are disabled to protect Twelve Data credits.
   return [];
-} = {}) {
-  const cleanSymbol = cleanTicker(symbol);
-  if (!cleanSymbol) return [];
-  const key = historicalCacheKey(cleanSymbol, interval, outputsize);
-  const cached = historicalPriceCache.get(key);
-  if (cached?.rows?.length && (!cached.expiresAt || cached.expiresAt > Date.now())) return cached.rows;
-  if (cached) historicalPriceCache.delete(key);
-
-  const data = await fetchTwelveDataJson("/time_series", { symbol: cleanSymbol, interval, outputsize, order: "ASC" }, 6000);
-  const rows = normalizeTwelveSeriesRows(data);
-  if (rows.length) {
-    historicalPriceCache.set(key, { savedAt: Date.now(), expiresAt: Date.now() + historicalSeriesTtlMs(interval), rows });
-    if (historicalPriceCache.size > HISTORICAL_PRICE_CACHE_MAX) historicalPriceCache.delete(historicalPriceCache.keys().next().value);
-  }
-  return rows;
 }
 
 function dcfScenarioFromReport(report, scenario = "average") {
@@ -2148,15 +2133,30 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
 
   try {
     const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
-    const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
+    let logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
+
+    // Fallback: if Twelve Data has no direct logo for an ADR/smaller name, use the
+    // company website domain from /profile and fetch Clearbit's public logo image.
+    // This costs at most one extra profile call only when the direct logo is empty.
+    if (!/^https?:\/\//i.test(logoUrl)) {
+      const profile = await fetchTwelveDataJson("/profile", { symbol }, 4000);
+      const website = String(profile?.website || profile?.weburl || profile?.url || "").trim();
+      if (/^https?:\/\//i.test(website)) {
+        const host = new URL(website).hostname.replace(/^www\./i, "");
+        if (host) logoUrl = `https://logo.clearbit.com/${host}`;
+      }
+    }
+
     if (/^https?:\/\//i.test(logoUrl)) {
       const imageResponse = await fetch(logoUrl, { headers: { "User-Agent": "Eval/1.0" } });
       if (imageResponse.ok) {
         const contentType = imageResponse.headers.get("content-type") || "image/png";
-        const arrayBuffer = await imageResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
-        return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
+        if (/^image\//i.test(contentType)) {
+          const arrayBuffer = await imageResponse.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
+          return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
+        }
       }
     }
   } catch {}
