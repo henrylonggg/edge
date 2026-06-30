@@ -15,6 +15,53 @@ const CATEGORY_LABELS = {
 };
 
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
+const DAY_MS_SCORE = 24 * 60 * 60 * 1000;
+const twelveProviderCache = new Map();
+const TWELVE_PROVIDER_CACHE_MAX = 900;
+
+function stableTwelveCacheKey(endpoint, params = {}) {
+  const entries = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([a], [b]) => a.localeCompare(b));
+  return `${endpoint}:${JSON.stringify(entries)}`;
+}
+
+function isPostMarketCloseEtScore() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
+  const weekday = parts.find((part) => part.type === "weekday")?.value || "";
+  const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
+  return !["Sat", "Sun"].includes(weekday) && (hour > 16 || (hour === 16 && minute >= 0));
+}
+
+function twelveProviderTtlMs(endpoint, params = {}) {
+  const interval = String(params?.interval || "").toLowerCase();
+  if (endpoint === "/quote" || endpoint === "/price") return 10 * 1000;
+  if (endpoint === "/profile" || endpoint === "/logo") return 30 * DAY_MS_SCORE;
+  if (["/income_statement", "/balance_sheet", "/cash_flow", "/earnings"].includes(endpoint)) return 14 * DAY_MS_SCORE;
+  if (endpoint === "/statistics") return 24 * 60 * 60 * 1000;
+  if (endpoint === "/time_series") {
+    if (interval.includes("min")) return 60 * 1000;
+    if (isPostMarketCloseEtScore()) return 18 * 60 * 60 * 1000;
+    return 15 * 60 * 1000;
+  }
+  return 60 * 1000;
+}
+
+function readTwelveProviderCache(endpoint, params = {}) {
+  const key = stableTwelveCacheKey(endpoint, params);
+  const cached = twelveProviderCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  if (cached) twelveProviderCache.delete(key);
+  return undefined;
+}
+
+function writeTwelveProviderCache(endpoint, params = {}, data) {
+  if (!data) return;
+  const key = stableTwelveCacheKey(endpoint, params);
+  twelveProviderCache.set(key, { savedAt: Date.now(), expiresAt: Date.now() + twelveProviderTtlMs(endpoint, params), data });
+  if (twelveProviderCache.size > TWELVE_PROVIDER_CACHE_MAX) twelveProviderCache.delete(twelveProviderCache.keys().next().value);
+}
 
 function safeNumber(value) {
   const number = Number(value);
@@ -92,6 +139,9 @@ async function fetchTwelveDataOptional(endpoint, params = {}) {
   const apiKey = twelveDataApiKey();
   if (!apiKey) return null;
 
+  const cached = readTwelveProviderCache(endpoint, params);
+  if (cached !== undefined) return cached;
+
   const url = new URL(`${TWELVE_DATA_BASE_URL}${endpoint}`);
   Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
@@ -104,6 +154,7 @@ async function fetchTwelveDataOptional(endpoint, params = {}) {
     if (data?.message) console.warn("Twelve Data returned message:", data.message);
     return null;
   }
+  writeTwelveProviderCache(endpoint, params, data);
   return data;
 }
 
@@ -1669,7 +1720,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     finnhubIndustry: twelveProfile?.finnhubIndustry || cachedProfile?.finnhubIndustry || "Public company",
     marketCapitalization: firstNumber(twelveProfile?.marketCapitalization, twelveFundamentals?.metrics?.marketCapM, cachedProfile?.marketCapitalization),
     weburl: twelveProfile?.weburl || cachedProfile?.weburl || "",
-    logo: twelveProfile?.logo || cachedProfile?.logo || `https://api.twelvedata.com/logo?symbol=${encodeURIComponent(cleanSymbol)}&apikey=${process.env.TWELVE_DATA_API_KEY}`,
+    logo: twelveProfile?.logo || cachedProfile?.logo || `/api/company-logo/${encodeURIComponent(cleanSymbol)}`,
   };
 
   const quote = bestQuote({ cachedQuote: {}, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
