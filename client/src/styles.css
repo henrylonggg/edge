@@ -41138,3 +41138,63 @@ body {
     display: none !important;
   }
 }
+
+/* Twelve Data stock chart + DCF */
+.eval-stock-chart-shell,
+.eval-dcf-shell {
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(9,12,28,.92), rgba(18,11,34,.80));
+  box-shadow: 0 24px 70px rgba(0,0,0,.34), 0 0 42px rgba(159,92,255,.12);
+  padding: 22px;
+  overflow: hidden;
+}
+.eval-stock-chart-top { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 14px; }
+.eval-stock-company-lockup { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.eval-stock-logo { width: 54px; height: 54px; border-radius: 16px; object-fit: contain; background: rgba(255,255,255,.92); padding: 6px; box-shadow: 0 0 24px rgba(159,92,255,.24); }
+.eval-stock-logo.placeholder { display: grid; place-items: center; color: white; background: rgba(159,92,255,.2); font-size: 24px; font-weight: 900; }
+.eval-stock-company-lockup h3 { margin: 0; font-size: clamp(24px, 3vw, 42px); line-height: .95; letter-spacing: -1.5px; }
+.eval-stock-company-lockup span { display: block; color: var(--muted); font-size: 13px; font-weight: 800; margin-top: 5px; letter-spacing: .15em; }
+.eval-live-price-panel { text-align: right; }
+.eval-live-price-panel strong { display: block; font-size: clamp(24px, 3.4vw, 42px); line-height: 1; color: #fff; }
+.eval-live-change { display: inline-flex; margin-top: 6px; font-weight: 900; font-size: 13px; }
+.eval-live-change.up { color: var(--green); }
+.eval-live-change.down { color: var(--red); }
+.eval-live-change.neutral { color: var(--muted); }
+.eval-stock-chart-svg { width: 100%; height: auto; min-height: 190px; display: block; border-radius: 24px; background: radial-gradient(circle at 20% 10%, rgba(159,92,255,.22), transparent 34%), rgba(0,0,0,.18); }
+.eval-chart-gridline { stroke: rgba(255,255,255,.075); stroke-width: 1; }
+.eval-chart-area { fill: url(#evalChartFill); opacity: .86; }
+.eval-chart-line { fill: none; stroke: #ffffff; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.eval-chart-projection { stroke-width: 2.4; stroke-dasharray: 8 8; opacity: .9; }
+.eval-chart-projection.high { stroke: var(--green); }
+.eval-chart-projection.average { stroke: var(--yellow); }
+.eval-chart-projection.low { stroke: var(--red); }
+.eval-chart-timeframe-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+.eval-chart-timeframe-row button,
+.eval-dcf-scenarios button,
+.eval-dcf-toggle { border: 1px solid rgba(255,255,255,.13); color: #fff; background: rgba(255,255,255,.08); border-radius: 999px; font-weight: 900; padding: 9px 13px; }
+.eval-chart-timeframe-row button.active,
+.eval-dcf-scenarios button.active { background: linear-gradient(135deg, rgba(159,92,255,.78), rgba(21,231,255,.38)); box-shadow: 0 0 22px rgba(159,92,255,.32); }
+.eval-chart-cache-note { margin: 12px 0 0; text-align: center; color: var(--soft); font-size: 12px; }
+.eval-stock-chart-empty { padding: 30px; color: var(--muted); text-align: center; }
+.eval-dcf-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 20px; padding: 15px; }
+.eval-dcf-page { margin-top: 14px; display: grid; gap: 16px; }
+.eval-dcf-head { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+.eval-dcf-head span { color: var(--soft); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.eval-dcf-head h3 { margin: 4px 0 0; font-size: clamp(22px, 3vw, 38px); }
+.eval-dcf-scenarios { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.eval-dcf-result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.eval-dcf-result-grid div { border: 1px solid rgba(255,255,255,.1); border-radius: 18px; background: rgba(255,255,255,.06); padding: 14px; }
+.eval-dcf-result-grid span { display: block; color: var(--soft); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.eval-dcf-result-grid strong { display: block; margin-top: 6px; font-size: 22px; }
+@media (max-width: 760px) {
+  .eval-stock-chart-shell, .eval-dcf-shell { padding: 14px; border-radius: 22px; }
+  .eval-stock-chart-top { align-items: flex-start; gap: 10px; }
+  .eval-stock-logo { width: 42px; height: 42px; border-radius: 13px; }
+  .eval-live-price-panel strong { font-size: 22px; }
+  .eval-live-change { font-size: 11px; }
+  .eval-stock-chart-svg { min-height: 160px; }
+  .eval-dcf-head { display: grid; gap: 10px; }
+  .eval-dcf-scenarios { justify-content: start; }
+  .eval-dcf-result-grid { grid-template-columns: 1fr; }
+}
