@@ -1911,7 +1911,7 @@ app.get("/", (req, res) => {
     routes: ["/api/health", "/api/ticker-lookup", "/api/ticker-answer", "/api/analyze/:symbol", "/api/score-breakdown/:symbol", "/api/industry-top/:industry", "/api/portfolio", "/api/portfolio-csv", "/api/portfolio-earnings", "/api/morning-brew"],
     cacheTtlHours: 24,
     componentCachePolicy: "fundamentals 4 months, valuation 1 month, market/price 1 day, risk/news 7 days",
-    dataProviderPlan: "Massive + light FMP + Finnhub with last-valid fallback",
+    dataProviderPlan: "Twelve Data + light FMP + Finnhub/Massive fallback with last-valid fallback",
     faqCount: EVAL_FAQ_DATABASE.length,
     assistantMode: "local FAQ/CSV first, OpenAI fallback only when needed",
   });
@@ -1933,7 +1933,7 @@ app.get("/api/health", (req, res) => {
     lastValidCacheSize: lastValidAnalysisCache.size,
     tickerLookupCacheSize: CSV_TICKER_LOOKUP.length,
     tickerLookupSource: "CSV company universe",
-    fallbackPolicy: "Component-level cache plus minimized provider calls: Finnhub for current price/% change, Massive for historical market data, light FMP for fundamentals, Finnhub for profile/news/fallback metrics, embedded CSV company universe for ticker/company lookup, lastValid cache as final safety net.",
+    fallbackPolicy: "Component-level cache plus minimized provider calls: Twelve Data for current price/% change and daily historical market data, light FMP for fundamentals, Finnhub/Massive for fallback market/profile/news metrics, embedded CSV company universe for ticker/company lookup, lastValid cache as final safety net.",
     faqCount: EVAL_FAQ_DATABASE.length,
     assistantMode: "local FAQ/CSV first, OpenAI fallback only when needed",
   });
@@ -2027,6 +2027,74 @@ app.get("/api/ticker-lookup", async (req, res) => {
   }
 });
 
+
+
+const historicalPriceCache = new Map();
+const HISTORICAL_PRICE_CACHE_MAX = 500;
+
+function isPostMarketCloseEt(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(now);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = map.weekday;
+  const hour = Number(map.hour);
+  const minute = Number(map.minute);
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  return isTradingDay && (hour > 16 || (hour === 16 && minute >= 0));
+}
+
+function historicalCacheKey(symbol, interval, outputsize) {
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+  return `${cleanTicker(symbol)}:${interval}:${outputsize}:${day}`;
+}
+
+function normalizeTwelveSeriesRows(data = {}) {
+  const rows = Array.isArray(data?.values) ? data.values : [];
+  return rows.map((row) => ({
+    datetime: row.datetime || row.date || row.timestamp,
+    open: cleanTwelveNumber(row.open),
+    high: cleanTwelveNumber(row.high),
+    low: cleanTwelveNumber(row.low),
+    close: cleanTwelveNumber(row.close),
+    volume: cleanTwelveNumber(row.volume),
+  })).filter((row) => row.datetime && Number.isFinite(row.close)).reverse();
+}
+
+async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 180 } = {}) {
+  const cleanSymbol = cleanTicker(symbol);
+  if (!cleanSymbol) return [];
+  const key = historicalCacheKey(cleanSymbol, interval, outputsize);
+  const cached = historicalPriceCache.get(key);
+  if (cached?.rows?.length) return cached.rows;
+  const data = await fetchTwelveDataJson("/time_series", { symbol: cleanSymbol, interval, outputsize, order: "ASC" }, 6000);
+  const rows = normalizeTwelveSeriesRows(data);
+  if (rows.length && isPostMarketCloseEt()) {
+    historicalPriceCache.set(key, { savedAt: Date.now(), rows });
+    if (historicalPriceCache.size > HISTORICAL_PRICE_CACHE_MAX) historicalPriceCache.delete(historicalPriceCache.keys().next().value);
+  }
+  return rows;
+}
+
+function dcfScenarioFromReport(report, scenario = "average") {
+  const metrics = report?.metrics || {};
+  const quote = Number(report?.quote?.c);
+  const revenueM = Number(metrics?.revenue?.value ?? metrics?.marketCapM?.value);
+  const priceToSales = Number(metrics?.priceToSales?.value);
+  const revenueGrowth = Number(metrics?.revenueGrowth?.value);
+  const shares = Number(metrics?.sharesOutstanding?.value);
+  const multipliers = { low: 0.55, average: 1, high: 1.45 };
+  const selected = multipliers[scenario] ?? 1;
+  const baseGrowth = Number.isFinite(revenueGrowth) ? revenueGrowth / 100 : 0.06;
+  const projectedGrowth = Math.max(-0.12, Math.min(0.35, baseGrowth * selected));
+  const sixMonthGrowth = projectedGrowth / 2;
+  const ps = Number.isFinite(priceToSales) && priceToSales > 0 ? priceToSales : 4;
+  let expectedPrice = Number.isFinite(quote) && quote > 0 ? quote * (1 + sixMonthGrowth) : null;
+  if (Number.isFinite(revenueM) && revenueM > 0 && Number.isFinite(shares) && shares > 0) {
+    const projectedRevenue = revenueM * 1_000_000 * (1 + sixMonthGrowth);
+    expectedPrice = (projectedRevenue * ps) / shares;
+  }
+  return { scenario, projectedGrowthAnnual: projectedGrowth * 100, sixMonthGrowth: sixMonthGrowth * 100, expectedPrice: Number.isFinite(expectedPrice) ? Number(expectedPrice.toFixed(2)) : null };
+}
+
 app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
@@ -2039,6 +2107,57 @@ app.get("/api/analyze/:symbol", async (req, res) => {
       error: error?.message || "Could not analyze this stock.",
       route: "api/analyze",
     });
+  }
+});
+
+
+
+app.get("/api/live-quote/:symbol", async (req, res) => {
+  try {
+    const symbol = cleanTicker(req.params.symbol);
+    const quote = await fetchTwelveDataMorningQuote(symbol);
+    if (!quote) return res.status(404).json({ error: "No Twelve Data quote returned.", route: "api/live-quote" });
+    res.json({ ...quote, source: "Twelve Data", updatedAt: new Date().toISOString() });
+  } catch (error) {
+    res.status(500).json({ error: error?.message || "Could not fetch live quote.", route: "api/live-quote" });
+  }
+});
+
+app.get("/api/twelve-chart/:symbol", async (req, res) => {
+  try {
+    const symbol = cleanTicker(req.params.symbol);
+    const timeframe = String(req.query.timeframe || "6M").toUpperCase();
+    const map = { "1D": { interval: "5min", outputsize: 78 }, "5D": { interval: "30min", outputsize: 65 }, "1M": { interval: "1day", outputsize: 31 }, "6M": { interval: "1day", outputsize: 185 }, "1Y": { interval: "1day", outputsize: 260 }, "5Y": { interval: "1week", outputsize: 260 } };
+    const cfg = map[timeframe] || map["6M"];
+    const [rows, report, live] = await Promise.all([
+      fetchTwelveHistoricalSeries(symbol, cfg),
+      getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
+      fetchTwelveDataMorningQuote(symbol),
+    ]);
+    res.json({ symbol, timeframe, rows, live, profile: report?.profile || {}, source: "Twelve Data", historicalCachePolicy: "Daily historical prices cache only after 4:00 PM ET on trading days." });
+  } catch (error) {
+    res.status(500).json({ error: error?.message || "Could not load chart.", route: "api/twelve-chart" });
+  }
+});
+
+app.get("/api/dcf/:symbol", async (req, res) => {
+  try {
+    const symbol = cleanTicker(req.params.symbol);
+    const scenario = String(req.query.scenario || "average").toLowerCase();
+    const [report, rows] = await Promise.all([
+      getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
+      fetchTwelveHistoricalSeries(symbol, { interval: "1day", outputsize: 185 }),
+    ]);
+    const currentPrice = Number(report?.quote?.c);
+    const low = dcfScenarioFromReport(report, "low");
+    const average = dcfScenarioFromReport(report, "average");
+    const high = dcfScenarioFromReport(report, "high");
+    const chosen = { low, average, high }[scenario] || average;
+    const lastDate = rows[rows.length - 1]?.datetime || new Date().toISOString().slice(0, 10);
+    const projections = [low, average, high].map((item) => ({ ...item, startPrice: currentPrice, targetPrice: item.expectedPrice, startDate: lastDate, targetDate: new Date(Date.now() + 183 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) }));
+    res.json({ symbol, scenario, chosen, projections, sixMonthHistory: rows, profile: report?.profile || {}, source: "Twelve Data + Eval projection model" });
+  } catch (error) {
+    res.status(500).json({ error: error?.message || "Could not calculate DCF projection.", route: "api/dcf" });
   }
 });
 
@@ -2267,6 +2386,65 @@ async function fetchFinnhubJson(url, timeoutMs = Number(process.env.PROVIDER_TIM
   }
 }
 
+function twelveDataApiKey() {
+  return process.env.TWELVE_DATA_API_KEY || process.env.TWELVEDATA_API_KEY || "";
+}
+
+function cleanTwelveNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(String(value).replace(/[%,$]/g, "").replace(/,/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+
+async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
+  const apiKey = twelveDataApiKey();
+  if (!apiKey) return null;
+  const url = new URL(`https://api.twelvedata.com${endpoint}`);
+  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || data?.status === "error" || data?.code) return null;
+    return data;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeTwelveMorningQuote(symbol, quote = {}) {
+  const current = cleanTwelveNumber(quote?.close ?? quote?.price ?? quote?.last ?? quote?.current);
+  const previousClose = cleanTwelveNumber(quote?.previous_close ?? quote?.previousClose ?? quote?.prev_close);
+  const change = cleanTwelveNumber(quote?.change) ?? (current !== null && previousClose !== null ? current - previousClose : null);
+  const changePercent = cleanTwelveNumber(quote?.percent_change ?? quote?.change_percent ?? quote?.percentChange) ??
+    (current !== null && previousClose !== null && previousClose > 0 ? (change / previousClose) * 100 : null);
+  if (!Number.isFinite(current) || current <= 0) return null;
+  return {
+    symbol,
+    current,
+    previousClose: Number.isFinite(previousClose) ? previousClose : null,
+    change: Number.isFinite(change) ? change : null,
+    changePercent: Number.isFinite(changePercent) ? changePercent : null,
+  };
+}
+
+async function fetchTwelveDataMorningQuote(symbol) {
+  const cleanSymbol = cleanTicker(symbol);
+  if (!cleanSymbol) return null;
+  const quote = await fetchTwelveDataJson("/quote", { symbol: cleanSymbol });
+  return normalizeTwelveMorningQuote(cleanSymbol, quote || {});
+}
+
+async function fetchTwelveDataPortfolioPrice(symbol) {
+  const quote = await fetchTwelveDataMorningQuote(symbol);
+  return Number.isFinite(Number(quote?.current)) && quote.current > 0 ? quote.current : null;
+}
+
 async function fetchMorningBrewNewsRaw() {
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) return [];
@@ -2307,9 +2485,14 @@ async function getMorningBrewArticles(forceRefresh = false) {
 }
 
 async function fetchMorningQuote(symbol) {
-  const apiKey = process.env.FINNHUB_API_KEY;
   const cleanSymbol = cleanTicker(symbol);
-  if (!apiKey || !cleanSymbol) return null;
+  if (!cleanSymbol) return null;
+
+  const twelveQuote = await fetchTwelveDataMorningQuote(cleanSymbol);
+  if (twelveQuote) return twelveQuote;
+
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) return null;
   const url = new URL("https://finnhub.io/api/v1/quote");
   url.searchParams.set("symbol", cleanSymbol);
   url.searchParams.set("token", apiKey);
@@ -2817,27 +3000,11 @@ function cleanSubmittedDollars(value) {
 }
 
 async function fetchFinnhubPortfolioQuote(symbol) {
-  // No portfolio-page quote cache: each portfolio refresh fetches current quote data.
-  // Individual stock Eval Score caching remains inside buildStockAnalysis/main dashboard cache.
-  const apiKey = process.env.FINNHUB_API_KEY;
+  // Twelve Data is now the only stock price source for portfolio refreshes.
   const cleanSymbol = cleanTicker(symbol);
-  if (!apiKey || !cleanSymbol) return null;
-
-  try {
-    const url = new URL("https://finnhub.io/api/v1/quote");
-    url.searchParams.set("symbol", cleanSymbol);
-    url.searchParams.set("token", apiKey);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), Number(process.env.PROVIDER_TIMEOUT_MS || 3500));
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!response.ok) return null;
-    const quote = await response.json();
-    const current = Number(quote?.c);
-    return Number.isFinite(current) && current > 0 ? current : null;
-  } catch {
-    return null;
-  }
+  if (!cleanSymbol) return null;
+  const twelvePrice = await fetchTwelveDataPortfolioPrice(cleanSymbol);
+  return Number.isFinite(Number(twelvePrice)) && Number(twelvePrice) > 0 ? Number(twelvePrice) : null;
 }
 
 
