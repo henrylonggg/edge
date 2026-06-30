@@ -42163,3 +42163,47 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* Final chart + score + portfolio polish */
+.eval-chart-current-price-dot,
+.eval-chart-extreme circle { display: none !important; }
+.eval-chart-extreme text { fill: #fff !important; color: #fff !important; font-weight: 900; text-shadow: 0 2px 8px rgba(0,0,0,.72); }
+.eval-chart-extreme-stem { stroke: rgba(255,255,255,.38) !important; }
+.grade-card strong,
+.metric-score,
+.portfolio-detail-score-pill,
+.portfolio-weighted-metric-grid strong,
+.portfolio-weighted-metric-grid-premium article strong {
+  background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(255,255,255,.72)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  text-shadow: 0 0 12px rgba(255,255,255,.10) !important;
+}
+.grade-card strong.green,
+.metric-score.green,
+.portfolio-detail-score-pill.green { background-image: linear-gradient(135deg, #85ff47, #15e7ff) !important; }
+.grade-card strong.yellow,
+.metric-score.yellow,
+.portfolio-detail-score-pill.yellow { background-image: linear-gradient(135deg, #ffe45f, #ff9f1c) !important; }
+.grade-card strong.red,
+.metric-score.red,
+.portfolio-detail-score-pill.red { background-image: linear-gradient(135deg, #ff4f67, #ff9f1c) !important; }
+.portfolio-main-eval-score.watch-score-plain { font-size: clamp(48px, 6.8vw, 86px) !important; letter-spacing: -3.2px !important; }
+.portfolio-industry-eval-score.watch-score-plain { font-size: clamp(23px, 3vw, 36px) !important; letter-spacing: -1.4px !important; }
+.portfolio-holding-eval-score.watch-score-plain,
+.portfolio-detail-eval-score.watch-score-plain { font-size: 20px !important; letter-spacing: -.8px !important; }
+@media (max-width: 760px) {
+  .eval-chart-hero-top { align-items: start !important; }
+  .eval-stock-company-lockup { align-items: center !important; }
+  .eval-chart-hero-right { width: 100% !important; align-items: flex-start !important; justify-content: space-between !important; }
+  .eval-live-price-panel { margin-left: calc(var(--eval-stock-logo-size, 54px) + 12px); text-align: left !important; }
+  .portfolio-main-eval-score.watch-score-plain { font-size: clamp(42px, 14vw, 68px) !important; }
+  .portfolio-industry-eval-score.watch-score-plain { font-size: clamp(22px, 8vw, 32px) !important; }
+  .portfolio-holding-eval-score.watch-score-plain,
+  .portfolio-detail-eval-score.watch-score-plain { font-size: 18px !important; }
+  .portfolio-stock-detail-page #score-metrics.grade-grid-seven { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+  .portfolio-stock-detail-page .score-breakdown-dashboard-shell { margin-top: 0 !important; }
+}
