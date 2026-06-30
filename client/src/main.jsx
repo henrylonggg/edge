@@ -421,18 +421,16 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal"];
+const EVAL_CATEGORY_KEYS = ["profitability", "financialHealth", "valuation", "momentum"];
 const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
 
 function categoryLabel(key) {
   return (
     {
-      growth: "Growth",
       profitability: "Profitability",
       financialHealth: "Financial Health",
       valuation: "Valuation",
       momentum: "Momentum",
-      reversal: "Pullback",
     }[key] || key
   );
 }
@@ -2259,12 +2257,10 @@ function ComparePage({
   backLabel = "Back",
 }) {
   const categories = [
-    "growth",
     "profitability",
     "financialHealth",
     "valuation",
     "momentum",
-    "reversal",
   ];
 
   const reports = data?.reports || [];
@@ -2367,12 +2363,10 @@ function IndustryRadar({ leaders }) {
   const [hiddenSymbols, setHiddenSymbols] = useState([]);
 
   const categories = [
-    "growth",
     "profitability",
     "financialHealth",
     "valuation",
     "momentum",
-    "reversal",
   ];
 
   const categoryValues = (item) => {
@@ -2768,12 +2762,10 @@ function portfolioMetricSummary(key, value) {
 
   const strength = n >= 7.5 ? "a strong contributor" : n >= 6.5 ? "a mixed contributor" : "a weaker contributor";
   const descriptions = {
-    growth: "Shows whether the portfolio is weighted toward companies with stronger expansion profiles.",
     profitability: "Shows whether larger holdings are backed by companies that convert sales into earnings efficiently.",
     financialHealth: "Shows whether the portfolio is tilted toward stronger balance sheets and lower financial stress.",
     valuation: "Shows whether the portfolio is weighted toward holdings that look reasonably priced against fundamentals.",
     momentum: "Shows whether larger positions have stronger recent price action.",
-    reversal: "Shows whether the portfolio includes stocks with healthier pullback/reset setups.",
     newsSentiment: "Shows how current company-specific headlines affect the portfolio backdrop.",
   };
 
@@ -4333,7 +4325,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
     const key = column.key;
     if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
     if (key === "eval") return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(holding.edgeScore)}`}>{scoreText(holding.edgeScore)}</span></td>;
-    if (["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal", "newsSentiment"].includes(key)) {
+    if (["profitability", "financialHealth", "valuation", "momentum", "newsSentiment"].includes(key)) {
       const value = score10(holding?.[key]);
       return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(value)}`}>{value === null ? "N/A" : value.toFixed(1)}</span></td>;
     }
@@ -5101,7 +5093,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
     {
       icon: <BarChart3 size={22} />,
       title: "Category ratings",
-      text: "Every stock is broken into Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, and News Sentiment so users can see exactly what is helping or hurting the score.",
+      text: "Every stock is broken into Profitability, Financial Health, Valuation, Momentum, and News Sentiment so users can see exactly what is helping or hurting the score.",
     },
     {
       icon: <Newspaper size={22} />,
@@ -5220,7 +5212,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
             </div>
             <ScoreRingSvg value={8} label="8.0" className="preview-score-ring" />
             <div className="preview-mini-grid">
-              <div><span>Growth</span><strong>10.0</strong></div>
+              <div><span>Profitability</span><strong>10.0</strong></div>
               <div><span>Profit</span><strong>8.8</strong></div>
               <div><span>News</span><strong>7.2</strong></div>
             </div>
@@ -6667,7 +6659,7 @@ const EVAL_FAQS = [
   {
     "category": "Eval Score",
     "question": "What is the Eval Score?",
-    "answer": "The Eval Score is a 0.0 to 10.0 educational rating that blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment."
+    "answer": "The Eval Score is a 0.0 to 10.0 educational rating that blends profitability, financial health, valuation, momentum, and news sentiment."
   },
   {
     "category": "Eval Score",
@@ -11851,9 +11843,11 @@ function MiniSvgLineChart({ rows = [], projections = [] }) {
   );
 }
 
-function EvalStockChartPanel({ data, edgeScore = null }) {
+function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
   const symbol = data?.symbol;
   const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp });
+  const [chartRows, setChartRows] = useState([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
     if (!symbol) return undefined;
@@ -11878,31 +11872,66 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
     return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
   }, [symbol]);
 
-  const rawLogo = data?.profile?.logo;
+  useEffect(() => {
+    if (!symbol) return undefined;
+    let cancelled = false;
+    const loadChart = async () => {
+      setChartLoading(true);
+      try {
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?interval=1day&outputsize=90`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setChartRows(Array.isArray(json?.rows) ? json.rows : []);
+      } catch {
+        if (!cancelled) setChartRows([]);
+      } finally {
+        if (!cancelled) setChartLoading(false);
+      }
+    };
+    loadChart();
+    return () => { cancelled = true; };
+  }, [symbol]);
+
+  const rawLogo = data?.profile?.logo || `/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const logo = typeof rawLogo === "string"
-    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : ""))
-    : "";
+    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`))
+    : `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
+  const current = Number(live?.current ?? data?.quote?.c);
+  const change = Number(live?.change ?? data?.quote?.d);
   const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
   return (
-    <section className="eval-stock-chart-shell eval-stock-quote-shell">
-      <div className="eval-stock-chart-top">
+    <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
+      <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          {logo ? <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
+          <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.src = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?fallback=1`; }} />
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
             <span>{symbol}</span>
           </div>
         </div>
-        <div className="eval-stock-chart-right-stack">
-          <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
+        <div className="eval-chart-hero-right">
+          <div className={`eval-live-price-panel ${tone}`}>
+            <strong>{money(current)}</strong>
+            <span className={`eval-live-change ${tone}`}>{signedMoney(change)} · {signedPercent(changePercent)}</span>
+          </div>
+          <div className="eval-chart-score-side">
+            <span>Eval Score</span>
+            <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
+          </div>
         </div>
+      </div>
+
+      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} />}
+
+      <div className="eval-chart-hero-actions">
+        <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>
+        <button type="button" className="score-metrics-jump-btn" onClick={onMetrics}>Metrics</button>
+        <button type="button" className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`} onClick={onScoreBreakdown}>Score Breakdown</button>
       </div>
     </section>
   );
 }
-
 
 function DcfCalculatorPanel({ data }) {
   const symbol = data?.symbol;
@@ -12043,26 +12072,14 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   );
 
   const gradeDescriptions = {
-    growth: "Shows how fast the company is expanding sales and earnings. Higher means the business is growing stronger over time.",
     profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
     financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
-    reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
     newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
   };
 
   const categoryMetrics = {
-    growth: usableMetricLines([
-      metricLine("Revenue Growth", metrics.revenueGrowth),
-      metricLine("Quarterly Revenue Growth", metrics.revenueGrowthQuarterly),
-      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
-      metricLine("5-Year Revenue Growth", metrics.revenueGrowth5Y),
-      metricLine("EPS Growth", metrics.epsGrowth),
-      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
-      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
-      metricLine("3-Year Net Income Growth", metrics.netIncomeGrowth3Y),
-    ]),
     profitability: usableMetricLines([
       metricLine("ROE", metrics.roe),
       metricLine("ROA", metrics.roa),
@@ -12071,6 +12088,10 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Operating Margin", metrics.operatingMargin),
       metricLine("Pretax Margin", metrics.pretaxMargin),
       metricLine("Net Margin", metrics.netMargin),
+      metricLine("EPS Growth", metrics.epsGrowth),
+      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
+      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
+      metricLine("3-Year Net Income Growth", metrics.netIncomeGrowth3Y),
     ]),
     financialHealth: usableMetricLines([
       metricLine("Debt-to-Equity", metrics.debtToEquity),
@@ -12110,13 +12131,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("26-Week Return", metrics.priceReturn26Week),
       metricLine("52-Week Return", metrics.priceReturn52Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-    ]),
-    reversal: usableMetricLines([
-      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
-      metricLine("4-Week Return", metrics.priceReturn4Week),
-      metricLine("13-Week Return", metrics.priceReturn13Week),
-      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
-      metricLine("Day Change", metrics.dayChangePercent),
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
@@ -12218,84 +12232,14 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
   return (
     <>
-      <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel score-panel-text-only">
-          <div className="main-eval-score-text-wrap">
-            <span className="main-eval-score-label">Eval Score</span>
-            <EvalScoreTextBadge value={edge} className="main-eval-score-text" />
-          </div>
-
-          <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
-            <button
-              type="button"
-              className="score-help-btn score-main-help-btn"
-              onClick={() => setOpenScoreHelp(openScoreHelp === "score" ? null : "score")}
-              aria-label="Explain Eval Score color"
-              title="Explain Eval Score color"
-            >
-              <span className="info-letter">?</span>
-            </button>
-
-            {openScoreHelp === "score" && (
-              <div className={`score-popup score-insight-popup ${tone}`}>
-                <button type="button" className="popup-close-btn" onClick={() => setOpenScoreHelp(null)} aria-label="Close popup" title="Close">×</button>
-                <div className="score-popup-title">{scoreInsight.label}</div>
-                <p>{scoreInsight.text}</p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="score-metrics-jump-btn"
-              onClick={scrollToScoreMetrics}
-              title="Jump to score metrics"
-              aria-label="Jump to score metrics"
-            >
-              Metrics
-            </button>
-
-            <button
-              type="button"
-              className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`}
-              onClick={openScoreBreakdownDashboard}
-              title="Generate AI score breakdown"
-              aria-label="Generate AI score breakdown"
-            >
-              Score Breakdown
-            </button>
-          </div>
-        </div>
-
-        <div className="company-panel">
-<h2>{data.profile?.name || data.symbol}</h2>
-          <p className="subline">
-            {(data.profile?.weburl || data.profile?.website || data.profile?.site) ? (
-              <a
-                href={data.profile?.weburl || data.profile?.website || data.profile?.site}
-                target="_blank"
-                rel="noreferrer"
-                className="ticker-company-link"
-                title={`Open ${data.symbol} company website`}
-              >
-                {data.symbol}
-              </a>
-            ) : (
-              <span className="ticker-company-link is-disabled">{data.symbol}</span>
-            )}
-            <span> · </span>
-            <span className="sector-link sector-link-static">{sectorName}</span>
-          </p>
-
-          <div className="hero-actions">
-            <button className="eval-hero-add-btn hero-add-corner-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist">
-              <Plus size={17} />
-            </button>
-          </div>
-        </div>
-
-      </section>
-
-      <EvalStockChartPanel data={data} edgeScore={edge} />
+      <EvalStockChartPanel
+        data={data}
+        edgeScore={edge}
+        onAdd={onAdd}
+        onMetrics={scrollToScoreMetrics}
+        onScoreBreakdown={openScoreBreakdownDashboard}
+        scoreBreakdownOpen={scoreBreakdownOpen}
+      />
       <DcfCalculatorPanel data={data} />
 
       {scoreBreakdownOpen && (
@@ -12374,18 +12318,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       )}
 <section id="score-metrics" className="grade-grid">
         <Grade
-          id="growth"
-          name="Growth"
-          value={cats.growth}
-          icon={<TrendingUp size={18} />}
-          description={gradeDescriptions.growth}
-          metricsUsed={categoryMetrics.growth}
-          isOpen={openScoreHelp === "growth"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
-          }
-        />
-        <Grade
           id="profitability"
           name="Profitability"
           value={cats.profitability}
@@ -12435,18 +12367,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           isOpen={openScoreHelp === "momentum"}
           onToggle={() =>
             setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
-          }
-        />
-        <Grade
-          id="reversal"
-          name="Pullback"
-          value={cats.reversal}
-          icon={<Zap size={18} />}
-          description={gradeDescriptions.reversal}
-          metricsUsed={categoryMetrics.reversal}
-          isOpen={openScoreHelp === "reversal"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "reversal" ? null : "reversal")
           }
         />
 
