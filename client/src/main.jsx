@@ -387,6 +387,43 @@ function compactMoney(v) {
 }
 
 const DEFAULT_WATCHLIST = ["NVDA", "GOOGL", "AAPL", "MSFT", "AMZN"];
+
+function isLiveWebSocketSymbol(symbol) {
+  // Dashboard websocket now follows exactly one actively loaded ticker.
+  // The watchlist does not subscribe to websockets, which keeps usage low.
+  return Boolean(String(symbol || "").trim());
+}
+
+function websocketUrlForSymbols(symbols = []) {
+  const clean = [...new Set((Array.isArray(symbols) ? symbols : [symbols]).map((s) => String(s || "").trim().toUpperCase()).filter(Boolean))];
+  if (!clean.length) return null;
+  try {
+    const url = new URL(API);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws/quotes";
+    url.search = `?symbols=${encodeURIComponent(clean.join(","))}`;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeLivePacket(packet = {}, fallbackSymbol = "") {
+  const symbol = String(packet.symbol || fallbackSymbol || "").trim().toUpperCase();
+  const price = Number(packet.price ?? packet.current ?? packet.c);
+  const previousClose = Number(packet.previousClose ?? packet.pc ?? packet.previous_close);
+  const change = Number(packet.change ?? packet.d ?? (Number.isFinite(price) && Number.isFinite(previousClose) ? price - previousClose : NaN));
+  const changePercent = Number(packet.changePercent ?? packet.dp ?? packet.percent_change ?? (Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : NaN));
+  return {
+    symbol,
+    current: Number.isFinite(price) ? price : null,
+    previousClose: Number.isFinite(previousClose) ? previousClose : null,
+    change: Number.isFinite(change) ? change : null,
+    changePercent: Number.isFinite(changePercent) ? changePercent : null,
+    timestamp: packet.timestamp || Date.now(),
+    source: packet.source || "Twelve Data WebSocket",
+  };
+}
 const CLIENT_CHART_CACHE = new Map();
 const CLIENT_LIVE_QUOTE_CACHE = new Map();
 const CLIENT_SPARKLINE_CACHE = new Map();
@@ -609,6 +646,7 @@ function App() {
   const [data, setData] = useState(null);
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tickerInputLocked, setTickerInputLocked] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState("landing");
@@ -670,6 +708,7 @@ function App() {
   });
   const viewHistoryRef = useRef([]);
   const forwardHistoryRef = useRef([]);
+  const autoAnalyzeLastRef = useRef("");
 
   useEffect(() => {
     const update = () => setShowMorningMug(isTheMorningMugWindow());
@@ -1113,6 +1152,26 @@ function App() {
     if (!forceRefresh) analyzeInFlightRef.current.set(clean, analysisPromise);
     return analysisPromise;
   }
+
+
+  useEffect(() => {
+    if (view !== "dashboard") return undefined;
+    const clean = String(symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "").slice(0, 8);
+    if (!clean) return undefined;
+    if (!/^[A-Z][A-Z0-9.\-]{0,7}$/.test(clean)) return undefined;
+    if (String(data?.symbol || "").toUpperCase() === clean) return undefined;
+    if (autoAnalyzeLastRef.current === clean) return undefined;
+
+    const timer = window.setTimeout(() => {
+      autoAnalyzeLastRef.current = clean;
+      setTickerInputLocked(true);
+      Promise.resolve(analyze(null, clean)).finally(() => {
+        window.setTimeout(() => setTickerInputLocked(false), 500);
+      });
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [symbol, view, data?.symbol]);
 
   function buildStockListItem(analyzed, fallbackSymbol) {
     const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
@@ -1693,13 +1752,14 @@ function App() {
                 <input
                   className="eval-clean-ticker-input"
                   value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  onChange={(e) => { if (!tickerInputLocked) setSymbol(e.target.value.toUpperCase()); }}
                   placeholder="Add ticker"
                   maxLength={8}
+                  disabled={tickerInputLocked || loading}
                 />
               </div>
 
-              <button disabled={loading} aria-label="Search stock" title="Search stock">
+              <button disabled={loading || tickerInputLocked} aria-label="Search stock" title="Search stock">
                 {loading ? <RefreshCw className="spin" size={18} /> : <Search size={18} />}
               </button>
 
@@ -1708,6 +1768,7 @@ function App() {
                 className="searchbar-desktop-add-btn"
                 aria-label="Add ticker"
                 title="Add ticker"
+                disabled={loading || tickerInputLocked}
                 onClick={() => addTicker(symbol)}
               >
                 <Plus size={18} />
@@ -11799,15 +11860,93 @@ function EvalScoreTextBadge({ value, className = "" }) {
   return <span className={`eval-score-text-badge ${tone} ${className}`}>{n === null ? "N/A" : n.toFixed(1)}</span>;
 }
 
-function WatchMiniSparkline() {
-  return null;
+function WatchMiniSparkline({ symbol }) {
+  const clean = String(symbol || "").trim().toUpperCase();
+  const liveEnabled = isLiveWebSocketSymbol(clean);
+  const [rows, setRows] = useState([]);
+
+  useEffect(() => {
+    if (!clean) return undefined;
+    let cancelled = false;
+    const cacheKey = `${clean}:sparkline`;
+    const loadRows = async () => {
+      const cached = readClientTimedCache(CLIENT_SPARKLINE_CACHE, cacheKey);
+      if (cached !== undefined) {
+        if (!cancelled) setRows(cached);
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(clean)}?interval=1day&outputsize=32`);
+        const json = await res.json();
+        const nextRows = Array.isArray(json?.rows) ? json.rows : [];
+        if (res.ok) writeClientTimedCache(CLIENT_SPARKLINE_CACHE, cacheKey, nextRows, CLIENT_SPARKLINE_TTL_MS);
+        if (!cancelled) setRows(nextRows);
+      } catch {
+        if (!cancelled) setRows([]);
+      }
+    };
+    loadRows();
+    return () => { cancelled = true; };
+  }, [clean]);
+
+  useEffect(() => {
+    if (!clean || !liveEnabled) return undefined;
+    const url = websocketUrlForSymbols([clean]);
+    if (!url) return undefined;
+    let ws;
+    let closed = false;
+    let lastChartUpdate = 0;
+    const connect = () => {
+      if (closed) return;
+      ws = new WebSocket(url);
+      ws.onmessage = (event) => {
+        let packet = null;
+        try { packet = JSON.parse(event.data); } catch { return; }
+        const live = normalizeLivePacket(packet, clean);
+        if (live.symbol !== clean || !Number.isFinite(Number(live.current))) return;
+        const now = Date.now();
+        if (now - lastChartUpdate < 10_000) return;
+        lastChartUpdate = now;
+        setRows((currentRows) => {
+          const next = [...(Array.isArray(currentRows) ? currentRows : [])];
+          next.push({ datetime: new Date(now).toISOString(), close: live.current });
+          return next.slice(-32);
+        });
+      };
+      ws.onclose = () => { if (!closed) window.setTimeout(connect, 3000); };
+    };
+    connect();
+    return () => { closed = true; try { ws?.close(); } catch {} };
+  }, [clean, liveEnabled]);
+
+  const points = rows.map((row, i) => ({ x: i, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  if (!points.length) return <div className="watch-sparkline-empty" />;
+  const width = 116;
+  const height = 34;
+  const ys = points.map((p) => p.y);
+  const min = Math.min(...ys);
+  const max = Math.max(...ys);
+  const range = max - min || 1;
+  const xScale = (x) => 2 + (x / Math.max(1, points.length - 1)) * (width - 4);
+  const yScale = (y) => height - 3 - ((y - min) / range) * (height - 6);
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.x).toFixed(1)},${yScale(p.y).toFixed(1)}`).join(" ");
+  const tone = points[points.length - 1]?.y >= points[0]?.y ? "up" : "down";
+  return (
+    <svg className={`watch-sparkline ${tone} ${liveEnabled ? "live" : "static"}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${clean} daily sparkline`}>
+      <path d={path} />
+    </svg>
+  );
 }
 
 
-function MiniSvgLineChart({ rows = [], projections = [] }) {
+function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   const width = 720;
   const height = 250;
-  const points = rows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  let sourceRows = Array.isArray(rows) ? [...rows] : [];
+  if (Number.isFinite(Number(livePrice)) && sourceRows.length) {
+    sourceRows = [...sourceRows.slice(0, -1), { ...sourceRows[sourceRows.length - 1], close: Number(livePrice), live: true }];
+  }
+  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
   const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
   if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
   const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
@@ -11844,16 +11983,23 @@ function MiniSvgLineChart({ rows = [], projections = [] }) {
 }
 
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
-  const symbol = data?.symbol;
-  const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp });
+  const symbol = String(data?.symbol || "").trim().toUpperCase();
+  const liveEnabled = isLiveWebSocketSymbol(symbol);
+  const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
+
+  useEffect(() => {
+    if (!symbol) return undefined;
+    setLive({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
+  }, [symbol, data?.quote?.c, data?.quote?.d, data?.quote?.dp]);
 
   useEffect(() => {
     if (!symbol) return undefined;
     let cancelled = false;
     const key = String(symbol).toUpperCase();
     const loadLive = async () => {
+      if (liveEnabled) return;
       const cached = readClientTimedCache(CLIENT_LIVE_QUOTE_CACHE, key);
       if (cached !== undefined) {
         if (!cancelled) setLive(cached);
@@ -11870,17 +12016,26 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     const onFocus = () => loadLive();
     window.addEventListener("focus", onFocus);
     return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
-  }, [symbol]);
+  }, [symbol, liveEnabled]);
 
   useEffect(() => {
     if (!symbol) return undefined;
     let cancelled = false;
+    const cacheKey = `${symbol}:chart90`;
     const loadChart = async () => {
       setChartLoading(true);
+      const cached = readClientTimedCache(CLIENT_CHART_CACHE, cacheKey);
+      if (cached !== undefined) {
+        if (!cancelled) setChartRows(cached);
+        setChartLoading(false);
+        return;
+      }
       try {
         const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?interval=1day&outputsize=90`);
         const json = await res.json();
-        if (!cancelled && res.ok) setChartRows(Array.isArray(json?.rows) ? json.rows : []);
+        const nextRows = Array.isArray(json?.rows) ? json.rows : [];
+        if (res.ok) writeClientTimedCache(CLIENT_CHART_CACHE, cacheKey, nextRows, CLIENT_CHART_TTL_MS);
+        if (!cancelled && res.ok) setChartRows(nextRows);
       } catch {
         if (!cancelled) setChartRows([]);
       } finally {
@@ -11891,10 +12046,64 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     return () => { cancelled = true; };
   }, [symbol]);
 
-  const rawLogo = data?.profile?.logo || `/api/company-logo/${encodeURIComponent(symbol || "")}`;
-  const logo = typeof rawLogo === "string"
-    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`))
-    : `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
+  useEffect(() => {
+    if (!symbol || !liveEnabled) return undefined;
+    const url = websocketUrlForSymbols([symbol]);
+    if (!url) return undefined;
+    let ws;
+    let closed = false;
+    let reconnectTimer = null;
+    let lastChartUpdate = 0;
+    let lastLiveUpdate = 0;
+
+    const connect = () => {
+      if (closed) return;
+      ws = new WebSocket(url);
+      ws.onopen = () => {
+        try { ws.send(JSON.stringify({ type: "symbols", symbols: [symbol] })); } catch {}
+      };
+      ws.onmessage = (event) => {
+        let packet = null;
+        try { packet = JSON.parse(event.data); } catch { return; }
+        const next = normalizeLivePacket(packet, symbol);
+        if (next.symbol !== symbol || !Number.isFinite(Number(next.current))) return;
+        const now = Date.now();
+        if (now - lastLiveUpdate >= 5_000) {
+          lastLiveUpdate = now;
+          setLive((prev) => ({
+            ...prev,
+            current: next.current ?? prev.current,
+            previousClose: next.previousClose ?? prev.previousClose,
+            change: next.change ?? prev.change,
+            changePercent: next.changePercent ?? prev.changePercent,
+            timestamp: next.timestamp,
+            source: "Twelve Data WebSocket",
+          }));
+        }
+        if (now - lastChartUpdate >= 5_000) {
+          lastChartUpdate = now;
+          setChartRows((currentRows) => {
+            const rows = Array.isArray(currentRows) ? [...currentRows] : [];
+            rows.push({ datetime: new Date(now).toISOString(), close: next.current, live: true });
+            return rows.slice(-90);
+          });
+        }
+      };
+      ws.onclose = () => {
+        if (!closed) reconnectTimer = window.setTimeout(connect, 3000);
+      };
+      ws.onerror = () => { try { ws?.close(); } catch {} };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      try { ws?.close(); } catch {}
+    };
+  }, [symbol, liveEnabled]);
+
+  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const current = Number(live?.current ?? data?.quote?.c);
   const change = Number(live?.change ?? data?.quote?.d);
   const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
@@ -11904,10 +12113,10 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
       <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.src = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?fallback=1`; }} />
+          <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.style.display = "none"; }} />
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
-            <span>{symbol}</span>
+            <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
           </div>
         </div>
         <div className="eval-chart-hero-right">
@@ -11915,14 +12124,13 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
             <strong>{money(current)}</strong>
             <span className={`eval-live-change ${tone}`}>{signedMoney(change)} · {signedPercent(changePercent)}</span>
           </div>
-          <div className="eval-chart-score-side">
-            <span>Eval Score</span>
+          <div className="eval-chart-score-side no-label">
             <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
           </div>
         </div>
       </div>
 
-      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} />}
+      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={Number.isFinite(current) ? current : null} />}
 
       <div className="eval-chart-hero-actions">
         <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>
