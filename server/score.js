@@ -262,9 +262,46 @@ async function fetchTwelveDataProfile(symbol) {
 }
 
 async function fetchTwelveDataMarketData(symbol) {
-  // Historical chart/time-series calls are disabled to prevent API-credit spikes.
-  // Momentum and pullback now use values available from Twelve Data /statistics only.
-  return { quote: null, metrics: {}, source: "Twelve Data statistics-only mode" };
+  // One compact weekly history call only when the scoring model needs momentum/pullback.
+  // Current price remains hidden in the UI, but the latest weekly close is needed to
+  // calculate 4/13/26/52-week returns and distance from the 52-week range.
+  const data = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1week", outputsize: 60 });
+  const rows = twelveList(data)
+    .map((row) => ({
+      date: row?.datetime || row?.date || row?.timestamp || "",
+      close: cleanTwelveNumber(row?.close),
+      high: cleanTwelveNumber(row?.high),
+      low: cleanTwelveNumber(row?.low),
+    }))
+    .filter((row) => row.close !== null)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+
+  const latest = rows[0] || null;
+  const priceAt = (index) => rows[Math.min(index, Math.max(0, rows.length - 1))]?.close ?? null;
+  const pctReturn = (weeks) => {
+    const current = latest?.close ?? null;
+    const past = priceAt(weeks);
+    return current !== null && past !== null && past > 0 ? ((current - past) / past) * 100 : null;
+  };
+
+  const highs = rows.map((row) => row.high).filter((value) => value !== null);
+  const lows = rows.map((row) => row.low).filter((value) => value !== null);
+  const weekHigh = highs.length ? Math.max(...highs) : null;
+  const weekLow = lows.length ? Math.min(...lows) : null;
+
+  return {
+    quote: latest ? { c: latest.close, d: null, dp: null, h: latest.high, l: latest.low, o: null, pc: priceAt(1) } : null,
+    metrics: {
+      currentPrice: latest?.close ?? null,
+      priceReturn4Week: pctReturn(4),
+      priceReturn13Week: pctReturn(13),
+      priceReturn26Week: pctReturn(26),
+      priceReturn52Week: pctReturn(52),
+      weekHigh,
+      weekLow,
+    },
+    source: "Twelve Data /time_series weekly",
+  };
 }
 
 async function fetchJsonOptional(url, providerName) {
@@ -455,8 +492,10 @@ async function fetchTwelveDataFundamentals(symbol) {
     evToEbitda: statNumber(flat, ["enterprise_value_to_ebitda", "ev_to_ebitda", "evEbitda"]),
   };
 
-  // If /statistics is too sparse, add the minimum statement calls needed to build real metrics.
-  // This only runs when the first low-credit call returns 3 or fewer usable scoring inputs.
+  // If /statistics is too sparse to support the six-category Eval model, add the
+  // minimum statement calls needed to calculate real fundamentals. These calls are
+  // cached for months and only run when the low-credit statistics payload is missing
+  // core data groups.
   const initialUsableCount = validMetricInputCount([
     metrics.revenueGrowth, metrics.epsGrowth, metrics.roe, metrics.roa, metrics.roi,
     metrics.grossMargin, metrics.operatingMargin, metrics.netMargin, metrics.debtToEquity,
@@ -464,8 +503,14 @@ async function fetchTwelveDataFundamentals(symbol) {
     metrics.priceToBook, metrics.beta, metrics.priceReturn52Week,
   ]);
 
+  const hasGrowthInput = validMetricInputCount([metrics.revenueGrowth, metrics.revenueGrowthQuarterly, metrics.revenueGrowth3Y, metrics.epsGrowth, metrics.epsGrowth3Y]) > 0;
+  const hasProfitInput = validMetricInputCount([metrics.roe, metrics.roa, metrics.roi, metrics.grossMargin, metrics.operatingMargin, metrics.netMargin]) > 0;
+  const hasHealthInput = validMetricInputCount([metrics.debtToEquity, metrics.currentRatio, metrics.quickRatio, metrics.cashRatio, metrics.interestCoverage, metrics.cashFlowToDebt, metrics.totalDebt, metrics.shareholderEquity]) > 0;
+  const hasValuationInput = validMetricInputCount([metrics.peRatio, metrics.forwardPe, metrics.pegRatio, metrics.priceToSales, metrics.priceToBook, metrics.priceToFreeCashFlow]) > 0;
+  const needsStatementFallback = initialUsableCount < 12 || !hasGrowthInput || !hasProfitInput || !hasHealthInput || !hasValuationInput;
+
   let statementRaw = null;
-  if (initialUsableCount <= 3) {
+  if (needsStatementFallback) {
     const [incomeData, balanceData, cashData] = await Promise.all([
       fetchTwelveDataOptional("/income_statement", { symbol, period: "annual" }),
       fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual" }),
@@ -1793,8 +1838,19 @@ export async function buildStockAnalysis(symbol, options = {}) {
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
     (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {} },
   ]);
+  const existingMarketInputs = validMetricInputCount([
+    twelveFundamentals?.metrics?.priceReturn4Week,
+    twelveFundamentals?.metrics?.priceReturn13Week,
+    twelveFundamentals?.metrics?.priceReturn26Week,
+    twelveFundamentals?.metrics?.priceReturn52Week,
+    twelveFundamentals?.metrics?.weekHigh,
+    twelveFundamentals?.metrics?.weekLow,
+    twelveFundamentals?.metrics?.currentPrice,
+  ]);
+  const twelveMarket = refreshMarket && existingMarketInputs < 4
+    ? await fetchTwelveDataMarketData(cleanSymbol)
+    : { quote: null, metrics: {}, source: existingMarketInputs >= 4 ? "Twelve Data /statistics market data" : "Market refresh disabled" };
   const twelveQuote = null;
-  const twelveMarket = { quote: null, metrics: {}, source: "Disabled" };
 
   const cachedProfile = cachedReport?.profile || {};
   const profile = {
@@ -1848,17 +1904,18 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const totalValidMetricInputs = Object.values(validInputCounts).reduce((sum, value) => sum + Number(value || 0), 0);
-  const canCalculateEvalScore = totalValidMetricInputs > 3;
+  const hasAllSixCategoryScores = validCategoryCount === 6;
+  const canCalculateEvalScore = hasAllSixCategoryScores && totalValidMetricInputs >= 6;
   const edgeScore = canCalculateEvalScore ? availableWeightedAverage([
-    { score: growthScore, weight: 0.22 },
-    { score: profitabilityScore, weight: 0.20 },
-    { score: healthScore, weight: 0.17 },
-    { score: valuationScore, weight: 0.16 },
-    { score: momentumScore, weight: 0.11 },
-    { score: reversalScore, weight: 0.14 },
+    { score: growthScore, weight: 0.20 },
+    { score: profitabilityScore, weight: 0.19 },
+    { score: healthScore, weight: 0.18 },
+    { score: valuationScore, weight: 0.18 },
+    { score: momentumScore, weight: 0.13 },
+    { score: reversalScore, weight: 0.12 },
   ], null) : null;
 
-  const riskLabel = getRiskLabel(extracted, healthScore);
+  const riskLabel = null;
   const sw = strongestWeakest(categories);
   const src = "Twelve Data";
   const reportMetrics = {
@@ -1888,8 +1945,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
     quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
-      ? `${cleanSymbol} does not have enough usable metric data for an Eval Score yet.`
-      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends only the usable growth, profitability, financial health, valuation, momentum, and pullback data available.`,
+      ? `${cleanSymbol} does not have enough usable data across all six Eval categories for an Eval Score yet.`
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback with missing metric inputs ignored inside each category.`,
     strengths: [sw.strongest],
     weaknesses: [sw.weakest],
     grades: {
@@ -1903,11 +1960,13 @@ export async function buildStockAnalysis(symbol, options = {}) {
         validInputCounts,
         totalValidMetricInputs,
         publicUsableMetricCount,
-        minRequiredMetrics: 4,
+        minRequiredMetrics: 6,
+        requiredCategories: ["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal"],
+        hasAllSixCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Eval Score is N/A when 3 or fewer usable metrics are available. Missing metrics are ignored and remaining weights are redistributed.",
-        providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; only uses statement fallback when statistics is too sparse. Current-price display is disabled." },
-        sources: { price: "Disabled", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" }
+        scoreRule: "Eval Score is N/A unless all six categories have usable data. Missing metric inputs inside a valid category are ignored and remaining weights are redistributed.",
+        providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; adds cached statement and weekly time-series fallbacks only when needed. Current-price display is disabled." },
+        sources: { price: "Hidden", marketData: twelveMarket?.source || "Twelve Data", fundamentals: twelveFundamentals?.source || "Twelve Data", profile: "Twelve Data" }
       }
     },
     metrics: reportMetrics,
