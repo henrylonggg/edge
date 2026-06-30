@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import { buildStockAnalysis } from "./score.js";
+import { attachTwelveQuoteWebSocket } from "./twelveWebSocket.js";
 
 dotenv.config();
 
@@ -2090,9 +2091,13 @@ function historicalSeriesTtlMs(interval = "1day") {
   return 15 * 60 * 1000;
 }
 
-async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 180 } = {}) {
-  // Historical chart calls are disabled to protect Twelve Data credits.
-  return [];
+async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 90 } = {}) {
+  const clean = cleanTicker(symbol);
+  if (!clean) return [];
+  const safeInterval = ["1day", "1week"].includes(String(interval)) ? String(interval) : "1day";
+  const safeOutputsize = Math.max(30, Math.min(180, Number(outputsize || 90)));
+  const data = await fetchTwelveDataJson("/time_series", { symbol: clean, interval: safeInterval, outputsize: safeOutputsize }, 5000);
+  return normalizeTwelveSeriesRows(data);
 }
 
 function dcfScenarioFromReport(report, scenario = "average") {
@@ -2257,7 +2262,15 @@ app.get("/api/quote/:symbol", async (req, res) => {
 });
 
 app.get("/api/twelve-chart/:symbol", async (req, res) => {
-  return res.status(410).json({ error: "Historical chart data has been disabled to protect API usage.", rows: [] });
+  const symbol = cleanTicker(req.params.symbol);
+  try {
+    const interval = String(req.query.interval || "1day");
+    const outputsize = Number(req.query.outputsize || 90);
+    const rows = await fetchTwelveHistoricalSeries(symbol, { interval, outputsize });
+    res.json({ symbol, rows, source: "Twelve Data time_series", cacheSeconds: Math.round(historicalSeriesTtlMs(interval) / 1000) });
+  } catch (error) {
+    res.status(500).json({ symbol, rows: [], error: error?.message || "Could not load chart data." });
+  }
 });
 
 app.get("/api/dcf/:symbol", async (req, res) => {
@@ -3864,6 +3877,8 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Eval backend running on port ${PORT}`);
 });
+
+attachTwelveQuoteWebSocket(server);
