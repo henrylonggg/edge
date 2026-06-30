@@ -41463,3 +41463,79 @@ body {
   .watch-change-toggle { font-size: 9px !important; }
   .eval-score-text-badge.watch-score-plain { font-size: 21px !important; }
 }
+
+/* Eval patch: no current-price/change UI, logo+ticker watchlist, text-only Eval score */
+.score-panel-text-only {
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+}
+.dashboard-eval-score-text {
+  font-size: clamp(56px, 5.8vw, 92px) !important;
+  line-height: .88 !important;
+  font-weight: 1000 !important;
+  font-style: italic !important;
+  letter-spacing: -4px !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.snapshot-grid-refined {
+  align-content: center !important;
+}
+.price-mini-stat,
+.watch-price-stack,
+.watch-global-change-toggle,
+.watch-change-toggle {
+  display: none !important;
+}
+.watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format {
+  grid-template-columns: minmax(96px, 1fr) 72px 24px !important;
+  align-items: center !important;
+}
+.watch-info-logo-ticker {
+  justify-content: flex-start !important;
+  min-width: 0 !important;
+}
+.watch-logo-shell img[src=""],
+.watch-logo-shell img:not([src]) { display: none !important; }
+.eval-score-text-badge.watch-score-plain {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-style: italic !important;
+  font-weight: 1000 !important;
+  text-align: right !important;
+}
+.grade-card strong.green,
+.eval-score-text-badge.green,
+.dashboard-eval-score-text.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 12px rgba(133,255,71,.46), 0 0 26px rgba(21,231,255,.18) !important;
+}
+.grade-card strong.yellow,
+.eval-score-text-badge.yellow,
+.dashboard-eval-score-text.yellow {
+  color: #ffd66b !important;
+  text-shadow: 0 0 12px rgba(255,214,107,.46), 0 0 24px rgba(255,132,47,.24) !important;
+}
+.grade-card strong.red,
+.eval-score-text-badge.red,
+.dashboard-eval-score-text.red {
+  color: #ff5f73 !important;
+  text-shadow: 0 0 12px rgba(255,95,115,.46), 0 0 24px rgba(255,132,47,.24) !important;
+}
+@media (max-width: 700px) {
+  .dashboard-eval-score-text { font-size: 48px !important; letter-spacing: -2px !important; }
+  .watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format {
+    grid-template-columns: minmax(82px, 1fr) 54px 20px !important;
+  }
+}
