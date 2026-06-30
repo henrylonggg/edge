@@ -2120,24 +2120,68 @@ function dcfScenarioFromReport(report, scenario = "average") {
 
 app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
-  if (!symbol) return res.status(404).end();
+  if (!symbol) return res.status(204).end();
 
-  const cached = companyLogoCache.get(symbol);
-  if (cached && cached.expiresAt > Date.now()) {
-    if (cached.logoUrl) return res.redirect(302, cached.logoUrl);
-    return res.status(404).end();
-  }
+  const sendFallback = () => {
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.status(204).end();
+  };
 
   try {
+    const cached = companyLogoCache.get(symbol);
+    if (cached && cached.expiresAt > Date.now()) {
+      if (cached.buffer && cached.contentType) {
+        res.setHeader("Content-Type", cached.contentType);
+        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        return res.send(Buffer.from(cached.buffer, "base64"));
+      }
+      if (cached.miss) return sendFallback();
+    }
+
     const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
     const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
     const valid = /^https?:\/\//i.test(logoUrl) ? logoUrl : "";
-    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, logoUrl: valid });
-    if (valid) return res.redirect(302, valid);
-  } catch {}
+    if (!valid) {
+      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, miss: true });
+      return sendFallback();
+    }
 
-  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, logoUrl: "" });
-  return res.status(404).end();
+    const response = await fetch(valid, {
+      headers: { "User-Agent": "Eval/1.0 image proxy" },
+      redirect: "follow",
+      signal: AbortSignal.timeout?.(5000),
+    }).catch(() => null);
+
+    if (!response?.ok) {
+      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
+      return sendFallback();
+    }
+
+    const contentType = response.headers.get("content-type") || "image/png";
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    if (!buffer.length || !/^image\//i.test(contentType)) {
+      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
+      return sendFallback();
+    }
+
+    companyLogoCache.set(symbol, {
+      savedAt: Date.now(),
+      expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS,
+      contentType,
+      buffer: buffer.toString("base64"),
+    });
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    return res.send(buffer);
+  } catch (error) {
+    console.warn("Logo proxy failed:", symbol, error?.message || error);
+    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
+    return sendFallback();
+  }
 });
 
 app.get("/api/analyze/:symbol", async (req, res) => {
