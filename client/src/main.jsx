@@ -360,6 +360,25 @@ function compactMoney(v) {
 }
 
 const DEFAULT_WATCHLIST = ["NVDA", "GOOGL", "AAPL", "MSFT", "AMZN"];
+const CLIENT_CHART_CACHE = new Map();
+const CLIENT_LIVE_QUOTE_CACHE = new Map();
+const CLIENT_SPARKLINE_CACHE = new Map();
+const CLIENT_CHART_TTL_MS = 10 * 60 * 1000;
+const CLIENT_LIVE_QUOTE_TTL_MS = 60 * 1000;
+const CLIENT_SPARKLINE_TTL_MS = 10 * 60 * 1000;
+
+function readClientTimedCache(map, key) {
+  const hit = map.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.value;
+  if (hit) map.delete(key);
+  return undefined;
+}
+
+function writeClientTimedCache(map, key, value, ttl) {
+  map.set(key, { value, expiresAt: Date.now() + ttl });
+  if (map.size > 250) map.delete(map.keys().next().value);
+  return value;
+}
 
 function readWatchlist() {
   try {
@@ -1065,6 +1084,8 @@ function App() {
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
       risk: analyzed?.grades?.riskLabel || "N/A",
       price: analyzed?.quote?.c ?? null,
+      change: analyzed?.quote?.d ?? null,
+      changePercent: analyzed?.quote?.dp ?? null,
       strongest: strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A",
       weakest: weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A",
       updatedAt: new Date().toISOString(),
@@ -11307,6 +11328,12 @@ function Watchlist({
   pageMode = false,
 }) {
   const [manual, setManual] = useState("");
+  const [changeModeByTicker, setChangeModeByTicker] = useState({});
+
+  const toggleChangeMode = (ticker) => {
+    const clean = String(ticker || "").toUpperCase();
+    setChangeModeByTicker((prev) => ({ ...prev, [clean]: prev[clean] === "percent" ? "dollar" : "percent" }));
+  };
 
   return (
     <aside className={`watch-panel eval-watchlist-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
@@ -11354,22 +11381,34 @@ function Watchlist({
             Your watchlist is empty. Add a ticker above to start building your own list.
           </div>
         ) : (
-          items.map((item) => (
-            <div className="watch-row" key={item.symbol}>
-              <span className="watch-rank-number" aria-hidden="true" />
-              <button className="watch-info watch-info-new" onClick={() => onAnalyze(item.symbol)}>
-                <strong>{item.name || item.companyName || item.symbol}</strong>
-                <span className="watch-ticker-under">{item.symbol}</span>
-                <WatchMiniSparkline symbol={item.symbol} />
-              </button>
+          items.map((item) => {
+            const ticker = String(item.symbol || "").toUpperCase();
+            const mode = changeModeByTicker[ticker] || "dollar";
+            const changePercent = Number(item.changePercent);
+            const changeDollar = Number(item.change);
+            const changeTone = Number.isFinite(changePercent) ? (changePercent >= 0 ? "up" : "down") : Number.isFinite(changeDollar) && changeDollar >= 0 ? "up" : "down";
+            return (
+              <div className="watch-row watch-row-simple" key={item.symbol}>
+                <button className="watch-info watch-info-new" onClick={() => onAnalyze(item.symbol)}>
+                  <strong>{item.name || item.companyName || item.symbol}</strong>
+                  <span className="watch-ticker-under">{item.symbol}</span>
+                </button>
 
-              <EvalScoreTextBadge value={item.score} className="watch-score-text" />
+                <div className="watch-price-stack">
+                  <strong>{money(item.price)}</strong>
+                  <button type="button" className={`watch-change-toggle ${changeTone}`} onClick={() => toggleChangeMode(ticker)}>
+                    {mode === "percent" ? signedPercent(item.changePercent) : signedMoney(item.change)}
+                  </button>
+                </div>
 
-              <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))
+                <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
+
+                <button className="delete-btn" onClick={() => onRemove(item.symbol)} aria-label={`Remove ${item.symbol}`}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            );
+          })
         )}
       </div>
     </aside>
@@ -11730,37 +11769,10 @@ function EvalScoreTextBadge({ value, className = "" }) {
   return <span className={`eval-score-text-badge ${tone} ${className}`}>{n === null ? "N/A" : n.toFixed(1)}</span>;
 }
 
-function WatchMiniSparkline({ symbol }) {
-  const [rows, setRows] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    if (!symbol) return undefined;
-    fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=1D&light=1`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((json) => {
-        if (!cancelled) setRows(Array.isArray(json?.rows) ? json.rows.slice(-42) : []);
-      })
-      .catch(() => { if (!cancelled) setRows([]); });
-    return () => { cancelled = true; };
-  }, [symbol]);
-
-  const points = rows.map((row, i) => ({ x: i, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
-  if (points.length < 2) return <span className="watch-mini-sparkline watch-mini-sparkline-empty" />;
-  const min = Math.min(...points.map((p) => p.y));
-  const max = Math.max(...points.map((p) => p.y));
-  const range = max - min || 1;
-  const path = points.map((p, i) => {
-    const x = (p.x / Math.max(1, points.length - 1)) * 100;
-    const y = 34 - ((p.y - min) / range) * 28;
-    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const up = points[points.length - 1].y >= points[0].y;
-  return (
-    <svg className={`watch-mini-sparkline ${up ? "up" : "down"}`} viewBox="0 0 100 40" aria-hidden="true">
-      <path d={path} />
-    </svg>
-  );
+function WatchMiniSparkline() {
+  return null;
 }
+
 
 function MiniSvgLineChart({ rows = [], projections = [] }) {
   const width = 720;
@@ -11803,47 +11815,31 @@ function MiniSvgLineChart({ rows = [], projections = [] }) {
 
 function EvalStockChartPanel({ data, edgeScore = null }) {
   const symbol = data?.symbol;
-  const [timeframe, setTimeframe] = useState("6M");
-  const [chart, setChart] = useState(null);
   const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp });
-  const [loading, setLoading] = useState(false);
-  const timeframes = ["1D", "5D", "1M", "6M", "1Y", "5Y"];
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadChart() {
-      if (!symbol) return;
-      setLoading(true);
-      try {
-        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`);
-        const json = await res.json();
-        if (!cancelled && res.ok) {
-          setChart(json);
-          if (json?.live) setLive(json.live);
-        }
-      } catch {}
-      if (!cancelled) setLoading(false);
-    }
-    loadChart();
-    return () => { cancelled = true; };
-  }, [symbol, timeframe]);
 
   useEffect(() => {
     if (!symbol) return undefined;
     let cancelled = false;
+    const key = String(symbol).toUpperCase();
     const loadLive = async () => {
+      const cached = readClientTimedCache(CLIENT_LIVE_QUOTE_CACHE, key);
+      if (cached !== undefined) {
+        if (!cancelled) setLive(cached);
+        return;
+      }
       try {
         const res = await fetch(`${API}/api/live-quote/${encodeURIComponent(symbol)}`);
         const json = await res.json();
+        if (res.ok) writeClientTimedCache(CLIENT_LIVE_QUOTE_CACHE, key, json, CLIENT_LIVE_QUOTE_TTL_MS);
         if (!cancelled && res.ok) setLive(json);
       } catch {}
     };
     loadLive();
-    const id = setInterval(loadLive, 15_000);
-    return () => { cancelled = true; clearInterval(id); };
+    const onFocus = () => loadLive();
+    window.addEventListener("focus", onFocus);
+    return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
   }, [symbol]);
 
-  const rows = Array.isArray(chart?.rows) ? chart.rows : [];
   const rawLogo = data?.profile?.logo;
   const logo = typeof rawLogo === "string"
     ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : ""))
@@ -11852,7 +11848,7 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
   return (
-    <section className="eval-stock-chart-shell">
+    <section className="eval-stock-chart-shell eval-stock-quote-shell">
       <div className="eval-stock-chart-top">
         <div className="eval-stock-company-lockup">
           {logo ? <img src={logo} alt="" className="eval-stock-logo" /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
@@ -11862,21 +11858,18 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
           </div>
         </div>
         <div className="eval-stock-chart-right-stack">
-          <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score" />
+          <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
           <div className="eval-live-price-panel">
             <strong>{money(live?.current ?? data?.quote?.c)}</strong>
             <span className={`eval-live-change ${tone}`}>{signedMoney(live?.change ?? data?.quote?.d)} · {signedPercent(changePercent)}</span>
           </div>
         </div>
       </div>
-      <MiniSvgLineChart rows={rows} />
-      <div className="eval-chart-timeframe-row">
-        {timeframes.map((item) => <button type="button" key={item} className={item === timeframe ? "active" : ""} onClick={() => setTimeframe(item)}>{item}</button>)}
-      </div>
-      <p className="eval-chart-cache-note">Twelve Data only. Historical series are cached by market cadence; live quotes are throttled server-side to protect API usage.</p>
+      <div className="eval-quote-no-chart-note">Live quote, cached fundamentals, and no historical chart calls on dashboard load.</div>
     </section>
   );
 }
+
 
 function DcfCalculatorPanel({ data }) {
   const symbol = data?.symbol;
