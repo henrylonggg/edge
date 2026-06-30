@@ -11,7 +11,7 @@ const CATEGORY_LABELS = {
   profitability: "Profitability",
   financialHealth: "Financial Health",
   valuation: "Valuation",
-  quality: "Quality",
+  newsSentiment: "News Sentiment",
   momentum: "Momentum",
   pullback: "Pullback",
 };
@@ -581,6 +581,27 @@ async function fetchFinnhubFundamentals(symbol) {
     cashAndEquivalents: firstNumber(latest.cashAndEquivalents),
   };
   return { metrics, raw: { metricData, reportedData }, source: "Finnhub stock/metric + financials-reported" };
+}
+
+async function fetchFinnhubCompanyNews(symbol) {
+  const token = providerApiKey("FINNHUB_API_KEY", "VITE_FINNHUB_API_KEY");
+  if (!token) return [];
+  const to = new Date();
+  const from = new Date(Date.now() - 21 * DAY_MS_SCORE);
+  const fmtDate = (d) => d.toISOString().slice(0, 10);
+  const data = await fetchProviderJson("Finnhub", FINNHUB_BASE_URL, "/company-news", { symbol, from: fmtDate(from), to: fmtDate(to), token }, 5500);
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((item) => item && (item.headline || item.summary) && item.url)
+    .slice(0, 12)
+    .map((item) => ({
+      title: item.headline || item.title || "Company news",
+      summary: item.summary || "",
+      url: item.url || "",
+      source: item.source || "Finnhub",
+      publishedAt: item.datetime ? new Date(Number(item.datetime) * 1000).toISOString() : "",
+    }))
+    .slice(0, 3);
 }
 
 function mapFmpMetrics(ratio = {}, key = {}, growthRows = [], incomeRows = [], balanceRows = [], cashRows = []) {
@@ -2159,13 +2180,14 @@ export async function buildStockAnalysis(symbol, options = {}) {
     throw new Error("Missing TWELVE_DATA_API_KEY in Render environment variables.");
   }
 
-  const [twelveProfile, finnhubProfile, finnhubFundamentals, fmpFundamentals, massiveFundamentals, twelveFundamentals] = await Promise.all([
+  const [twelveProfile, finnhubProfile, finnhubFundamentals, fmpFundamentals, massiveFundamentals, twelveFundamentals, finnhubNews] = await Promise.all([
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
     refreshProfile ? fetchFinnhubProfile(cleanSymbol) : (cachedReport?.profile || null),
     (refreshFundamentals || !hasCachedReport) ? fetchFinnhubFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {}, source: "Cached report" },
     (refreshFundamentals || !hasCachedReport) ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "FMP skipped" },
     (refreshFundamentals || !hasCachedReport) ? fetchMassiveFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "Massive skipped" },
     (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "Twelve Data fundamentals skipped" },
+    refreshNews ? fetchFinnhubCompanyNews(cleanSymbol) : [],
   ]);
   const existingMarketInputs = validMetricInputCount([
     twelveFundamentals?.metrics?.priceReturn4Week,
@@ -2225,6 +2247,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
   extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
   extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
 
+  const newsSentiment = await scoreNewsSentiment(cleanSymbol, profile, Array.isArray(finnhubNews) ? finnhubNews : []);
+  const newsSentimentScore = safeNumber(newsSentiment?.score);
+
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
   const growthScore = categoryAverage([
@@ -2237,11 +2262,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
   ]);
   const earningsGrowthSupportScore = growthScore;
   const valuationScore = scoreValuation(extracted, earningsGrowthSupportScore ?? 6, profitabilityScore);
-  const qualityScore = scoreQuality(extracted);
   const momentumScore = scoreMomentum(extracted);
   const pullbackScore = scorePullback(extracted);
 
-  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, quality: qualityScore, momentum: momentumScore, pullback: pullbackScore };
+  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, newsSentiment: newsSentimentScore, momentum: momentumScore, pullback: pullbackScore };
   const metricScoreInputs = [
     // Growth: revenue growth, earnings growth, and recent stock movement. Missing values are skipped, never counted as zero.
     weightedMetricInput("Revenue growth", "growth", extracted.revenueGrowth, metricScore(extracted.revenueGrowth, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), 7.5),
@@ -2279,14 +2303,6 @@ export async function buildStockAnalysis(symbol, options = {}) {
     weightedMetricInput("EV / EBITDA", "valuation", extracted.evToEbitda, inverseMetricScore(extracted.evToEbitda, [[10, 9], [16, 8], [24, 6.5], [35, 5], [60, 3.5], [9999, 2.5]]), 4.0),
     weightedMetricInput("Dividend yield", "valuation", extracted.dividendYield, metricScore(extracted.dividendYield, [[6, 8.5], [3, 7.5], [1, 6.5], [0, 5.5], [-999, 5]]), 1.5),
 
-    // Quality: cash conversion, ROIC, accrual quality, and efficient capital usage.
-    weightedMetricInput("ROIC quality", "quality", extracted.roicCalculated, metricScore(extracted.roicCalculated, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0, 5], [-999, 3]]), 5.5),
-    weightedMetricInput("FCF margin", "quality", extracted.fcfMargin, metricScore(extracted.fcfMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3.5]]), 4.5),
-    weightedMetricInput("OCF margin", "quality", extracted.ocfMargin, metricScore(extracted.ocfMargin, [[35, 10], [24, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3.5]]), 3.5),
-    weightedMetricInput("Cash conversion", "quality", extracted.cashConversionRatio, metricScore(extracted.cashConversionRatio, [[1.25, 10], [1, 9], [0.75, 8], [0.45, 6.8], [0.15, 5.5], [-999, 4.5]]), 4.0),
-    weightedMetricInput("Accrual ratio", "quality", extracted.accrualRatio, inverseMetricScore(extracted.accrualRatio, [[-0.08, 9.5], [0, 8.5], [0.06, 7.2], [0.12, 6.0], [0.25, 4.8], [999, 3.5]]), 3.0),
-    weightedMetricInput("Asset turnover", "quality", extracted.assetTurnover, metricScore(extracted.assetTurnover, [[1.4, 9], [1, 8], [0.65, 7], [0.35, 6], [0.15, 5], [-999, 4]]), 2.5),
-
     // Momentum: useful, but smaller than company fundamentals.
     weightedMetricInput("4W return", "momentum", extracted.priceReturn4Week, metricScore(extracted.priceReturn4Week, [[15, 10], [8, 9], [3, 8], [0, 7], [-5, 5], [-12, 4], [-999, 3]]), 2.5),
     weightedMetricInput("13W return", "momentum", extracted.priceReturn13Week, metricScore(extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), 3.0),
@@ -2306,7 +2322,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     profitability: metricScoreInputs.filter((item) => item.category === "profitability").length,
     financialHealth: metricScoreInputs.filter((item) => item.category === "financialHealth").length,
     valuation: metricScoreInputs.filter((item) => item.category === "valuation").length,
-    quality: metricScoreInputs.filter((item) => item.category === "quality").length,
+    newsSentiment: metricScoreInputs.filter((item) => item.category === "newsSentiment").length,
     momentum: metricScoreInputs.filter((item) => item.category === "momentum").length,
     pullback: metricScoreInputs.filter((item) => item.category === "pullback").length,
   };
@@ -2314,16 +2330,16 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const totalValidMetricInputs = metricScoreInputs.length;
   const categoriesWithDataCount = Object.values(validInputCounts).filter((value) => Number(value || 0) > 0).length;
-  const coreCategoryKeys = ["growth", "profitability", "financialHealth", "valuation", "quality", "momentum", "pullback"];
+  const coreCategoryKeys = ["growth", "profitability", "financialHealth", "valuation", "newsSentiment", "momentum", "pullback"];
   const hasAllCoreCategoryScores = coreCategoryKeys.every((key) => safeNumber(categories[key]) !== null);
   const categoryScoreInputs = [
     weightedMetricInput("Profitability", "overall", categories.profitability, categories.profitability, 20),
-    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 18),
-    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 17),
+    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 17),
+    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 16),
     weightedMetricInput("Financial Health", "overall", categories.financialHealth, categories.financialHealth, 16),
-    weightedMetricInput("Quality", "overall", categories.quality, categories.quality, 14),
-    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 9),
-    weightedMetricInput("Pullback", "overall", categories.pullback, categories.pullback, 6),
+    weightedMetricInput("News Sentiment", "overall", categories.newsSentiment, categories.newsSentiment, 13),
+    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 11),
+    weightedMetricInput("Pullback", "overall", categories.pullback, categories.pullback, 7),
   ].filter(Boolean);
   const canCalculateEvalScore = validCategoryCount >= 2 && totalValidMetricInputs >= 8;
   const edgeScore = canCalculateEvalScore ? availableWeightedAverage(categoryScoreInputs, null) : null;
@@ -2346,12 +2362,12 @@ export async function buildStockAnalysis(symbol, options = {}) {
     revenue: metric(extracted.revenue, "", src, "Revenue"),
     sharesOutstanding: metric(extracted.sharesOutstanding, "", src, "Shares outstanding"),
     marketCapM: metric(extracted.marketCapM, "M", src, "Market capitalization in millions"), enterpriseValue: metric(extracted.enterpriseValue, "M", src, "Enterprise value"), ebitda: metric(extracted.ebitda, "M", src, "EBITDA"), evToEbitda: metric(extracted.evToEbitda, "", src, "EV/EBITDA"),
-    cashConversionRatio: metric(extracted.cashConversionRatio, "", src, "Free cash flow / net income"), accrualRatio: metric(extracted.accrualRatio, "", src, "(Net income - FCF) / assets"), roicCalculated: metric(extracted.roicCalculated, "%", src, "NOPAT / invested capital"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "Distance below 52-week high"),
+    cashConversionRatio: metric(extracted.cashConversionRatio, "", src, "Free cash flow / net income"), accrualRatio: metric(extracted.accrualRatio, "", src, "(Net income - FCF) / assets"), roicCalculated: metric(extracted.roicCalculated, "%", src, "NOPAT / invested capital"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "Distance below 52-week high"), newsSentiment: metric(newsSentimentScore, "", "Finnhub + OpenAI", "AI-weighted score from the 3 most recent Finnhub company-news articles"),
 
   };
 
   const publicUsableMetricCount = publicMetricCount(reportMetrics);
-  const aiScoreSummary = includeAiScoreSummary && edgeScore !== null ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
+  const aiScoreSummary = includeAiScoreSummary && edgeScore !== null ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore) : null;
   const scoreTextForSummary = edgeScore === null ? "N/A" : edgeScore.toFixed(1);
   return {
     symbol: cleanSymbol,
@@ -2360,7 +2376,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
       ? `${cleanSymbol} does not have enough usable data across the core Eval categories for an Eval Score yet.`
-      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score is calculated from available weighted metrics across growth, profitability, financial health, valuation, quality, momentum, and pullback. Finnhub is the primary fundamentals source, FMP and Massive fill gaps, Twelve Data powers live quote/chart data, and missing or voided inputs are skipped instead of counted as zero.`,
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score is calculated from available weighted metrics across growth, profitability, financial health, valuation, news sentiment, momentum, and pullback. Finnhub is the primary fundamentals source, FMP and Massive fill gaps, Twelve Data powers live quote/chart data, and missing or voided inputs are skipped instead of counted as zero.`,
     strengths: [sw.strongest],
     weaknesses: [sw.weakest],
     grades: {
@@ -2380,11 +2396,12 @@ export async function buildStockAnalysis(symbol, options = {}) {
         requiredCategories: coreCategoryKeys,
         hasAllCoreCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Eval Score uses seven weighted categories with automatic redistribution when a metric is missing: Profitability 20%, Valuation 18%, Growth 17%, Financial Health 16%, Quality 14%, Momentum 9%, Pullback 6%.",
+        scoreRule: "Eval Score uses seven weighted categories with automatic redistribution when a metric is missing: Profitability 20%, Valuation 17%, Growth 16%, Financial Health 16%, News Sentiment 13%, Momentum 11%, Pullback 7%.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), finnhubKey: Boolean(providerApiKey("FINNHUB_API_KEY", "VITE_FINNHUB_API_KEY")), fmpKey: Boolean(providerApiKey("FMP_API_KEY", "FINANCIAL_MODELING_PREP_API_KEY")), massiveKey: Boolean(providerApiKey("MASSIVE_API_KEY", "POLYGON_API_KEY")), apiMinimization: "Finnhub fundamentals are cached and used first. FMP and Massive only fill missing metric gaps when their keys exist. Twelve Data is reserved for live quotes, WebSocket, and historical chart/range data." },
         sources: { price: "Twelve Data quote/WebSocket", marketData: twelveMarket?.source || "Twelve Data time_series", fundamentals: [finnhubFundamentals?.source, fmpFundamentals?.source, massiveFundamentals?.source, twelveFundamentals?.source].filter(Boolean).join(" | "), profile: finnhubProfile ? "Finnhub profile2" : "Twelve Data profile" }
       }
     },
+    newsSentiment,
     metrics: reportMetrics,
     aiScoreSummary,
   };
