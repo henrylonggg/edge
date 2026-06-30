@@ -1108,13 +1108,7 @@ function App() {
 
     const analysisPromise = (async () => {
       try {
-        const cached = !forceRefresh ? readLocalAnalysis(clean) : null;
-        if (cached) {
-          if (!skipState) setData(cached);
-          return cached;
-        }
-
-        const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
+        const url = `${API}/api/analyze/${encodeURIComponent(clean)}?manual=1`;
 
         const res = await fetch(url, {
           method: "GET",
@@ -1132,7 +1126,6 @@ function App() {
           );
         }
 
-        saveLocalAnalysis(clean, json);
         if (!skipState) setData(json);
         return json;
       } catch (err) {
@@ -11516,7 +11509,6 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
     features: [
       "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
-      "Intrinsic value, WACC, and DCF-style valuation support",
       "Margin of safety and percent difference from intrinsic value",
       "News sentiment score from recent company headlines",
       "AI summaries that explain what the news means",
@@ -12321,13 +12313,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Enterprise Value", metrics.enterpriseValue),
       metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
-      metricLine("WACC", metrics.wacc),
-      metricLine("Cost of Equity", metrics.costOfEquity),
-      metricLine("After-Tax Cost of Debt", metrics.afterTaxCostOfDebt),
-      metricLine("Tax Rate", metrics.taxRate),
-      metricLine("DCF Enterprise Value", metrics.dcfEnterpriseValue),
-      metricLine("Intrinsic Value", metrics.intrinsicValue),
-      metricLine("Intrinsic Value Gap", metrics.intrinsicValueGap),
       metricLine("News Sentiment", metrics.newsSentiment),
       metricLine("Dividend Yield", metrics.dividendYield),
     ]),
@@ -12402,21 +12387,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       "Company value estimate calculated as market cap plus total debt minus cash.",
     ],
     [
-      "WACC",
-      metrics.wacc,
-      "Estimated discount rate from cost of equity and after-tax cost of debt.",
-    ],
-    [
-      "Intrinsic Value",
-      metrics.intrinsicValue,
-      "DCF equity value per share using projected free cash flow.",
-    ],
-    [
-      "Intrinsic Value Gap",
-      metrics.intrinsicValueGap,
-      "Percent difference between intrinsic value and current stock price.",
-    ],
-    [
       "EBITDA",
       metrics.ebitda,
       "Operating earnings estimate before interest, taxes, depreciation, and amortization.",
@@ -12448,7 +12418,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         onScoreBreakdown={openScoreBreakdownDashboard}
         scoreBreakdownOpen={scoreBreakdownOpen}
       />
-      <DcfCalculatorPanel data={data} />
 
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
