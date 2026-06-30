@@ -11848,10 +11848,7 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
     return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
   }, [symbol]);
 
-  const rawLogo = data?.profile?.logo;
-  const logo = typeof rawLogo === "string"
-    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : ""))
-    : "";
+  const logo = symbol ? `${API}/api/company-logo/${encodeURIComponent(String(symbol).toUpperCase())}` : "";
   const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
