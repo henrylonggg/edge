@@ -196,6 +196,33 @@ const MOBILE_NAV_ARROW_COLOR_STORAGE_KEY = "eval-mobile-nav-arrow-color-v1";
 const MOBILE_SEARCH_TARGET_STORAGE_KEY = "eval-mobile-search-target-v1";
 const MOBILE_HOME_TARGET_STORAGE_KEY = "eval-mobile-home-target-v1";
 const LANDING_LOGO_COLOR_STORAGE_KEY = "eval-landing-logo-color-v1";
+const ANALYSIS_LOCAL_CACHE_PREFIX = "eval-analysis-cache-v1:";
+const ANALYSIS_LOCAL_CACHE_MS = 24 * 60 * 60 * 1000;
+
+function analysisCacheKey(symbol) {
+  return `${ANALYSIS_LOCAL_CACHE_PREFIX}${String(symbol || "").trim().toUpperCase()}`;
+}
+
+function readLocalAnalysis(symbol) {
+  try {
+    const raw = localStorage.getItem(analysisCacheKey(symbol));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.data || !parsed?.savedAt) return null;
+    if (Date.now() - Number(parsed.savedAt) > ANALYSIS_LOCAL_CACHE_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalAnalysis(symbol, data) {
+  try {
+    if (!symbol || !data) return;
+    localStorage.setItem(analysisCacheKey(symbol), JSON.stringify({ savedAt: Date.now(), data }));
+  } catch {}
+}
+
 
 const DASHBOARD_START_OPTIONS = [
   { key: "dashboard", label: "Dashboard" },
@@ -403,7 +430,6 @@ function categoryLabel(key) {
       valuation: "Valuation",
       momentum: "Momentum",
       reversal: "Pullback",
-        quality: "Quality",
     }[key] || key
   );
 }
@@ -1027,6 +1053,13 @@ function App() {
     }
 
     try {
+      const cached = !options?.forceRefresh ? readLocalAnalysis(clean) : null;
+      if (cached) {
+        if (!skipState) setData(cached);
+        if (!silent) setLoading(false);
+        return cached;
+      }
+
       const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
 
       const res = await fetch(url, {
@@ -1047,6 +1080,7 @@ function App() {
         );
       }
 
+      saveLocalAnalysis(clean, json);
       if (!skipState) {
         setData(json);
       }
@@ -1084,6 +1118,9 @@ function App() {
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
       risk: analyzed?.grades?.riskLabel || "N/A",
+      price: null,
+      change: null,
+      changePercent: null,
       strongest: strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A",
       weakest: weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A",
       updatedAt: new Date().toISOString(),
@@ -3015,7 +3052,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
 }
 
 function weightedMetricEntriesFromIndustry(group) {
-  const metricKeys = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback", "quality"];
+  const metricKeys = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback"];
   const holdings = Array.isArray(group?.holdings) ? group.holdings : [];
   return metricKeys.map((key) => {
     const weighted = holdings.reduce((sum, holding) => {
@@ -11326,6 +11363,7 @@ function Watchlist({
   pageMode = false,
 }) {
   const [manual, setManual] = useState("");
+
   return (
     <aside className={`watch-panel eval-watchlist-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
       <div className="panel-head">
@@ -11379,7 +11417,7 @@ function Watchlist({
             const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
-                <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)}>
+                <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <span className="watch-logo-shell" aria-hidden="true">
                     <img src={logoSrc} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
                     <b>{ticker.slice(0, 1)}</b>
@@ -11826,7 +11864,10 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
     return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
   }, [symbol]);
 
-  const logo = symbol ? `${API}/api/company-logo/${encodeURIComponent(String(symbol).toUpperCase())}` : "";
+  const rawLogo = data?.profile?.logo;
+  const logo = typeof rawLogo === "string"
+    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : ""))
+    : "";
   const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
@@ -12173,8 +12214,11 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   return (
     <>
       <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel score-panel-text-only">
-          <EvalScoreTextBadge value={edge} className="dashboard-eval-score-text" />
+        <div className="score-panel">
+          <ScoreRingSvg
+            value={edge}
+            className={`score-ring main-dashboard-pie-theme pie-theme-${pieTheme}`}
+          />
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
@@ -12246,6 +12290,17 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
         <div className="snapshot-grid snapshot-grid-refined">
           <MiniStat
+            icon={<Activity size={17} />}
+            label="Price"
+            value={money(data.quote?.c)}
+            className="price-mini-stat"
+            extra={
+              <span className={`daily-change-chip ${dailyChangeClass(data.quote?.dp)}`}>
+                {signedPercent(data.quote?.dp)}
+              </span>
+            }
+          />
+          <MiniStat
             icon={<ShieldCheck size={17} />}
             label="Risk"
             value={data.grades.riskLabel}
@@ -12254,6 +12309,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
       </section>
 
+      <EvalStockChartPanel data={data} edgeScore={edge} />
       <DcfCalculatorPanel data={data} />
 
       {scoreBreakdownOpen && (
