@@ -41879,3 +41879,60 @@ body {
 .eval-chart-hero-right {
   align-items: center !important;
 }
+
+
+/* Final manual-refresh + gradient text-only Eval Score patch */
+.eval-chart-score-side,
+.eval-chart-score-side.no-label {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 6px !important;
+  min-width: 132px !important;
+}
+.eval-score-text-badge,
+.eval-score-text-badge.watch-score-plain,
+.eval-chart-score-side .eval-score-text-badge,
+.eval-score-text-badge.eval-stock-chart-score {
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,.15)) drop-shadow(0 0 24px rgba(159,92,255,.10)) !important;
+}
+.eval-score-text-badge.green,
+.eval-chart-score-side .eval-score-text-badge.green {
+  background-image: linear-gradient(115deg, #8dff4a 0%, #21f59a 45%, #12d8ff 100%) !important;
+}
+.eval-score-text-badge.yellow,
+.eval-chart-score-side .eval-score-text-badge.yellow {
+  background-image: linear-gradient(115deg, #fff46b 0%, #ffd166 48%, #ff8a1f 100%) !important;
+}
+.eval-score-text-badge.red,
+.eval-chart-score-side .eval-score-text-badge.red {
+  background-image: linear-gradient(115deg, #ff3d5f 0%, #ff6b35 50%, #ff9f1c 100%) !important;
+}
+.eval-score-text-badge.neutral,
+.eval-chart-score-side .eval-score-text-badge.neutral {
+  background-image: linear-gradient(115deg, #ffffff 0%, #15e7ff 100%) !important;
+}
+.eval-stock-company-lockup h3 {
+  font-size: clamp(16px, 1.55vw, 24px) !important;
+  max-width: 620px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.eval-live-price-panel strong {
+  font-size: clamp(32px, 3.4vw, 52px) !important;
+}
+.eval-live-change {
+  font-size: clamp(14px, 1.2vw, 18px) !important;
+}
+.eval-stock-logo,
+.watch-logo-shell img {
+  object-fit: contain !important;
+}
