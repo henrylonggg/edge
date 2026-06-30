@@ -234,6 +234,50 @@ function cleanTwelveNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function normalizeTwelveKey(key = "") {
+  return String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function deepFindTwelveNumber(obj, keyNames = [], depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 5) return null;
+  const targets = new Set(keyNames.map(normalizeTwelveKey));
+  for (const [key, value] of Object.entries(obj)) {
+    if (targets.has(normalizeTwelveKey(key))) {
+      const num = cleanTwelveNumber(value);
+      if (num !== null) return num;
+    }
+  }
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object") {
+      const found = deepFindTwelveNumber(value, keyNames, depth + 1);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+function deepFindTwelveList(obj, preferredKeys = [], depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 5) return [];
+  if (Array.isArray(obj)) return obj;
+  const targets = preferredKeys.map(normalizeTwelveKey);
+  for (const [key, value] of Object.entries(obj)) {
+    if (targets.includes(normalizeTwelveKey(key)) && Array.isArray(value)) return value;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (targets.includes(normalizeTwelveKey(key)) && value && typeof value === "object") {
+      const nested = deepFindTwelveList(value, preferredKeys, depth + 1);
+      if (nested.length) return nested;
+    }
+  }
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object") {
+      const nested = deepFindTwelveList(value, preferredKeys, depth + 1);
+      if (nested.length) return nested;
+    }
+  }
+  return [];
+}
+
 function normalizeTwelveQuote(data = {}) {
   const current = firstNumber(
     cleanTwelveNumber(data?.close),
@@ -423,10 +467,11 @@ function fmpPercent(value) {
 function twelveList(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
-  for (const key of ["values", "data", "income_statement", "balance_sheet", "cash_flow", "statements", "items", "result"]) {
-    if (Array.isArray(data?.[key])) return data[key];
-  }
-  return typeof data === "object" ? [data] : [];
+  const list = deepFindTwelveList(data, [
+    "values", "data", "income_statement", "incomeStatements", "incomeStatement", "annualReports", "quarterlyReports",
+    "balance_sheet", "balanceSheets", "balanceSheet", "cash_flow", "cashFlows", "cashFlow", "statements", "items", "result", "results"
+  ]);
+  return list.length ? list : (typeof data === "object" ? [data] : []);
 }
 
 function twelveLatest(data) {
@@ -439,7 +484,7 @@ function pickTwelveNumber(obj = {}, keys = []) {
     const value = cleanTwelveNumber(obj?.[key]);
     if (value !== null) return value;
   }
-  return null;
+  return deepFindTwelveNumber(obj, keys);
 }
 
 function pctChangeFromList(list, key) {
@@ -452,21 +497,29 @@ function pctChangeFromList(list, key) {
 }
 
 async function fetchTwelveDataFundamentals(symbol) {
-  const [statistics, incomeRaw, balanceRaw, cashRaw, earningsRaw] = await Promise.all([
+  const [statisticsRaw, incomeRaw, balanceRaw, cashRaw, incomeQuarterlyRaw, balanceQuarterlyRaw, cashQuarterlyRaw, earningsRaw] = await Promise.all([
     fetchTwelveDataOptional("/statistics", { symbol }),
     fetchTwelveDataOptional("/income_statement", { symbol, period: "annual" }),
     fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual" }),
     fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual" }),
+    fetchTwelveDataOptional("/income_statement", { symbol, period: "quarterly" }),
+    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "quarterly" }),
+    fetchTwelveDataOptional("/cash_flow", { symbol, period: "quarterly" }),
     fetchTwelveDataOptional("/earnings", { symbol }),
   ]);
 
-  const s = statistics || {};
+  const s = statisticsRaw?.statistics || statisticsRaw?.data || statisticsRaw || {};
   const incomeList = twelveList(incomeRaw);
   const balanceList = twelveList(balanceRaw);
   const cashList = twelveList(cashRaw);
-  const income = incomeList[0] || {};
-  const balance = balanceList[0] || {};
-  const cash = cashList[0] || {};
+  const incomeQuarterlyList = twelveList(incomeQuarterlyRaw);
+  const balanceQuarterlyList = twelveList(balanceQuarterlyRaw);
+  const cashQuarterlyList = twelveList(cashQuarterlyRaw);
+  const income = incomeList[0] || incomeQuarterlyList[0] || {};
+  const balance = balanceList[0] || balanceQuarterlyList[0] || {};
+  const cash = cashList[0] || cashQuarterlyList[0] || {};
+  const qIncome = incomeQuarterlyList[0] || {};
+  const qPriorIncome = incomeQuarterlyList[4] || incomeQuarterlyList[1] || {};
 
   const revenue = firstNumber(
     pickTwelveNumber(income, ["revenue", "total_revenue", "totalRevenue", "sales"]),
@@ -476,9 +529,12 @@ async function fetchTwelveDataFundamentals(symbol) {
   const grossProfit = pickTwelveNumber(income, ["gross_profit", "grossProfit"]);
   const operatingIncome = pickTwelveNumber(income, ["operating_income", "operatingIncome", "ebit"]);
   const pretaxIncome = pickTwelveNumber(income, ["income_before_tax", "pretax_income", "incomeBeforeTax"]);
-  const eps = firstNumber(pickTwelveNumber(income, ["eps", "diluted_eps", "eps_diluted"]), pickTwelveNumber(s, ["eps", "eps_ttm", "trailing_eps"]));
+  const interestExpense = pickTwelveNumber(income, ["interest_expense", "interestExpense"]);
+  const ebit = firstNumber(pickTwelveNumber(income, ["ebit", "operating_income", "operatingIncome"]), operatingIncome);
+  const ebitda = firstNumber(pickTwelveNumber(income, ["ebitda"]), pickTwelveNumber(s, ["ebitda", "ebitda_ttm"]));
+  const eps = firstNumber(pickTwelveNumber(income, ["eps", "diluted_eps", "eps_diluted", "epsDiluted"]), pickTwelveNumber(s, ["eps", "eps_ttm", "trailing_eps"]));
 
-  const totalDebt = firstNumber(pickTwelveNumber(balance, ["total_debt", "short_long_term_debt_total", "long_term_debt", "totalDebt"]), pickTwelveNumber(s, ["total_debt"]));
+  const totalDebt = firstNumber(pickTwelveNumber(balance, ["total_debt", "short_long_term_debt_total", "shortLongTermDebtTotal", "long_term_debt", "short_term_debt", "totalDebt"]), pickTwelveNumber(s, ["total_debt", "totalDebt"]));
   const equity = firstNumber(pickTwelveNumber(balance, ["total_equity", "total_shareholder_equity", "shareholder_equity", "totalStockholderEquity"]), pickTwelveNumber(s, ["shareholder_equity"]));
   const assets = firstNumber(pickTwelveNumber(balance, ["total_assets", "totalAssets"]), pickTwelveNumber(s, ["total_assets"]));
   const currentAssets = pickTwelveNumber(balance, ["total_current_assets", "current_assets", "totalCurrentAssets"]);
@@ -491,7 +547,17 @@ async function fetchTwelveDataFundamentals(symbol) {
   const capex = pickTwelveNumber(cash, ["capital_expenditures", "capital_expenditure", "capex"]);
   const fcf = firstNumber(pickTwelveNumber(cash, ["free_cash_flow", "freeCashFlow"]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
 
-  const shares = firstNumber(pickTwelveNumber(s, ["shares_outstanding", "weighted_average_shares", "shares"]), pickTwelveNumber(income, ["weighted_average_shares", "weightedAverageShsOut"]));
+  const shares = firstNumber(pickTwelveNumber(s, ["shares_outstanding", "weighted_average_shares", "shares", "sharesOutstanding"]), pickTwelveNumber(income, ["weighted_average_shares", "weightedAverageShsOut", "weightedAverageSharesOutstanding"]));
+  const marketCap = firstNumber(pickTwelveNumber(s, ["market_capitalization", "market_cap", "marketCapitalization", "marketCap"]));
+  const enterpriseValue = firstNumber(pickTwelveNumber(s, ["enterprise_value", "enterpriseValue"]), marketCap !== null ? marketCap + (totalDebt || 0) - (cashEq || 0) : null);
+  const investedCapital = firstNumber(pickTwelveNumber(s, ["invested_capital", "investedCapital"]), equity !== null || totalDebt !== null || cashEq !== null ? (equity || 0) + (totalDebt || 0) - (cashEq || 0) : null);
+  const taxRateDecimal = pretaxIncome && netIncome !== null ? Math.max(0, Math.min(0.5, 1 - (netIncome / pretaxIncome))) : null;
+  const nopat = ebit !== null ? ebit * (1 - (taxRateDecimal ?? 0.21)) : null;
+  const qRevenueGrowth = (() => {
+    const latest = pickTwelveNumber(qIncome, ["revenue", "total_revenue", "totalRevenue", "sales"]);
+    const prior = pickTwelveNumber(qPriorIncome, ["revenue", "total_revenue", "totalRevenue", "sales"]);
+    return latest !== null && prior !== null && prior !== 0 ? ((latest - prior) / Math.abs(prior)) * 100 : null;
+  })();
 
   return {
     raw: { statistics, income, balance, cash, earnings: earningsRaw },
@@ -507,10 +573,13 @@ async function fetchTwelveDataFundamentals(symbol) {
       operatingCashFlow,
       capex,
       freeCashFlow: fcf,
-      revenueGrowth: firstNumber(pickTwelveNumber(s, ["revenue_growth", "revenue_growth_ttm"]), pctChangeFromList(incomeList, "revenue")),
-      revenueGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "revenue"),
-      epsGrowth: pctChangeFromList(incomeList, "eps"),
-      epsGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "eps"),
+      revenueGrowth: firstNumber(pickTwelveNumber(s, ["revenue_growth", "revenue_growth_ttm", "revenueGrowth", "revenueGrowthTTM"]), pctChangeFromList(incomeList, "revenue"), pctChangeFromList(incomeList, "total_revenue")),
+      revenueGrowthQuarterly: qRevenueGrowth,
+      revenueGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "revenue"), pctChangeFromList(incomeList.slice(0,4), "total_revenue")),
+      revenueGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "revenue"), pctChangeFromList(incomeList.slice(0,6), "total_revenue")),
+      epsGrowth: firstNumber(pickTwelveNumber(s, ["eps_growth", "epsGrowth"]), pctChangeFromList(incomeList, "eps"), pctChangeFromList(incomeList, "diluted_eps")),
+      epsGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "eps"), pctChangeFromList(incomeList.slice(0,4), "diluted_eps")),
+      epsGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "eps"), pctChangeFromList(incomeList.slice(0,6), "diluted_eps")),
       netIncomeGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "net_income"),
       grossMargin: firstNumber(pickTwelveNumber(s, ["gross_margin", "gross_margin_ttm"]), revenue && grossProfit !== null ? grossProfit / revenue * 100 : null),
       operatingMargin: firstNumber(pickTwelveNumber(s, ["operating_margin", "operating_margin_ttm"]), revenue && operatingIncome !== null ? operatingIncome / revenue * 100 : null),
@@ -518,12 +587,15 @@ async function fetchTwelveDataFundamentals(symbol) {
       netMargin: firstNumber(pickTwelveNumber(s, ["profit_margin", "net_margin", "net_profit_margin_ttm"]), revenue && netIncome !== null ? netIncome / revenue * 100 : null),
       roe: firstNumber(pickTwelveNumber(s, ["return_on_equity", "roe"]), equity && netIncome !== null ? netIncome / equity * 100 : null),
       roa: firstNumber(pickTwelveNumber(s, ["return_on_assets", "roa"]), assets && netIncome !== null ? netIncome / assets * 100 : null),
-      roicCalculated: null,
+      roicCalculated: firstNumber(pickTwelveNumber(s, ["return_on_invested_capital", "roic"]), investedCapital && nopat !== null ? (nopat / investedCapital) * 100 : null),
+      nopat,
+      investedCapital,
       debtToEquity: firstNumber(pickTwelveNumber(s, ["debt_to_equity", "debt_equity_ratio"]), equity && totalDebt !== null ? totalDebt / equity : null),
       longTermDebtToEquity: equity && longTermDebt !== null ? longTermDebt / equity : null,
       currentRatio: firstNumber(pickTwelveNumber(s, ["current_ratio"]), currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null),
       quickRatio: currentAssets && inventory !== null && currentLiabilities ? (currentAssets - inventory) / currentLiabilities : pickTwelveNumber(s, ["quick_ratio"]),
       cashRatio: cashEq !== null && currentLiabilities ? cashEq / currentLiabilities : null,
+      interestCoverage: interestExpense ? Math.abs(ebit || operatingIncome || 0) / Math.abs(interestExpense) : pickTwelveNumber(s, ["interest_coverage", "interestCoverage"]),
       cashFlowToDebt: totalDebt && operatingCashFlow !== null ? operatingCashFlow / totalDebt : null,
       freeCashFlowPerShare: shares && fcf !== null ? fcf / shares : null,
       operatingCashFlowPerShare: shares && operatingCashFlow !== null ? operatingCashFlow / shares : null,
@@ -532,11 +604,14 @@ async function fetchTwelveDataFundamentals(symbol) {
       pegRatio: pickTwelveNumber(s, ["peg_ratio"]),
       priceToSales: pickTwelveNumber(s, ["price_to_sales", "price_sales_ttm"]),
       priceToBook: pickTwelveNumber(s, ["price_to_book", "price_book"]),
-      priceToCashFlow: pickTwelveNumber(s, ["price_to_cash_flow"]),
-      priceToFreeCashFlow: pickTwelveNumber(s, ["price_to_free_cash_flow"]),
+      priceToCashFlow: firstNumber(pickTwelveNumber(s, ["price_to_cash_flow", "priceCashFlowRatio"]), marketCap && operatingCashFlow ? marketCap / operatingCashFlow : null),
+      priceToFreeCashFlow: firstNumber(pickTwelveNumber(s, ["price_to_free_cash_flow", "priceFreeCashFlowRatio"]), marketCap && fcf ? marketCap / fcf : null),
       dividendYield: pickTwelveNumber(s, ["dividend_yield", "trailing_annual_dividend_yield"]),
       beta: pickTwelveNumber(s, ["beta"]),
-      marketCapM: toMillions(pickTwelveNumber(s, ["market_capitalization", "market_cap", "marketCapitalization"])),
+      marketCapM: toMillions(marketCap),
+      enterpriseValue: toMillions(enterpriseValue),
+      ebitda: toMillions(ebitda),
+      evToEbitda: enterpriseValue && ebitda ? enterpriseValue / ebitda : null,
       sharesOutstanding: shares,
       revenuePerShare: shares && revenue ? revenue / shares : null,
       eps,
@@ -1619,7 +1694,7 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
     generatedAt: new Date().toISOString(),
     headline: `${companyName} scores ${scoreText(edgeScore)} because ${strongestLabel.toLowerCase()} is the clearest support while ${weakestLabel.toLowerCase()} is the main drag.`,
     verdict: safeNumber(edgeScore) >= 7.5 ? "Strong company profile" : safeNumber(edgeScore) >= 6.5 ? "Mixed but usable profile" : "Needs stronger data support",
-    summary: `${companyName}'s Eval Score blends company fundamentals, market behavior, valuation, and recent news. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
+    summary: `${companyName}'s Eval Score blends company fundamentals, valuation, market behavior, and quality inputs. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
     metricBreakdown: [
       {
         category: "Growth",
@@ -1721,13 +1796,13 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
           {
             role: "system",
             content:
-              "You generate clear stock score explanations for Eval. Use only the provided company data, metrics, category scores, profile/industry context, and recent news summaries. Explain why the Eval Score is where it is, explain what each metric means in beginner-friendly language, and connect the score to real-world company context without giving buy/sell/hold advice. Return only valid JSON.",
+              "You generate clear stock score explanations for Eval. Use only the provided company data, metrics, category scores, profile/industry context, . Explain why the Eval Score is where it is, explain what each metric means in beginner-friendly language, and connect the score to real-world company context without giving buy/sell/hold advice. Return only valid JSON.",
           },
           {
             role: "user",
             content: JSON.stringify({
               instructions:
-                "Return JSON with keys: headline, verdict, summary, metricBreakdown, positives, concerns, takeaway. Do not include a newsConnection key. summary must be 4-6 polished sentences explaining the company-specific reason for the Eval Score using the metrics, industry context, and relevant recent news context. metricBreakdown must be 5-7 objects with category, score, tone, why. Each why must explain what that metric/category means, cite the specific provided metric values when available, and explain why it helps or hurts this specific company. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
+                "Return JSON with keys: headline, verdict, summary, metricBreakdown, positives, concerns, takeaway. Do not include a newsConnection key. summary must be 4-6 polished sentences explaining the company-specific reason for the Eval Score using the metrics, industry context, . metricBreakdown must be 5-7 objects with category, score, tone, why. Each why must explain what that metric/category means, cite the specific provided metric values when available, and explain why it helps or hurts this specific company. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
               data: payload,
             }),
           },
@@ -1800,8 +1875,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
 
   const [twelveProfile, twelveQuote, twelveMarket, twelveFundamentals] = await Promise.all([
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
-    refreshMarket ? fetchTwelveDataQuote(cleanSymbol) : (cachedReport?.quote || null),
-    refreshMarket ? fetchTwelveDataMarketData(cleanSymbol) : { quote: cachedReport?.quote || null, metrics: metricsFromCachedReport(cachedReport), source: "Twelve Data cached report" },
+    null,
+    { quote: null, metrics: {}, source: "Market price data disabled" },
     (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {} },
   ]);
 
@@ -1894,5 +1969,5 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
-  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: safeNumber(quote?.c), d: safeNumber(quote?.d), dp: safeNumber(quote?.dp), h: safeNumber(quote?.h), l: safeNumber(quote?.l), o: safeNumber(quote?.o), pc: safeNumber(quote?.pc) }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
+  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
 }
