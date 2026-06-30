@@ -459,7 +459,7 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "quality", "momentum", "pullback"];
+const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "newsSentiment", "momentum", "pullback"];
 const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
 
 function categoryLabel(key) {
@@ -469,7 +469,7 @@ function categoryLabel(key) {
       profitability: "Profitability",
       financialHealth: "Financial Health",
       valuation: "Valuation",
-      quality: "Quality",
+      newsSentiment: "News Sentiment",
       momentum: "Momentum",
       pullback: "Pullback",
     }[key] || key
@@ -1152,26 +1152,7 @@ function App() {
     if (!forceRefresh) analyzeInFlightRef.current.set(clean, analysisPromise);
     return analysisPromise;
   }
-
-
-  useEffect(() => {
-    if (view !== "dashboard") return undefined;
-    const clean = String(symbol || "").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "").slice(0, 8);
-    if (!clean) return undefined;
-    if (!/^[A-Z][A-Z0-9.\-]{0,7}$/.test(clean)) return undefined;
-    if (String(data?.symbol || "").toUpperCase() === clean) return undefined;
-    if (autoAnalyzeLastRef.current === clean) return undefined;
-
-    const timer = window.setTimeout(() => {
-      autoAnalyzeLastRef.current = clean;
-      setTickerInputLocked(true);
-      Promise.resolve(analyze(null, clean)).finally(() => {
-        window.setTimeout(() => setTickerInputLocked(false), 500);
-      });
-    }, 500);
-
-    return () => window.clearTimeout(timer);
-  }, [symbol, view, data?.symbol]);
+  // Dashboard searches only when the user clicks the Search button or presses Enter.
 
   function buildStockListItem(analyzed, fallbackSymbol) {
     const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
@@ -1715,7 +1696,7 @@ function App() {
           ) : portfolioDetailError ? (
             <div className="error-banner"><AlertTriangle size={18}/>{portfolioDetailError}</div>
           ) : portfolioDetailData ? (
-            <Report data={portfolioDetailData} onAdd={() => addTicker(portfolioDetailData.symbol)} onOpenIndustry={openIndustryPage} pieTheme={mainPieTheme} />
+            <Report data={portfolioDetailData} onAdd={null} onOpenIndustry={openIndustryPage} pieTheme={mainPieTheme} />
           ) : (
             <EmptyReport />
           )}
@@ -2355,7 +2336,7 @@ function ComparePage({
     "profitability",
     "financialHealth",
     "valuation",
-    "quality",
+    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -2464,7 +2445,7 @@ function IndustryRadar({ leaders }) {
     "profitability",
     "financialHealth",
     "valuation",
-    "quality",
+    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -11984,7 +11965,7 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   if (Number.isFinite(Number(livePrice)) && sourceRows.length) {
     sourceRows = [...sourceRows.slice(0, -1), { ...sourceRows[sourceRows.length - 1], close: Number(livePrice), live: true }];
   }
-  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y) && p.y > 0);
   const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
   if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
   const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
@@ -12025,7 +12006,6 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
         <text x={lowX} y={lowLabelY} textAnchor="middle">{money(lowPoint.y)}</text>
       </g>
       <line x1={startX} x2={startX} y1="34" y2="232" className="eval-chart-current-price-line" />
-      <circle cx={startX} cy={startY} r="5" className="eval-chart-current-price-dot" />
       {projectionPoints.map((proj) => {
         const endX = width - 28;
         const endY = yScale(Number(proj.targetPrice));
@@ -12054,8 +12034,8 @@ const EVAL_CHART_RANGES = [
   { key: "1M", label: "1M", interval: "1day", outputsize: 32, historicalEod: true },
   { key: "3M", label: "3M", interval: "1day", outputsize: 90, historicalEod: true },
   { key: "6M", label: "6M", interval: "1day", outputsize: 180, historicalEod: true },
-  { key: "1Y", label: "1Y", interval: "1day", outputsize: 365, historicalEod: true },
-  { key: "5Y", label: "5Y", interval: "1week", outputsize: 260, historicalEod: true },
+  { key: "1Y", label: "1Y", interval: "1week", outputsize: 58, historicalEod: true },
+  { key: "5Y", label: "5Y", interval: "1month", outputsize: 62, historicalEod: true },
 ];
 
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
@@ -12189,8 +12169,9 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
 
   const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const current = Number(live?.current ?? data?.quote?.c);
-  const change = Number(live?.change ?? data?.quote?.d);
-  const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
+  const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
+  const change = Number.isFinite(current) && Number.isFinite(previousCloseForChange) && previousCloseForChange > 0 ? current - previousCloseForChange : Number(live?.change ?? data?.quote?.d);
+  const changePercent = Number.isFinite(change) && Number.isFinite(previousCloseForChange) && previousCloseForChange > 0 ? (change / previousCloseForChange) * 100 : Number(live?.changePercent ?? data?.quote?.dp);
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
   return (
@@ -12223,7 +12204,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
       {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} />}
 
       <div className="eval-chart-hero-actions">
-        <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>
+        {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
         <button type="button" className="score-metrics-jump-btn" onClick={onMetrics}>Metrics</button>
         <button type="button" className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`} onClick={onScoreBreakdown}>Score Breakdown</button>
       </div>
@@ -12374,10 +12355,10 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
     financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
-    quality: "Shows how durable and efficient the business looks. Higher means cash conversion, returns on capital, and operating consistency are stronger.",
+    newsSentiment: "Shows whether the latest company-specific headlines look helpful, neutral, or negative for the current stock backdrop.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     pullback: "Shows whether the stock has cooled off from highs without completely breaking down. Higher means the entry setup looks less stretched.",
-    newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
+    newsSentiment: "Scores the latest Finnhub company-news articles with AI and includes the weighted result in the Eval Score.",
   };
 
   const categoryMetrics = {
@@ -12423,13 +12404,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
     ]),
-    quality: usableMetricLines([
-      metricLine("ROIC Quality", metrics.roicCalculated),
-      metricLine("FCF Margin", metrics.fcfMargin),
-      metricLine("OCF Margin", metrics.ocfMargin),
-      metricLine("Cash Conversion", metrics.cashConversionRatio),
-      metricLine("Accrual Ratio", metrics.accrualRatio),
-      metricLine("Asset Turnover", metrics.assetTurnover),
+    newsSentiment: usableMetricLines([
+      metricLine("Weighted News Score", metrics.newsSentiment),
     ]),
     momentum: usableMetricLines([
       metricLine("Beta", metrics.beta),
@@ -12445,9 +12421,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("4-Week Cooling", metrics.priceReturn4Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
       metricLine("Daily Dip", metrics.dayChangePercent),
-    ]),
-    newsSentiment: usableMetricLines([
-      metricLine("Weighted News Score", metrics.newsSentiment),
     ]),
   };
 
@@ -12579,7 +12552,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         </section>
       )}
 
-      {false && newsTopics.length > 0 && (
+      {newsTopics.length > 0 && (
         <section className="news-sentiment-card">
           <div className="section-title news-section-title">
             <Newspaper size={17} />
@@ -12668,15 +12641,15 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           }
         />
         <Grade
-          id="quality"
-          name="Quality"
-          value={cats.quality}
-          icon={<Gauge size={18} />}
-          description={gradeDescriptions.quality}
-          metricsUsed={categoryMetrics.quality}
-          isOpen={openScoreHelp === "quality"}
+          id="newsSentiment"
+          name="News Sentiment"
+          value={cats.newsSentiment}
+          icon={<Newspaper size={18} />}
+          description={gradeDescriptions.newsSentiment}
+          metricsUsed={categoryMetrics.newsSentiment}
+          isOpen={openScoreHelp === "newsSentiment"}
           onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "quality" ? null : "quality")
+            setOpenScoreHelp(openScoreHelp === "newsSentiment" ? null : "newsSentiment")
           }
         />
         <Grade
