@@ -17,7 +17,12 @@ const CATEGORY_LABELS = {
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
 const DAY_MS_SCORE = 24 * 60 * 60 * 1000;
 const twelveProviderCache = new Map();
-const TWELVE_PROVIDER_CACHE_MAX = 900;
+const twelveProviderInFlight = new Map();
+const TWELVE_PROVIDER_CACHE_MAX = 1400;
+const PERMANENT_IDENTITY_CACHE_MS_SCORE = 10 * 365 * DAY_MS_SCORE;
+const DAILY_METRIC_CACHE_MS_SCORE = 1 * DAY_MS_SCORE;
+const QUARTERLY_METRIC_CACHE_MS_SCORE = 120 * DAY_MS_SCORE;
+const YEARLY_METRIC_CACHE_MS_SCORE = 180 * DAY_MS_SCORE;
 
 function stableTwelveCacheKey(endpoint, params = {}) {
   const entries = Object.entries(params)
@@ -36,16 +41,26 @@ function isPostMarketCloseEtScore() {
 
 function twelveProviderTtlMs(endpoint, params = {}) {
   const interval = String(params?.interval || "").toLowerCase();
-  if (endpoint === "/quote" || endpoint === "/price") return 10 * 1000;
-  if (endpoint === "/profile" || endpoint === "/logo") return 30 * DAY_MS_SCORE;
-  if (["/income_statement", "/balance_sheet", "/cash_flow", "/earnings"].includes(endpoint)) return 14 * DAY_MS_SCORE;
-  if (endpoint === "/statistics") return 24 * 60 * 60 * 1000;
-  if (endpoint === "/time_series") {
-    if (interval.includes("min")) return 60 * 1000;
-    if (isPostMarketCloseEtScore()) return 18 * 60 * 60 * 1000;
-    return 15 * 60 * 1000;
+  const period = String(params?.period || "").toLowerCase();
+
+  if (endpoint === "/profile" || endpoint === "/logo") return PERMANENT_IDENTITY_CACHE_MS_SCORE;
+  if (endpoint === "/quote" || endpoint === "/price") return 60 * 1000;
+
+  if (["/income_statement", "/balance_sheet", "/cash_flow"].includes(endpoint)) {
+    if (period.includes("quarter")) return QUARTERLY_METRIC_CACHE_MS_SCORE;
+    return YEARLY_METRIC_CACHE_MS_SCORE;
   }
-  return 60 * 1000;
+
+  if (endpoint === "/earnings") return QUARTERLY_METRIC_CACHE_MS_SCORE;
+  if (endpoint === "/statistics") return DAILY_METRIC_CACHE_MS_SCORE;
+
+  if (endpoint === "/time_series") {
+    if (interval.includes("min")) return 10 * 60 * 1000;
+    if (isPostMarketCloseEtScore()) return 36 * 60 * 60 * 1000;
+    return 6 * 60 * 60 * 1000;
+  }
+
+  return DAILY_METRIC_CACHE_MS_SCORE;
 }
 
 function readTwelveProviderCache(endpoint, params = {}) {
@@ -142,20 +157,28 @@ async function fetchTwelveDataOptional(endpoint, params = {}) {
   const cached = readTwelveProviderCache(endpoint, params);
   if (cached !== undefined) return cached;
 
-  const url = new URL(`${TWELVE_DATA_BASE_URL}${endpoint}`);
-  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
+  const requestKey = stableTwelveCacheKey(endpoint, params);
+  if (twelveProviderInFlight.has(requestKey)) return twelveProviderInFlight.get(requestKey);
 
-  const data = await fetchJsonOptional(url, "Twelve Data");
-  if (!data || data?.status === "error" || data?.code || data?.message === "**symbol** not found") {
-    if (data?.message) console.warn("Twelve Data returned message:", data.message);
-    return null;
-  }
-  writeTwelveProviderCache(endpoint, params, data);
-  return data;
+  const promise = (async () => {
+    const url = new URL(`${TWELVE_DATA_BASE_URL}${endpoint}`);
+    Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    const data = await fetchJsonOptional(url, "Twelve Data");
+    if (!data || data?.status === "error" || data?.code || data?.message === "**symbol** not found") {
+      if (data?.message) console.warn("Twelve Data returned message:", data.message);
+      return null;
+    }
+    writeTwelveProviderCache(endpoint, params, data);
+    return data;
+  })().finally(() => twelveProviderInFlight.delete(requestKey));
+
+  twelveProviderInFlight.set(requestKey, promise);
+  return promise;
 }
 
 function cleanTwelveNumber(value) {
@@ -563,6 +586,30 @@ function metricScore(value, points) {
   }
 
   return points.length ? points[points.length - 1][1] : null;
+}
+
+
+function scoreProfitMetric(value, thresholds = []) {
+  const n = scoreInputNumber(value);
+  if (n === null) return null;
+
+  const sorted = (Array.isArray(thresholds) ? thresholds : [])
+    .map((x) => safeNumber(x))
+    .filter((x) => x !== null)
+    .sort((a, b) => a - b);
+
+  if (!sorted.length) return null;
+
+  const scoreSteps = [5.2, 6.1, 7.0, 7.9, 8.8, 9.6, 10.0];
+  let bucket = 0;
+
+  for (const threshold of sorted) {
+    if (n >= threshold) bucket += 1;
+    else break;
+  }
+
+  if (n < 0) return 3.5;
+  return clamp(scoreSteps[Math.min(bucket, scoreSteps.length - 1)], 0, 10);
 }
 
 function inverseMetricScore(value, points) {
