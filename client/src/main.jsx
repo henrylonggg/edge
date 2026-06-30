@@ -1079,6 +1079,7 @@ function App() {
     return {
       symbol: clean,
       name: analyzed?.profile?.name || clean,
+      logo: `/api/company-logo/${encodeURIComponent(clean)}`,
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -11328,11 +11329,10 @@ function Watchlist({
   pageMode = false,
 }) {
   const [manual, setManual] = useState("");
-  const [changeModeByTicker, setChangeModeByTicker] = useState({});
+  const [watchChangeMode, setWatchChangeMode] = useState("dollar");
 
-  const toggleChangeMode = (ticker) => {
-    const clean = String(ticker || "").toUpperCase();
-    setChangeModeByTicker((prev) => ({ ...prev, [clean]: prev[clean] === "percent" ? "dollar" : "percent" }));
+  const toggleWatchChangeMode = () => {
+    setWatchChangeMode((prev) => (prev === "percent" ? "dollar" : "percent"));
   };
 
   return (
@@ -11345,14 +11345,19 @@ function Watchlist({
           <p>Max 10 stocks</p>
         </div>
 
-        <button
-          className="icon-btn"
-          onClick={onRefresh}
-          disabled={loading}
-          title="Refresh scores"
-        >
-          <RefreshCw size={16} className={loading ? "spin" : ""} />
-        </button>
+        <div className="watch-panel-actions">
+          <button type="button" className="watch-global-change-toggle" onClick={toggleWatchChangeMode} title="Toggle all watchlist changes">
+            {watchChangeMode === "percent" ? "%" : "$"}
+          </button>
+          <button
+            className="icon-btn"
+            onClick={onRefresh}
+            disabled={loading}
+            title="Refresh scores"
+          >
+            <RefreshCw size={16} className={loading ? "spin" : ""} />
+          </button>
+        </div>
       </div>
 <form
         className="watch-add"
@@ -11383,28 +11388,31 @@ function Watchlist({
         ) : (
           items.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const mode = changeModeByTicker[ticker] || "dollar";
             const changePercent = Number(item.changePercent);
             const changeDollar = Number(item.change);
             const changeTone = Number.isFinite(changePercent) ? (changePercent >= 0 ? "up" : "down") : Number.isFinite(changeDollar) && changeDollar >= 0 ? "up" : "down";
+            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}`;
             return (
-              <div className="watch-row watch-row-simple" key={item.symbol}>
-                <button className="watch-info watch-info-new" onClick={() => onAnalyze(item.symbol)}>
-                  <strong>{item.name || item.companyName || item.symbol}</strong>
-                  <span className="watch-ticker-under">{item.symbol}</span>
+              <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
+                <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)}>
+                  <span className="watch-logo-shell" aria-hidden="true">
+                    <img src={logoSrc} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                    <b>{ticker.slice(0, 1)}</b>
+                  </span>
+                  <span className="watch-ticker-main">{ticker}</span>
                 </button>
 
                 <div className="watch-price-stack">
                   <strong>{money(item.price)}</strong>
-                  <button type="button" className={`watch-change-toggle ${changeTone}`} onClick={() => toggleChangeMode(ticker)}>
-                    {mode === "percent" ? signedPercent(item.changePercent) : signedMoney(item.change)}
+                  <button type="button" className={`watch-change-toggle ${changeTone}`} onClick={toggleWatchChangeMode}>
+                    {watchChangeMode === "percent" ? signedPercent(item.changePercent) : signedMoney(item.change)}
                   </button>
                 </div>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
 
-                <button className="delete-btn" onClick={() => onRemove(item.symbol)} aria-label={`Remove ${item.symbol}`}>
-                  <Trash2 size={15} />
+                <button className="delete-btn delete-btn-icon-only" onClick={() => onRemove(item.symbol)} aria-label={`Remove ${item.symbol}`}>
+                  <Trash2 size={16} />
                 </button>
               </div>
             );
@@ -11851,7 +11859,7 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
     <section className="eval-stock-chart-shell eval-stock-quote-shell">
       <div className="eval-stock-chart-top">
         <div className="eval-stock-company-lockup">
-          {logo ? <img src={logo} alt="" className="eval-stock-logo" /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
+          {logo ? <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.style.display = "none"; }} /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
             <span>{symbol}</span>
@@ -11865,7 +11873,6 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
           </div>
         </div>
       </div>
-      <div className="eval-quote-no-chart-note">Live quote, cached fundamentals, and no historical chart calls on dashboard load.</div>
     </section>
   );
 }
