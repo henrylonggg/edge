@@ -1,10 +1,11 @@
-// Eval update: Growth, Pullback, Quality categories removed; EPS growth supports profitability/valuation.
+// Eval update: Core 5 scoring: Growth, Profitability, Financial Health, Valuation, Momentum.
 // Eval score.js Twelve Data only provider update.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
 const CATEGORY_LABELS = {
+  growth: "Growth",
   profitability: "Profitability",
   financialHealth: "Financial Health",
   valuation: "Valuation",
@@ -1716,6 +1717,12 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
     summary: `${companyName}'s Eval Score blends company fundamentals, market behavior, valuation, and recent news. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
     metricBreakdown: [
       {
+        category: "Growth",
+        score: safeNumber(categories?.growth),
+        tone: categoryTone(categories?.growth),
+        why: `Growth blends revenue growth, earnings growth, and recent stock movement. Revenue growth is ${simpleMetricText(metrics?.revenueGrowth, "%")} and EPS growth is ${simpleMetricText(metrics?.epsGrowth, "%")}.`,
+      },
+      {
         category: "Profitability",
         score: safeNumber(categories?.profitability),
         tone: categoryTone(categories?.profitability),
@@ -1939,33 +1946,43 @@ export async function buildStockAnalysis(symbol, options = {}) {
 
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
-  const earningsGrowthSupportScore = categoryAverage([
-    { score: metricScore(extracted.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.45 },
-    { score: metricScore(extracted.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.25 },
-    { score: metricScore(extracted.epsGrowth5Y, [[22, 10], [16, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
-    { score: metricScore(extracted.netIncomeGrowth3Y, [[30, 10], [20, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
+  const growthScore = categoryAverage([
+    { score: metricScore(extracted.revenueGrowth, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), weight: 0.30 },
+    { score: metricScore(extracted.revenueGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), weight: 0.18 },
+    { score: metricScore(extracted.revenueGrowth5Y, [[20, 10], [15, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-8, 4], [-999, 3]]), weight: 0.12 },
+    { score: metricScore(extracted.epsGrowth, [[45, 10], [30, 9], [18, 8], [9, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.24 },
+    { score: metricScore(extracted.epsGrowth3Y, [[28, 10], [20, 9], [13, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.10 },
+    { score: metricScore(extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), weight: 0.06 },
   ]);
+  const earningsGrowthSupportScore = growthScore;
   const valuationScore = scoreValuation(extracted, earningsGrowthSupportScore ?? 6, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
 
-  const categories = { profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore };
+  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore };
   const metricScoreInputs = [
-    // Profitability / execution: most important because it measures whether the business actually converts sales and capital into returns.
+    // Growth: revenue growth, earnings growth, and recent stock movement. Missing values are skipped, never counted as zero.
+    weightedMetricInput("Revenue growth", "growth", extracted.revenueGrowth, metricScore(extracted.revenueGrowth, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), 7.5),
+    weightedMetricInput("3Y revenue growth", "growth", extracted.revenueGrowth3Y, metricScore(extracted.revenueGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), 5.0),
+    weightedMetricInput("5Y revenue growth", "growth", extracted.revenueGrowth5Y, metricScore(extracted.revenueGrowth5Y, [[20, 10], [15, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-8, 4], [-999, 3]]), 3.5),
+    weightedMetricInput("EPS growth", "growth", extracted.epsGrowth, metricScore(extracted.epsGrowth, [[45, 10], [30, 9], [18, 8], [9, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), 7.0),
+    weightedMetricInput("3Y EPS growth", "growth", extracted.epsGrowth3Y, metricScore(extracted.epsGrowth3Y, [[28, 10], [20, 9], [13, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), 4.0),
+    weightedMetricInput("Recent stock movement", "growth", extracted.priceReturn13Week, metricScore(extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), 2.0),
+
+    // Profitability / execution: measures whether the business actually converts sales and capital into returns.
     weightedMetricInput("ROE", "profitability", extracted.roe, metricScore(extracted.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3]]), 9.0),
     weightedMetricInput("ROA", "profitability", extracted.roa, metricScore(extracted.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0, 5], [-999, 3]]), 6.0),
     weightedMetricInput("ROIC", "profitability", extracted.roicCalculated, metricScore(extracted.roicCalculated, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0, 5], [-999, 3]]), 8.0),
     weightedMetricInput("Operating margin", "profitability", extracted.operatingMargin, metricScore(extracted.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), 8.0),
     weightedMetricInput("Net margin", "profitability", extracted.netMargin, metricScore(extracted.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), 7.0),
     weightedMetricInput("Gross margin", "profitability", extracted.grossMargin, metricScore(extracted.grossMargin, [[70, 10], [55, 9], [40, 8], [28, 7], [18, 6], [8, 5], [-999, 3]]), 4.5),
-    weightedMetricInput("EPS growth", "profitability", extracted.epsGrowth, metricScore(extracted.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), 5.5),
-    weightedMetricInput("3Y EPS growth", "profitability", extracted.epsGrowth3Y, metricScore(extracted.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), 3.5),
-
     // Financial health: protects the score from companies with weak balance sheets.
     weightedMetricInput("Debt / equity", "financialHealth", extracted.debtToEquity, inverseMetricScore(extracted.debtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6.8], [3.0, 5.8], [999, 4.6]]), 7.5),
     weightedMetricInput("Long-term debt / equity", "financialHealth", extracted.longTermDebtToEquity, inverseMetricScore(extracted.longTermDebtToEquity, [[0.3, 10], [0.7, 9], [1.2, 8], [2.0, 6.8], [3.0, 5.8], [999, 4.6]]), 5.0),
     weightedMetricInput("Current ratio", "financialHealth", extracted.currentRatio, metricScore(extracted.currentRatio, [[3, 9.2], [2, 8.7], [1.5, 8.2], [1, 7.2], [0.75, 6.0], [-999, 5.0]]), 4.5),
     weightedMetricInput("Quick ratio", "financialHealth", extracted.quickRatio, metricScore(extracted.quickRatio, [[2, 9], [1.4, 8.5], [1, 7.7], [0.7, 6.2], [-999, 5.0]]), 3.5),
-    weightedMetricInput("Interest coverage", "financialHealth", extracted.interestCoverage, metricScore(extracted.interestCoverage, [[40, 10], [20, 9.3], [10, 8.5], [5, 7.2], [2, 6], [0.5, 4.8], [-999, 4]]), 5.0),
+    weightedMetricInput("Interest coverage", "financialHealth", extracted.interestCoverage, metricScore(extracted.interestCoverage, [[40, 10], [20, 9.3], [10, 8.5], [5, 7.2], [2, 6], [0.5, 4.8], [-999, 4]]), 6.0),
+    weightedMetricInput("Operating income margin", "financialHealth", extracted.operatingMargin, metricScore(extracted.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), 4.5),
+    weightedMetricInput("Pretax margin", "financialHealth", extracted.pretaxMargin, metricScore(extracted.pretaxMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), 3.0),
     weightedMetricInput("Cash flow / debt", "financialHealth", extracted.cashFlowToDebt, metricScore(extracted.cashFlowToDebt, [[0.7, 10], [0.45, 9], [0.25, 8], [0.12, 6.8], [0.05, 5.5], [-999, 4.5]]), 4.0),
     weightedMetricInput("FCF / share", "financialHealth", extracted.freeCashFlowPerShare, metricScore(extracted.freeCashFlowPerShare, [[15, 10], [7.5, 9], [3, 8], [1, 6.8], [0.25, 5.6], [-999, 4.5]]), 3.0),
 
@@ -1988,6 +2005,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   ].filter(Boolean);
 
   const validInputCounts = {
+    growth: metricScoreInputs.filter((item) => item.category === "growth").length,
     profitability: metricScoreInputs.filter((item) => item.category === "profitability").length,
     financialHealth: metricScoreInputs.filter((item) => item.category === "financialHealth").length,
     valuation: metricScoreInputs.filter((item) => item.category === "valuation").length,
@@ -1997,14 +2015,24 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const totalValidMetricInputs = metricScoreInputs.length;
   const categoriesWithDataCount = Object.values(validInputCounts).filter((value) => Number(value || 0) > 0).length;
-  const hasAllCoreCategoryScores = ["profitability", "financialHealth", "valuation", "momentum"].every((key) => safeNumber(categories[key]) !== null);
-  const canCalculateEvalScore = totalValidMetricInputs >= 18 && categoriesWithDataCount >= 3;
-  const edgeScore = canCalculateEvalScore ? availableWeightedAverage(metricScoreInputs, null) : null;
+  const hasAllCoreCategoryScores = ["growth", "profitability", "financialHealth", "valuation", "momentum"].every((key) => safeNumber(categories[key]) !== null);
+  const categoryScoreInputs = [
+    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 20),
+    weightedMetricInput("Profitability", "overall", categories.profitability, categories.profitability, 25),
+    weightedMetricInput("Financial Health", "overall", categories.financialHealth, categories.financialHealth, 22),
+    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 20),
+    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 13),
+  ].filter(Boolean);
+  const canCalculateEvalScore = validCategoryCount >= 1 && totalValidMetricInputs >= 5;
+  const edgeScore = canCalculateEvalScore ? availableWeightedAverage(categoryScoreInputs, null) : null;
 
   const riskLabel = null;
   const sw = strongestWeakest(categories);
   const src = "Twelve Data";
   const reportMetrics = {
+    revenueGrowth: metric(extracted.revenueGrowth, "%", src, "Revenue growth YoY"),
+    revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", src, "3-year revenue CAGR"),
+    revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", src, "5-year revenue CAGR"),
     epsGrowth: metric(extracted.epsGrowth, "%", src, "EPS growth YoY"),
     epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", src, "3-year EPS growth"),
     epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", src, "5-year EPS growth"),
@@ -2048,7 +2076,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
         requiredCategories: ["profitability", "financialHealth", "valuation", "momentum"],
         hasAllCoreCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Growth, Pullback, and Quality are removed as categories. Eval Score uses direct metric-level weighting from available inputs. Missing/voided inputs are skipped, not counted as zero. Eval Score is N/A unless at least 18 usable metric inputs exist across at least 3 core categories.",
+        scoreRule: "Eval Score uses five weighted core categories: Growth 20%, Profitability 25%, Financial Health 22%, Valuation 20%, and Momentum 13%. Each category is calculated from its available metric inputs. Missing/voided inputs are skipped, not counted as zero, and the remaining category weights are redistributed.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; adds cached statement and weekly time-series fallbacks only when needed. Live price/chart uses Twelve Data quote and WebSocket routes." },
         sources: { price: "Twelve Data quote/WebSocket", marketData: twelveMarket?.source || "Twelve Data", fundamentals: twelveFundamentals?.source || "Twelve Data", profile: "Twelve Data" }
       }
