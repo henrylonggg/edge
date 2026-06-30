@@ -41966,3 +41966,200 @@ body {
   background: linear-gradient(135deg, rgba(159,92,255,.26), rgba(21,231,255,.18));
   box-shadow: 0 0 18px rgba(21,231,255,.16);
 }
+
+
+/* Dashboard scoring display correction: show all 7 categories and soften Eval Score glow */
+.grade-grid.grade-grid-seven {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.grade-grid.grade-grid-seven .grade-card:nth-child(n+5) {
+  grid-column: span 1;
+}
+.eval-chart-score-side,
+.eval-chart-score-side.no-label {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 4px !important;
+  min-width: 118px !important;
+}
+.eval-score-text-badge,
+.eval-score-text-badge.eval-stock-chart-score,
+.eval-chart-score-side .eval-score-text-badge,
+.eval-score-text-badge.watch-score-plain {
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,.10)) !important;
+  text-shadow: none !important;
+}
+.eval-score-text-badge.green,
+.eval-chart-score-side .eval-score-text-badge.green,
+.eval-score-text-badge.watch-score-plain.green {
+  background-image: linear-gradient(110deg, #82f35c 0%, #37d891 55%, #26b9e8 100%) !important;
+}
+.eval-score-text-badge.yellow,
+.eval-chart-score-side .eval-score-text-badge.yellow,
+.eval-score-text-badge.watch-score-plain.yellow {
+  background-image: linear-gradient(110deg, #ffe66b 0%, #ffd166 55%, #f59e38 100%) !important;
+}
+.eval-score-text-badge.red,
+.eval-chart-score-side .eval-score-text-badge.red,
+.eval-score-text-badge.watch-score-plain.red {
+  background-image: linear-gradient(110deg, #ff5a72 0%, #ff7043 55%, #ff9f1c 100%) !important;
+}
+.eval-chart-score-side .eval-score-text-badge {
+  font-size: clamp(52px, 5vw, 82px) !important;
+  letter-spacing: -3px !important;
+  min-width: 112px !important;
+  padding: 0 !important;
+}
+.grade-card strong.green { color: #85d713 !important; text-shadow: none !important; }
+.grade-card strong.yellow { color: #ffd66b !important; text-shadow: none !important; }
+.grade-card strong.red { color: #ff5f73 !important; text-shadow: none !important; }
+@media (max-width: 1180px) {
+  .grade-grid.grade-grid-seven { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .grade-grid.grade-grid-seven { grid-template-columns: 1fr; }
+  .eval-chart-score-side .eval-score-text-badge { font-size: 48px !important; min-width: auto !important; }
+}
+
+/* Chart high/low callouts + main score matches watchlist score theme, scaled up */
+.eval-chart-extreme circle {
+  fill: #ffffff;
+  stroke: rgba(2,7,17,.86);
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,.32));
+}
+.eval-chart-extreme text {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  paint-order: stroke;
+  stroke: rgba(2,7,17,.86);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.eval-chart-high-marker text { fill: #85ff47; }
+.eval-chart-low-marker text { fill: #ff5f73; }
+.eval-chart-high-marker circle { fill: #85ff47; filter: drop-shadow(0 0 11px rgba(133,255,71,.45)); }
+.eval-chart-low-marker circle { fill: #ff5f73; filter: drop-shadow(0 0 11px rgba(255,95,115,.45)); }
+.eval-chart-extreme-stem {
+  stroke: rgba(255,255,255,.30);
+  stroke-width: 1.4px;
+  stroke-dasharray: 3 5;
+}
+
+.eval-chart-score-side .eval-score-text-badge.watch-score-plain,
+.eval-score-text-badge.eval-stock-chart-score.watch-score-plain {
+  font-size: clamp(66px, 6.2vw, 104px) !important;
+  line-height: .88 !important;
+  min-width: 136px !important;
+  padding: 0 !important;
+  letter-spacing: -4px !important;
+  font-weight: 900 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  text-shadow: none !important;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,.10)) !important;
+}
+.eval-chart-score-side .eval-score-text-badge.watch-score-plain.green,
+.eval-score-text-badge.eval-stock-chart-score.watch-score-plain.green {
+  background-image: linear-gradient(110deg, #82f35c 0%, #37d891 55%, #26b9e8 100%) !important;
+}
+.eval-chart-score-side .eval-score-text-badge.watch-score-plain.yellow,
+.eval-score-text-badge.eval-stock-chart-score.watch-score-plain.yellow {
+  background-image: linear-gradient(110deg, #ffe66b 0%, #ffd166 55%, #f59e38 100%) !important;
+}
+.eval-chart-score-side .eval-score-text-badge.watch-score-plain.red,
+.eval-score-text-badge.eval-stock-chart-score.watch-score-plain.red {
+  background-image: linear-gradient(110deg, #ff5a72 0%, #ff7043 55%, #ff9f1c 100%) !important;
+}
+.eval-chart-score-side .eval-score-text-badge.watch-score-plain.neutral,
+.eval-score-text-badge.eval-stock-chart-score.watch-score-plain.neutral {
+  background-image: linear-gradient(110deg, #ffffff 0%, #15e7ff 100%) !important;
+}
+
+@media (max-width: 680px) {
+  .eval-chart-extreme text { font-size: 12px; stroke-width: 3px; }
+  .eval-chart-score-side .eval-score-text-badge.watch-score-plain,
+  .eval-score-text-badge.eval-stock-chart-score.watch-score-plain {
+    font-size: 52px !important;
+    min-width: 92px !important;
+    letter-spacing: -2.5px !important;
+  }
+}
+
+/* Eval patch: chart labels, portfolio Eval Score theme, portfolio detail scaling */
+.eval-chart-extreme text {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+  font-weight: 900;
+  font-size: 15px;
+  paint-order: stroke;
+  stroke: rgba(2,7,17,.85);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.eval-chart-extreme.no-dot circle,
+.eval-chart-extreme circle {
+  display: none !important;
+}
+.eval-chart-extreme-stem {
+  opacity: .55;
+}
+.portfolio-score-text-stack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 148px;
+}
+.portfolio-main-eval-score.watch-score-plain {
+  font-size: clamp(58px, 8vw, 104px) !important;
+  line-height: .86;
+  letter-spacing: -5px;
+}
+.portfolio-industry-eval-score.watch-score-plain {
+  font-size: clamp(28px, 4vw, 44px) !important;
+  line-height: 1;
+}
+.portfolio-holding-eval-score.watch-score-plain,
+.portfolio-detail-eval-score.watch-score-plain {
+  font-size: 24px !important;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.portfolio-stock-detail-page {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+}
+.portfolio-stock-detail-back {
+  width: fit-content;
+}
+@media (max-width: 760px) {
+  .portfolio-main-eval-score.watch-score-plain {
+    font-size: clamp(52px, 17vw, 82px) !important;
+    letter-spacing: -3px;
+  }
+  .portfolio-score-text-stack {
+    min-height: 118px;
+  }
+  .portfolio-stock-detail-page .eval-chart-hero-card {
+    padding: 16px;
+  }
+  .portfolio-stock-detail-page .grade-grid-seven {
+    grid-template-columns: 1fr !important;
+  }
+}
