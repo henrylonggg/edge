@@ -2121,54 +2121,51 @@ function dcfScenarioFromReport(report, scenario = "average") {
   return { scenario, projectedGrowthAnnual: projectedGrowth * 100, sixMonthGrowth: sixMonthGrowth * 100, expectedPrice: Number.isFinite(expectedPrice) ? Number(expectedPrice.toFixed(2)) : null };
 }
 
+const companyLogoInFlight = new Map();
+
 app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
   if (!symbol) return res.status(404).end();
 
-  const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#111827"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
-  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "public, max-age=31536000, immutable").send(fallbackSvg);
+  const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#0b1220"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
+  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "public, max-age=3600").send(fallbackSvg);
 
   const cached = companyLogoCache.get(symbol);
   if (cached && cached.expiresAt > Date.now()) {
     if (cached.buffer && cached.contentType) {
       return res.type(cached.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(cached.buffer);
     }
-    return sendFallback();
   }
 
-  try {
-    const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
-    let logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
+  const loadLogo = async () => {
+    const data = await fetchTwelveDataJson("/logo", { symbol }, 5000);
+    const twelveLogoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || data?.image_url || data?.meta?.url || "").trim();
+    const candidates = [];
+    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
+    // Some Twelve Data plans/edge responses expose logo via predictable asset URLs even when /logo is sparse.
+    candidates.push(
+      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.png`,
+      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.jpg`
+    );
 
-    // Fallback: if Twelve Data has no direct logo for an ADR/smaller name, use the
-    // company website domain from /profile and fetch Clearbit's public logo image.
-    // This costs at most one extra profile call only when the direct logo is empty.
-    if (!/^https?:\/\//i.test(logoUrl)) {
-      const profile = await fetchTwelveDataJson("/profile", { symbol }, 4000);
-      const website = String(profile?.website || profile?.weburl || profile?.url || "").trim();
-      if (/^https?:\/\//i.test(website)) {
-        const host = new URL(website).hostname.replace(/^www\./i, "");
-        if (host) logoUrl = `https://logo.clearbit.com/${host}`;
-      }
-    }
-
-    const logoCandidates = [];
-    if (/^https?:\/\//i.test(logoUrl)) logoCandidates.push(logoUrl);
-
-    const profileForFallback = await fetchTwelveDataJson("/profile", { symbol }, 4000).catch(() => null);
-    const website = String(profileForFallback?.website || profileForFallback?.weburl || profileForFallback?.url || "").trim();
+    // Keep Twelve Data first. Only if Twelve does not return a usable logo, try
+    // website-domain icon fallbacks so the UI still has a logo instead of a blank.
+    const profile = await fetchTwelveDataJson("/profile", { symbol }, 5000).catch(() => null);
+    const website = String(profile?.website || profile?.weburl || profile?.url || "").trim();
     if (/^https?:\/\//i.test(website)) {
-      const host = new URL(website).hostname.replace(/^www\./i, "");
-      if (host) {
-        logoCandidates.push(
-          `https://logo.clearbit.com/${host}`,
-          `https://icons.duckduckgo.com/ip3/${host}.ico`,
-          `https://www.google.com/s2/favicons?domain=${host}&sz=128`
-        );
-      }
+      try {
+        const host = new URL(website).hostname.replace(/^www\./i, "");
+        if (host) {
+          candidates.push(
+            `https://logo.clearbit.com/${host}`,
+            `https://icons.duckduckgo.com/ip3/${host}.ico`,
+            `https://www.google.com/s2/favicons?domain=${host}&sz=128`
+          );
+        }
+      } catch {}
     }
 
-    for (const candidate of [...new Set(logoCandidates)]) {
+    for (const candidate of [...new Set(candidates)]) {
       try {
         const imageResponse = await fetch(candidate, { headers: { "User-Agent": "Mozilla/5.0 Eval/1.0" } });
         if (!imageResponse.ok) continue;
@@ -2178,12 +2175,27 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
         const buffer = Buffer.from(arrayBuffer);
         if (!buffer.length) continue;
         companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
-        return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
+        return { buffer, contentType };
       } catch {}
     }
-  } catch {}
 
-  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer: null, contentType: null });
+    return null;
+  };
+
+  try {
+    if (!companyLogoInFlight.has(symbol)) {
+      companyLogoInFlight.set(symbol, loadLogo().finally(() => companyLogoInFlight.delete(symbol)));
+    }
+    const loaded = await companyLogoInFlight.get(symbol);
+    if (loaded?.buffer && loaded?.contentType) {
+      return res.type(loaded.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(loaded.buffer);
+    }
+  } catch (error) {
+    console.warn("Company logo route failed:", symbol, error?.message || error);
+  }
+
+  // Do not permanently cache fallback letters. A temporary fallback lets the next
+  // refresh try Twelve Data again instead of getting stuck forever.
   return sendFallback();
 });
 
@@ -2191,7 +2203,26 @@ app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
     const includeAiScoreSummary = String(req.query.summary || "0") === "1";
-    const data = await getCachedAnalysis(symbol, { includeAiScoreSummary });
+
+    // Manual-refresh-only scoring: do not serve or save Eval Score cache here.
+    // In-flight locking still prevents double-click / debounce duplicates from stacking API calls.
+    const inFlightKey = `manual-analyze:${symbol}:${includeAiScoreSummary ? "ai" : "no-ai"}`;
+    if (analysisInFlight.has(inFlightKey)) return res.json(await analysisInFlight.get(inFlightKey));
+
+    const work = buildStockAnalysis(symbol, {
+      cachedReport: null,
+      refreshFundamentals: true,
+      refreshValuation: true,
+      refreshMarket: true,
+      refreshNews: false,
+      refreshRisk: true,
+      refreshProfile: true,
+      includeAiScoreSummary,
+    }).finally(() => analysisInFlight.delete(inFlightKey));
+
+    analysisInFlight.set(inFlightKey, work);
+    const data = await work;
+    res.set("Cache-Control", "no-store");
     res.json(data);
   } catch (error) {
     console.error("Analyze route failed:", error?.stack || error?.message || error);
