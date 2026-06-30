@@ -2081,6 +2081,9 @@ function historicalSeriesTtlMs(interval = "1day") {
 }
 
 async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 180 } = {}) {
+  // Historical chart calls are disabled to protect Twelve Data credits.
+  return [];
+} = {}) {
   const cleanSymbol = cleanTicker(symbol);
   if (!cleanSymbol) return [];
   const key = historicalCacheKey(cleanSymbol, interval, outputsize);
@@ -2118,97 +2121,38 @@ function dcfScenarioFromReport(report, scenario = "average") {
   return { scenario, projectedGrowthAnnual: projectedGrowth * 100, sixMonthGrowth: sixMonthGrowth * 100, expectedPrice: Number.isFinite(expectedPrice) ? Number(expectedPrice.toFixed(2)) : null };
 }
 
-
-app.get("/api/twelve-health/:symbol", async (req, res) => {
-  const symbol = cleanTicker(req.params.symbol);
-  if (!symbol) return res.status(400).json({ ok: false, error: "Missing symbol" });
-  const endpoints = [
-    ["profile", "/profile", { symbol }],
-    ["logo", "/logo", { symbol }],
-    ["statistics", "/statistics", { symbol }],
-    ["incomeAnnual", "/income_statement", { symbol, period: "annual", outputsize: 2 }],
-    ["balanceAnnual", "/balance_sheet", { symbol, period: "annual", outputsize: 2 }],
-    ["cashAnnual", "/cash_flow", { symbol, period: "annual", outputsize: 2 }],
-    ["incomeQuarterly", "/income_statement", { symbol, period: "quarterly", outputsize: 5 }],
-    ["marketCap", "/market_cap", { symbol, outputsize: 1 }],
-    ["earnings", "/earnings", { symbol, outputsize: 2 }],
-  ];
-  const results = {};
-  await Promise.all(endpoints.map(async ([name, endpoint, params]) => {
-    const data = await fetchTwelveDataJson(endpoint, params, 5000);
-    results[name] = {
-      ok: Boolean(data),
-      keys: data && typeof data === "object" ? Object.keys(data).slice(0, 12) : [],
-      sample: data && typeof data === "object" ? JSON.stringify(data).slice(0, 350) : null,
-    };
-  }));
-  res.json({ ok: Object.values(results).some((r) => r.ok), symbol, hasKey: Boolean(twelveDataApiKey()), results });
-});
-
 app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
-  if (!symbol) return res.status(204).end();
+  if (!symbol) return res.status(404).end();
 
-  const sendFallback = () => {
-    res.setHeader("Cache-Control", "public, max-age=86400");
-    return res.status(204).end();
-  };
+  const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#111827"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
+  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "public, max-age=31536000, immutable").send(fallbackSvg);
 
-  try {
-    const cached = companyLogoCache.get(symbol);
-    if (cached && cached.expiresAt > Date.now()) {
-      if (cached.buffer && cached.contentType) {
-        res.setHeader("Content-Type", cached.contentType);
-        res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-        return res.send(Buffer.from(cached.buffer, "base64"));
-      }
-      if (cached.miss) return sendFallback();
+  const cached = companyLogoCache.get(symbol);
+  if (cached && cached.expiresAt > Date.now()) {
+    if (cached.buffer && cached.contentType) {
+      return res.type(cached.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(cached.buffer);
     }
-
-    const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
-    const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
-    const valid = /^https?:\/\//i.test(logoUrl) ? logoUrl : "";
-    if (!valid) {
-      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, miss: true });
-      return sendFallback();
-    }
-
-    const response = await fetch(valid, {
-      headers: { "User-Agent": "Eval/1.0 image proxy" },
-      redirect: "follow",
-      signal: AbortSignal.timeout?.(5000),
-    }).catch(() => null);
-
-    if (!response?.ok) {
-      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
-      return sendFallback();
-    }
-
-    const contentType = response.headers.get("content-type") || "image/png";
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    if (!buffer.length || !/^image\//i.test(contentType)) {
-      companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
-      return sendFallback();
-    }
-
-    companyLogoCache.set(symbol, {
-      savedAt: Date.now(),
-      expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS,
-      contentType,
-      buffer: buffer.toString("base64"),
-    });
-
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=2592000, immutable");
-    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    return res.send(buffer);
-  } catch (error) {
-    console.warn("Logo proxy failed:", symbol, error?.message || error);
-    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, miss: true });
     return sendFallback();
   }
+
+  try {
+    const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
+    const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
+    if (/^https?:\/\//i.test(logoUrl)) {
+      const imageResponse = await fetch(logoUrl, { headers: { "User-Agent": "Eval/1.0" } });
+      if (imageResponse.ok) {
+        const contentType = imageResponse.headers.get("content-type") || "image/png";
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
+        return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
+      }
+    }
+  } catch {}
+
+  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer: null, contentType: null });
+  return sendFallback();
 });
 
 app.get("/api/analyze/:symbol", async (req, res) => {
@@ -2579,13 +2523,7 @@ function twelveEndpointTtlMs(endpoint, params = {}) {
   // Statistics/ratios can change daily with market cap and price-linked ratios.
   if (endpoint === "/statistics") return DAILY_METRIC_CACHE_MS;
 
-  if (endpoint === "/time_series") {
-    // Intraday candles are only for chart shape. Cache long enough to prevent API explosions.
-    if (interval.includes("min")) return 10 * 60 * 1000;
-    // Daily/weekly historical closes only need one refresh per trading day after close.
-    if (isPostMarketCloseEt()) return 36 * 60 * 60 * 1000;
-    return 6 * 60 * 60 * 1000;
-  }
+  if (endpoint === "/time_series") return YEARLY_METRIC_CACHE_MS;
 
   return DAILY_METRIC_CACHE_MS;
 }
@@ -2623,13 +2561,7 @@ async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(pro
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Authorization: apiKey,
-          "X-Api-Key": apiKey,
-        },
-      });
+      const response = await fetch(url, { signal: controller.signal });
       const data = await response.json().catch(() => null);
       if (!response.ok || data?.status === "error" || data?.code) return null;
       writeTwelveRestCache(endpoint, params, data);
