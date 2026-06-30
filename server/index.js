@@ -2118,6 +2118,33 @@ function dcfScenarioFromReport(report, scenario = "average") {
   return { scenario, projectedGrowthAnnual: projectedGrowth * 100, sixMonthGrowth: sixMonthGrowth * 100, expectedPrice: Number.isFinite(expectedPrice) ? Number(expectedPrice.toFixed(2)) : null };
 }
 
+
+app.get("/api/twelve-health/:symbol", async (req, res) => {
+  const symbol = cleanTicker(req.params.symbol);
+  if (!symbol) return res.status(400).json({ ok: false, error: "Missing symbol" });
+  const endpoints = [
+    ["profile", "/profile", { symbol }],
+    ["logo", "/logo", { symbol }],
+    ["statistics", "/statistics", { symbol }],
+    ["incomeAnnual", "/income_statement", { symbol, period: "annual", outputsize: 2 }],
+    ["balanceAnnual", "/balance_sheet", { symbol, period: "annual", outputsize: 2 }],
+    ["cashAnnual", "/cash_flow", { symbol, period: "annual", outputsize: 2 }],
+    ["incomeQuarterly", "/income_statement", { symbol, period: "quarterly", outputsize: 5 }],
+    ["marketCap", "/market_cap", { symbol, outputsize: 1 }],
+    ["earnings", "/earnings", { symbol, outputsize: 2 }],
+  ];
+  const results = {};
+  await Promise.all(endpoints.map(async ([name, endpoint, params]) => {
+    const data = await fetchTwelveDataJson(endpoint, params, 5000);
+    results[name] = {
+      ok: Boolean(data),
+      keys: data && typeof data === "object" ? Object.keys(data).slice(0, 12) : [],
+      sample: data && typeof data === "object" ? JSON.stringify(data).slice(0, 350) : null,
+    };
+  }));
+  res.json({ ok: Object.values(results).some((r) => r.ok), symbol, hasKey: Boolean(twelveDataApiKey()), results });
+});
+
 app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
   if (!symbol) return res.status(204).end();
@@ -2596,7 +2623,13 @@ async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(pro
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          Authorization: apiKey,
+          "X-Api-Key": apiKey,
+        },
+      });
       const data = await response.json().catch(() => null);
       if (!response.ok || data?.status === "error" || data?.code) return null;
       writeTwelveRestCache(endpoint, params, data);
