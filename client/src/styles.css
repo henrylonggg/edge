@@ -41718,3 +41718,164 @@ body {
   .eval-stock-chart-svg { min-height: 210px !important; }
   .eval-chart-score-side .eval-score-text-badge { font-size: 46px !important; }
 }
+
+
+/* Live chart + logo + scoring polish patch */
+.eval-chart-hero-card {
+  padding: 22px !important;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(133,255,71,.13), transparent 30%),
+    radial-gradient(circle at 62% 0%, rgba(159,92,255,.16), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,.085), rgba(255,255,255,.045)) !important;
+}
+.eval-chart-hero-top {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+}
+.eval-stock-company-lockup { min-width: 0 !important; }
+.eval-stock-company-lockup h3 {
+  max-width: 560px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(18px, 2.15vw, 30px) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.8px !important;
+}
+.eval-stock-logo {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 17px !important;
+  object-fit: contain !important;
+  background: rgba(255,255,255,.92) !important;
+  padding: 7px !important;
+}
+.eval-chart-hero-right { gap: 18px !important; align-items: center !important; }
+.eval-live-price-panel {
+  min-width: 148px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  background: rgba(0,0,0,.22);
+}
+.eval-live-price-panel strong {
+  font-size: clamp(27px, 3vw, 44px) !important;
+  letter-spacing: -1.4px;
+}
+.eval-live-change { font-size: 14px !important; font-weight: 900 !important; }
+.eval-chart-score-side {
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 154px;
+  padding: 12px 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.14);
+  background:
+    radial-gradient(circle at 30% 12%, rgba(255,255,255,.18), transparent 28%),
+    linear-gradient(135deg, rgba(159,92,255,.22), rgba(21,231,255,.10));
+  box-shadow: 0 0 38px rgba(159,92,255,.22), inset 0 0 24px rgba(255,255,255,.035);
+}
+.eval-chart-score-side .eval-score-text-badge {
+  font-size: clamp(54px, 6vw, 86px) !important;
+  min-width: 132px !important;
+  padding: 6px 12px !important;
+  background: transparent !important;
+  border: 0 !important;
+  text-shadow: 0 0 18px currentColor, 0 0 52px rgba(255,255,255,.22) !important;
+}
+.eval-chart-score-side .eval-score-text-badge.green { color: #9eff63 !important; }
+.eval-chart-score-side .eval-score-text-badge.yellow { color: #ffe36f !important; }
+.eval-chart-score-side .eval-score-text-badge.red { color: #ff6476 !important; }
+.eval-stock-chart-svg { height: 285px !important; }
+.eval-chart-line { stroke-width: 4.5px !important; stroke-linecap: round; stroke-linejoin: round; }
+.eval-chart-current-price-line { stroke-width: 1.6px !important; stroke-dasharray: 5 6; opacity: .8; }
+.eval-chart-current-price-dot { filter: drop-shadow(0 0 10px currentColor); }
+.eval-chart-hero-actions { justify-content: center !important; }
+.eval-chart-hero-actions button { min-width: 145px; justify-content: center; }
+.watch-row-logo-format {
+  grid-template-columns: minmax(92px, 1fr) 116px 76px 38px !important;
+  gap: 12px !important;
+}
+.watch-sparkline { width: 116px; height: 34px; overflow: visible; }
+.watch-sparkline path { fill: none; stroke: rgba(255,255,255,.72); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.watch-sparkline.up path { stroke: var(--green); filter: drop-shadow(0 0 7px rgba(133,255,71,.35)); }
+.watch-sparkline.down path { stroke: var(--red); filter: drop-shadow(0 0 7px rgba(255,95,115,.35)); }
+.watch-sparkline.live { opacity: 1; }
+.watch-sparkline.static { opacity: .72; }
+.watch-sparkline-empty { width: 116px; height: 34px; border-radius: 999px; background: rgba(255,255,255,.055); }
+.watch-row-logo-format .watch-score-plain { justify-self: end !important; }
+@media (max-width: 680px) {
+  .eval-chart-hero-top { grid-template-columns: 1fr !important; }
+  .eval-chart-hero-right { width: 100%; justify-content: space-between !important; }
+  .eval-stock-company-lockup h3 { max-width: 280px; }
+  .watch-row-logo-format { grid-template-columns: minmax(76px, 1fr) 88px 62px 34px !important; }
+  .watch-sparkline, .watch-sparkline-empty { width: 88px; }
+}
+
+
+/* Single-ticker websocket + simplified watchlist patch */
+.eval-clean-ticker-input:disabled {
+  opacity: .62;
+  cursor: wait;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), 0 0 18px rgba(159,92,255,.16);
+}
+
+.watch-row-logo-format {
+  grid-template-columns: minmax(0, 1fr) 104px 42px !important;
+  gap: 16px !important;
+}
+
+.watch-sparkline,
+.watch-sparkline-empty {
+  display: none !important;
+}
+
+.eval-chart-score-side.no-label {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.eval-chart-score-side.no-label > span:not(.eval-score-text-badge) {
+  display: none !important;
+}
+
+.eval-score-text-badge {
+  border: 1px solid rgba(255,255,255,.14) !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 16px rgba(255,255,255,.12));
+}
+
+.eval-score-text-badge.green {
+  background-image: linear-gradient(135deg, #85ff47 0%, #32ff7e 38%, #15e7ff 78%, #7db6ff 100%) !important;
+  box-shadow: 0 0 34px rgba(133,255,71,.20), inset 0 0 22px rgba(21,231,255,.08) !important;
+}
+
+.eval-score-text-badge.yellow {
+  background-image: linear-gradient(135deg, #fff46b 0%, #ffd66b 36%, #ffad33 72%, #ff7a1a 100%) !important;
+  box-shadow: 0 0 34px rgba(255,214,107,.22), inset 0 0 22px rgba(255,122,26,.08) !important;
+}
+
+.eval-score-text-badge.red {
+  background-image: linear-gradient(135deg, #ff4f67 0%, #ff6b35 42%, #ff8a1f 78%, #ffd166 100%) !important;
+  box-shadow: 0 0 34px rgba(255,79,103,.24), inset 0 0 22px rgba(255,138,31,.09) !important;
+}
+
+.eval-score-text-badge.neutral {
+  background-image: linear-gradient(135deg, #ffffff 0%, #15e7ff 100%) !important;
+}
+
+.eval-chart-score-side .eval-score-text-badge {
+  font-size: clamp(56px, 5.2vw, 90px) !important;
+  min-width: 124px !important;
+  padding: 10px 12px !important;
+  letter-spacing: -3px !important;
+  background-color: rgba(255,255,255,.065) !important;
+  border-radius: 26px !important;
+}
+
+.eval-chart-hero-right {
+  align-items: center !important;
+}
