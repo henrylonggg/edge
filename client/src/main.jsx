@@ -11735,7 +11735,7 @@ function WatchMiniSparkline({ symbol }) {
   useEffect(() => {
     let cancelled = false;
     if (!symbol) return undefined;
-    fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=1D`)
+    fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=1D&light=1`)
       .then((res) => res.ok ? res.json() : null)
       .then((json) => {
         if (!cancelled) setRows(Array.isArray(json?.rows) ? json.rows.slice(-42) : []);
@@ -11839,12 +11839,15 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
       } catch {}
     };
     loadLive();
-    const id = setInterval(loadLive, 350);
+    const id = setInterval(loadLive, 15_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [symbol]);
 
   const rows = Array.isArray(chart?.rows) ? chart.rows : [];
-  const logo = data?.profile?.logo;
+  const rawLogo = data?.profile?.logo;
+  const logo = typeof rawLogo === "string"
+    ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : (rawLogo.startsWith("/api/") ? `${API}${rawLogo}` : ""))
+    : "";
   const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
   const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
 
@@ -11870,7 +11873,7 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
       <div className="eval-chart-timeframe-row">
         {timeframes.map((item) => <button type="button" key={item} className={item === timeframe ? "active" : ""} onClick={() => setTimeframe(item)}>{item}</button>)}
       </div>
-      <p className="eval-chart-cache-note">Twelve Data only. Historical prices cache after the 4:00 PM ET close on trading days. Live price refreshes continuously while the page is open.</p>
+      <p className="eval-chart-cache-note">Twelve Data only. Historical series are cached by market cadence; live quotes are throttled server-side to protect API usage.</p>
     </section>
   );
 }
