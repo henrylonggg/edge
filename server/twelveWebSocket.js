@@ -4,12 +4,21 @@
 //   import { attachTwelveQuoteWebSocket } from './twelveWebSocket.js';
 //   const server = app.listen(PORT, () => console.log(`Server running on ${PORT}`));
 //   attachTwelveQuoteWebSocket(server);
-// Frontend connects to: wss://YOUR_RENDER_URL/ws/quotes?symbols=AAPL,NVDA,TSM
+// Frontend connects to: wss://YOUR_RENDER_URL/ws/quotes?symbols=AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,JPM,BAC,WFC,C,GS,MS,USB,PNC,TFC,COF,AXP,SCHW,AMD,AVGO,QCOM,TXN,MU,INTC,TSM,ASML,AMAT,LRCX,KLAC,ADI,NXPI,MRVL,ON,MCHP,ARM,SMCI
 
 import WebSocket, { WebSocketServer } from "ws";
 
 const TWELVE_WS_URL = "wss://ws.twelvedata.com/v1/quotes/price";
-const MAX_SYMBOLS_PER_CLIENT = 20;
+const DEFAULT_QUOTE_SYMBOLS = [
+  // Mag 7
+  "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA",
+  // Big banks / financial leaders
+  "JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "TFC", "COF", "AXP", "SCHW",
+  // Semiconductors
+  "AMD", "AVGO", "QCOM", "TXN", "MU", "INTC", "TSM", "ASML", "AMAT", "LRCX", "KLAC", "ADI", "NXPI", "MRVL", "ON", "MCHP", "ARM", "SMCI"
+];
+
+const MAX_SYMBOLS_PER_CLIENT = 60;
 const clients = new Map();
 let upstream = null;
 let subscribed = new Set();
@@ -23,7 +32,9 @@ function parseSymbols(url = "") {
   try {
     const parsed = new URL(url, "http://localhost");
     const raw = parsed.searchParams.get("symbols") || "";
-    return [...new Set(raw.split(",").map(cleanSymbol).filter(Boolean))].slice(0, MAX_SYMBOLS_PER_CLIENT);
+    const requested = raw.split(",").map(cleanSymbol).filter(Boolean);
+    const merged = requested.length ? requested : DEFAULT_QUOTE_SYMBOLS;
+    return [...new Set(merged)].slice(0, MAX_SYMBOLS_PER_CLIENT);
   } catch {
     return [];
   }
@@ -107,7 +118,8 @@ export function attachTwelveQuoteWebSocket(server) {
       try {
         const msg = JSON.parse(raw.toString());
         if (msg?.type === "symbols") {
-          clients.set(ws, new Set((Array.isArray(msg.symbols) ? msg.symbols : []).map(cleanSymbol).filter(Boolean).slice(0, MAX_SYMBOLS_PER_CLIENT)));
+          const requested = (Array.isArray(msg.symbols) ? msg.symbols : []).map(cleanSymbol).filter(Boolean);
+          clients.set(ws, new Set((requested.length ? requested : DEFAULT_QUOTE_SYMBOLS).slice(0, MAX_SYMBOLS_PER_CLIENT)));
           syncSubscriptions();
         }
       } catch {}
