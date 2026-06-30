@@ -1084,9 +1084,6 @@ function App() {
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
       risk: analyzed?.grades?.riskLabel || "N/A",
-      price: analyzed?.quote?.c ?? null,
-      change: analyzed?.quote?.d ?? null,
-      changePercent: analyzed?.quote?.dp ?? null,
       strongest: strongest ? `${categoryLabel(strongest[0])} ${scoreText(strongest[1])}` : "N/A",
       weakest: weakest ? `${categoryLabel(weakest[0])} ${scoreText(weakest[1])}` : "N/A",
       updatedAt: new Date().toISOString(),
@@ -11329,12 +11326,6 @@ function Watchlist({
   pageMode = false,
 }) {
   const [manual, setManual] = useState("");
-  const [watchChangeMode, setWatchChangeMode] = useState("dollar");
-
-  const toggleWatchChangeMode = () => {
-    setWatchChangeMode((prev) => (prev === "percent" ? "dollar" : "percent"));
-  };
-
   return (
     <aside className={`watch-panel eval-watchlist-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
       <div className="panel-head">
@@ -11346,9 +11337,6 @@ function Watchlist({
         </div>
 
         <div className="watch-panel-actions">
-          <button type="button" className="watch-global-change-toggle" onClick={toggleWatchChangeMode} title="Toggle all watchlist changes">
-            {watchChangeMode === "percent" ? "%" : "$"}
-          </button>
           <button
             className="icon-btn"
             onClick={onRefresh}
@@ -11388,9 +11376,6 @@ function Watchlist({
         ) : (
           items.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const changePercent = Number(item.changePercent);
-            const changeDollar = Number(item.change);
-            const changeTone = Number.isFinite(changePercent) ? (changePercent >= 0 ? "up" : "down") : Number.isFinite(changeDollar) && changeDollar >= 0 ? "up" : "down";
             const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
@@ -11401,13 +11386,6 @@ function Watchlist({
                   </span>
                   <span className="watch-ticker-main">{ticker}</span>
                 </button>
-
-                <div className="watch-price-stack">
-                  <strong>{money(item.price)}</strong>
-                  <button type="button" className={`watch-change-toggle ${changeTone}`} onClick={toggleWatchChangeMode}>
-                    {watchChangeMode === "percent" ? signedPercent(item.changePercent) : signedMoney(item.change)}
-                  </button>
-                </div>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
 
@@ -12195,11 +12173,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   return (
     <>
       <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel">
-          <ScoreRingSvg
-            value={edge}
-            className={`score-ring main-dashboard-pie-theme pie-theme-${pieTheme}`}
-          />
+        <div className="score-panel score-panel-text-only">
+          <EvalScoreTextBadge value={edge} className="dashboard-eval-score-text" />
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
@@ -12271,17 +12246,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
         <div className="snapshot-grid snapshot-grid-refined">
           <MiniStat
-            icon={<Activity size={17} />}
-            label="Price"
-            value={money(data.quote?.c)}
-            className="price-mini-stat"
-            extra={
-              <span className={`daily-change-chip ${dailyChangeClass(data.quote?.dp)}`}>
-                {signedPercent(data.quote?.dp)}
-              </span>
-            }
-          />
-          <MiniStat
             icon={<ShieldCheck size={17} />}
             label="Risk"
             value={data.grades.riskLabel}
@@ -12290,7 +12254,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
       </section>
 
-      <EvalStockChartPanel data={data} edgeScore={edge} />
       <DcfCalculatorPanel data={data} />
 
       {scoreBreakdownOpen && (
