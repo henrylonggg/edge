@@ -11974,12 +11974,22 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   );
 }
 
+const EVAL_CHART_RANGES = [
+  { key: "1M", label: "1M", interval: "1day", outputsize: 32 },
+  { key: "3M", label: "3M", interval: "1day", outputsize: 90 },
+  { key: "6M", label: "6M", interval: "1day", outputsize: 180 },
+  { key: "1Y", label: "1Y", interval: "1day", outputsize: 365 },
+  { key: "5Y", label: "5Y", interval: "1week", outputsize: 260 },
+];
+
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
   const symbol = String(data?.symbol || "").trim().toUpperCase();
   const liveEnabled = isLiveWebSocketSymbol(symbol);
   const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [chartRange, setChartRange] = useState("3M");
+  const activeChartRange = EVAL_CHART_RANGES.find((item) => item.key === chartRange) || EVAL_CHART_RANGES[1];
 
   useEffect(() => {
     if (!symbol) return undefined;
@@ -12013,7 +12023,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   useEffect(() => {
     if (!symbol) return undefined;
     let cancelled = false;
-    const cacheKey = `${symbol}:chart90`;
+    const cacheKey = `${symbol}:chart:${activeChartRange.key}`;
     const loadChart = async () => {
       setChartLoading(true);
       const cached = readClientTimedCache(CLIENT_CHART_CACHE, cacheKey);
@@ -12023,7 +12033,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         return;
       }
       try {
-        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?interval=1day&outputsize=90`);
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(activeChartRange.interval)}&outputsize=${encodeURIComponent(activeChartRange.outputsize)}`);
         const json = await res.json();
         const nextRows = Array.isArray(json?.rows) ? json.rows : [];
         if (res.ok) writeClientTimedCache(CLIENT_CHART_CACHE, cacheKey, nextRows, CLIENT_CHART_TTL_MS);
@@ -12036,7 +12046,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     };
     loadChart();
     return () => { cancelled = true; };
-  }, [symbol]);
+  }, [symbol, activeChartRange.key, activeChartRange.interval, activeChartRange.outputsize]);
 
   useEffect(() => {
     if (!symbol || !liveEnabled) return undefined;
@@ -12120,6 +12130,12 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
             <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
           </div>
         </div>
+      </div>
+
+      <div className="eval-chart-range-toggle" aria-label="Stock chart range">
+        {EVAL_CHART_RANGES.map((item) => (
+          <button key={item.key} type="button" className={chartRange === item.key ? "active" : ""} onClick={() => setChartRange(item.key)}>{item.label}</button>
+        ))}
       </div>
 
       {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={Number.isFinite(current) ? current : null} />}
