@@ -385,6 +385,7 @@ function categoryLabel(key) {
       momentum: "Momentum",
       reversal: "Pullback",
       newsSentiment: "News Sentiment",
+      quality: "Quality",
     }[key] || key
   );
 }
@@ -11730,6 +11731,171 @@ function EvalAiScoreSummaryCard({ summary, ticker }) {
   );
 }
 
+
+function MiniSvgLineChart({ rows = [], projections = [] }) {
+  const width = 720;
+  const height = 250;
+  const points = rows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
+  if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
+  const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
+  const minY = Math.min(...allY);
+  const maxY = Math.max(...allY);
+  const range = maxY - minY || 1;
+  const xScale = (x) => 28 + (x / Math.max(1, points.length - 1)) * (width - 56);
+  const yScale = (y) => 220 - ((y - minY) / range) * 180;
+  const path = points.map((pnt, i) => `${i === 0 ? "M" : "L"}${xScale(pnt.x).toFixed(1)},${yScale(pnt.y).toFixed(1)}`).join(" ");
+  const startX = xScale(points.length - 1);
+  const startY = yScale(points[points.length - 1].y);
+  return (
+    <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart">
+      <defs>
+        <linearGradient id="evalChartFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(159,92,255,.45)" />
+          <stop offset="100%" stopColor="rgba(21,231,255,.02)" />
+        </linearGradient>
+        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
+      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" />
+      <path d={path} className="eval-chart-line" filter="url(#evalChartGlow)" />
+      {projectionPoints.map((proj) => {
+        const endX = width - 28;
+        const endY = yScale(Number(proj.targetPrice));
+        const cls = proj.scenario === "high" ? "high" : proj.scenario === "low" ? "low" : "average";
+        return <line key={proj.scenario} x1={startX} y1={startY} x2={endX} y2={endY} className={`eval-chart-projection ${cls}`} />;
+      })}
+    </svg>
+  );
+}
+
+function EvalStockChartPanel({ data }) {
+  const symbol = data?.symbol;
+  const [timeframe, setTimeframe] = useState("6M");
+  const [chart, setChart] = useState(null);
+  const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp });
+  const [loading, setLoading] = useState(false);
+  const timeframes = ["1D", "5D", "1M", "6M", "1Y", "5Y"];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadChart() {
+      if (!symbol) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) {
+          setChart(json);
+          if (json?.live) setLive(json.live);
+        }
+      } catch {}
+      if (!cancelled) setLoading(false);
+    }
+    loadChart();
+    return () => { cancelled = true; };
+  }, [symbol, timeframe]);
+
+  useEffect(() => {
+    if (!symbol) return undefined;
+    let cancelled = false;
+    const loadLive = async () => {
+      try {
+        const res = await fetch(`${API}/api/live-quote/${encodeURIComponent(symbol)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setLive(json);
+      } catch {}
+    };
+    loadLive();
+    const id = setInterval(loadLive, 900);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [symbol]);
+
+  const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+  const logo = data?.profile?.logo;
+  const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
+  const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
+
+  return (
+    <section className="eval-stock-chart-shell">
+      <div className="eval-stock-chart-top">
+        <div className="eval-stock-company-lockup">
+          {logo ? <img src={logo} alt="" className="eval-stock-logo" /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
+          <div>
+            <h3>{data?.profile?.name || symbol}</h3>
+            <span>{symbol}</span>
+          </div>
+        </div>
+        <div className="eval-live-price-panel">
+          <strong>{money(live?.current ?? data?.quote?.c)}</strong>
+          <span className={`eval-live-change ${tone}`}>{signedMoney(live?.change ?? data?.quote?.d)} · {signedPercent(changePercent)}</span>
+        </div>
+      </div>
+      <MiniSvgLineChart rows={rows} />
+      <div className="eval-chart-timeframe-row">
+        {timeframes.map((item) => <button type="button" key={item} className={item === timeframe ? "active" : ""} onClick={() => setTimeframe(item)}>{item}</button>)}
+      </div>
+      <p className="eval-chart-cache-note">Twelve Data only. Historical prices cache after the 4:00 PM ET close on trading days. Live price refreshes continuously while the page is open.</p>
+    </section>
+  );
+}
+
+function DcfCalculatorPanel({ data }) {
+  const symbol = data?.symbol;
+  const [open, setOpen] = useState(false);
+  const [scenario, setScenario] = useState("average");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !symbol) return undefined;
+    let cancelled = false;
+    async function loadDcf() {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/dcf/${encodeURIComponent(symbol)}?scenario=${encodeURIComponent(scenario)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setResult(json);
+      } catch {}
+      if (!cancelled) setLoading(false);
+    }
+    loadDcf();
+    return () => { cancelled = true; };
+  }, [open, symbol, scenario]);
+
+  return (
+    <section className="eval-dcf-shell">
+      <button type="button" className="eval-dcf-toggle" onClick={() => setOpen((v) => !v)}>
+        <Target size={18} /> DCF Calculator
+      </button>
+      {open && (
+        <div className="eval-dcf-page">
+          <div className="eval-dcf-head">
+            <div>
+              <span>6-month outlook</span>
+              <h3>{data?.profile?.name || symbol} projection</h3>
+            </div>
+            <div className="eval-dcf-scenarios">
+              {["low", "average", "high"].map((item) => <button type="button" key={item} className={scenario === item ? "active" : ""} onClick={() => setScenario(item)}>{item}</button>)}
+            </div>
+          </div>
+          {loading ? <div className="eval-stock-chart-empty">Calculating projection...</div> : (
+            <>
+              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} />
+              <div className="eval-dcf-result-grid">
+                <div><span>Selected case</span><strong>{scenario}</strong></div>
+                <div><span>Expected price</span><strong>{money(result?.chosen?.expectedPrice)}</strong></div>
+                <div><span>6M growth path</span><strong>{signedPercent(result?.chosen?.sixMonthGrowth)}</strong></div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
@@ -11821,7 +11987,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-    newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
+    newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
+    quality: "Shows higher-quality earnings inputs such as cash conversion, ROIC, and free cash flow per share.",
   };
 
   const categoryMetrics = {
@@ -11891,6 +12058,11 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
+    ]),
+    quality: usableMetricLines([
+      metricLine("ROIC", metrics.roi),
+      metricLine("Free Cash Flow / Share", metrics.freeCashFlowPerShare),
+      metricLine("Operating Cash Flow / Share", metrics.operatingCashFlowPerShare),
     ]),
   };
 
@@ -12090,6 +12262,9 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
       </section>
 
+      <EvalStockChartPanel data={data} />
+      <DcfCalculatorPanel data={data} />
+
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
           <div className="score-breakdown-dashboard-head">
@@ -12243,16 +12418,16 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         />
 
         <Grade
-          id="newsSentiment"
-          name="News Sentiment"
-          value={cats.newsSentiment}
-          icon={<Newspaper size={18} />}
-          description={gradeDescriptions.newsSentiment}
-          metricsUsed={categoryMetrics.newsSentiment}
-          isOpen={openScoreHelp === "newsSentiment"}
+          id="quality"
+          name="Quality"
+          value={cats.quality}
+          icon={<CheckCircle2 size={18} />}
+          description={gradeDescriptions.quality}
+          metricsUsed={categoryMetrics.quality}
+          isOpen={openScoreHelp === "quality"}
           onToggle={() =>
             setOpenScoreHelp(
-              openScoreHelp === "newsSentiment" ? null : "newsSentiment"
+              openScoreHelp === "quality" ? null : "quality"
             )
           }
         />
