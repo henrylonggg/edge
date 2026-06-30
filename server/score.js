@@ -25,7 +25,9 @@ const QUARTERLY_METRIC_CACHE_MS_SCORE = 120 * DAY_MS_SCORE;
 const YEARLY_METRIC_CACHE_MS_SCORE = 180 * DAY_MS_SCORE;
 
 function stableTwelveCacheKey(endpoint, params = {}) {
-  const entries = Object.entries(params)
+  const enriched = { ...params };
+  if (endpoint === "/quote" || endpoint === "/price") enriched.__marketWindow = scoreMarketQuoteCacheWindowEt();
+  const entries = Object.entries(enriched)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .sort(([a], [b]) => a.localeCompare(b));
   return `${endpoint}:${JSON.stringify(entries)}`;
@@ -37,6 +39,51 @@ function isPostMarketCloseEtScore() {
   const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
   const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
   return !["Sat", "Sun"].includes(weekday) && (hour > 16 || (hour === 16 && minute >= 0));
+}
+
+
+function scoreMarketQuoteCacheWindowEt(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "numeric",
+    minute: "numeric",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = map.weekday;
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  const hour = Number(map.hour);
+  const minute = Number(map.minute);
+  const date = `${map.year}-${map.month}-${map.day}`;
+
+  if (!isTradingDay) return `${date}:closed`;
+  if (hour < 9 || (hour === 9 && minute < 30)) return `${date}:preopen`;
+  if (hour < 16) return `${date}:open930`;
+  return `${date}:close4pm`;
+}
+
+function scoreMarketQuoteCacheTtlMs(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }).formatToParts(now);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = map.weekday;
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  const hour = Number(map.hour);
+  const minute = Number(map.minute);
+
+  if (!isTradingDay) return DAY_MS_SCORE;
+  if (hour < 9 || (hour === 9 && minute < 30)) return 18 * 60 * 60 * 1000;
+  if (hour < 16) return 7 * 60 * 60 * 1000;
+  return 18 * 60 * 60 * 1000;
 }
 
 function twelveProviderTtlMs(endpoint, params = {}) {
@@ -1771,8 +1818,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const quote = bestQuote({ cachedQuote: {}, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
-  if (!profile || (!profile.ticker && !profile.name)) throw new Error(`No Twelve Data profile found for ${cleanSymbol}.`);
-
+  // Do not fail the entire analysis when Twelve Data has no profile/logo for a ticker.
+  // Price/metric data can still exist, and the UI can fall back to the ticker symbol.
   const cachedMetrics = metricsFromCachedReport(cachedReport);
   const twelveMarketMetrics = twelveMarket?.metrics || {};
   const twelveFundamentalMetrics = twelveFundamentals?.metrics || {};
