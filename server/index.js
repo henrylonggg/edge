@@ -2095,7 +2095,7 @@ async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsi
   const clean = cleanTicker(symbol);
   if (!clean) return [];
   const safeInterval = ["1day", "1week"].includes(String(interval)) ? String(interval) : "1day";
-  const safeOutputsize = Math.max(30, Math.min(180, Number(outputsize || 90)));
+  const safeOutputsize = Math.max(30, Math.min(520, Number(outputsize || 90)));
   const data = await fetchTwelveDataJson("/time_series", { symbol: clean, interval: safeInterval, outputsize: safeOutputsize }, 5000);
   return normalizeTwelveSeriesRows(data);
 }
