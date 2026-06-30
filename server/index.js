@@ -2094,7 +2094,7 @@ function historicalSeriesTtlMs(interval = "1day") {
 async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 90 } = {}) {
   const clean = cleanTicker(symbol);
   if (!clean) return [];
-  const safeInterval = ["1day", "1week"].includes(String(interval)) ? String(interval) : "1day";
+  const safeInterval = ["1min", "5min", "15min", "30min", "45min", "1h", "1day", "1week"].includes(String(interval)) ? String(interval) : "1day";
   const safeOutputsize = Math.max(30, Math.min(520, Number(outputsize || 90)));
   const data = await fetchTwelveDataJson("/time_series", { symbol: clean, interval: safeInterval, outputsize: safeOutputsize }, 5000);
   return normalizeTwelveSeriesRows(data);
@@ -2128,7 +2128,7 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   if (!symbol) return res.status(404).end();
 
   const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#0b1220"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
-  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "public, max-age=3600").send(fallbackSvg);
+  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "no-store").send(fallbackSvg);
 
   const cached = companyLogoCache.get(symbol);
   if (cached && cached.expiresAt > Date.now()) {
@@ -2150,7 +2150,10 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
     if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
     candidates.push(
       `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.png`,
-      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.jpg`
+      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.jpg`,
+      `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
+      `https://storage.googleapis.com/iex/api/logos/${encodeURIComponent(symbol)}.png`,
+      `https://eodhd.com/img/logos/US/${encodeURIComponent(symbol)}.png`
     );
 
     // Twelve frequently returns no logo for many US tickers on some plans. Finnhub
