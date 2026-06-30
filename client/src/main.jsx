@@ -1123,7 +1123,7 @@ function App() {
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
-      risk: analyzed?.grades?.riskLabel || "N/A",
+      risk: "N/A",
       price: null,
       change: null,
       changePercent: null,
@@ -2555,7 +2555,7 @@ function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze, backLabel
         <div className="sector-explain-card">
           <strong>How to use this page</strong>
           <p>
-            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across quality, valuation, risk, growth, and momentum.
+            Use this to compare stocks against similar companies. The top names have the highest Eval Scores in this industry group. A higher score means the company currently looks stronger across valuation, financial health, growth, momentum, profitability, and pullback.
           </p>
         </div>
 
@@ -5139,7 +5139,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
     {
       number: "04",
       title: "Use news and risk context",
-      text: "Eval adds recent news, risk, price, and percent change so users can understand the current backdrop around the company.",
+      text: "Eval adds recent news, risk, company context so users can understand the current backdrop around the company.",
     },
     {
       number: "05",
@@ -5187,7 +5187,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
 
             <p>
               Eval is a stock evaluation dashboard that turns scattered market data, company fundamentals,
-              recent news, risk signals, watchlist rankings, portfolio scoring, The Morning Mug alerts,
+              recent news signals, watchlist rankings, portfolio scoring, The Morning Mug alerts,
               and AI explanations into one clean system. Instead of making users bounce between finance sites,
               charts, headlines, raw ratios, and spreadsheets, Eval gives them a fast company-quality read they can understand in minutes.
             </p>
@@ -5567,12 +5567,12 @@ const EVAL_FAQS = [
   {
     "category": "Getting started",
     "question": "How do I start using Eval?",
-    "answer": "Search a ticker or open Ticker search, load a company, then read the Eval Score, price/risk cards, category bars, news sentiment, and watchlist options."
+    "answer": "Search a ticker or open Ticker search, load a company, then read the Eval Score, company cards, category bars, news sentiment, and watchlist options."
   },
   {
     "category": "Getting started",
     "question": "What should I look at first?",
-    "answer": "Start with the Eval Score ring, then check the strongest and weakest categories, price/risk cards, and recent news sentiment."
+    "answer": "Start with the Eval Score ring, then check the strongest and weakest categories, company cards, and recent news sentiment."
   },
   {
     "category": "Getting started",
@@ -11451,7 +11451,7 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
     description:
       "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
     features: [
-      "Expanded Eval Score with more quality fundamentals",
+      "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
       "Intrinsic value, WACC, and DCF-style valuation support",
       "Margin of safety and percent difference from intrinsic value",
@@ -11679,7 +11679,7 @@ function AssistantPage({ current, watchlist, onBack, backLabel = "Back to dashbo
 
             <div>
               <strong>Score and metric help</strong>
-              <p>Ask what Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, Risk, or News Sentiment means.</p>
+              <p>Ask what Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, or News Sentiment means.</p>
             </div>
 
             <div>
@@ -12214,11 +12214,11 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   return (
     <>
       <section className={`hero-card eval-stack-report ${openScoreHelp === "score" ? "score-popup-active" : ""}`}>
-        <div className="score-panel">
-          <ScoreRingSvg
-            value={edge}
-            className={`score-ring main-dashboard-pie-theme pie-theme-${pieTheme}`}
-          />
+        <div className="score-panel score-panel-text-only">
+          <div className="main-eval-score-text-wrap">
+            <span className="main-eval-score-label">Eval Score</span>
+            <EvalScoreTextBadge value={edge} className="main-eval-score-text" />
+          </div>
 
           <div className={`score-insight-wrap score-button-stack ${openScoreHelp === "score" ? "popup-active" : ""}`}>
             <button
@@ -12286,14 +12286,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
               <Plus size={17} />
             </button>
           </div>
-        </div>
-
-        <div className="snapshot-grid snapshot-grid-refined">
-          <MiniStat
-            icon={<ShieldCheck size={17} />}
-            label="Risk"
-            value={data.grades.riskLabel}
-          />
         </div>
 
       </section>
