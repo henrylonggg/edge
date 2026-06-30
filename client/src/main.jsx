@@ -200,7 +200,7 @@ const LANDING_LOGO_COLOR_STORAGE_KEY = "eval-landing-logo-color-v1";
 const DASHBOARD_START_OPTIONS = [
   { key: "dashboard", label: "Dashboard" },
   { key: "portfolio", label: "Portfolio" },
-  { key: "morningBrew", label: "Morning Mug" },
+  { key: "morningBrew", label: "The Morning Mug" },
   { key: "watchlist", label: "Watchlist" },
 ];
 
@@ -214,7 +214,7 @@ const MOBILE_NAV_SHORTCUT_OPTIONS = [
   { key: "search", label: "Search" },
   { key: "assistant", label: "Eval AI" },
   { key: "portfolio", label: "Portfolio" },
-  { key: "morningBrew", label: "Morning Mug" },
+  { key: "morningBrew", label: "The Morning Mug" },
   { key: "tickerLookup", label: "Ticker Lookup" },
 ];
 
@@ -384,7 +384,7 @@ function categoryLabel(key) {
       valuation: "Valuation",
       momentum: "Momentum",
       reversal: "Pullback",
-      newsSentiment: "News Sentiment",
+        quality: "Quality",
     }[key] || key
   );
 }
@@ -979,6 +979,16 @@ function App() {
     navigateView(nextView);
   }
 
+  const resolvedAppHomeView = DASHBOARD_START_OPTIONS.some((option) => option.key === preferredDashboardStart)
+    ? preferredDashboardStart
+    : "dashboard";
+  const resolvedAppHomeLabel = DASHBOARD_START_OPTIONS.find((option) => option.key === resolvedAppHomeView)?.label || "Dashboard";
+  const backHomeText = `Back to ${resolvedAppHomeLabel}`;
+
+  function goAppHome() {
+    navigateView(resolvedAppHomeView);
+  }
+
   async function analyze(e, overrideSymbol, options = {}) {
     e?.preventDefault();
 
@@ -1342,7 +1352,7 @@ function App() {
   }
 
   if (view === "landing") {
-    return <LandingPage onContinue={openDashboardFromLanding} />;
+    return <LandingPage onContinue={openDashboardFromLanding} startTarget={isSignedIn ? preferredDashboardStart : "dashboard"} />;
   }
 
   if (view === "account") {
@@ -1358,7 +1368,8 @@ function App() {
     return (
       <TermsPage
         onAgree={acceptTerms}
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         requireAgreement={!termsAccepted}
       />
     );
@@ -1367,10 +1378,39 @@ function App() {
   if (view === "support") {
     return (
       <SupportContactPage
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         onHome={() => navigateView("landing")}
         onTerms={() => navigateView("terms")}
       />
+    );
+  }
+
+
+  if (view === "mobileMenu") {
+    return (
+      <>
+        <MobileMenuPage
+          syncStatus={syncStatus}
+          onSync={handleSyncAccountData}
+          onNavigate={navigateView}
+          onBack={goAppHome}
+          backLabel={backHomeText}
+        />
+        <MobileBottomNav
+          homeView={mobileHomeTarget}
+          homeButtonColor={landingLogoColor}
+          leftShortcut={mobileNavLeft}
+          rightShortcut={mobileNavRight}
+          secondLeftShortcut={mobileNavSecondLeft}
+          secondRightShortcut={mobileNavSecondRight}
+          arrowButtonColor={mobileNavArrowColor}
+          searchTarget={mobileSearchTarget}
+          onNavigate={goMobileNav}
+          onBack={goBackInApp}
+          onForward={goForwardInApp}
+        />
+      </>
     );
   }
 
@@ -1384,7 +1424,8 @@ function App() {
           loading={tickerLookupLoading}
           error={tickerLookupError}
           onQueryChange={setTickerLookupQuery}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
@@ -1406,7 +1447,8 @@ function App() {
   if (view === "faqs") {
     return (
       <FaqPage
-        onBack={() => navigateView("dashboard")}
+        onBack={goAppHome}
+        backLabel={backHomeText}
         onHome={() => navigateView("landing")}
         onTerms={() => navigateView("terms")}
         onSupport={() => navigateView("support")}
@@ -1435,7 +1477,8 @@ function App() {
           onMobileNavArrowColorChange={updateMobileNavArrowColor}
           onMobileHomeTargetChange={updateMobileHomeTarget}
           onLandingLogoColorChange={updateLandingLogoColor}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
         <MobileBottomNav
           homeView={mobileHomeTarget}
@@ -1457,7 +1500,7 @@ function App() {
   if (view === "morningBrew") {
     return (
       <>
-        <MorningMugsDashboard onBack={() => navigateView("dashboard")} />
+        <MorningMugsDashboard onBack={goAppHome} backLabel={backHomeText} />
         <MobileBottomNav
           homeView={mobileHomeTarget}
           homeButtonColor={landingLogoColor}
@@ -1516,21 +1559,23 @@ function App() {
       )}
 
       {view === "portfolio" ? (
-        <PortfolioPage onBack={() => navigateView("dashboard")} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+        <PortfolioPage onBack={goAppHome} backLabel={backHomeText} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
           watchlist={watchlist}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
       ) : view === "plans" ? (
-        <PlansPage onBack={() => navigateView("dashboard")} />
+        <PlansPage onBack={goAppHome} backLabel={backHomeText} />
       ) : view === "sector" ? (
         <IndustryPage
           sectorPage={sectorPage}
           loading={sectorLoading}
           error={sectorError}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
           onAnalyze={analyzeFromIndustry}
         />
       ) : view === "compareSelect" ? (
@@ -1541,7 +1586,8 @@ function App() {
           loading={compareLoading}
           onToggle={toggleCompareSelection}
           onSave={() => loadSelectedComparison(compareSelected)}
-          onBack={() => navigateView("dashboard")}
+          onBack={goAppHome}
+          backLabel={backHomeText}
         />
       ) : view === "compare" ? (
         <ComparePage
@@ -1551,8 +1597,8 @@ function App() {
         />
       ) : view === "watchlist" ? (
         <main className="watchlist-page mobile-watchlist-clean">
-          <button type="button" className="back-btn watchlist-page-back" onClick={() => navigateView("dashboard")}>
-            <ArrowLeft size={18} /> Back to dashboard
+          <button type="button" className="back-btn watchlist-page-back" onClick={goAppHome}>
+            <ArrowLeft size={18} /> {backHomeText}
           </button>
 
           <Watchlist
@@ -1572,121 +1618,7 @@ function App() {
       ) : (
         <section className="layout">
           <div className="content">
-            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar">
-              <div className="menu-wrap" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  className={`menu-trigger ${menuOpen ? "open" : ""}`}
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-label="Open navigation menu"
-                  title="Menu"
-                >
-                  <Menu size={22} />
-                </button>
-
-                {menuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      className="dropdown-click-away"
-                      onPointerDown={() => setMenuOpen(false)}
-                      onMouseDown={() => setMenuOpen(false)}
-                      onTouchStart={() => setMenuOpen(false)}
-                      onClick={() => setMenuOpen(false)}
-                      aria-label="Close menu"
-                    />
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-desktop eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
-                        Ticker Lookup
-                      </button>
-                      <div className="dropdown-divider" />
-
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={`eval-sync-menu-tab ${syncStatus}`}
-                              onClick={handleSyncAccountData}
-                              disabled={syncStatus === "syncing"}
-                            >
-                              {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
-                            </button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="dashboard-dropdown-menu dashboard-dropdown-mobile eval-select-menu" role="menu">
-                      <button type="button" role="menuitem" onClick={() => goMenu("assistant")}>
-                        AI Assistant
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("portfolio")}>
-                        Portfolio
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => goMenu("tickerLookup")}>
-                        Ticker Lookup
-                      </button>
-                      <button type="button" role="menuitem" className="dropdown-mobile-watchlist-only" onClick={() => goMenu("watchlist")}>
-                        Watchlist
-                      </button>
-
-                      <div className="dropdown-divider" />
-
-                      <div className={`dashboard-dropdown-nested ${otherMenuOpen ? "open" : ""}`}>
-                        <button
-                          type="button"
-                          className="dashboard-dropdown-nested-toggle"
-                          onClick={() => setOtherMenuOpen((open) => !open)}
-                          aria-expanded={otherMenuOpen}
-                        >
-                          Other <span>{otherMenuOpen ? "▴" : "▾"}</span>
-                        </button>
-                        {otherMenuOpen ? (
-                          <div className="dashboard-dropdown-nested-list">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className={`eval-sync-menu-tab ${syncStatus}`}
-                              onClick={handleSyncAccountData}
-                              disabled={syncStatus === "syncing"}
-                            >
-                              {syncStatus === "synced" ? "Synced" : syncStatus === "syncing" ? "Syncing..." : "Sync Account"}
-                            </button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("settings")}>Settings</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("landing")}>Homepage</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("faqs")}>FAQs</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("terms")}>Terms & Conditions</button>
-                            <button type="button" role="menuitem" onClick={() => goMenu("support")}>Contact</button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
+            <form onSubmit={analyze} className="searchbar compact-searchbar score-searchbar eval-responsive-searchbar eval-menu-searchbar dashboard-searchbar-no-menu">
               <div className="ticker-field eval-safe-ticker-field">
                 <input
                   className="eval-clean-ticker-input"
@@ -1703,12 +1635,12 @@ function App() {
 
               <button
                 type="button"
-                className="searchbar-morning-mug-btn desktop-search-mug-btn"
-                aria-label="Open Morning Mug"
-                title="Morning Mug"
-                onClick={() => navigateView("morningBrew")}
+                className="searchbar-desktop-add-btn"
+                aria-label="Add ticker"
+                title="Add ticker"
+                onClick={() => addTicker(symbol)}
               >
-                <Coffee size={18} />
+                <Plus size={18} />
               </button>
 
               <button
@@ -1765,6 +1697,69 @@ function App() {
 }
 
 
+function MobileMenuPage({ syncStatus, onSync, onNavigate, onBack, backLabel = "Back" }) {
+  const primaryTabs = [
+    { label: "Dashboard", view: "dashboard" },
+    { label: "Portfolio", view: "portfolio" },
+    { label: "The Morning Mug", view: "morningBrew" },
+    { label: "Watchlist", view: "watchlist" },
+    { label: "Ticker Lookup", view: "tickerLookup" },
+    { label: "Eval AI", view: "assistant" },
+  ];
+
+  const otherTabs = [
+    { label: syncStatus === "syncing" ? "Syncing Account..." : syncStatus === "synced" ? "✓ Synced Account" : "Sync Account", action: onSync, synced: syncStatus === "synced" },
+    { label: "Settings", view: "settings" },
+    { label: "Homepage", view: "landing" },
+    { label: "FAQs", view: "faqs" },
+    { label: "Terms & Conditions", view: "terms" },
+    { label: "Contact", view: "support" },
+  ];
+
+  const go = (item) => {
+    if (item.action) {
+      item.action();
+      return;
+    }
+    onNavigate(item.view);
+  };
+
+  return (
+    <main className="app-shell mobile-menu-page-shell">
+      <section className="mobile-menu-page-card">
+        <div className="mobile-menu-page-head">
+          <button type="button" className="mobile-menu-page-back" onClick={onBack} aria-label={backLabel}>
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <span className="section-title"><Menu size={17}/> Menu</span>
+            <h2>All Eval tabs</h2>
+          </div>
+        </div>
+
+        <div className="mobile-menu-link-grid">
+          {primaryTabs.map((item) => (
+            <button key={item.label} type="button" className="mobile-menu-text-link" onClick={() => go(item)}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mobile-menu-other-block">
+          <h3>Other</h3>
+          <div className="mobile-menu-link-grid other-open">
+            {otherTabs.map((item) => (
+              <button key={item.label} type="button" className={`mobile-menu-text-link ${item.synced ? "synced" : ""}`} onClick={() => go(item)} disabled={item.action && syncStatus === "syncing"}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function SettingsPage({
   dashboardStart,
   mobileNavLeft,
@@ -1784,13 +1779,14 @@ function SettingsPage({
   onMobileHomeTargetChange,
   onLandingLogoColorChange,
   onBack,
+  backLabel = "Back",
 }) {
   return (
     <main className="app-shell settings-page-shell">
       <section className="settings-page-card">
         <div className="settings-page-head">
-          <button type="button" className="back-btn settings-back-btn" onClick={onBack} aria-label="Back to dashboard">
-            <ArrowLeft size={18} /> Back
+          <button type="button" className="back-btn settings-back-btn" onClick={onBack} aria-label={backLabel}>
+            <ArrowLeft size={18} /> {backLabel}
           </button>
           <div>
             <span className="section-title"><Gauge size={17}/> Settings</span>
@@ -1848,11 +1844,7 @@ function SettingsPage({
                 ))}
               </select>
               <label>Left outer shortcut</label>
-              <select value={mobileNavLeft} onChange={(e) => onMobileNavLeftChange(e.target.value)}>
-                {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
-                  <option key={option.key} value={option.key}>{option.label}</option>
-                ))}
-              </select>
+              <div className="settings-fixed-menu-slot"><Menu size={15} /> Menu — fixed</div>
               <label>Left inner shortcut</label>
               <select value={mobileNavSecondLeft} onChange={(e) => onMobileNavSecondLeftChange(e.target.value)}>
                 {MOBILE_NAV_SHORTCUT_OPTIONS.map((option) => (
@@ -1888,6 +1880,7 @@ function SettingsPage({
 
 function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShortcut, secondRightShortcut, searchTarget, homeButtonColor = "#9f5cff", arrowButtonColor = "#151826", onNavigate, onBack, onForward }) {
   const shortcutMap = {
+    menu: { label: "Menu", icon: <Menu size={20} /> },
     watchlist: { label: "Watchlist", icon: <Star size={18} /> },
     settings: { label: "Settings", icon: <SettingsIcon size={18} /> },
     search: { label: "Search", icon: <Search size={18} /> },
@@ -1898,13 +1891,13 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
   };
 
   const runShortcut = (key) => {
-    const target = key === "search" ? searchTarget : key;
+    const target = key === "search" ? searchTarget : key === "menu" ? "mobileMenu" : key;
     onNavigate(target || "dashboard");
   };
 
   const resolvedSecondLeftShortcut = secondLeftShortcut || safeStorageGet(MOBILE_NAV_SECOND_LEFT_STORAGE_KEY, "settings");
   const resolvedSecondRightShortcut = secondRightShortcut || safeStorageGet(MOBILE_NAV_SECOND_RIGHT_STORAGE_KEY, "portfolio");
-  const left = shortcutMap[leftShortcut] || shortcutMap.watchlist;
+  const left = shortcutMap.menu;
   const secondLeft = shortcutMap[resolvedSecondLeftShortcut] || shortcutMap.settings;
   const right = shortcutMap[rightShortcut] || shortcutMap.assistant;
   const secondRight = shortcutMap[resolvedSecondRightShortcut] || shortcutMap.portfolio;
@@ -1915,7 +1908,7 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
         <ArrowLeft size={15} />
       </button>
 
-      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut" onClick={() => runShortcut(leftShortcut)} aria-label={left.label}>
+      <button type="button" className="mobile-bottom-nav-btn nav-shortcut nav-left-shortcut nav-menu-shortcut" onClick={() => runShortcut("menu")} aria-label={left.label}>
         {left.icon}
       </button>
 
@@ -2109,6 +2102,7 @@ function CompareSelectPage({
   onToggle,
   onSave,
   onBack,
+  backLabel = "Back to dashboard",
 }) {
   const activeStocks = [...watchlist].sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -2116,7 +2110,7 @@ function CompareSelectPage({
     <section className="compare-page compare-select-page">
       <div className="compare-page-shell">
         <button type="button" className="back-btn" onClick={onBack}>
-          <ArrowLeft size={18} /> Back to dashboard
+          <ArrowLeft size={18} /> {backLabel}
         </button>
 
         <div className="compare-page-head">
@@ -2188,6 +2182,7 @@ function ComparePage({
   data,
   error,
   onBack,
+  backLabel = "Back",
 }) {
   const categories = [
     "growth",
@@ -2196,7 +2191,6 @@ function ComparePage({
     "valuation",
     "momentum",
     "reversal",
-    "newsSentiment",
   ];
 
   const reports = data?.reports || [];
@@ -2305,7 +2299,6 @@ function IndustryRadar({ leaders }) {
     "valuation",
     "momentum",
     "reversal",
-    "newsSentiment",
   ];
 
   const categoryValues = (item) => {
@@ -2474,7 +2467,7 @@ function IndustryRadar({ leaders }) {
   );
 }
 
-function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
+function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze, backLabel = "Back to dashboard" }) {
   const sector = sectorPage?.sector || "Industry";
   const leaders = Array.isArray(sectorPage?.leaders) ? sectorPage.leaders : [];
 
@@ -2483,7 +2476,7 @@ function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze }) {
       <div className="sector-page-shell">
         <div className="sector-page-head">
           <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={17} /> Dashboard
+            <ArrowLeft size={17} /> {backLabel}
           </button>
 
           <div>
@@ -3003,7 +2996,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
 }
 
 function weightedMetricEntriesFromIndustry(group) {
-  const metricKeys = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback", "newsSentiment"];
+  const metricKeys = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback", "quality"];
   const holdings = Array.isArray(group?.holdings) ? group.holdings : [];
   return metricKeys.map((key) => {
     const weighted = holdings.reduce((sum, holding) => {
@@ -3386,7 +3379,7 @@ function PortfolioEarningsCalendar({
   );
 }
 
-function MorningMugsDashboard({ onBack }) {
+function MorningMugsDashboard({ onBack, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const [brew, setBrew] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3460,7 +3453,7 @@ function MorningMugsDashboard({ onBack }) {
           </div>
           <div className="morning-brew-back-row">
             <button type="button" className="back-btn morning-brew-back" onClick={onBack}>
-              <ArrowLeft size={18} /> Back to dashboard
+              <ArrowLeft size={18} /> {backLabel}
             </button>
           </div>
         </div>
@@ -3588,7 +3581,6 @@ const PORTFOLIO_DETAILED_COLUMNS = [
   { key: "valuation", label: "Valuation", type: "score" },
   { key: "momentum", label: "Momentum", type: "score" },
   { key: "reversal", label: "Pullback", type: "score" },
-  { key: "newsSentiment", label: "News", type: "score" },
   { key: "shares", label: "Quantity", type: "number" },
   { key: "averageCost", label: "Avg. Cost", type: "money" },
   { key: "currentPrice", label: "Current Price", type: "money" },
@@ -3628,7 +3620,7 @@ function currentHoldingPriceValue(holding) {
 
 
 
-function PortfolioPage({ onBack, onAnalyze, onMorning }) {
+function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const firstName =
     user?.firstName ||
@@ -4666,7 +4658,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   return (
     <main className="portfolio-builder-page portfolio-dashboard-v3">
       <div className="portfolio-builder-head portfolio-upload-topbar portfolio-dashboard-head-v3 portfolio-top-title-bubble">
-        <button type="button" className="back-btn portfolio-back-icon-only" onClick={onBack} aria-label="Back to dashboard"><ArrowLeft size={18}/></button>
+        <button type="button" className="back-btn portfolio-back-icon-only" onClick={onBack} aria-label={backLabel}><ArrowLeft size={18}/></button>
         <div className="portfolio-title-mainline portfolio-title-mainline-clean">
           <div>
             <h2>{portfolioTitle}</h2>
@@ -5027,7 +5019,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning }) {
   );
 }
 
-function LandingPage({ onContinue }) {
+function LandingPage({ onContinue, startTarget = "dashboard" }) {
+  const startLabel = ({ dashboard: "Open dashboard", portfolio: "Open portfolio", morningBrew: "Open Morning Mug", watchlist: "Open watchlist" }[startTarget] || "Open dashboard");
+
   const productPillars = [
     {
       icon: <Gauge size={22} />,
@@ -5119,7 +5113,7 @@ function LandingPage({ onContinue }) {
           </button>
 
           <button type="button" className="landing-continue-top" onClick={onContinue}>
-            Open dashboard <ArrowRight size={18} />
+            {startLabel} <ArrowRight size={18} />
           </button>
         </header>
 
@@ -5214,7 +5208,7 @@ function LandingPage({ onContinue }) {
             </p>
           </div>
           <button type="button" className="landing-continue-btn secondary" onClick={onContinue}>
-            Start evaluating <ArrowRight size={18} />
+            {startLabel} <ArrowRight size={18} />
           </button>
         </section>
 
@@ -5378,14 +5372,14 @@ function ClerkAccessPage({ onBack, onSuccess }) {
 }
 
 
-function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack }) {
+function TickerLookupPage({ query, results, loading, error, onQueryChange, onBack, backLabel = "Back to dashboard" }) {
   const cleanQuery = query.trim();
   return (
     <main className="ticker-lookup-page ticker-lookup-purple-page">
       <section className="ticker-lookup-page-shell ticker-lookup-purple-shell">
         <div className="ticker-lookup-topbar">
           <button type="button" className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
         </div>
 
@@ -10797,7 +10791,7 @@ function buildEvalExtraFaqs() {
   return out;
 }
 
-function FaqPage({ onBack, onHome, onTerms, onSupport }) {
+function FaqPage({ onBack, onHome, onTerms, onSupport, backLabel = "Back to dashboard" }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
@@ -10820,7 +10814,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
       <section className="faq-shell">
         <div className="faq-topbar">
           <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div className="faq-mini-nav">
@@ -10901,7 +10895,7 @@ function FaqPage({ onBack, onHome, onTerms, onSupport }) {
   );
 }
 
-function SupportContactPage({ onBack, onHome, onTerms }) {
+function SupportContactPage({ onBack, onHome, onTerms, backLabel = "Back to dashboard" }) {
   return (
     <main className="support-page">
       <div className="support-orb support-orb-one" />
@@ -10910,7 +10904,7 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
       <section className="support-shell">
         <div className="support-topbar">
           <button className="back-btn" type="button" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div className="support-mini-nav">
@@ -10984,7 +10978,7 @@ function SupportContactPage({ onBack, onHome, onTerms }) {
   );
 }
 
-function TermsPage({ onAgree, onBack, requireAgreement = true }) {
+function TermsPage({ onAgree, onBack, backLabel = "Back to dashboard", requireAgreement = true }) {
   const [checked, setChecked] = useState(false);
   const [confirmName, setConfirmName] = useState("");
   const canAgree = checked && confirmName.trim().toUpperCase() === "I AGREE";
@@ -11217,7 +11211,7 @@ function TermsPage({ onAgree, onBack, requireAgreement = true }) {
             </div>
 
             <button type="button" className="terms-agree-btn" onClick={onBack}>
-              Back to dashboard <ArrowRight size={18} />
+              {backLabel} <ArrowRight size={18} />
             </button>
           </div>
         )}
@@ -11363,18 +11357,13 @@ function Watchlist({
           items.map((item) => (
             <div className="watch-row" key={item.symbol}>
               <span className="watch-rank-number" aria-hidden="true" />
-              <button className="watch-info" onClick={() => onAnalyze(item.symbol)}>
-                <strong>{item.symbol}</strong>
-                <div className="row-sw watch-row-sw">
-                  <span>Strong: {item.strongest || "N/A"}</span>
-                  <span>Weak: {item.weakest || "N/A"}</span>
-                </div>
+              <button className="watch-info watch-info-new" onClick={() => onAnalyze(item.symbol)}>
+                <strong>{item.name || item.companyName || item.symbol}</strong>
+                <span className="watch-ticker-under">{item.symbol}</span>
+                <WatchMiniSparkline symbol={item.symbol} />
               </button>
 
-              <ScoreRingSvg
-              value={item.score}
-              className="watch-score-ring"
-            />
+              <EvalScoreTextBadge value={item.score} className="watch-score-text" />
 
               <button className="delete-btn" onClick={() => onRemove(item.symbol)}>
                 <Trash2 size={15} />
@@ -11387,7 +11376,7 @@ function Watchlist({
   );
 }
 
-function PlansPage({ onBack }) {
+function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
   const plan = {
     name: "Eval Pro",
     price: "$9.99/mo",
@@ -11411,7 +11400,7 @@ function PlansPage({ onBack }) {
       <div className="plans-shell pro-only-shell">
         <div className="plans-page-head">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div>
@@ -11474,7 +11463,7 @@ function PlansPage({ onBack }) {
   );
 }
 
-function AssistantPage({ current, watchlist, onBack }) {
+function AssistantPage({ current, watchlist, onBack, backLabel = "Back to dashboard" }) {
   const { user } = useUser();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -11565,7 +11554,7 @@ function AssistantPage({ current, watchlist, onBack }) {
       <section className="assistant-page">
         <div className="assistant-shell assistant-lock-shell">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
           <div className="assistant-lock-card">
             <div className="assistant-kicker"><BrainCircuit size={16} /> Eval AI Assistant</div>
@@ -11593,7 +11582,7 @@ function AssistantPage({ current, watchlist, onBack }) {
       <div className="assistant-shell">
         <div className="assistant-page-head">
           <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={18} /> Dashboard
+            <ArrowLeft size={18} /> {backLabel}
           </button>
 
           <div>
@@ -11733,6 +11722,215 @@ function EvalAiScoreSummaryCard({ summary, ticker }) {
   );
 }
 
+
+
+function EvalScoreTextBadge({ value, className = "" }) {
+  const n = score10(value);
+  const tone = scoreTone(value);
+  return <span className={`eval-score-text-badge ${tone} ${className}`}>{n === null ? "N/A" : n.toFixed(1)}</span>;
+}
+
+function WatchMiniSparkline({ symbol }) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!symbol) return undefined;
+    fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=1D`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => {
+        if (!cancelled) setRows(Array.isArray(json?.rows) ? json.rows.slice(-42) : []);
+      })
+      .catch(() => { if (!cancelled) setRows([]); });
+    return () => { cancelled = true; };
+  }, [symbol]);
+
+  const points = rows.map((row, i) => ({ x: i, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  if (points.length < 2) return <span className="watch-mini-sparkline watch-mini-sparkline-empty" />;
+  const min = Math.min(...points.map((p) => p.y));
+  const max = Math.max(...points.map((p) => p.y));
+  const range = max - min || 1;
+  const path = points.map((p, i) => {
+    const x = (p.x / Math.max(1, points.length - 1)) * 100;
+    const y = 34 - ((p.y - min) / range) * 28;
+    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const up = points[points.length - 1].y >= points[0].y;
+  return (
+    <svg className={`watch-mini-sparkline ${up ? "up" : "down"}`} viewBox="0 0 100 40" aria-hidden="true">
+      <path d={path} />
+    </svg>
+  );
+}
+
+function MiniSvgLineChart({ rows = [], projections = [] }) {
+  const width = 720;
+  const height = 250;
+  const points = rows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
+  const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
+  if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
+  const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
+  const minY = Math.min(...allY);
+  const maxY = Math.max(...allY);
+  const range = maxY - minY || 1;
+  const xScale = (x) => 28 + (x / Math.max(1, points.length - 1)) * (width - 56);
+  const yScale = (y) => 220 - ((y - minY) / range) * 180;
+  const path = points.map((pnt, i) => `${i === 0 ? "M" : "L"}${xScale(pnt.x).toFixed(1)},${yScale(pnt.y).toFixed(1)}`).join(" ");
+  const startX = xScale(points.length - 1);
+  const startY = yScale(points[points.length - 1].y);
+  return (
+    <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart">
+      <defs>
+        <linearGradient id="evalChartFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(159,92,255,.45)" />
+          <stop offset="100%" stopColor="rgba(21,231,255,.02)" />
+        </linearGradient>
+        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
+      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" />
+      <path d={path} className="eval-chart-line" filter="url(#evalChartGlow)" />
+      <line x1={startX} x2={startX} y1="34" y2="232" className="eval-chart-current-price-line" />
+      <circle cx={startX} cy={startY} r="5" className="eval-chart-current-price-dot" />
+      {projectionPoints.map((proj) => {
+        const endX = width - 28;
+        const endY = yScale(Number(proj.targetPrice));
+        const cls = proj.scenario === "high" ? "high" : proj.scenario === "low" ? "low" : "average";
+        return <line key={proj.scenario} x1={startX} y1={startY} x2={endX} y2={endY} className={`eval-chart-projection ${cls}`} />;
+      })}
+    </svg>
+  );
+}
+
+function EvalStockChartPanel({ data, edgeScore = null }) {
+  const symbol = data?.symbol;
+  const [timeframe, setTimeframe] = useState("6M");
+  const [chart, setChart] = useState(null);
+  const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp });
+  const [loading, setLoading] = useState(false);
+  const timeframes = ["1D", "5D", "1M", "6M", "1Y", "5Y"];
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadChart() {
+      if (!symbol) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?timeframe=${encodeURIComponent(timeframe)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) {
+          setChart(json);
+          if (json?.live) setLive(json.live);
+        }
+      } catch {}
+      if (!cancelled) setLoading(false);
+    }
+    loadChart();
+    return () => { cancelled = true; };
+  }, [symbol, timeframe]);
+
+  useEffect(() => {
+    if (!symbol) return undefined;
+    let cancelled = false;
+    const loadLive = async () => {
+      try {
+        const res = await fetch(`${API}/api/live-quote/${encodeURIComponent(symbol)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setLive(json);
+      } catch {}
+    };
+    loadLive();
+    const id = setInterval(loadLive, 350);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [symbol]);
+
+  const rows = Array.isArray(chart?.rows) ? chart.rows : [];
+  const logo = data?.profile?.logo;
+  const changePercent = Number(live?.changePercent ?? data?.quote?.dp);
+  const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
+
+  return (
+    <section className="eval-stock-chart-shell">
+      <div className="eval-stock-chart-top">
+        <div className="eval-stock-company-lockup">
+          {logo ? <img src={logo} alt="" className="eval-stock-logo" /> : <div className="eval-stock-logo placeholder">{symbol?.slice(0, 1)}</div>}
+          <div>
+            <h3>{data?.profile?.name || symbol}</h3>
+            <span>{symbol}</span>
+          </div>
+        </div>
+        <div className="eval-stock-chart-right-stack">
+          <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score" />
+          <div className="eval-live-price-panel">
+            <strong>{money(live?.current ?? data?.quote?.c)}</strong>
+            <span className={`eval-live-change ${tone}`}>{signedMoney(live?.change ?? data?.quote?.d)} · {signedPercent(changePercent)}</span>
+          </div>
+        </div>
+      </div>
+      <MiniSvgLineChart rows={rows} />
+      <div className="eval-chart-timeframe-row">
+        {timeframes.map((item) => <button type="button" key={item} className={item === timeframe ? "active" : ""} onClick={() => setTimeframe(item)}>{item}</button>)}
+      </div>
+      <p className="eval-chart-cache-note">Twelve Data only. Historical prices cache after the 4:00 PM ET close on trading days. Live price refreshes continuously while the page is open.</p>
+    </section>
+  );
+}
+
+function DcfCalculatorPanel({ data }) {
+  const symbol = data?.symbol;
+  const [open, setOpen] = useState(false);
+  const [scenario, setScenario] = useState("average");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !symbol) return undefined;
+    let cancelled = false;
+    async function loadDcf() {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/dcf/${encodeURIComponent(symbol)}?scenario=${encodeURIComponent(scenario)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setResult(json);
+      } catch {}
+      if (!cancelled) setLoading(false);
+    }
+    loadDcf();
+    return () => { cancelled = true; };
+  }, [open, symbol, scenario]);
+
+  return (
+    <section className="eval-dcf-shell">
+      <button type="button" className="eval-dcf-toggle" onClick={() => setOpen((v) => !v)}>
+        <Target size={18} /> DCF Calculator
+      </button>
+      {open && (
+        <div className="eval-dcf-page">
+          <div className="eval-dcf-head">
+            <div>
+              <span>6-month outlook</span>
+              <h3>{data?.profile?.name || symbol} projection</h3>
+            </div>
+            <div className="eval-dcf-scenarios">
+              {["low", "average", "high"].map((item) => <button type="button" key={item} className={scenario === item ? "active" : ""} onClick={() => setScenario(item)}>{item}</button>)}
+            </div>
+          </div>
+          {loading ? <div className="eval-stock-chart-empty">Calculating projection...</div> : (
+            <>
+              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} />
+              <div className="eval-dcf-result-grid">
+                <div><span>Selected case</span><strong>{scenario}</strong></div>
+                <div><span>Expected price</span><strong>{money(result?.chosen?.expectedPrice)}</strong></div>
+                <div><span>6M growth path</span><strong>{signedPercent(result?.chosen?.sixMonthGrowth)}</strong></div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = data?.grades?.categories || {};
   const metrics = data?.metrics || {};
@@ -11753,9 +11951,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const [sectorLeaders, setIndustryLeaders] = useState([]);
 
   const sectorName = data.profile?.finnhubIndustry || "Public company";
-  const newsTopics = Array.isArray(data.newsSentiment?.topics)
-    ? data.newsSentiment.topics.slice(0, 3)
-    : [];
+  const newsTopics = [];
   const [scoreBreakdownOpen, setScoreBreakdownOpen] = useState(false);
   const [scoreBreakdownLoading, setScoreBreakdownLoading] = useState(false);
   const [scoreBreakdownError, setScoreBreakdownError] = useState("");
@@ -11824,7 +12020,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
-    newsSentiment: "Shows the weighted impact of the top 3 recent news topics. Higher means recent news looks more positive for the stock.",
+    newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
+    quality: "Shows higher-quality earnings inputs such as cash conversion, ROIC, and free cash flow per share.",
   };
 
   const categoryMetrics = {
@@ -11894,6 +12091,11 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
+    ]),
+    quality: usableMetricLines([
+      metricLine("ROIC", metrics.roi),
+      metricLine("Free Cash Flow / Share", metrics.freeCashFlowPerShare),
+      metricLine("Operating Cash Flow / Share", metrics.operatingCashFlowPerShare),
     ]),
   };
 
@@ -11967,11 +12169,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       "Intrinsic Value Gap",
       metrics.intrinsicValueGap,
       "Percent difference between intrinsic value and current stock price.",
-    ],
-    [
-      "News Sentiment",
-      metrics.newsSentiment,
-      data.newsSentiment?.summary || "AI score from recent company news.",
     ],
     [
       "EBITDA",
@@ -12093,6 +12290,9 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
       </section>
 
+      <EvalStockChartPanel data={data} edgeScore={edge} />
+      <DcfCalculatorPanel data={data} />
+
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
           <div className="score-breakdown-dashboard-head">
@@ -12132,7 +12332,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         </section>
       )}
 
-      {newsTopics.length > 0 && (
+      {false && newsTopics.length > 0 && (
         <section className="news-sentiment-card">
           <div className="section-title news-section-title">
             <Newspaper size={17} />
@@ -12246,16 +12446,16 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         />
 
         <Grade
-          id="newsSentiment"
-          name="News Sentiment"
-          value={cats.newsSentiment}
-          icon={<Newspaper size={18} />}
-          description={gradeDescriptions.newsSentiment}
-          metricsUsed={categoryMetrics.newsSentiment}
-          isOpen={openScoreHelp === "newsSentiment"}
+          id="quality"
+          name="Quality"
+          value={cats.quality}
+          icon={<CheckCircle2 size={18} />}
+          description={gradeDescriptions.quality}
+          metricsUsed={categoryMetrics.quality}
+          isOpen={openScoreHelp === "quality"}
           onToggle={() =>
             setOpenScoreHelp(
-              openScoreHelp === "newsSentiment" ? null : "newsSentiment"
+              openScoreHelp === "quality" ? null : "quality"
             )
           }
         />
