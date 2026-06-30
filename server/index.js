@@ -2147,17 +2147,34 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
       }
     }
 
-    if (/^https?:\/\//i.test(logoUrl)) {
-      const imageResponse = await fetch(logoUrl, { headers: { "User-Agent": "Eval/1.0" } });
-      if (imageResponse.ok) {
-        const contentType = imageResponse.headers.get("content-type") || "image/png";
-        if (/^image\//i.test(contentType)) {
-          const arrayBuffer = await imageResponse.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
-          return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
-        }
+    const logoCandidates = [];
+    if (/^https?:\/\//i.test(logoUrl)) logoCandidates.push(logoUrl);
+
+    const profileForFallback = await fetchTwelveDataJson("/profile", { symbol }, 4000).catch(() => null);
+    const website = String(profileForFallback?.website || profileForFallback?.weburl || profileForFallback?.url || "").trim();
+    if (/^https?:\/\//i.test(website)) {
+      const host = new URL(website).hostname.replace(/^www\./i, "");
+      if (host) {
+        logoCandidates.push(
+          `https://logo.clearbit.com/${host}`,
+          `https://icons.duckduckgo.com/ip3/${host}.ico`,
+          `https://www.google.com/s2/favicons?domain=${host}&sz=128`
+        );
       }
+    }
+
+    for (const candidate of [...new Set(logoCandidates)]) {
+      try {
+        const imageResponse = await fetch(candidate, { headers: { "User-Agent": "Mozilla/5.0 Eval/1.0" } });
+        if (!imageResponse.ok) continue;
+        const contentType = imageResponse.headers.get("content-type") || "image/png";
+        if (!/^image\//i.test(contentType)) continue;
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        if (!buffer.length) continue;
+        companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
+        return res.type(contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(buffer);
+      } catch {}
     }
   } catch {}
 
