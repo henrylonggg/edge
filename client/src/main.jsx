@@ -458,16 +458,19 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-const EVAL_CATEGORY_KEYS = ["profitability", "financialHealth", "valuation", "momentum"];
+const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "quality", "momentum", "pullback"];
 const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
 
 function categoryLabel(key) {
   return (
     {
+      growth: "Growth",
       profitability: "Profitability",
       financialHealth: "Financial Health",
       valuation: "Valuation",
+      quality: "Quality",
       momentum: "Momentum",
+      pullback: "Pullback",
     }[key] || key
   );
 }
@@ -2311,10 +2314,13 @@ function ComparePage({
   backLabel = "Back",
 }) {
   const categories = [
+    "growth",
     "profitability",
     "financialHealth",
     "valuation",
+    "quality",
     "momentum",
+    "pullback",
   ];
 
   const reports = data?.reports || [];
@@ -2417,10 +2423,13 @@ function IndustryRadar({ leaders }) {
   const [hiddenSymbols, setHiddenSymbols] = useState([]);
 
   const categories = [
+    "growth",
     "profitability",
     "financialHealth",
     "valuation",
+    "quality",
     "momentum",
+    "pullback",
   ];
 
   const categoryValues = (item) => {
