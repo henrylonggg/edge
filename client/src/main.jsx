@@ -413,8 +413,8 @@ function normalizeLivePacket(packet = {}, fallbackSymbol = "") {
   const price = Number(packet.price ?? packet.current ?? packet.c);
   const previousClose = Number(packet.previousClose ?? packet.pc ?? packet.previous_close ?? packet.previous_close_price);
   const rawChange = Number(packet.change ?? packet.d ?? packet.day_change ?? packet.change_price);
-  const change = Number.isFinite(rawChange) ? rawChange : (Number.isFinite(price) && Number.isFinite(previousClose) ? price - previousClose : NaN);
-  const changePercent = Number(packet.changePercent ?? packet.dp ?? packet.percent_change ?? packet.change_percent ?? (Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : NaN));
+  const change = Number.isFinite(price) && Number.isFinite(previousClose) ? price - previousClose : NaN;
+  const changePercent = Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : NaN;
   return {
     symbol,
     current: Number.isFinite(price) ? price : null,
@@ -648,6 +648,9 @@ function App() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [symbol, setSymbol] = useState("");
   const [data, setData] = useState(null);
+  const [portfolioDetailData, setPortfolioDetailData] = useState(null);
+  const [portfolioDetailLoading, setPortfolioDetailLoading] = useState(false);
+  const [portfolioDetailError, setPortfolioDetailError] = useState("");
   const [watchlist, setWatchlist] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tickerInputLocked, setTickerInputLocked] = useState(false);
@@ -1220,6 +1223,24 @@ function App() {
     saveWatchlist(next);
   }
 
+  async function openPortfolioStockDetail(ticker) {
+    const clean = String(ticker || "").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, "").slice(0, 8);
+    if (!clean) return;
+    setPortfolioDetailError("");
+    setPortfolioDetailLoading(true);
+    setPortfolioDetailData(null);
+    navigateView("portfolioStockDetail");
+    try {
+      const analyzed = await analyze(null, clean, { forceRefresh: true, silent: true, skipState: true });
+      if (analyzed) setPortfolioDetailData(analyzed);
+      else setPortfolioDetailError(`Could not load ${clean}.`);
+    } catch (error) {
+      setPortfolioDetailError(error?.message || `Could not load ${clean}.`);
+    } finally {
+      setPortfolioDetailLoading(false);
+    }
+  }
+
   function openComparePage() {
     setCompareError("");
     setCompareData(null);
@@ -1684,8 +1705,23 @@ function App() {
         </div>
       )}
 
-      {view === "portfolio" ? (
-        <PortfolioPage onBack={goAppHome} backLabel={backHomeText} onMorning={() => navigateView("morningBrew")} onAnalyze={(ticker) => { analyze(null, ticker); navigateView("dashboard"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+      {view === "portfolioStockDetail" ? (
+        <section className="portfolio-stock-detail-page">
+          <button type="button" className="back-btn portfolio-stock-detail-back" onClick={() => navigateView("portfolio")}>
+            <ArrowLeft size={18} /> Portfolio
+          </button>
+          {portfolioDetailLoading ? (
+            <div className="portfolio-loading-card compact"><RefreshCw className="spin" size={24}/><h3>Loading stock detail</h3><p>Loading chart, live quote, and Eval metrics.</p></div>
+          ) : portfolioDetailError ? (
+            <div className="error-banner"><AlertTriangle size={18}/>{portfolioDetailError}</div>
+          ) : portfolioDetailData ? (
+            <Report data={portfolioDetailData} onAdd={() => addTicker(portfolioDetailData.symbol)} onOpenIndustry={openIndustryPage} pieTheme={mainPieTheme} />
+          ) : (
+            <EmptyReport />
+          )}
+        </section>
+      ) : view === "portfolio" ? (
+        <PortfolioPage onBack={goAppHome} backLabel={backHomeText} onMorning={() => navigateView("morningBrew")} onAnalyze={openPortfolioStockDetail} />
       ) : view === "assistant" ? (
         <AssistantPage
           current={data}
@@ -4388,7 +4424,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
   function renderDetailedCell(holding, column) {
     const key = column.key;
     if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
-    if (key === "eval") return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(holding.edgeScore)}`}>{scoreText(holding.edgeScore)}</span></td>;
+    if (key === "eval") return <td key={key}><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-detail-eval-score watch-score-plain" /></td>;
     if (["profitability", "financialHealth", "valuation", "momentum", "newsSentiment"].includes(key)) {
       const value = score10(holding?.[key]);
       return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(value)}`}>{value === null ? "N/A" : value.toFixed(1)}</span></td>;
@@ -4941,8 +4977,8 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
               subtitle: "Weighted category scores for the full uploaded portfolio.",
               entries: categoryEntries,
             })}>
-              <div className="portfolio-score-ring-stack">
-                <MiniScoreRing value={portfolioEvalScore} />
+              <div className="portfolio-score-ring-stack portfolio-score-text-stack">
+                <EvalScoreTextBadge value={portfolioEvalScore} className="portfolio-main-eval-score watch-score-plain" />
                 <span className={`portfolio-score-change-pill ${Number(evalScoreChange) >= 0 ? "up" : "down"}`}>
                   {Number(evalScoreChange) >= 0 ? "+" : ""}{Number(evalScoreChange || 0).toFixed(1)}
                 </span>
@@ -5052,7 +5088,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
                     <span>{group.sector}</span>
                     <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Close" : "Open"}</small>
                   </div>
-                  <MiniScoreRing value={group.sectorEvalScore} small industry />
+                  <EvalScoreTextBadge value={group.sectorEvalScore} className="portfolio-industry-eval-score watch-score-plain" />
                 </button>
                 {isOpen && (
                   <div className="portfolio-holdings-table portfolio-industry-table-v3" style={{ "--holding-grid-template": holdingsTemplate, "--mobile-holding-cols": holdingColumns.length }}>
@@ -5069,7 +5105,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
                         return: <span key="return" data-label="Return" className={`portfolio-return-cell ${Number(holdingDollarChangeValue(holding)) >= 0 ? "up" : "down"}`}><b>{signedMoney(holdingDollarChangeValue(holding))}</b><small>{signedPercent(holdingReturnPercentValue(holding))}</small></span>,
                         portfolioWeight: <span key="portfolioWeight" data-label="Weight">{Number(holding.weightPercent || 0).toFixed(2)}%</span>,
                         sectorWeight: <span key="sectorWeight" data-label="Ind %">{Number(holding.sectorWeightPercent ?? holding.industryWeightPercent ?? 0).toFixed(1)}%</span>,
-                        eval: <span key="eval" data-label="Eval"><MiniScoreRing value={holding.edgeScore} small /></span>,
+                        eval: <span key="eval" data-label="Eval"><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-holding-eval-score watch-score-plain" /></span>,
                       };
                       return (
                       <button type="button" id={holdingAnchorId(holding.symbol)} className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
@@ -11489,7 +11525,7 @@ function Watchlist({
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
                 <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <span className="watch-logo-shell" aria-hidden="true">
-                    <img src={logoSrc} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+                    <img key={ticker} src={logoSrc} alt="" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
                     <b>{ticker.slice(0, 1)}</b>
                   </span>
                   <span className="watch-ticker-main">{ticker}</span>
@@ -11980,14 +12016,12 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
       {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
       <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" />
       <path d={path} className="eval-chart-line" filter="url(#evalChartGlow)" />
-      <g className="eval-chart-extreme eval-chart-high-marker">
+      <g className="eval-chart-extreme eval-chart-high-marker no-dot">
         <line x1={highX} x2={highX} y1={highY} y2={highLabelY + 6} className="eval-chart-extreme-stem" />
-        <circle cx={highX} cy={highY} r="5.5" />
         <text x={highX} y={highLabelY} textAnchor="middle">{money(highPoint.y)}</text>
       </g>
-      <g className="eval-chart-extreme eval-chart-low-marker">
+      <g className="eval-chart-extreme eval-chart-low-marker no-dot">
         <line x1={lowX} x2={lowX} y1={lowY} y2={lowLabelY - 14} className="eval-chart-extreme-stem" />
-        <circle cx={lowX} cy={lowY} r="5.5" />
         <text x={lowX} y={lowLabelY} textAnchor="middle">{money(lowPoint.y)}</text>
       </g>
       <line x1={startX} x2={startX} y1="34" y2="232" className="eval-chart-current-price-line" />
@@ -12002,12 +12036,26 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   );
 }
 
+function shouldPlaceIntradayChartPoint(ms = Date.now()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(ms));
+    const weekday = parts.find((part) => part.type === "weekday")?.value || "";
+    const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
+    const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
+    const minutes = hour * 60 + minute;
+    return !["Sat", "Sun"].includes(weekday) && minutes >= 570 && minutes <= 960;
+  } catch {
+    return true;
+  }
+}
+
 const EVAL_CHART_RANGES = [
-  { key: "1M", label: "1M", interval: "1day", outputsize: 32 },
-  { key: "3M", label: "3M", interval: "1day", outputsize: 90 },
-  { key: "6M", label: "6M", interval: "1day", outputsize: 180 },
-  { key: "1Y", label: "1Y", interval: "1day", outputsize: 365 },
-  { key: "5Y", label: "5Y", interval: "1week", outputsize: 260 },
+  { key: "D", label: "D", interval: "15min", outputsize: 32, intraday: true },
+  { key: "1M", label: "1M", interval: "1day", outputsize: 32, historicalEod: true },
+  { key: "3M", label: "3M", interval: "1day", outputsize: 90, historicalEod: true },
+  { key: "6M", label: "6M", interval: "1day", outputsize: 180, historicalEod: true },
+  { key: "1Y", label: "1Y", interval: "1day", outputsize: 365, historicalEod: true },
+  { key: "5Y", label: "5Y", interval: "1week", outputsize: 260, historicalEod: true },
 ];
 
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
@@ -12016,7 +12064,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   const [live, setLive] = useState({ current: data?.quote?.c, previousClose: data?.quote?.pc, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
-  const [chartRange, setChartRange] = useState("3M");
+  const [chartRange, setChartRange] = useState("D");
   const activeChartRange = EVAL_CHART_RANGES.find((item) => item.key === chartRange) || EVAL_CHART_RANGES[1];
 
   useEffect(() => {
@@ -12103,8 +12151,8 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           setLive((prev) => {
             const current = next.current ?? prev.current;
             const previousClose = next.previousClose ?? prev.previousClose ?? data?.quote?.pc;
-            const change = next.change ?? (Number.isFinite(Number(current)) && Number.isFinite(Number(previousClose)) ? Number(current) - Number(previousClose) : prev.change);
-            const changePercent = next.changePercent ?? (Number.isFinite(Number(change)) && Number.isFinite(Number(previousClose)) && Number(previousClose) > 0 ? (Number(change) / Number(previousClose)) * 100 : prev.changePercent);
+            const change = Number.isFinite(Number(current)) && Number.isFinite(Number(previousClose)) ? Number(current) - Number(previousClose) : prev.change;
+            const changePercent = Number.isFinite(Number(change)) && Number.isFinite(Number(previousClose)) && Number(previousClose) > 0 ? (Number(change) / Number(previousClose)) * 100 : prev.changePercent;
             return {
               ...prev,
               current,
@@ -12116,12 +12164,12 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
             };
           });
         }
-        if (now - lastChartUpdate >= 5_000) {
+        if (activeChartRange.intraday && shouldPlaceIntradayChartPoint(now) && now - lastChartUpdate >= 15 * 60 * 1000) {
           lastChartUpdate = now;
           setChartRows((currentRows) => {
             const rows = Array.isArray(currentRows) ? [...currentRows] : [];
             rows.push({ datetime: new Date(now).toISOString(), close: next.current, live: true });
-            return rows.slice(-90);
+            return rows.slice(-120);
           });
         }
       };
@@ -12137,7 +12185,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
       if (reconnectTimer) window.clearTimeout(reconnectTimer);
       try { ws?.close(); } catch {}
     };
-  }, [symbol, liveEnabled]);
+  }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
 
   const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const current = Number(live?.current ?? data?.quote?.c);
@@ -12149,7 +12197,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
       <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          <img src={logo} alt="" className="eval-stock-logo" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+          <img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
             <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
@@ -12172,7 +12220,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         ))}
       </div>
 
-      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={Number.isFinite(current) ? current : null} />}
+      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} />}
 
       <div className="eval-chart-hero-actions">
         <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>
