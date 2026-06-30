@@ -11,7 +11,6 @@ const CATEGORY_LABELS = {
   valuation: "Valuation",
   momentum: "Momentum",
   reversal: "Pullback",
-  quality: "Quality",
 };
 
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
@@ -25,9 +24,7 @@ const QUARTERLY_METRIC_CACHE_MS_SCORE = 120 * DAY_MS_SCORE;
 const YEARLY_METRIC_CACHE_MS_SCORE = 180 * DAY_MS_SCORE;
 
 function stableTwelveCacheKey(endpoint, params = {}) {
-  const enriched = { ...params };
-  if (endpoint === "/quote" || endpoint === "/price") enriched.__marketWindow = scoreMarketQuoteCacheWindowEt();
-  const entries = Object.entries(enriched)
+  const entries = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .sort(([a], [b]) => a.localeCompare(b));
   return `${endpoint}:${JSON.stringify(entries)}`;
@@ -39,51 +36,6 @@ function isPostMarketCloseEtScore() {
   const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
   const minute = Number(parts.find((part) => part.type === "minute")?.value || 0);
   return !["Sat", "Sun"].includes(weekday) && (hour > 16 || (hour === 16 && minute >= 0));
-}
-
-
-function scoreMarketQuoteCacheWindowEt(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    weekday: "short",
-    hour: "numeric",
-    minute: "numeric",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  const weekday = map.weekday;
-  const isTradingDay = !["Sat", "Sun"].includes(weekday);
-  const hour = Number(map.hour);
-  const minute = Number(map.minute);
-  const date = `${map.year}-${map.month}-${map.day}`;
-
-  if (!isTradingDay) return `${date}:closed`;
-  if (hour < 9 || (hour === 9 && minute < 30)) return `${date}:preopen`;
-  if (hour < 16) return `${date}:open930`;
-  return `${date}:close4pm`;
-}
-
-function scoreMarketQuoteCacheTtlMs(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    weekday: "short",
-    hour: "numeric",
-    minute: "numeric",
-    hour12: false,
-  }).formatToParts(now);
-  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  const weekday = map.weekday;
-  const isTradingDay = !["Sat", "Sun"].includes(weekday);
-  const hour = Number(map.hour);
-  const minute = Number(map.minute);
-
-  if (!isTradingDay) return DAY_MS_SCORE;
-  if (hour < 9 || (hour === 9 && minute < 30)) return 18 * 60 * 60 * 1000;
-  if (hour < 16) return 7 * 60 * 60 * 1000;
-  return 18 * 60 * 60 * 1000;
 }
 
 function twelveProviderTtlMs(endpoint, params = {}) {
@@ -101,11 +53,7 @@ function twelveProviderTtlMs(endpoint, params = {}) {
   if (endpoint === "/earnings") return QUARTERLY_METRIC_CACHE_MS_SCORE;
   if (endpoint === "/statistics") return DAILY_METRIC_CACHE_MS_SCORE;
 
-  if (endpoint === "/time_series") {
-    if (interval.includes("min")) return 10 * 60 * 1000;
-    if (isPostMarketCloseEtScore()) return 36 * 60 * 60 * 1000;
-    return 6 * 60 * 60 * 1000;
-  }
+  if (endpoint === "/time_series") return YEARLY_METRIC_CACHE_MS_SCORE;
 
   return DAILY_METRIC_CACHE_MS_SCORE;
 }
@@ -215,12 +163,7 @@ async function fetchTwelveDataOptional(endpoint, params = {}) {
       }
     });
 
-    const data = await fetchJsonOptional(url, "Twelve Data", {
-      headers: {
-        Authorization: apiKey,
-        "X-Api-Key": apiKey,
-      },
-    });
+    const data = await fetchJsonOptional(url, "Twelve Data");
     if (!data || data?.status === "error" || data?.code || data?.message === "**symbol** not found") {
       if (data?.message) console.warn("Twelve Data returned message:", data.message);
       return null;
@@ -237,50 +180,6 @@ function cleanTwelveNumber(value) {
   if (value === null || value === undefined || value === "") return null;
   const number = Number(String(value).replace(/[%,$]/g, "").replace(/,/g, ""));
   return Number.isFinite(number) ? number : null;
-}
-
-function normalizeTwelveKey(key = "") {
-  return String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function deepFindTwelveNumber(obj, keyNames = [], depth = 0) {
-  if (!obj || typeof obj !== "object" || depth > 5) return null;
-  const targets = new Set(keyNames.map(normalizeTwelveKey));
-  for (const [key, value] of Object.entries(obj)) {
-    if (targets.has(normalizeTwelveKey(key))) {
-      const num = cleanTwelveNumber(value);
-      if (num !== null) return num;
-    }
-  }
-  for (const value of Object.values(obj)) {
-    if (value && typeof value === "object") {
-      const found = deepFindTwelveNumber(value, keyNames, depth + 1);
-      if (found !== null) return found;
-    }
-  }
-  return null;
-}
-
-function deepFindTwelveList(obj, preferredKeys = [], depth = 0) {
-  if (!obj || typeof obj !== "object" || depth > 5) return [];
-  if (Array.isArray(obj)) return obj;
-  const targets = preferredKeys.map(normalizeTwelveKey);
-  for (const [key, value] of Object.entries(obj)) {
-    if (targets.includes(normalizeTwelveKey(key)) && Array.isArray(value)) return value;
-  }
-  for (const [key, value] of Object.entries(obj)) {
-    if (targets.includes(normalizeTwelveKey(key)) && value && typeof value === "object") {
-      const nested = deepFindTwelveList(value, preferredKeys, depth + 1);
-      if (nested.length) return nested;
-    }
-  }
-  for (const value of Object.values(obj)) {
-    if (value && typeof value === "object") {
-      const nested = deepFindTwelveList(value, preferredKeys, depth + 1);
-      if (nested.length) return nested;
-    }
-  }
-  return [];
 }
 
 function normalizeTwelveQuote(data = {}) {
@@ -341,91 +240,17 @@ async function fetchTwelveDataProfile(symbol) {
 }
 
 async function fetchTwelveDataMarketData(symbol) {
-  if (!twelveDataEnabled()) {
-    return { quote: null, metrics: {}, source: "Twelve Data unavailable" };
-  }
-
-  const data = await fetchTwelveDataOptional("/time_series", {
-    symbol,
-    interval: "1day",
-    outputsize: 370,
-    order: "ASC",
-  });
-
-  const rawRows = Array.isArray(data?.values) ? data.values : [];
-  const rows = rawRows
-    .map((row) => ({
-      date: row?.datetime || row?.date,
-      open: cleanTwelveNumber(row?.open),
-      high: cleanTwelveNumber(row?.high),
-      low: cleanTwelveNumber(row?.low),
-      close: cleanTwelveNumber(row?.close),
-    }))
-    .filter((row) => row.close !== null)
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-
-  if (!rows.length) return { quote: null, metrics: {}, source: "Twelve Data" };
-
-  const last = rows[rows.length - 1];
-  const prev = rows[rows.length - 2] || null;
-  const currentPrice = last.close;
-  const previousClose = prev?.close ?? null;
-  const highs = rows.map((row) => row.high).filter((value) => value !== null);
-  const lows = rows.map((row) => row.low).filter((value) => value !== null);
-  const high52 = highs.length ? Math.max(...highs) : null;
-  const low52 = lows.length ? Math.min(...lows) : null;
-
-  const closeDaysAgo = (days) => {
-    if (!rows.length) return null;
-    const target = new Date(`${last.date}T00:00:00Z`).getTime() - days * 24 * 60 * 60 * 1000;
-    let selected = rows[0];
-    for (const row of rows) {
-      const t = new Date(`${row.date}T00:00:00Z`).getTime();
-      if (Number.isFinite(t) && t <= target) selected = row;
-      else break;
-    }
-    return selected?.close ?? null;
-  };
-
-  const pctReturn = (days) => {
-    const past = closeDaysAgo(days);
-    return currentPrice !== null && past !== null && past > 0 ? ((currentPrice - past) / past) * 100 : null;
-  };
-
-  const dayChange = currentPrice !== null && previousClose !== null ? currentPrice - previousClose : null;
-  const dayChangePercent = currentPrice !== null && previousClose !== null && previousClose > 0
-    ? ((currentPrice - previousClose) / previousClose) * 100
-    : null;
-
-  return {
-    quote: {
-      c: currentPrice,
-      d: dayChange,
-      dp: dayChangePercent,
-      h: last.high,
-      l: last.low,
-      o: last.open,
-      pc: previousClose,
-    },
-    metrics: {
-      priceReturn4Week: pctReturn(28),
-      priceReturn13Week: pctReturn(91),
-      priceReturn26Week: pctReturn(182),
-      priceReturn52Week: pctReturn(364),
-      weekHigh: high52,
-      weekLow: low52,
-      dayChangePercent,
-    },
-    source: "Twelve Data",
-  };
+  // Historical chart/time-series calls are disabled to prevent API-credit spikes.
+  // Momentum and pullback now use values available from Twelve Data /statistics only.
+  return { quote: null, metrics: {}, source: "Twelve Data statistics-only mode" };
 }
 
-async function fetchJsonOptional(url, providerName, fetchOptions = {}) {
+async function fetchJsonOptional(url, providerName) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal });
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
@@ -472,11 +297,10 @@ function fmpPercent(value) {
 function twelveList(data) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
-  const list = deepFindTwelveList(data, [
-    "values", "data", "income_statement", "incomeStatements", "incomeStatement", "annualReports", "quarterlyReports",
-    "balance_sheet", "balanceSheets", "balanceSheet", "cash_flow", "cashFlows", "cashFlow", "statements", "items", "result", "results"
-  ]);
-  return list.length ? list : (typeof data === "object" ? [data] : []);
+  for (const key of ["values", "data", "income_statement", "balance_sheet", "cash_flow", "statements", "items", "result"]) {
+    if (Array.isArray(data?.[key])) return data[key];
+  }
+  return typeof data === "object" ? [data] : [];
 }
 
 function twelveLatest(data) {
@@ -487,75 +311,6 @@ function twelveLatest(data) {
 function pickTwelveNumber(obj = {}, keys = []) {
   for (const key of keys) {
     const value = cleanTwelveNumber(obj?.[key]);
-    if (value !== null) return value;
-  }
-  return deepFindTwelveNumber(obj, keys);
-}
-
-function normalizeTwelveMetricName(value = "") {
-  return String(value || "")
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-function flattenTwelveRecord(value, out = {}) {
-  if (!value || typeof value !== "object") return out;
-  if (Array.isArray(value)) {
-    for (const item of value) flattenTwelveRecord(item, out);
-    return out;
-  }
-
-  const possibleName = value.name ?? value.metric ?? value.label ?? value.key ?? value.field ?? value.title;
-  const possibleValue = value.value ?? value.amount ?? value.number ?? value.raw ?? value.current ?? value.ttm;
-  if (possibleName !== undefined && possibleValue !== undefined) {
-    const normalized = normalizeTwelveMetricName(possibleName);
-    if (normalized && out[normalized] === undefined) out[normalized] = possibleValue;
-  }
-
-  for (const [key, child] of Object.entries(value)) {
-    const normalizedKey = normalizeTwelveMetricName(key);
-    if (child === null || child === undefined) continue;
-    if (typeof child !== "object") {
-      if (out[normalizedKey] === undefined) out[normalizedKey] = child;
-      continue;
-    }
-    if (Array.isArray(child)) {
-      for (const item of child) flattenTwelveRecord(item, out);
-    } else {
-      flattenTwelveRecord(child, out);
-    }
-  }
-  return out;
-}
-
-function mergeTwelveRecords(...records) {
-  const out = {};
-  for (const record of records) {
-    const flat = flattenTwelveRecord(record, {});
-    for (const [key, value] of Object.entries(flat)) {
-      if (out[key] === undefined || out[key] === null || out[key] === "") out[key] = value;
-    }
-  }
-  return out;
-}
-
-function pickTwelveFlatNumber(obj = {}, keys = []) {
-  const flat = flattenTwelveRecord(obj, {});
-  for (const key of keys) {
-    const direct = cleanTwelveNumber(obj?.[key]);
-    if (direct !== null) return direct;
-    const normalized = normalizeTwelveMetricName(key);
-    const value = cleanTwelveNumber(flat[normalized]);
-    if (value !== null) return value;
-  }
-  return pickTwelveNumber(obj, keys);
-}
-
-function pickTwelveAnyNumber(records = [], keys = []) {
-  for (const record of Array.isArray(records) ? records : [records]) {
-    const value = pickTwelveFlatNumber(record, keys);
     if (value !== null) return value;
   }
   return null;
@@ -570,145 +325,117 @@ function pctChangeFromList(list, key) {
   return ((latest - prior) / Math.abs(prior)) * 100;
 }
 
-async function fetchTwelveDataFundamentals(symbol) {
-  const [statisticsRaw, incomeRaw, balanceRaw, cashRaw, incomeQuarterlyRaw, balanceQuarterlyRaw, cashQuarterlyRaw, marketCapRaw, earningsRaw] = await Promise.all([
-    fetchTwelveDataOptional("/statistics", { symbol }),
-    fetchTwelveDataOptional("/income_statement", { symbol, period: "annual", outputsize: 6 }),
-    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual", outputsize: 6 }),
-    fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual", outputsize: 6 }),
-    fetchTwelveDataOptional("/income_statement", { symbol, period: "quarterly", outputsize: 8 }),
-    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "quarterly", outputsize: 8 }),
-    fetchTwelveDataOptional("/cash_flow", { symbol, period: "quarterly", outputsize: 8 }),
-    fetchTwelveDataOptional("/market_cap", { symbol, outputsize: 1 }),
-    fetchTwelveDataOptional("/earnings", { symbol, outputsize: 8 }),
-  ]);
-
-  const statisticsList = twelveList(statisticsRaw);
-  const incomeList = twelveList(incomeRaw);
-  const balanceList = twelveList(balanceRaw);
-  const cashList = twelveList(cashRaw);
-  const incomeQuarterlyList = twelveList(incomeQuarterlyRaw);
-  const balanceQuarterlyList = twelveList(balanceQuarterlyRaw);
-  const cashQuarterlyList = twelveList(cashQuarterlyRaw);
-  const marketCapList = twelveList(marketCapRaw);
-  const earningsList = twelveList(earningsRaw);
-
-  const income = mergeTwelveRecords(incomeList[0], incomeQuarterlyList[0]);
-  const priorIncome = mergeTwelveRecords(incomeList[1], incomeList[2], incomeList[3]);
-  const balance = mergeTwelveRecords(balanceList[0], balanceQuarterlyList[0]);
-  const cash = mergeTwelveRecords(cashList[0], cashQuarterlyList[0]);
-  const stats = mergeTwelveRecords(statisticsRaw?.statistics, statisticsRaw?.data, statisticsRaw, statisticsList[0]);
-  const marketCapRecord = mergeTwelveRecords(marketCapRaw, marketCapList[0]);
-  const qIncome = mergeTwelveRecords(incomeQuarterlyList[0]);
-  const qPriorIncome = mergeTwelveRecords(incomeQuarterlyList[4], incomeQuarterlyList[1]);
-
-  const revenueKeys = ["revenue", "total_revenue", "totalRevenue", "sales", "operating_revenue"];
-  const epsKeys = ["eps", "diluted_eps", "eps_diluted", "epsDiluted", "earnings_per_share", "basic_eps"];
-  const netIncomeKeys = ["net_income", "netIncome", "net_income_common_stockholders", "net_income_available_to_common_shareholders"];
-
-  const revenue = firstNumber(pickTwelveFlatNumber(income, revenueKeys), pickTwelveAnyNumber([stats], ["revenue_ttm", "total_revenue_ttm", "revenue"]));
-  const priorRevenue = pickTwelveFlatNumber(priorIncome, revenueKeys);
-  const netIncome = firstNumber(pickTwelveFlatNumber(income, netIncomeKeys), pickTwelveFlatNumber(stats, ["net_income_ttm", "net_income"]));
-  const grossProfit = pickTwelveFlatNumber(income, ["gross_profit", "grossProfit"]);
-  const operatingIncome = pickTwelveFlatNumber(income, ["operating_income", "operatingIncome", "ebit", "income_from_operations"]);
-  const pretaxIncome = pickTwelveFlatNumber(income, ["income_before_tax", "pretax_income", "incomeBeforeTax"]);
-  const interestExpense = pickTwelveFlatNumber(income, ["interest_expense", "interestExpense", "interest_and_debt_expense"]);
-  const ebit = firstNumber(pickTwelveFlatNumber(income, ["ebit", "operating_income", "operatingIncome"]), operatingIncome);
-  const ebitda = firstNumber(pickTwelveFlatNumber(income, ["ebitda"]), pickTwelveFlatNumber(stats, ["ebitda", "ebitda_ttm"]));
-  const eps = firstNumber(pickTwelveFlatNumber(income, epsKeys), pickTwelveFlatNumber(stats, ["eps", "eps_ttm", "trailing_eps"]));
-
-  const totalDebt = firstNumber(pickTwelveFlatNumber(balance, ["total_debt", "short_long_term_debt_total", "shortLongTermDebtTotal", "long_term_debt", "short_term_debt", "totalDebt", "total_liabilities"]), pickTwelveFlatNumber(stats, ["total_debt", "totalDebt"]));
-  const equity = firstNumber(pickTwelveFlatNumber(balance, ["total_equity", "total_shareholder_equity", "shareholder_equity", "totalStockholderEquity", "total_stockholders_equity", "stockholders_equity"]), pickTwelveFlatNumber(stats, ["shareholder_equity", "stockholders_equity"]));
-  const assets = firstNumber(pickTwelveFlatNumber(balance, ["total_assets", "totalAssets"]), pickTwelveFlatNumber(stats, ["total_assets"]));
-  const currentAssets = pickTwelveFlatNumber(balance, ["total_current_assets", "current_assets", "totalCurrentAssets"]);
-  const currentLiabilities = pickTwelveFlatNumber(balance, ["total_current_liabilities", "current_liabilities", "totalCurrentLiabilities"]);
-  const cashEq = pickTwelveFlatNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cashAndCashEquivalents", "cash_cash_equivalents_and_short_term_investments"]);
-  const inventory = pickTwelveFlatNumber(balance, ["inventory", "inventories"]);
-  const longTermDebt = pickTwelveFlatNumber(balance, ["long_term_debt", "longTermDebt"]);
-
-  const operatingCashFlow = pickTwelveFlatNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_from_operating_activities", "net_cash_provided_by_operating_activities"]);
-  const capex = pickTwelveFlatNumber(cash, ["capital_expenditures", "capital_expenditure", "capex", "payments_for_property_plant_and_equipment"]);
-  const fcf = firstNumber(pickTwelveFlatNumber(cash, ["free_cash_flow", "freeCashFlow"]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
-
-  const shares = firstNumber(
-    pickTwelveFlatNumber(stats, ["shares_outstanding", "weighted_average_shares", "shares", "sharesOutstanding"]),
-    pickTwelveFlatNumber(income, ["weighted_average_shares", "weightedAverageShsOut", "weightedAverageSharesOutstanding", "weighted_average_shares_outstanding"])
-  );
-  const marketCap = firstNumber(pickTwelveFlatNumber(marketCapRecord, ["market_cap", "market_capitalization", "value"]), pickTwelveFlatNumber(stats, ["market_capitalization", "market_cap", "marketCapitalization", "marketCap"]));
-  const enterpriseValue = firstNumber(pickTwelveFlatNumber(stats, ["enterprise_value", "enterpriseValue"]), marketCap !== null ? marketCap + (totalDebt || 0) - (cashEq || 0) : null);
-  const investedCapital = firstNumber(pickTwelveFlatNumber(stats, ["invested_capital", "investedCapital"]), equity !== null || totalDebt !== null || cashEq !== null ? (equity || 0) + (totalDebt || 0) - (cashEq || 0) : null);
-  const taxRateDecimal = pretaxIncome && netIncome !== null ? Math.max(0, Math.min(0.5, 1 - (netIncome / pretaxIncome))) : null;
-  const nopat = ebit !== null ? ebit * (1 - (taxRateDecimal ?? 0.21)) : null;
-
-  const qRevenueGrowth = (() => {
-    const latest = pickTwelveFlatNumber(qIncome, revenueKeys);
-    const prior = pickTwelveFlatNumber(qPriorIncome, revenueKeys);
-    return latest !== null && prior !== null && prior !== 0 ? ((latest - prior) / Math.abs(prior)) * 100 : null;
-  })();
-
-  const calculatedRevenueGrowth = revenue !== null && priorRevenue !== null && priorRevenue !== 0 ? ((revenue - priorRevenue) / Math.abs(priorRevenue)) * 100 : null;
-
-  return {
-    raw: { statistics: stats, income, balance, cash, earnings: earningsRaw, endpointStatus: {
-      statistics: Boolean(statisticsRaw), income: Boolean(incomeRaw), balance: Boolean(balanceRaw), cash: Boolean(cashRaw), marketCap: Boolean(marketCapRaw), earnings: Boolean(earningsRaw),
-    } },
-    metrics: {
-      revenue,
-      netIncome,
-      operatingIncome,
-      totalDebt,
-      shareholderEquity: equity,
-      cashAndEquivalents: cashEq,
-      totalAssets: assets,
-      currentLiabilities,
-      operatingCashFlow,
-      capex,
-      freeCashFlow: fcf,
-      revenueGrowth: firstNumber(pickTwelveFlatNumber(stats, ["revenue_growth", "revenue_growth_ttm", "revenueGrowth", "revenueGrowthTTM", "quarterly_revenue_growth_yoy"]), calculatedRevenueGrowth),
-      revenueGrowthQuarterly: qRevenueGrowth,
-      revenueGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "revenue"), pctChangeFromList(incomeList.slice(0,4), "total_revenue")),
-      revenueGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "revenue"), pctChangeFromList(incomeList.slice(0,6), "total_revenue")),
-      epsGrowth: firstNumber(pickTwelveFlatNumber(stats, ["eps_growth", "epsGrowth", "earnings_growth"]), pctChangeFromList(incomeList, "eps"), pctChangeFromList(incomeList, "diluted_eps")),
-      epsGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "eps"), pctChangeFromList(incomeList.slice(0,4), "diluted_eps")),
-      epsGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "eps"), pctChangeFromList(incomeList.slice(0,6), "diluted_eps")),
-      netIncomeGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "net_income"),
-      grossMargin: firstNumber(pickTwelveFlatNumber(stats, ["gross_margin", "gross_margin_ttm"]), revenue && grossProfit !== null ? grossProfit / revenue * 100 : null),
-      operatingMargin: firstNumber(pickTwelveFlatNumber(stats, ["operating_margin", "operating_margin_ttm"]), revenue && operatingIncome !== null ? operatingIncome / revenue * 100 : null),
-      pretaxMargin: revenue && pretaxIncome !== null ? pretaxIncome / revenue * 100 : null,
-      netMargin: firstNumber(pickTwelveFlatNumber(stats, ["profit_margin", "net_margin", "net_profit_margin_ttm"]), revenue && netIncome !== null ? netIncome / revenue * 100 : null),
-      roe: firstNumber(pickTwelveFlatNumber(stats, ["return_on_equity", "roe"]), equity && netIncome !== null ? netIncome / equity * 100 : null),
-      roa: firstNumber(pickTwelveFlatNumber(stats, ["return_on_assets", "roa"]), assets && netIncome !== null ? netIncome / assets * 100 : null),
-      roicCalculated: firstNumber(pickTwelveFlatNumber(stats, ["return_on_invested_capital", "roic"]), investedCapital && nopat !== null ? (nopat / investedCapital) * 100 : null),
-      nopat,
-      investedCapital,
-      debtToEquity: firstNumber(pickTwelveFlatNumber(stats, ["debt_to_equity", "debt_equity_ratio"]), equity && totalDebt !== null ? totalDebt / equity : null),
-      longTermDebtToEquity: equity && longTermDebt !== null ? longTermDebt / equity : null,
-      currentRatio: firstNumber(pickTwelveFlatNumber(stats, ["current_ratio"]), currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null),
-      quickRatio: firstNumber(pickTwelveFlatNumber(stats, ["quick_ratio"]), currentAssets && inventory !== null && currentLiabilities ? (currentAssets - inventory) / currentLiabilities : null),
-      cashRatio: cashEq !== null && currentLiabilities ? cashEq / currentLiabilities : null,
-      interestCoverage: firstNumber(pickTwelveFlatNumber(stats, ["interest_coverage", "interestCoverage"]), interestExpense ? Math.abs(ebit || operatingIncome || 0) / Math.abs(interestExpense) : null),
-      cashFlowToDebt: totalDebt && operatingCashFlow !== null ? operatingCashFlow / totalDebt : null,
-      freeCashFlowPerShare: shares && fcf !== null ? fcf / shares : null,
-      operatingCashFlowPerShare: shares && operatingCashFlow !== null ? operatingCashFlow / shares : null,
-      peRatio: pickTwelveFlatNumber(stats, ["trailing_pe", "pe_ratio", "price_to_earnings", "price_earnings_ratio"]),
-      forwardPe: pickTwelveFlatNumber(stats, ["forward_pe"]),
-      pegRatio: pickTwelveFlatNumber(stats, ["peg_ratio"]),
-      priceToSales: pickTwelveFlatNumber(stats, ["price_to_sales", "price_sales_ttm", "price_to_sales_ttm"]),
-      priceToBook: pickTwelveFlatNumber(stats, ["price_to_book", "price_book", "price_to_book_mrq"]),
-      priceToCashFlow: firstNumber(pickTwelveFlatNumber(stats, ["price_to_cash_flow", "priceCashFlowRatio"]), marketCap && operatingCashFlow ? marketCap / operatingCashFlow : null),
-      priceToFreeCashFlow: firstNumber(pickTwelveFlatNumber(stats, ["price_to_free_cash_flow", "priceFreeCashFlowRatio"]), marketCap && fcf ? marketCap / fcf : null),
-      dividendYield: pickTwelveFlatNumber(stats, ["dividend_yield", "trailing_annual_dividend_yield"]),
-      beta: pickTwelveFlatNumber(stats, ["beta"]),
-      marketCapM: toMillions(marketCap),
-      enterpriseValue: toMillions(enterpriseValue),
-      ebitda: toMillions(ebitda),
-      evToEbitda: enterpriseValue && ebitda ? enterpriseValue / ebitda : null,
-      sharesOutstanding: shares,
-      revenuePerShare: shares && revenue ? revenue / shares : null,
-      eps,
-    },
-  };
+function normalizeStatKey(key) {
+  return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
+
+function flattenTwelveStats(input, out = {}) {
+  if (!input || typeof input !== "object") return out;
+  if (Array.isArray(input)) {
+    input.forEach((item) => flattenTwelveStats(item, out));
+    return out;
+  }
+  for (const [key, value] of Object.entries(input)) {
+    if (value && typeof value === "object") flattenTwelveStats(value, out);
+    else {
+      const cleanKey = normalizeStatKey(key);
+      const number = cleanTwelveNumber(value);
+      if (cleanKey && number !== null && out[cleanKey] === undefined) out[cleanKey] = number;
+    }
+  }
+  return out;
+}
+
+function statNumber(flat, keys = []) {
+  for (const key of keys) {
+    const value = flat?.[normalizeStatKey(key)];
+    if (value !== undefined && value !== null && Number.isFinite(Number(value))) return Number(value);
+  }
+  return null;
+}
+
+function statPercent(flat, keys = []) {
+  const value = statNumber(flat, keys);
+  if (value === null) return null;
+  return Math.abs(value) <= 1.5 ? value * 100 : value;
+}
+
+async function fetchTwelveDataFundamentals(symbol) {
+  // CREDIT CONTROL: one fundamentals endpoint per stock.
+  // Twelve Data /statistics is the only route used for metric calculations.
+  const statistics = await fetchTwelveDataOptional("/statistics", { symbol });
+  const flat = flattenTwelveStats(statistics || {});
+
+  const marketCapM = toMillions(statNumber(flat, ["market_cap", "marketCap", "market_capitalization"]));
+  const sharesOutstanding = statNumber(flat, ["shares_outstanding", "sharesOutstanding", "shares", "weighted_average_shares_outstanding"]);
+  const revenue = firstNumber(
+    statNumber(flat, ["revenue_ttm", "total_revenue_ttm", "revenue", "total_revenue"]),
+    statNumber(flat, ["sales_ttm", "sales"])
+  );
+
+  const metrics = {
+    revenue,
+    netIncome: statNumber(flat, ["net_income_ttm", "net_income", "netIncome"]),
+    operatingIncome: statNumber(flat, ["operating_income_ttm", "operating_income", "ebit"]),
+    grossProfit: statNumber(flat, ["gross_profit_ttm", "gross_profit"]),
+    ebitda: statNumber(flat, ["ebitda_ttm", "ebitda"]),
+    totalDebt: statNumber(flat, ["total_debt", "totalDebt"]),
+    shareholderEquity: statNumber(flat, ["shareholders_equity", "shareholder_equity", "total_equity", "book_value"]),
+    totalAssets: statNumber(flat, ["total_assets", "totalAssets"]),
+    cashAndEquivalents: statNumber(flat, ["cash_and_equivalents", "cash", "cash_and_short_term_investments"]),
+    operatingCashFlow: statNumber(flat, ["operating_cash_flow_ttm", "operating_cash_flow"]),
+    freeCashFlow: statNumber(flat, ["free_cash_flow_ttm", "free_cash_flow"]),
+    revenueGrowth: statPercent(flat, ["revenue_growth_yoy", "revenue_yoy_growth", "revenue_growth", "quarterly_revenue_growth_yoy"]),
+    revenueGrowthQuarterly: statPercent(flat, ["quarterly_revenue_growth_yoy", "revenue_growth_quarterly", "revenue_growth_qoq"]),
+    revenueGrowth3Y: statPercent(flat, ["revenue_growth_3y", "revenue_3y_growth", "revenue_cagr_3y"]),
+    revenueGrowth5Y: statPercent(flat, ["revenue_growth_5y", "revenue_5y_growth", "revenue_cagr_5y"]),
+    epsGrowth: statPercent(flat, ["eps_growth_yoy", "eps_yoy_growth", "eps_growth", "quarterly_earnings_growth_yoy"]),
+    epsGrowth3Y: statPercent(flat, ["eps_growth_3y", "eps_3y_growth", "eps_cagr_3y"]),
+    epsGrowth5Y: statPercent(flat, ["eps_growth_5y", "eps_5y_growth", "eps_cagr_5y"]),
+    netIncomeGrowth3Y: statPercent(flat, ["net_income_growth_3y", "netincomegrowth3y"]),
+    grossMargin: statPercent(flat, ["gross_margin", "gross_profit_margin", "gross_margin_ttm"]),
+    operatingMargin: statPercent(flat, ["operating_margin", "operating_margin_ttm"]),
+    pretaxMargin: statPercent(flat, ["pretax_margin", "pre_tax_margin"]),
+    netMargin: statPercent(flat, ["net_margin", "profit_margin", "net_profit_margin", "net_margin_ttm"]),
+    roe: statPercent(flat, ["return_on_equity", "roe", "return_on_equity_ttm"]),
+    roa: statPercent(flat, ["return_on_assets", "roa", "return_on_assets_ttm"]),
+    roi: statPercent(flat, ["return_on_investment", "roi", "return_on_capital", "roic"]),
+    peRatio: statNumber(flat, ["pe_ratio", "trailing_pe", "price_earnings_ratio", "peratio"]),
+    forwardPe: statNumber(flat, ["forward_pe", "forward_pe_ratio"]),
+    pegRatio: statNumber(flat, ["peg_ratio", "pegratio"]),
+    priceToSales: statNumber(flat, ["price_to_sales", "price_sales_ttm", "price_to_sales_ttm"]),
+    priceToBook: statNumber(flat, ["price_to_book", "price_book_mrq", "price_to_book_mrq"]),
+    priceToCashFlow: statNumber(flat, ["price_to_cash_flow", "price_cash_flow"]),
+    priceToFreeCashFlow: statNumber(flat, ["price_to_free_cash_flow", "price_free_cash_flow"]),
+    dividendYield: statPercent(flat, ["dividend_yield", "dividend_yield_ttm"]),
+    beta: statNumber(flat, ["beta"]),
+    currentRatio: statNumber(flat, ["current_ratio", "currentratio"]),
+    quickRatio: statNumber(flat, ["quick_ratio", "quickratio"]),
+    cashRatio: statNumber(flat, ["cash_ratio", "cashratio"]),
+    debtToEquity: statNumber(flat, ["debt_to_equity", "total_debt_to_equity", "debt_equity_ratio"]),
+    longTermDebtToEquity: statNumber(flat, ["long_term_debt_to_equity", "longtermdebttoequity"]),
+    totalDebtToCapital: statNumber(flat, ["total_debt_to_capital", "debt_to_capital"]),
+    netDebtToEbitda: statNumber(flat, ["net_debt_to_ebitda", "netdebttoebitda"]),
+    interestCoverage: statNumber(flat, ["interest_coverage", "interestcoverage"]),
+    cashFlowToDebt: statNumber(flat, ["cash_flow_to_debt", "operating_cash_flow_to_debt"]),
+    operatingCashFlowPerShare: statNumber(flat, ["operating_cash_flow_per_share", "operatingcashflowpershare"]),
+    freeCashFlowPerShare: statNumber(flat, ["free_cash_flow_per_share", "freecashflowpershare"]),
+    priceReturn4Week: statPercent(flat, ["4_week_price_return", "4weekpricereturndaily", "month_to_date_price_return"]),
+    priceReturn13Week: statPercent(flat, ["13_week_price_return", "13weekpricereturndaily", "3_month_price_return"]),
+    priceReturn26Week: statPercent(flat, ["26_week_price_return", "26weekpricereturndaily", "6_month_price_return"]),
+    priceReturn52Week: statPercent(flat, ["52_week_price_return", "52weekpricereturndaily", "year_to_date_price_return"]),
+    weekHigh: statNumber(flat, ["52_week_high", "52weekhigh", "year_high"]),
+    weekLow: statNumber(flat, ["52_week_low", "52weeklow", "year_low"]),
+    currentPrice: null,
+    marketCapM,
+    sharesOutstanding,
+    enterpriseValue: toMillions(statNumber(flat, ["enterprise_value", "enterpriseValue"])),
+    evToEbitda: statNumber(flat, ["enterprise_value_to_ebitda", "ev_to_ebitda", "evEbitda"]),
+  };
+
+  return { metrics, raw: { statistics, flat }, source: "Twelve Data /statistics only" };
+}
+
 
 function hasUsableQuote(quote = {}) {
   return safeNumber(quote?.c) !== null || safeNumber(quote?.dp) !== null;
@@ -1449,7 +1176,6 @@ function labelCategory(key) {
     valuation: "Valuation",
     momentum: "Momentum",
     reversal: "Pullback",
-    quality: "Quality",
   };
 
   return labels[key] || key;
@@ -1785,7 +1511,7 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
     generatedAt: new Date().toISOString(),
     headline: `${companyName} scores ${scoreText(edgeScore)} because ${strongestLabel.toLowerCase()} is the clearest support while ${weakestLabel.toLowerCase()} is the main drag.`,
     verdict: safeNumber(edgeScore) >= 7.5 ? "Strong company profile" : safeNumber(edgeScore) >= 6.5 ? "Mixed but usable profile" : "Needs stronger data support",
-    summary: `${companyName}'s Eval Score blends company fundamentals, valuation, market behavior, and quality inputs. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
+    summary: `${companyName}'s Eval Score blends company fundamentals, market behavior, valuation, and recent news. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
     metricBreakdown: [
       {
         category: "Growth",
@@ -1887,13 +1613,13 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
           {
             role: "system",
             content:
-              "You generate clear stock score explanations for Eval. Use only the provided company data, metrics, category scores, profile/industry context, . Explain why the Eval Score is where it is, explain what each metric means in beginner-friendly language, and connect the score to real-world company context without giving buy/sell/hold advice. Return only valid JSON.",
+              "You generate clear stock score explanations for Eval. Use only the provided company data, metrics, category scores, profile/industry context, and recent news summaries. Explain why the Eval Score is where it is, explain what each metric means in beginner-friendly language, and connect the score to real-world company context without giving buy/sell/hold advice. Return only valid JSON.",
           },
           {
             role: "user",
             content: JSON.stringify({
               instructions:
-                "Return JSON with keys: headline, verdict, summary, metricBreakdown, positives, concerns, takeaway. Do not include a newsConnection key. summary must be 4-6 polished sentences explaining the company-specific reason for the Eval Score using the metrics, industry context, . metricBreakdown must be 5-7 objects with category, score, tone, why. Each why must explain what that metric/category means, cite the specific provided metric values when available, and explain why it helps or hurts this specific company. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
+                "Return JSON with keys: headline, verdict, summary, metricBreakdown, positives, concerns, takeaway. Do not include a newsConnection key. summary must be 4-6 polished sentences explaining the company-specific reason for the Eval Score using the metrics, industry context, and relevant recent news context. metricBreakdown must be 5-7 objects with category, score, tone, why. Each why must explain what that metric/category means, cite the specific provided metric values when available, and explain why it helps or hurts this specific company. tone must be strong, mixed, weak, or neutral. Keep text polished, specific to the company, and easy for beginners.",
               data: payload,
             }),
           },
@@ -1964,12 +1690,12 @@ export async function buildStockAnalysis(symbol, options = {}) {
     throw new Error("Missing TWELVE_DATA_API_KEY in Render environment variables.");
   }
 
-  const [twelveProfile, twelveQuote, twelveMarket, twelveFundamentals] = await Promise.all([
+  const [twelveProfile, twelveFundamentals] = await Promise.all([
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
-    null,
-    { quote: null, metrics: {}, source: "Market price data disabled" },
     (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {} },
   ]);
+  const twelveQuote = null;
+  const twelveMarket = { quote: null, metrics: {}, source: "Disabled" };
 
   const cachedProfile = cachedReport?.profile || {};
   const profile = {
@@ -1984,8 +1710,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const quote = bestQuote({ cachedQuote: {}, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
-  // Do not fail the entire analysis when Twelve Data has no profile/logo for a ticker.
-  // Price/metric data can still exist, and the UI can fall back to the ticker symbol.
+  if (!profile || (!profile.ticker && !profile.name)) throw new Error(`No Twelve Data profile found for ${cleanSymbol}.`);
+
   const cachedMetrics = metricsFromCachedReport(cachedReport);
   const twelveMarketMetrics = twelveMarket?.metrics || {};
   const twelveFundamentalMetrics = twelveFundamentals?.metrics || {};
@@ -2011,21 +1737,15 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
   const reversalScore = scorePullback(extracted);
-  const qualityScore = availableWeightedAverage([
-    { score: extracted.roicCalculated !== null ? scoreProfitMetric(extracted.roicCalculated, [2,5,8,12,18,25]) : null, weight: .35 },
-    { score: extracted.cashConversionRatio !== null ? scoreProfitMetric(extracted.cashConversionRatio * 100, [20,40,60,80,100,130]) : null, weight: .35 },
-    { score: extracted.freeCashFlowPerShare !== null ? scoreProfitMetric(extracted.freeCashFlowPerShare, [0,1,2,4,8,12]) : null, weight: .30 },
-  ], 1);
 
-  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore, reversal: reversalScore, quality: qualityScore };
+  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore, reversal: reversalScore };
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const validInputCounts = {
     growth: countValidMetricInputs([extracted.revenueGrowth, extracted.revenueGrowthQuarterly, extracted.revenueGrowth3Y, extracted.revenueGrowth5Y, extracted.epsGrowth, extracted.epsGrowth3Y, extracted.epsGrowth5Y, extracted.netIncomeGrowth3Y]),
     profitability: countValidMetricInputs([extracted.operatingMargin, extracted.netMargin, extracted.roe, extracted.roa, extracted.roicCalculated, extracted.freeCashFlowPerShare]),
     financialHealth: countValidMetricInputs([extracted.debtToEquity, extracted.longTermDebtToEquity, extracted.currentRatio, extracted.quickRatio, extracted.cashRatio, extracted.interestCoverage, extracted.cashFlowToDebt, extracted.totalDebt, extracted.shareholderEquity, extracted.cashAndEquivalents]),
     valuation: countValidMetricInputs([extracted.peRatio, extracted.forwardPe, extracted.priceToSales, extracted.priceToBook, extracted.priceToCashFlow, extracted.priceToFreeCashFlow, extracted.pegRatio, extracted.marketCapM]),
-    marketData: countValidMetricInputs([extracted.currentPrice, extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.weekHigh, extracted.weekLow, extracted.dayChangePercent]),
-    quality: countValidMetricInputs([extracted.roicCalculated, extracted.cashConversionRatio, extracted.freeCashFlowPerShare]),
+    marketData: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.weekHigh, extracted.weekLow]),
   };
 
   const edgeScore = availableWeightedAverage([
@@ -2034,8 +1754,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     { score: healthScore, weight: 0.17 },
     { score: valuationScore, weight: 0.16 },
     { score: momentumScore, weight: 0.11 },
-    { score: reversalScore, weight: 0.07 },
-    { score: qualityScore, weight: 0.07 },
+    { score: reversalScore, weight: 0.14 },
   ], 5);
 
   const riskLabel = getRiskLabel(extracted, healthScore);
@@ -2060,5 +1779,5 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
-  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
+  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
 }
