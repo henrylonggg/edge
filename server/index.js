@@ -813,12 +813,13 @@ app.use(
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const COMPONENT_TTLS_MS = {
-  fundamentals: 120 * DAY_MS, // growth, profitability, financial health: about 4 months
-  valuation: 30 * DAY_MS, // valuation: about 1 month
-  market: 1 * DAY_MS, // price, momentum, pullback: 1 day
-  news: 7 * DAY_MS, // company data: 7 days
-  risk: 7 * DAY_MS, // risk label: 7 days
-  profile: 120 * DAY_MS,
+  // API-usage protection: slow fundamentals should not refetch on every visit.
+  fundamentals: 180 * DAY_MS, // annual / YoY-style values: 6 months
+  valuation: 1 * DAY_MS, // price-linked ratios: daily
+  market: 1 * DAY_MS, // price, momentum, pullback: daily
+  news: 180 * DAY_MS, // news sentiment removed; no stock-data fetch
+  risk: 1 * DAY_MS,
+  profile: 10 * 365 * DAY_MS, // company name/logo/profile: effectively permanent
 };
 const REPORT_CACHE_TTL_MS = Math.min(
   COMPONENT_TTLS_MS.fundamentals,
@@ -2097,11 +2098,11 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
     const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
     const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
     const valid = /^https?:\/\//i.test(logoUrl) ? logoUrl : "";
-    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, logoUrl: valid });
+    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, logoUrl: valid });
     if (valid) return res.redirect(302, valid);
   } catch {}
 
-  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 24 * 60 * 60 * 1000, logoUrl: "" });
+  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, logoUrl: "" });
   return res.status(404).end();
 });
 
@@ -2150,12 +2151,12 @@ app.get("/api/live-quote/:symbol", async (req, res) => {
       change: quote?.change ?? null,
       changePercent: quote?.changePercent ?? null,
       source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: 10,
+      cacheSeconds: 60,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.warn("Live quote route failed:", symbol, error?.message || error);
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 10, updatedAt: new Date().toISOString() });
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 60, updatedAt: new Date().toISOString() });
   }
 });
 
@@ -2171,11 +2172,11 @@ app.get("/api/quote/:symbol", async (req, res) => {
       change: quote?.change ?? null,
       changePercent: quote?.changePercent ?? null,
       source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: 10,
+      cacheSeconds: 60,
       updatedAt: new Date().toISOString(),
     });
   } catch {
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 10, updatedAt: new Date().toISOString() });
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 60, updatedAt: new Date().toISOString() });
   }
 });
 
@@ -2489,8 +2490,13 @@ function cleanTwelveNumber(value) {
 }
 
 const twelveRestCache = new Map();
+const twelveRestInFlight = new Map();
 const companyLogoCache = new Map();
-const TWELVE_REST_CACHE_MAX = 900;
+const TWELVE_REST_CACHE_MAX = 1400;
+const PERMANENT_IDENTITY_CACHE_MS = 10 * 365 * DAY_MS;
+const DAILY_METRIC_CACHE_MS = 1 * DAY_MS;
+const QUARTERLY_METRIC_CACHE_MS = 120 * DAY_MS;
+const YEARLY_METRIC_CACHE_MS = 180 * DAY_MS;
 
 function stableCacheKey(endpoint, params = {}) {
   const cleanEntries = Object.entries(params)
@@ -2501,16 +2507,35 @@ function stableCacheKey(endpoint, params = {}) {
 
 function twelveEndpointTtlMs(endpoint, params = {}) {
   const interval = String(params?.interval || "").toLowerCase();
-  if (endpoint === "/quote" || endpoint === "/price") return 10 * 1000;
-  if (endpoint === "/logo" || endpoint === "/profile") return 30 * DAY_MS;
-  if (["/income_statement", "/balance_sheet", "/cash_flow", "/earnings"].includes(endpoint)) return 14 * DAY_MS;
-  if (endpoint === "/statistics") return 24 * 60 * 60 * 1000;
-  if (endpoint === "/time_series") {
-    if (interval.includes("min")) return 60 * 1000;
-    if (isPostMarketCloseEt()) return 18 * 60 * 60 * 1000;
-    return 15 * 60 * 1000;
+  const period = String(params?.period || "").toLowerCase();
+
+  // Identity data barely changes. Cache logos/company names almost permanently to avoid repeated logo/profile calls.
+  if (endpoint === "/logo" || endpoint === "/profile") return PERMANENT_IDENTITY_CACHE_MS;
+
+  // Live price REST fallback only. Frontend should not poll this rapidly; server still protects usage.
+  if (endpoint === "/quote" || endpoint === "/price") return 60 * 1000;
+
+  // Fundamental statements are slow-moving. Annual values drive YoY metrics and can safely cache 6 months.
+  if (["/income_statement", "/balance_sheet", "/cash_flow"].includes(endpoint)) {
+    if (period.includes("quarter")) return QUARTERLY_METRIC_CACHE_MS;
+    return YEARLY_METRIC_CACHE_MS;
   }
-  return 60 * 1000;
+
+  // Earnings/analyst estimate style data changes around earnings cycles.
+  if (endpoint === "/earnings") return QUARTERLY_METRIC_CACHE_MS;
+
+  // Statistics/ratios can change daily with market cap and price-linked ratios.
+  if (endpoint === "/statistics") return DAILY_METRIC_CACHE_MS;
+
+  if (endpoint === "/time_series") {
+    // Intraday candles are only for chart shape. Cache long enough to prevent API explosions.
+    if (interval.includes("min")) return 10 * 60 * 1000;
+    // Daily/weekly historical closes only need one refresh per trading day after close.
+    if (isPostMarketCloseEt()) return 36 * 60 * 60 * 1000;
+    return 6 * 60 * 60 * 1000;
+  }
+
+  return DAILY_METRIC_CACHE_MS;
 }
 
 function readTwelveRestCache(endpoint, params = {}) {
@@ -2535,23 +2560,32 @@ async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(pro
   const cached = readTwelveRestCache(endpoint, params);
   if (cached !== undefined) return cached;
 
-  const url = new URL(`https://api.twelvedata.com${endpoint}`);
-  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
-  });
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    const data = await response.json().catch(() => null);
-    if (!response.ok || data?.status === "error" || data?.code) return null;
-    writeTwelveRestCache(endpoint, params, data);
-    return data;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  const requestKey = stableCacheKey(endpoint, params);
+  if (twelveRestInFlight.has(requestKey)) return twelveRestInFlight.get(requestKey);
+
+  const promise = (async () => {
+    const url = new URL(`https://api.twelvedata.com${endpoint}`);
+    Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
+    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.status === "error" || data?.code) return null;
+      writeTwelveRestCache(endpoint, params, data);
+      return data;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+      twelveRestInFlight.delete(requestKey);
+    }
+  })();
+
+  twelveRestInFlight.set(requestKey, promise);
+  return promise;
 }
 
 function normalizeTwelveMorningQuote(symbol, quote = {}) {
