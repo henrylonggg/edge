@@ -41357,3 +41357,109 @@ body {
   .watch-change-toggle { font-size: 10px !important; }
   .eval-score-text-badge.watch-score-plain { font-size: 24px !important; }
 }
+
+
+/* Eval API usage + no chart + watchlist logo format patch */
+.eval-quote-no-chart-note,
+.eval-stock-chart-svg,
+.eval-stock-chart-empty,
+.eval-chart-timeframe-row,
+.watch-mini-sparkline,
+.watch-mini-sparkline-empty,
+.watch-mini-sparkline path,
+.premium-line-chart-card,
+.portfolio-value-chart,
+.portfolio-chart-wrap {
+  display: none !important;
+}
+.eval-stock-chart-shell.eval-stock-quote-shell {
+  padding: 24px !important;
+}
+.eval-live-price-panel {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.eval-score-text-badge.eval-stock-chart-score {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-style: italic !important;
+  font-weight: 950 !important;
+}
+.grade-card strong.green,
+.portfolio-metric-bar-head strong.green { color: #85ff47 !important; text-shadow: 0 0 12px rgba(133,255,71,.34), 0 0 20px rgba(21,231,255,.12) !important; }
+.grade-card strong.yellow,
+.portfolio-metric-bar-head strong.yellow { color: #ffd66b !important; text-shadow: 0 0 12px rgba(255,214,107,.34), 0 0 20px rgba(255,132,47,.14) !important; }
+.grade-card strong.red,
+.portfolio-metric-bar-head strong.red { color: #ff5f73 !important; text-shadow: 0 0 12px rgba(255,95,115,.34), 0 0 20px rgba(255,132,47,.14) !important; }
+.watch-panel-actions { display: flex; align-items: center; gap: 8px; }
+.watch-global-change-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  color: #fff;
+  background: rgba(159,92,255,.16);
+  font-weight: 950;
+  box-shadow: 0 0 18px rgba(159,92,255,.16);
+}
+.watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format {
+  grid-template-columns: minmax(80px, 1fr) 104px 56px 24px !important;
+  gap: 10px !important;
+}
+.watch-info-logo-ticker {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.watch-logo-shell {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.10);
+  overflow: hidden;
+}
+.watch-logo-shell img { position: relative; z-index: 2; width: 100%; height: 100%; object-fit: contain; padding: 4px; background: rgba(255,255,255,.94); }
+.watch-logo-shell b { position: absolute; z-index: 1; color: rgba(255,255,255,.78); font-size: 15px; font-weight: 950; }
+.watch-ticker-main {
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 950 !important;
+  letter-spacing: .08em !important;
+  line-height: 1 !important;
+}
+.watch-row-simple .watch-info-new strong,
+.watch-row-simple .watch-ticker-under { display: none !important; }
+.delete-btn-icon-only {
+  width: auto !important;
+  height: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: rgba(255,255,255,.76) !important;
+}
+.delete-btn-icon-only:hover { color: #ff5f73 !important; }
+@media (max-width: 700px) {
+  .watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format {
+    grid-template-columns: minmax(68px, 1fr) 84px 46px 22px !important;
+    gap: 7px !important;
+  }
+  .watch-logo-shell { width: 28px; height: 28px; min-width: 28px; border-radius: 10px; }
+  .watch-ticker-main { font-size: 13px !important; }
+  .watch-price-stack strong { font-size: 11px !important; }
+  .watch-change-toggle { font-size: 9px !important; }
+  .eval-score-text-badge.watch-score-plain { font-size: 21px !important; }
+}
