@@ -527,7 +527,16 @@ async function fetchTwelveDataFundamentals(symbol) {
 
     const statementRevenue = pickTwelveNumber(income, ["revenue", "total_revenue", "sales"]);
     const priorRevenue = pickTwelveNumber(priorIncome, ["revenue", "total_revenue", "sales"]);
+    const olderIncome = incomeRows[2] || incomeRows[3] || {};
+    const oldestIncome = incomeRows[Math.min(incomeRows.length - 1, 4)] || {};
+    const olderRevenue = pickTwelveNumber(olderIncome, ["revenue", "total_revenue", "sales"]);
+    const oldestRevenue = pickTwelveNumber(oldestIncome, ["revenue", "total_revenue", "sales"]);
+    const epsLatest = pickTwelveNumber(income, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
+    const epsPrior = pickTwelveNumber(priorIncome, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
+    const epsOldest = pickTwelveNumber(oldestIncome, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
     const netIncome = pickTwelveNumber(income, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
+    const priorNetIncome = pickTwelveNumber(priorIncome, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
+    const oldestNetIncome = pickTwelveNumber(oldestIncome, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
     const operatingIncome = pickTwelveNumber(income, ["operating_income", "ebit"]);
     const grossProfit = pickTwelveNumber(income, ["gross_profit"]);
     const totalDebt = pickTwelveNumber(balance, ["total_debt", "short_term_debt", "long_term_debt"]);
@@ -550,7 +559,20 @@ async function fetchTwelveDataFundamentals(symbol) {
     metrics.operatingCashFlow = firstNumber(metrics.operatingCashFlow, operatingCashFlow);
     metrics.freeCashFlow = firstNumber(metrics.freeCashFlow, freeCashFlow);
 
+    const compoundGrowth = (latest, prior, years) => {
+      const l = safeNumber(latest);
+      const p = safeNumber(prior);
+      const y = safeNumber(years);
+      if (l === null || p === null || p <= 0 || l <= 0 || y === null || y <= 0) return null;
+      return (Math.pow(l / p, 1 / y) - 1) * 100;
+    };
+
     metrics.revenueGrowth = firstNumber(metrics.revenueGrowth, statementRevenue !== null && priorRevenue !== null && priorRevenue !== 0 ? ((statementRevenue - priorRevenue) / Math.abs(priorRevenue)) * 100 : null);
+    metrics.revenueGrowth3Y = firstNumber(metrics.revenueGrowth3Y, compoundGrowth(statementRevenue, olderRevenue, 3));
+    metrics.revenueGrowth5Y = firstNumber(metrics.revenueGrowth5Y, compoundGrowth(statementRevenue, oldestRevenue, Math.min(Math.max(incomeRows.length - 1, 1), 5)));
+    metrics.epsGrowth = firstNumber(metrics.epsGrowth, epsLatest !== null && epsPrior !== null && epsPrior !== 0 ? ((epsLatest - epsPrior) / Math.abs(epsPrior)) * 100 : null);
+    metrics.epsGrowth5Y = firstNumber(metrics.epsGrowth5Y, compoundGrowth(epsLatest, epsOldest, Math.min(Math.max(incomeRows.length - 1, 1), 5)));
+    metrics.netIncomeGrowth3Y = firstNumber(metrics.netIncomeGrowth3Y, compoundGrowth(netIncome, oldestNetIncome, Math.min(Math.max(incomeRows.length - 1, 1), 5)), netIncome !== null && priorNetIncome !== null && priorNetIncome !== 0 ? ((netIncome - priorNetIncome) / Math.abs(priorNetIncome)) * 100 : null);
     metrics.grossMargin = firstNumber(metrics.grossMargin, divide(grossProfit, statementRevenue) !== null ? divide(grossProfit, statementRevenue) * 100 : null);
     metrics.operatingMargin = firstNumber(metrics.operatingMargin, divide(operatingIncome, statementRevenue) !== null ? divide(operatingIncome, statementRevenue) * 100 : null);
     metrics.netMargin = firstNumber(metrics.netMargin, divide(netIncome, statementRevenue) !== null ? divide(netIncome, statementRevenue) * 100 : null);
@@ -1078,60 +1100,60 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     marketCapM,
     beta: firstNumber(raw.beta, raw.betaAnnual),
 
-    peRatio: firstNumber(raw.peTTM, raw.peNormalizedAnnual, raw.peBasicExclExtraTTM),
-    forwardPe: firstNumber(raw.forwardPE),
+    peRatio: firstNumber(raw.peTTM, raw.peNormalizedAnnual, raw.peBasicExclExtraTTM, raw.peRatio),
+    forwardPe: firstNumber(raw.forwardPE, raw.forwardPe),
     pegRatio: firstNumber(raw.pegRatio),
-    priceToSales: firstNumber(raw.psTTM, raw.psAnnual),
-    priceToBook: firstNumber(raw.pbQuarterly, raw.pbAnnual),
-    priceToCashFlow: firstNumber(raw.pcfShareTTM),
-    priceToFreeCashFlow: firstNumber(raw.pfcfShareTTM),
-    dividendYield: percentFromDecimal(firstNumber(raw.currentDividendYieldTTM, raw.dividendYieldIndicatedAnnual)),
+    priceToSales: firstNumber(raw.psTTM, raw.psAnnual, raw.priceToSales),
+    priceToBook: firstNumber(raw.pbQuarterly, raw.pbAnnual, raw.priceToBook),
+    priceToCashFlow: firstNumber(raw.pcfShareTTM, raw.priceToCashFlow),
+    priceToFreeCashFlow: firstNumber(raw.pfcfShareTTM, raw.priceToFreeCashFlow),
+    dividendYield: percentFromDecimal(firstNumber(raw.currentDividendYieldTTM, raw.dividendYieldIndicatedAnnual, raw.dividendYield)),
 
-    revenueGrowth: percentFromDecimal(firstNumber(raw.revenueGrowthTTMYoy, raw.revenueGrowthQuarterlyYoy, raw.revenueGrowth5Y)),
-    revenueGrowthQuarterly: percentFromDecimal(firstNumber(raw.revenueGrowthQuarterlyYoy)),
+    revenueGrowth: percentFromDecimal(firstNumber(raw.revenueGrowthTTMYoy, raw.revenueGrowthQuarterlyYoy, raw.revenueGrowth, raw.revenueGrowth5Y)),
+    revenueGrowthQuarterly: percentFromDecimal(firstNumber(raw.revenueGrowthQuarterlyYoy, raw.revenueGrowthQuarterly)),
     revenueGrowth3Y: percentFromDecimal(firstNumber(raw.revenueGrowth3Y)),
     revenueGrowth5Y: percentFromDecimal(firstNumber(raw.revenueGrowth5Y)),
 
-    epsGrowth: percentFromDecimal(firstNumber(raw.epsGrowthTTMYoy, raw.epsGrowthQuarterlyYoy)),
+    epsGrowth: percentFromDecimal(firstNumber(raw.epsGrowthTTMYoy, raw.epsGrowthQuarterlyYoy, raw.epsGrowth)),
     epsGrowth3Y: percentFromDecimal(firstNumber(raw.epsGrowth3Y)),
     epsGrowth5Y: percentFromDecimal(firstNumber(raw.epsGrowth5Y)),
 
-    roe: percentFromDecimal(firstNumber(raw.roeTTM, raw.roeRfy)),
-    roa: percentFromDecimal(firstNumber(raw.roaTTM, raw.roaRfy)),
-    roi: percentFromDecimal(firstNumber(raw.roiTTM, raw.roiAnnual)),
-    grossMargin: percentFromDecimal(firstNumber(raw.grossMarginTTM, raw.grossMarginAnnual)),
-    operatingMargin: percentFromDecimal(firstNumber(raw.operatingMarginTTM, raw.operatingMarginAnnual)),
-    pretaxMargin: percentFromDecimal(firstNumber(raw.pretaxMarginTTM, raw.pretaxMarginAnnual)),
-    netMargin: percentFromDecimal(firstNumber(raw.netProfitMarginTTM, raw.netProfitMarginAnnual)),
+    roe: percentFromDecimal(firstNumber(raw.roeTTM, raw.roeRfy, raw.roe)),
+    roa: percentFromDecimal(firstNumber(raw.roaTTM, raw.roaRfy, raw.roa)),
+    roi: percentFromDecimal(firstNumber(raw.roiTTM, raw.roiAnnual, raw.roi, raw.roicCalculated)),
+    grossMargin: percentFromDecimal(firstNumber(raw.grossMarginTTM, raw.grossMarginAnnual, raw.grossMargin)),
+    operatingMargin: percentFromDecimal(firstNumber(raw.operatingMarginTTM, raw.operatingMarginAnnual, raw.operatingMargin)),
+    pretaxMargin: percentFromDecimal(firstNumber(raw.pretaxMarginTTM, raw.pretaxMarginAnnual, raw.pretaxMargin)),
+    netMargin: percentFromDecimal(firstNumber(raw.netProfitMarginTTM, raw.netProfitMarginAnnual, raw.netMargin)),
 
-    debtToEquity: firstNumber(raw.totalDebtToEquityQuarterly, raw.totalDebtToEquityAnnual),
-    longTermDebtToEquity: firstNumber(raw.longTermDebtToEquityQuarterly, raw.longTermDebtToEquityAnnual),
-    currentRatio: firstNumber(raw.currentRatioQuarterly, raw.currentRatioAnnual),
-    quickRatio: firstNumber(raw.quickRatioQuarterly, raw.quickRatioAnnual),
-    cashRatio: firstNumber(raw.cashRatioQuarterly, raw.cashRatioAnnual),
-    assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual),
-    operatingIncome: firstNumber(raw.operatingIncomeTTM, raw.operatingIncomeAnnual),
-    operatingCashFlow: firstNumber(raw.operatingCashFlowTTM, raw.operatingCashFlowAnnual),
-    capex: firstNumber(raw.capexTTM, raw.capexAnnual, raw.capitalExpenditureTTM, raw.capitalExpenditureAnnual),
-    freeCashFlow: firstNumber(raw.freeCashFlowTTM, raw.freeCashFlowAnnual),
-    netIncome: firstNumber(raw.netIncomeTTM, raw.netIncomeAnnual),
-    totalAssets: firstNumber(raw.totalAssetsQuarterly, raw.totalAssetsAnnual),
-    currentLiabilities: firstNumber(raw.totalCurrentLiabilitiesQuarterly, raw.totalCurrentLiabilitiesAnnual, raw.currentLiabilitiesQuarterly, raw.currentLiabilitiesAnnual),
-    totalDebt: firstNumber(raw.totalDebtQuarterly, raw.totalDebtAnnual),
-    shareholderEquity: firstNumber(raw.totalEquityQuarterly, raw.totalEquityAnnual, raw.bookValuePerShareAnnual && raw.sharesOutstanding ? raw.bookValuePerShareAnnual * raw.sharesOutstanding : null),
-    cashAndEquivalents: firstNumber(raw.cashAndEquivalentsQuarterly, raw.cashAndEquivalentsAnnual, raw.cashPerShareAnnual && raw.sharesOutstanding ? raw.cashPerShareAnnual * raw.sharesOutstanding : null),
+    debtToEquity: firstNumber(raw.totalDebtToEquityQuarterly, raw.totalDebtToEquityAnnual, raw.debtToEquity),
+    longTermDebtToEquity: firstNumber(raw.longTermDebtToEquityQuarterly, raw.longTermDebtToEquityAnnual, raw.longTermDebtToEquity),
+    currentRatio: firstNumber(raw.currentRatioQuarterly, raw.currentRatioAnnual, raw.currentRatio),
+    quickRatio: firstNumber(raw.quickRatioQuarterly, raw.quickRatioAnnual, raw.quickRatio),
+    cashRatio: firstNumber(raw.cashRatioQuarterly, raw.cashRatioAnnual, raw.cashRatio),
+    assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual, raw.assetTurnover),
+    operatingIncome: firstNumber(raw.operatingIncomeTTM, raw.operatingIncomeAnnual, raw.operatingIncome),
+    operatingCashFlow: firstNumber(raw.operatingCashFlowTTM, raw.operatingCashFlowAnnual, raw.operatingCashFlow),
+    capex: firstNumber(raw.capexTTM, raw.capexAnnual, raw.capitalExpenditureTTM, raw.capitalExpenditureAnnual, raw.capex),
+    freeCashFlow: firstNumber(raw.freeCashFlowTTM, raw.freeCashFlowAnnual, raw.freeCashFlow),
+    netIncome: firstNumber(raw.netIncomeTTM, raw.netIncomeAnnual, raw.netIncome),
+    totalAssets: firstNumber(raw.totalAssetsQuarterly, raw.totalAssetsAnnual, raw.totalAssets),
+    currentLiabilities: firstNumber(raw.totalCurrentLiabilitiesQuarterly, raw.totalCurrentLiabilitiesAnnual, raw.currentLiabilitiesQuarterly, raw.currentLiabilitiesAnnual, raw.currentLiabilities),
+    totalDebt: firstNumber(raw.totalDebtQuarterly, raw.totalDebtAnnual, raw.totalDebt),
+    shareholderEquity: firstNumber(raw.totalEquityQuarterly, raw.totalEquityAnnual, raw.shareholderEquity, raw.bookValuePerShareAnnual && raw.sharesOutstanding ? raw.bookValuePerShareAnnual * raw.sharesOutstanding : null),
+    cashAndEquivalents: firstNumber(raw.cashAndEquivalentsQuarterly, raw.cashAndEquivalentsAnnual, raw.cashAndEquivalents, raw.cashPerShareAnnual && raw.sharesOutstanding ? raw.cashPerShareAnnual * raw.sharesOutstanding : null),
     netIncomeGrowth3Y: percentFromDecimal(firstNumber(raw.netIncomeGrowth3Y, raw.netIncomeGrowth3YAnnual, raw["3YearNetIncomeGrowth"])),
-    interestCoverage: firstNumber(raw.interestCoverageTTM, raw.interestCoverageAnnual),
-    cashFlowToDebt: firstNumber(raw.cashFlowToDebtTTM, raw.cashFlowToDebtAnnual),
-    operatingCashFlowPerShare: firstNumber(raw.operatingCashFlowPerShareTTM, raw.operatingCashFlowPerShareAnnual),
-    freeCashFlowPerShare: firstNumber(raw.freeCashFlowPerShareTTM, raw.freeCashFlowPerShareAnnual),
-    totalDebtToCapital: firstNumber(raw.totalDebtToCapitalizationQuarterly, raw.totalDebtToCapitalizationAnnual),
-    netDebtToEbitda: firstNumber(raw.netDebtToEBITDATTM, raw.netDebtToEBITDAAnnual),
+    interestCoverage: firstNumber(raw.interestCoverageTTM, raw.interestCoverageAnnual, raw.interestCoverage),
+    cashFlowToDebt: firstNumber(raw.cashFlowToDebtTTM, raw.cashFlowToDebtAnnual, raw.cashFlowToDebt),
+    operatingCashFlowPerShare: firstNumber(raw.operatingCashFlowPerShareTTM, raw.operatingCashFlowPerShareAnnual, raw.operatingCashFlowPerShare),
+    freeCashFlowPerShare: firstNumber(raw.freeCashFlowPerShareTTM, raw.freeCashFlowPerShareAnnual, raw.freeCashFlowPerShare),
+    totalDebtToCapital: firstNumber(raw.totalDebtToCapitalizationQuarterly, raw.totalDebtToCapitalizationAnnual, raw.totalDebtToCapital),
+    netDebtToEbitda: firstNumber(raw.netDebtToEBITDATTM, raw.netDebtToEBITDAAnnual, raw.netDebtToEbitda),
 
-    priceReturn4Week: firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily),
-    priceReturn13Week: firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"]),
-    priceReturn26Week: firstNumber(raw["26WeekPriceReturnDaily"], raw["6MonthPriceReturnDaily"]),
-    priceReturn52Week: firstNumber(raw["52WeekPriceReturnDaily"], raw.yearToDatePriceReturnDaily),
+    priceReturn4Week: firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily, raw.priceReturn4Week),
+    priceReturn13Week: firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"], raw.priceReturn13Week),
+    priceReturn26Week: firstNumber(raw["26WeekPriceReturnDaily"], raw["6MonthPriceReturnDaily"], raw.priceReturn26Week),
+    priceReturn52Week: firstNumber(raw["52WeekPriceReturnDaily"], raw.yearToDatePriceReturnDaily, raw.priceReturn52Week),
     weekHigh,
     weekLow,
     pullbackFromHigh,
@@ -1147,8 +1169,10 @@ function scoreGrowth(m = {}) {
       { score: metricScore(m.revenueGrowthQuarterly, [[35, 10], [22, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.15 },
       { score: metricScore(m.revenueGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.15 },
       { score: metricScore(m.revenueGrowth5Y, [[20, 10], [14, 9], [9, 8], [5, 7], [2, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.10 },
-      { score: metricScore(m.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.20 },
-      { score: metricScore(m.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.10 },
+      { score: metricScore(m.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.18 },
+      { score: metricScore(m.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.07 },
+      { score: metricScore(m.epsGrowth5Y, [[22, 10], [16, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.05 },
+      { score: metricScore(m.netIncomeGrowth3Y, [[30, 10], [20, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.10 },
     ]
   );
 }
@@ -1271,8 +1295,8 @@ function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
   );
 
   if (raw === null) return null;
-  const quality = availableWeightedAverage([{ score: growthScore, weight: 0.215 }, { score: profitabilityScore, weight: 0.205 }], 6);
-  return Number(clamp(raw + Math.max(-0.5, Math.min(0.8, (quality - 6) * 0.12))).toFixed(1));
+  const businessSupport = availableWeightedAverage([{ score: growthScore, weight: 0.215 }, { score: profitabilityScore, weight: 0.205 }], 6);
+  return Number(clamp(raw + Math.max(-0.5, Math.min(0.8, (businessSupport - 6) * 0.12))).toFixed(1));
 }
 
 function scoreMomentum(m = {}) {
@@ -1847,9 +1871,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
     twelveFundamentals?.metrics?.weekLow,
     twelveFundamentals?.metrics?.currentPrice,
   ]);
-  const twelveMarket = refreshMarket && existingMarketInputs < 4
+  const twelveMarket = refreshMarket && existingMarketInputs < 6
     ? await fetchTwelveDataMarketData(cleanSymbol)
-    : { quote: null, metrics: {}, source: existingMarketInputs >= 4 ? "Twelve Data /statistics market data" : "Market refresh disabled" };
+    : { quote: null, metrics: {}, source: existingMarketInputs >= 6 ? "Twelve Data /statistics market data" : "Market refresh disabled" };
   const twelveQuote = null;
 
   const cachedProfile = cachedReport?.profile || {};
@@ -1897,15 +1921,17 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const validInputCounts = {
     growth: countValidMetricInputs([extracted.revenueGrowth, extracted.revenueGrowthQuarterly, extracted.revenueGrowth3Y, extracted.revenueGrowth5Y, extracted.epsGrowth, extracted.epsGrowth3Y, extracted.epsGrowth5Y, extracted.netIncomeGrowth3Y]),
-    profitability: countValidMetricInputs([extracted.operatingMargin, extracted.netMargin, extracted.roe, extracted.roa, extracted.roicCalculated, extracted.freeCashFlowPerShare]),
-    financialHealth: countValidMetricInputs([extracted.debtToEquity, extracted.longTermDebtToEquity, extracted.currentRatio, extracted.quickRatio, extracted.cashRatio, extracted.interestCoverage, extracted.cashFlowToDebt, extracted.totalDebt, extracted.shareholderEquity, extracted.cashAndEquivalents]),
-    valuation: countValidMetricInputs([extracted.peRatio, extracted.forwardPe, extracted.priceToSales, extracted.priceToBook, extracted.priceToCashFlow, extracted.priceToFreeCashFlow, extracted.pegRatio, extracted.marketCapM]),
-    marketData: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.weekHigh, extracted.weekLow]),
+    profitability: countValidMetricInputs([extracted.grossMargin, extracted.operatingMargin, extracted.pretaxMargin, extracted.netMargin, extracted.roe, extracted.roa, extracted.roicCalculated, extracted.freeCashFlowPerShare]),
+    financialHealth: countValidMetricInputs([extracted.debtToEquity, extracted.longTermDebtToEquity, extracted.totalDebtToCapital, extracted.netDebtToEbitda, extracted.currentRatio, extracted.quickRatio, extracted.cashRatio, extracted.interestCoverage, extracted.cashFlowToDebt, extracted.totalDebt, extracted.shareholderEquity, extracted.cashAndEquivalents]),
+    valuation: countValidMetricInputs([extracted.peRatio, extracted.forwardPe, extracted.priceToSales, extracted.priceToBook, extracted.priceToCashFlow, extracted.priceToFreeCashFlow, extracted.pegRatio, extracted.dividendYield, extracted.marketCapM, extracted.enterpriseValue]),
+    momentum: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week]),
+    reversal: countValidMetricInputs([extracted.pullbackFromHigh, extracted.distanceFrom52WeekLow, extracted.weekHigh, extracted.weekLow, extracted.priceReturn4Week, extracted.priceReturn13Week]),
   };
 
   const totalValidMetricInputs = Object.values(validInputCounts).reduce((sum, value) => sum + Number(value || 0), 0);
-  const hasAllSixCategoryScores = validCategoryCount === 6;
-  const canCalculateEvalScore = hasAllSixCategoryScores && totalValidMetricInputs >= 6;
+  const categoriesWithDataCount = Object.values(validInputCounts).filter((value) => Number(value || 0) > 0).length;
+  const hasAllSixCategoryScores = validCategoryCount === 6 && categoriesWithDataCount === 6;
+  const canCalculateEvalScore = hasAllSixCategoryScores && totalValidMetricInputs >= 12;
   const edgeScore = canCalculateEvalScore ? availableWeightedAverage([
     { score: growthScore, weight: 0.20 },
     { score: profitabilityScore, weight: 0.19 },
@@ -1926,6 +1952,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     epsGrowth: metric(extracted.epsGrowth, "%", src, "EPS growth YoY"),
     epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", src, "3-year EPS growth"),
     epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", src, "5-year EPS growth"),
+    netIncomeGrowth3Y: metric(extracted.netIncomeGrowth3Y, "%", src, "3-year net income growth"),
     roe: metric(extracted.roe, "%", src, "Return on equity"), roa: metric(extracted.roa, "%", src, "Return on assets"), roi: metric(extracted.roicCalculated, "%", src, "Return on invested capital"), grossMargin: metric(extracted.grossMargin, "%", src, "Gross profit / revenue"), operatingMargin: metric(extracted.operatingMargin, "%", src, "Operating income / revenue"), pretaxMargin: metric(extracted.pretaxMargin, "%", src, "Pretax income / revenue"), netMargin: metric(extracted.netMargin, "%", src, "Net income / revenue"),
     debtToEquity: metric(extracted.debtToEquity, "", src, "Total debt / equity"), longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", src, "Long-term debt / equity"), currentRatio: metric(extracted.currentRatio, "", src, "Current assets / current liabilities"), quickRatio: metric(extracted.quickRatio, "", src, "Quick assets / current liabilities"), cashRatio: metric(extracted.cashRatio, "", src, "Cash / current liabilities"), assetTurnover: metric(extracted.assetTurnover, "", src, "Revenue / assets"), interestCoverage: metric(extracted.interestCoverage, "", src, "EBIT / interest expense"), cashFlowToDebt: metric(extracted.cashFlowToDebt, "", src, "Operating cash flow / total debt"), operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", src, "Operating cash flow / share"), freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", src, "Free cash flow / share"), totalDebtToCapital: metric(extracted.totalDebtToCapital, "", src, "Debt / total capital"), netDebtToEbitda: metric(extracted.netDebtToEbitda, "", src, "Net debt / EBITDA"),
     peRatio: metric(extracted.peRatio, "", src, "Price / earnings"), forwardPe: metric(extracted.forwardPe, "", src, "Forward price / earnings"), pegRatio: metric(extracted.pegRatio, "", src, "P/E / growth"), priceToSales: metric(extracted.priceToSales, "", src, "Price / sales"), priceToBook: metric(extracted.priceToBook, "", src, "Price / book value"), priceToCashFlow: metric(extracted.priceToCashFlow, "", src, "Price / cash flow"), priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", src, "Price / free cash flow"), dividendYield: metric(extracted.dividendYield, "%", src, "Annual dividend yield"),
@@ -1946,7 +1973,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
       ? `${cleanSymbol} does not have enough usable data across all six Eval categories for an Eval Score yet.`
-      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback with missing metric inputs ignored inside each category.`,
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback. Quality is not part of the calculation, and missing metric inputs are ignored inside each category.`,
     strengths: [sw.strongest],
     weaknesses: [sw.weakest],
     grades: {
@@ -1960,11 +1987,13 @@ export async function buildStockAnalysis(symbol, options = {}) {
         validInputCounts,
         totalValidMetricInputs,
         publicUsableMetricCount,
-        minRequiredMetrics: 6,
+        minRequiredMetrics: 12,
+        targetMetricInputs: 30,
+        minimumTargetPerCategory: 5,
         requiredCategories: ["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal"],
         hasAllSixCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Eval Score is N/A unless all six categories have usable data. Missing metric inputs inside a valid category are ignored and remaining weights are redistributed.",
+        scoreRule: "Quality is completely removed. Eval Score is N/A unless all six categories have at least one usable input and at least 12 total usable inputs. Eval targets about 5 inputs per category / 30 total inputs when Twelve Data provides them; missing inputs are ignored and remaining weights are redistributed.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; adds cached statement and weekly time-series fallbacks only when needed. Current-price display is disabled." },
         sources: { price: "Hidden", marketData: twelveMarket?.source || "Twelve Data", fundamentals: twelveFundamentals?.source || "Twelve Data", profile: "Twelve Data" }
       }
