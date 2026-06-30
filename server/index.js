@@ -829,6 +829,7 @@ const REPORT_CACHE_TTL_MS = Math.min(
   COMPONENT_TTLS_MS.risk
 );
 const analysisCache = new Map();
+const analysisInFlight = new Map();
 const lastValidAnalysisCache = new Map();
 const industryCache = new Map();
 const tickerLookupCache = { savedAt: 0, data: [] };
@@ -1824,8 +1825,13 @@ async function getCachedAnalysis(symbol, options = {}) {
     return withCacheInfo(cachedReport, { hit: true, componentHit: true }, savedAt);
   }
 
+  const includeAiKey = options.includeAiScoreSummary !== false ? "ai" : "no-ai";
+  const inFlightKey = `${clean}:${includeAiKey}:${Object.entries(plan).map(([key, value]) => `${key}=${value ? 1 : 0}`).join("|")}`;
+  if (analysisInFlight.has(inFlightKey)) return analysisInFlight.get(inFlightKey);
+
   const lastValid = lastValidAnalysisCache.get(clean);
 
+  const work = (async () => {
   try {
     const data = await buildStockAnalysis(clean, {
       cachedReport,
@@ -1884,6 +1890,10 @@ async function getCachedAnalysis(symbol, options = {}) {
 
     throw error;
   }
+  })().finally(() => analysisInFlight.delete(inFlightKey));
+
+  analysisInFlight.set(inFlightKey, work);
+  return work;
 }
 
 app.get("/", (req, res) => {
@@ -2285,9 +2295,9 @@ const morningArticleImageCache = new Map();
 async function getMorningPortfolioMovers(symbols = []) {
   const cleanSymbols = [...new Set((Array.isArray(symbols) ? symbols : [])
     .map(cleanTicker)
-    .filter(Boolean))].slice(0, 40);
+    .filter(Boolean))].slice(0, 10);
   if (!cleanSymbols.length) return { gainers: [], losers: [] };
-  const key = `${morningBrewMinuteKey()}-${stableMorningHash(cleanSymbols)}`;
+  const key = `${morningBrewDateKey()}-${stableMorningHash(cleanSymbols)}`;
   const cached = morningBrewPortfolioMoversCache.get(key);
   if (cached) return cached;
   const quotes = await Promise.all(cleanSymbols.map(async (symbol) => {
