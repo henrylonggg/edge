@@ -1,6 +1,7 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
 // Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
 const MASSIVE_BASE_URL = "https://api.massive.com";
 const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
 const FMP_LEGACY_BASE_URL = "https://financialmodelingprep.com/api/v3";
@@ -15,6 +16,7 @@ const CATEGORY_LABELS = {
   momentum: "Momentum",
   reversal: "Pullback",
   newsSentiment: "News Sentiment",
+  quality: "Quality",
 };
 
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
@@ -124,6 +126,176 @@ async function fetchFinnhubOptional(path, params = {}) {
     console.warn(`Optional Finnhub fetch failed for ${path}:`, error?.message || error);
     return null;
   }
+}
+
+function twelveDataEnabled() {
+  return Boolean(process.env.TWELVE_DATA_API_KEY || process.env.TWELVEDATA_API_KEY);
+}
+
+function twelveDataApiKey() {
+  return process.env.TWELVE_DATA_API_KEY || process.env.TWELVEDATA_API_KEY || "";
+}
+
+async function fetchTwelveDataOptional(endpoint, params = {}) {
+  const apiKey = twelveDataApiKey();
+  if (!apiKey) return null;
+
+  const url = new URL(`${TWELVE_DATA_BASE_URL}${endpoint}`);
+  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const data = await fetchJsonOptional(url, "Twelve Data");
+  if (!data || data?.status === "error" || data?.code || data?.message === "**symbol** not found") {
+    if (data?.message) console.warn("Twelve Data returned message:", data.message);
+    return null;
+  }
+  return data;
+}
+
+function cleanTwelveNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(String(value).replace(/[%,$]/g, "").replace(/,/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeTwelveQuote(data = {}) {
+  const current = firstNumber(
+    cleanTwelveNumber(data?.close),
+    cleanTwelveNumber(data?.price),
+    cleanTwelveNumber(data?.last),
+    cleanTwelveNumber(data?.current)
+  );
+  const previousClose = firstNumber(
+    cleanTwelveNumber(data?.previous_close),
+    cleanTwelveNumber(data?.previousClose),
+    cleanTwelveNumber(data?.prev_close)
+  );
+  const change = firstNumber(
+    cleanTwelveNumber(data?.change),
+    current !== null && previousClose !== null ? current - previousClose : null
+  );
+  const changePercent = firstNumber(
+    cleanTwelveNumber(data?.percent_change),
+    cleanTwelveNumber(data?.change_percent),
+    cleanTwelveNumber(data?.percentChange),
+    current !== null && previousClose !== null && previousClose > 0 ? ((current - previousClose) / previousClose) * 100 : null
+  );
+
+  if (current === null && changePercent === null) return null;
+
+  return {
+    c: current,
+    d: change,
+    dp: changePercent,
+    h: firstNumber(cleanTwelveNumber(data?.high), cleanTwelveNumber(data?.day_high)),
+    l: firstNumber(cleanTwelveNumber(data?.low), cleanTwelveNumber(data?.day_low)),
+    o: firstNumber(cleanTwelveNumber(data?.open)),
+    pc: previousClose,
+  };
+}
+
+async function fetchTwelveDataQuote(symbol) {
+  const data = await fetchTwelveDataOptional("/quote", { symbol });
+  return normalizeTwelveQuote(data);
+}
+
+async function fetchTwelveDataProfile(symbol) {
+  const data = await fetchTwelveDataOptional("/profile", { symbol });
+  if (!data || typeof data !== "object") return null;
+  return {
+    ticker: data?.symbol || symbol,
+    name: data?.name || data?.company_name || data?.companyName || symbol,
+    finnhubIndustry: data?.industry || data?.sector || "Public company",
+    marketCapitalization: toMillions(firstNumber(cleanTwelveNumber(data?.market_cap), cleanTwelveNumber(data?.marketCapitalization), cleanTwelveNumber(data?.market_capitalization))),
+    exchange: data?.exchange || data?.exchange_short_name || "",
+    currency: data?.currency || "",
+    country: data?.country || "",
+    weburl: data?.website || data?.weburl || "",
+    logo: data?.logo || "",
+  };
+}
+
+async function fetchTwelveDataMarketData(symbol) {
+  if (!twelveDataEnabled()) {
+    return { quote: null, metrics: {}, source: "Twelve Data unavailable" };
+  }
+
+  const data = await fetchTwelveDataOptional("/time_series", {
+    symbol,
+    interval: "1day",
+    outputsize: 370,
+    order: "ASC",
+  });
+
+  const rawRows = Array.isArray(data?.values) ? data.values : [];
+  const rows = rawRows
+    .map((row) => ({
+      date: row?.datetime || row?.date,
+      open: cleanTwelveNumber(row?.open),
+      high: cleanTwelveNumber(row?.high),
+      low: cleanTwelveNumber(row?.low),
+      close: cleanTwelveNumber(row?.close),
+    }))
+    .filter((row) => row.close !== null)
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+
+  if (!rows.length) return { quote: null, metrics: {}, source: "Twelve Data" };
+
+  const last = rows[rows.length - 1];
+  const prev = rows[rows.length - 2] || null;
+  const currentPrice = last.close;
+  const previousClose = prev?.close ?? null;
+  const highs = rows.map((row) => row.high).filter((value) => value !== null);
+  const lows = rows.map((row) => row.low).filter((value) => value !== null);
+  const high52 = highs.length ? Math.max(...highs) : null;
+  const low52 = lows.length ? Math.min(...lows) : null;
+
+  const closeDaysAgo = (days) => {
+    if (!rows.length) return null;
+    const target = new Date(`${last.date}T00:00:00Z`).getTime() - days * 24 * 60 * 60 * 1000;
+    let selected = rows[0];
+    for (const row of rows) {
+      const t = new Date(`${row.date}T00:00:00Z`).getTime();
+      if (Number.isFinite(t) && t <= target) selected = row;
+      else break;
+    }
+    return selected?.close ?? null;
+  };
+
+  const pctReturn = (days) => {
+    const past = closeDaysAgo(days);
+    return currentPrice !== null && past !== null && past > 0 ? ((currentPrice - past) / past) * 100 : null;
+  };
+
+  const dayChange = currentPrice !== null && previousClose !== null ? currentPrice - previousClose : null;
+  const dayChangePercent = currentPrice !== null && previousClose !== null && previousClose > 0
+    ? ((currentPrice - previousClose) / previousClose) * 100
+    : null;
+
+  return {
+    quote: {
+      c: currentPrice,
+      d: dayChange,
+      dp: dayChangePercent,
+      h: last.high,
+      l: last.low,
+      o: last.open,
+      pc: previousClose,
+    },
+    metrics: {
+      priceReturn4Week: pctReturn(28),
+      priceReturn13Week: pctReturn(91),
+      priceReturn26Week: pctReturn(182),
+      priceReturn52Week: pctReturn(364),
+      weekHigh: high52,
+      weekLow: low52,
+      dayChangePercent,
+    },
+    source: "Twelve Data",
+  };
 }
 
 async function fetchJsonOptional(url, providerName) {
@@ -238,6 +410,132 @@ function fmpPercent(value) {
   return Math.abs(n) <= 1.5 ? n * 100 : n;
 }
 
+
+
+function twelveList(data) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  for (const key of ["values", "data", "income_statement", "balance_sheet", "cash_flow", "statements", "items", "result"]) {
+    if (Array.isArray(data?.[key])) return data[key];
+  }
+  return typeof data === "object" ? [data] : [];
+}
+
+function twelveLatest(data) {
+  const list = twelveList(data);
+  return list[0] || {};
+}
+
+function pickTwelveNumber(obj = {}, keys = []) {
+  for (const key of keys) {
+    const value = cleanTwelveNumber(obj?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+function pctChangeFromList(list, key) {
+  const rows = Array.isArray(list) ? list : [];
+  if (rows.length < 2) return null;
+  const latest = pickTwelveNumber(rows[0], [key]);
+  const prior = pickTwelveNumber(rows[Math.min(rows.length - 1, 3)], [key]);
+  if (latest === null || prior === null || prior === 0) return null;
+  return ((latest - prior) / Math.abs(prior)) * 100;
+}
+
+async function fetchTwelveDataFundamentals(symbol) {
+  const [statistics, incomeRaw, balanceRaw, cashRaw, earningsRaw] = await Promise.all([
+    fetchTwelveDataOptional("/statistics", { symbol }),
+    fetchTwelveDataOptional("/income_statement", { symbol, period: "annual" }),
+    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual" }),
+    fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual" }),
+    fetchTwelveDataOptional("/earnings", { symbol }),
+  ]);
+
+  const s = statistics || {};
+  const incomeList = twelveList(incomeRaw);
+  const balanceList = twelveList(balanceRaw);
+  const cashList = twelveList(cashRaw);
+  const income = incomeList[0] || {};
+  const balance = balanceList[0] || {};
+  const cash = cashList[0] || {};
+
+  const revenue = firstNumber(
+    pickTwelveNumber(income, ["revenue", "total_revenue", "totalRevenue", "sales"]),
+    pickTwelveNumber(s, ["revenue_ttm", "revenue", "total_revenue"])
+  );
+  const netIncome = firstNumber(pickTwelveNumber(income, ["net_income", "netIncome", "net_income_common_stockholders"]), pickTwelveNumber(s, ["net_income_ttm", "net_income"]));
+  const grossProfit = pickTwelveNumber(income, ["gross_profit", "grossProfit"]);
+  const operatingIncome = pickTwelveNumber(income, ["operating_income", "operatingIncome", "ebit"]);
+  const pretaxIncome = pickTwelveNumber(income, ["income_before_tax", "pretax_income", "incomeBeforeTax"]);
+  const eps = firstNumber(pickTwelveNumber(income, ["eps", "diluted_eps", "eps_diluted"]), pickTwelveNumber(s, ["eps", "eps_ttm", "trailing_eps"]));
+
+  const totalDebt = firstNumber(pickTwelveNumber(balance, ["total_debt", "short_long_term_debt_total", "long_term_debt", "totalDebt"]), pickTwelveNumber(s, ["total_debt"]));
+  const equity = firstNumber(pickTwelveNumber(balance, ["total_equity", "total_shareholder_equity", "shareholder_equity", "totalStockholderEquity"]), pickTwelveNumber(s, ["shareholder_equity"]));
+  const assets = firstNumber(pickTwelveNumber(balance, ["total_assets", "totalAssets"]), pickTwelveNumber(s, ["total_assets"]));
+  const currentAssets = pickTwelveNumber(balance, ["total_current_assets", "current_assets", "totalCurrentAssets"]);
+  const currentLiabilities = pickTwelveNumber(balance, ["total_current_liabilities", "current_liabilities", "totalCurrentLiabilities"]);
+  const cashEq = pickTwelveNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cashAndCashEquivalents"]);
+  const inventory = pickTwelveNumber(balance, ["inventory", "inventories"]);
+  const longTermDebt = pickTwelveNumber(balance, ["long_term_debt", "longTermDebt"]);
+
+  const operatingCashFlow = pickTwelveNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_from_operating_activities"]);
+  const capex = pickTwelveNumber(cash, ["capital_expenditures", "capital_expenditure", "capex"]);
+  const fcf = firstNumber(pickTwelveNumber(cash, ["free_cash_flow", "freeCashFlow"]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
+
+  const shares = firstNumber(pickTwelveNumber(s, ["shares_outstanding", "weighted_average_shares", "shares"]), pickTwelveNumber(income, ["weighted_average_shares", "weightedAverageShsOut"]));
+
+  return {
+    raw: { statistics, income, balance, cash, earnings: earningsRaw },
+    metrics: {
+      revenue,
+      netIncome,
+      operatingIncome,
+      totalDebt,
+      shareholderEquity: equity,
+      cashAndEquivalents: cashEq,
+      totalAssets: assets,
+      currentLiabilities,
+      operatingCashFlow,
+      capex,
+      freeCashFlow: fcf,
+      revenueGrowth: firstNumber(pickTwelveNumber(s, ["revenue_growth", "revenue_growth_ttm"]), pctChangeFromList(incomeList, "revenue")),
+      revenueGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "revenue"),
+      epsGrowth: pctChangeFromList(incomeList, "eps"),
+      epsGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "eps"),
+      netIncomeGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "net_income"),
+      grossMargin: firstNumber(pickTwelveNumber(s, ["gross_margin", "gross_margin_ttm"]), revenue && grossProfit !== null ? grossProfit / revenue * 100 : null),
+      operatingMargin: firstNumber(pickTwelveNumber(s, ["operating_margin", "operating_margin_ttm"]), revenue && operatingIncome !== null ? operatingIncome / revenue * 100 : null),
+      pretaxMargin: revenue && pretaxIncome !== null ? pretaxIncome / revenue * 100 : null,
+      netMargin: firstNumber(pickTwelveNumber(s, ["profit_margin", "net_margin", "net_profit_margin_ttm"]), revenue && netIncome !== null ? netIncome / revenue * 100 : null),
+      roe: firstNumber(pickTwelveNumber(s, ["return_on_equity", "roe"]), equity && netIncome !== null ? netIncome / equity * 100 : null),
+      roa: firstNumber(pickTwelveNumber(s, ["return_on_assets", "roa"]), assets && netIncome !== null ? netIncome / assets * 100 : null),
+      roicCalculated: null,
+      debtToEquity: firstNumber(pickTwelveNumber(s, ["debt_to_equity", "debt_equity_ratio"]), equity && totalDebt !== null ? totalDebt / equity : null),
+      longTermDebtToEquity: equity && longTermDebt !== null ? longTermDebt / equity : null,
+      currentRatio: firstNumber(pickTwelveNumber(s, ["current_ratio"]), currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null),
+      quickRatio: currentAssets && inventory !== null && currentLiabilities ? (currentAssets - inventory) / currentLiabilities : pickTwelveNumber(s, ["quick_ratio"]),
+      cashRatio: cashEq !== null && currentLiabilities ? cashEq / currentLiabilities : null,
+      cashFlowToDebt: totalDebt && operatingCashFlow !== null ? operatingCashFlow / totalDebt : null,
+      freeCashFlowPerShare: shares && fcf !== null ? fcf / shares : null,
+      operatingCashFlowPerShare: shares && operatingCashFlow !== null ? operatingCashFlow / shares : null,
+      peRatio: pickTwelveNumber(s, ["trailing_pe", "pe_ratio", "price_to_earnings"]),
+      forwardPe: pickTwelveNumber(s, ["forward_pe"]),
+      pegRatio: pickTwelveNumber(s, ["peg_ratio"]),
+      priceToSales: pickTwelveNumber(s, ["price_to_sales", "price_sales_ttm"]),
+      priceToBook: pickTwelveNumber(s, ["price_to_book", "price_book"]),
+      priceToCashFlow: pickTwelveNumber(s, ["price_to_cash_flow"]),
+      priceToFreeCashFlow: pickTwelveNumber(s, ["price_to_free_cash_flow"]),
+      dividendYield: pickTwelveNumber(s, ["dividend_yield", "trailing_annual_dividend_yield"]),
+      beta: pickTwelveNumber(s, ["beta"]),
+      marketCapM: toMillions(pickTwelveNumber(s, ["market_capitalization", "market_cap", "marketCapitalization"])),
+      sharesOutstanding: shares,
+      revenuePerShare: shares && revenue ? revenue / shares : null,
+      eps,
+    },
+  };
+}
+
 async function fetchFmpFundamentals(symbol) {
   if (!fmpFundamentalsEnabled()) {
     return { metrics: {}, profile: null, source: "FMP disabled" };
@@ -346,13 +644,14 @@ function hasUsableQuote(quote = {}) {
   return safeNumber(quote?.c) !== null || safeNumber(quote?.dp) !== null;
 }
 
-function bestQuote({ cachedQuote, finnhubQuote, massiveQuote, fmpQuote }) {
+function bestQuote({ cachedQuote, twelveQuote, finnhubQuote, massiveQuote, fmpQuote }) {
   // Current price and percent change priority:
-  // 1. Finnhub quote
-  // 2. Massive aggregate-derived latest close
-  // 3. FMP quote
-  // 4. cached previous quote
-  const sources = [finnhubQuote, massiveQuote, fmpQuote, cachedQuote].filter(Boolean);
+  // 1. Twelve Data quote
+  // 2. Finnhub quote
+  // 3. Twelve Data/Massive aggregate-derived latest close
+  // 4. FMP quote
+  // 5. cached previous quote
+  const sources = [twelveQuote, finnhubQuote, massiveQuote, fmpQuote, cachedQuote].filter(Boolean);
   const out = {};
 
   for (const key of ["c", "d", "dp", "h", "l", "o", "pc"]) {
@@ -1138,6 +1437,7 @@ function labelCategory(key) {
     momentum: "Momentum",
     reversal: "Pullback",
     newsSentiment: "News Sentiment",
+  quality: "Quality",
   };
 
   return labels[key] || key;
@@ -1695,6 +1995,123 @@ export async function buildStockAnalysis(symbol, options = {}) {
 
   const cachedReport = options?.cachedReport || null;
   const hasCachedReport = Boolean(cachedReport?.grades?.categories);
+  const refreshProfile = options?.refreshProfile ?? !hasCachedReport;
+  const refreshFundamentals = options?.refreshFundamentals ?? true;
+  const refreshMarket = options?.refreshMarket ?? true;
+  const refreshNews = options?.refreshNews ?? true;
+  const includeAiScoreSummary = options?.includeAiScoreSummary !== false;
+
+  if (!process.env.TWELVE_DATA_API_KEY) {
+    throw new Error("Missing TWELVE_DATA_API_KEY in Render environment variables.");
+  }
+
+  const [twelveProfile, twelveQuote, twelveMarket, twelveFundamentals] = await Promise.all([
+    refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
+    refreshMarket ? fetchTwelveDataQuote(cleanSymbol) : (cachedReport?.quote || null),
+    refreshMarket ? fetchTwelveDataMarketData(cleanSymbol) : { quote: cachedReport?.quote || null, metrics: metricsFromCachedReport(cachedReport), source: "Twelve Data cached report" },
+    (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {} },
+  ]);
+
+  const cachedProfile = cachedReport?.profile || {};
+  const profile = {
+    ...(cachedProfile || {}),
+    ...(twelveProfile || {}),
+    ticker: twelveProfile?.ticker || cachedProfile?.ticker || cleanSymbol,
+    name: twelveProfile?.name || cachedProfile?.name || cleanSymbol,
+    finnhubIndustry: twelveProfile?.finnhubIndustry || cachedProfile?.finnhubIndustry || "Public company",
+    marketCapitalization: firstNumber(twelveProfile?.marketCapitalization, twelveFundamentals?.metrics?.marketCapM, cachedProfile?.marketCapitalization),
+    weburl: twelveProfile?.weburl || cachedProfile?.weburl || "",
+    logo: twelveProfile?.logo || cachedProfile?.logo || `https://api.twelvedata.com/logo?symbol=${encodeURIComponent(cleanSymbol)}&apikey=${process.env.TWELVE_DATA_API_KEY}`,
+  };
+
+  const quote = bestQuote({ cachedQuote: {}, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
+  if (!profile || (!profile.ticker && !profile.name)) throw new Error(`No Twelve Data profile found for ${cleanSymbol}.`);
+
+  const cachedMetrics = metricsFromCachedReport(cachedReport);
+  const twelveMarketMetrics = twelveMarket?.metrics || {};
+  const twelveFundamentalMetrics = twelveFundamentals?.metrics || {};
+  const raw = mergeDefined(cachedMetrics, twelveMarketMetrics, twelveFundamentalMetrics);
+  const extracted = buildExtractedMetrics(profile, quote, raw);
+  applyMetricFallbacks(extracted, twelveFundamentalMetrics, cachedMetrics);
+  applyMetricFallbacks(extracted, twelveMarketMetrics, cachedMetrics);
+
+  extracted.nopat = scoreInputNumber(extracted.operatingIncome) !== null ? extracted.operatingIncome * (1 - 0.21) : null;
+  extracted.investedCapital = scoreInputNumber(extracted.totalDebt) !== null && scoreInputNumber(extracted.shareholderEquity) !== null
+    ? extracted.totalDebt + extracted.shareholderEquity - (safeNumber(extracted.cashAndEquivalents) || 0)
+    : null;
+  extracted.roicCalculated = scoreInputNumber(extracted.nopat) !== null && scoreInputNumber(extracted.investedCapital) !== null
+    ? (extracted.nopat / extracted.investedCapital) * 100
+    : firstNumber(extracted.roicCalculated);
+  extracted.freeCashFlow = firstNumber(extracted.freeCashFlow, extracted.operatingCashFlow !== null && extracted.capex !== null ? extracted.operatingCashFlow - Math.abs(extracted.capex) : null);
+  extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
+  extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
+
+  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol, profile) : [];
+  const newsSentiment = refreshNews ? await scoreNewsSentiment(cleanSymbol, profile, recentNews) : (cachedReport?.newsSentiment || fallbackNewsSentiment([]));
+
+  const growthScore = scoreGrowth(extracted);
+  const profitabilityScore = scoreProfitability(extracted);
+  const healthScore = scoreFinancialHealth(extracted);
+  const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
+  const momentumScore = scoreMomentum(extracted);
+  const reversalScore = scorePullback(extracted);
+  const qualityScore = availableWeightedAverage([
+    { score: extracted.roicCalculated !== null ? scoreProfitMetric(extracted.roicCalculated, [2,5,8,12,18,25]) : null, weight: .35 },
+    { score: extracted.cashConversionRatio !== null ? scoreProfitMetric(extracted.cashConversionRatio * 100, [20,40,60,80,100,130]) : null, weight: .35 },
+    { score: extracted.freeCashFlowPerShare !== null ? scoreProfitMetric(extracted.freeCashFlowPerShare, [0,1,2,4,8,12]) : null, weight: .30 },
+  ], 1);
+
+  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore, reversal: reversalScore, quality: qualityScore };
+  const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
+  const validInputCounts = {
+    growth: countValidMetricInputs([extracted.revenueGrowth, extracted.revenueGrowthQuarterly, extracted.revenueGrowth3Y, extracted.revenueGrowth5Y, extracted.epsGrowth, extracted.epsGrowth3Y, extracted.epsGrowth5Y, extracted.netIncomeGrowth3Y]),
+    profitability: countValidMetricInputs([extracted.operatingMargin, extracted.netMargin, extracted.roe, extracted.roa, extracted.roicCalculated, extracted.freeCashFlowPerShare]),
+    financialHealth: countValidMetricInputs([extracted.debtToEquity, extracted.longTermDebtToEquity, extracted.currentRatio, extracted.quickRatio, extracted.cashRatio, extracted.interestCoverage, extracted.cashFlowToDebt, extracted.totalDebt, extracted.shareholderEquity, extracted.cashAndEquivalents]),
+    valuation: countValidMetricInputs([extracted.peRatio, extracted.forwardPe, extracted.priceToSales, extracted.priceToBook, extracted.priceToCashFlow, extracted.priceToFreeCashFlow, extracted.pegRatio, extracted.marketCapM]),
+    marketData: countValidMetricInputs([extracted.currentPrice, extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.weekHigh, extracted.weekLow, extracted.dayChangePercent]),
+    quality: countValidMetricInputs([extracted.roicCalculated, extracted.cashConversionRatio, extracted.freeCashFlowPerShare]),
+  };
+
+  const edgeScore = availableWeightedAverage([
+    { score: growthScore, weight: 0.22 },
+    { score: profitabilityScore, weight: 0.20 },
+    { score: healthScore, weight: 0.17 },
+    { score: valuationScore, weight: 0.16 },
+    { score: momentumScore, weight: 0.11 },
+    { score: reversalScore, weight: 0.07 },
+    { score: qualityScore, weight: 0.07 },
+  ], 5);
+
+  const riskLabel = getRiskLabel(extracted, healthScore);
+  const sw = strongestWeakest(categories);
+  const src = "Twelve Data";
+  const reportMetrics = {
+    revenueGrowth: metric(extracted.revenueGrowth, "%", src, "Revenue growth YoY"),
+    revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", src, "Quarterly revenue growth YoY"),
+    revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", src, "3-year revenue growth"),
+    revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", src, "5-year revenue growth"),
+    epsGrowth: metric(extracted.epsGrowth, "%", src, "EPS growth YoY"),
+    epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", src, "3-year EPS growth"),
+    epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", src, "5-year EPS growth"),
+    roe: metric(extracted.roe, "%", src, "Return on equity"), roa: metric(extracted.roa, "%", src, "Return on assets"), roi: metric(extracted.roicCalculated, "%", src, "Return on invested capital"), grossMargin: metric(extracted.grossMargin, "%", src, "Gross profit / revenue"), operatingMargin: metric(extracted.operatingMargin, "%", src, "Operating income / revenue"), pretaxMargin: metric(extracted.pretaxMargin, "%", src, "Pretax income / revenue"), netMargin: metric(extracted.netMargin, "%", src, "Net income / revenue"),
+    debtToEquity: metric(extracted.debtToEquity, "", src, "Total debt / equity"), longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", src, "Long-term debt / equity"), currentRatio: metric(extracted.currentRatio, "", src, "Current assets / current liabilities"), quickRatio: metric(extracted.quickRatio, "", src, "Quick assets / current liabilities"), cashRatio: metric(extracted.cashRatio, "", src, "Cash / current liabilities"), assetTurnover: metric(extracted.assetTurnover, "", src, "Revenue / assets"), interestCoverage: metric(extracted.interestCoverage, "", src, "EBIT / interest expense"), cashFlowToDebt: metric(extracted.cashFlowToDebt, "", src, "Operating cash flow / total debt"), operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", src, "Operating cash flow / share"), freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", src, "Free cash flow / share"), totalDebtToCapital: metric(extracted.totalDebtToCapital, "", src, "Debt / total capital"), netDebtToEbitda: metric(extracted.netDebtToEbitda, "", src, "Net debt / EBITDA"),
+    peRatio: metric(extracted.peRatio, "", src, "Price / earnings"), forwardPe: metric(extracted.forwardPe, "", src, "Forward price / earnings"), pegRatio: metric(extracted.pegRatio, "", src, "P/E / growth"), priceToSales: metric(extracted.priceToSales, "", src, "Price / sales"), priceToBook: metric(extracted.priceToBook, "", src, "Price / book value"), priceToCashFlow: metric(extracted.priceToCashFlow, "", src, "Price / cash flow"), priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", src, "Price / free cash flow"), dividendYield: metric(extracted.dividendYield, "%", src, "Annual dividend yield"),
+    beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "(52-week high - current price) / 52-week high"),
+    revenue: metric(extracted.revenue, "", src, "Revenue"),
+    sharesOutstanding: metric(extracted.sharesOutstanding, "", src, "Shares outstanding"),
+    marketCapM: metric(extracted.marketCapM, "M", src, "Market capitalization in millions"), enterpriseValue: metric(extracted.enterpriseValue, "M", src, "Enterprise value"), ebitda: metric(extracted.ebitda, "M", src, "EBITDA"), evToEbitda: metric(extracted.evToEbitda, "", src, "EV/EBITDA"),
+    wacc: metric(null, "%", "DCF", "User-selected DCF calculator"), costOfEquity: metric(null, "%", "DCF", "User-selected DCF calculator"), afterTaxCostOfDebt: metric(null, "%", "DCF", "User-selected DCF calculator"), taxRate: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfEnterpriseValue: metric(null, "M", "DCF", "User-selected DCF calculator"), intrinsicValue: metric(null, "", "DCF", "User-selected DCF calculator"), intrinsicValueGap: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfGrowthRate: metric(null, "%", "DCF", "User-selected DCF calculator"),
+    newsSentiment: metric(newsSentiment?.score ?? 5, "", newsSentiment?.source || "OpenAI + news provider", "News sentiment is displayed separately and is not part of the Eval Score categories"),
+  };
+
+  const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore) : null;
+  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: safeNumber(quote?.c), d: safeNumber(quote?.d), dp: safeNumber(quote?.dp), h: safeNumber(quote?.h), l: safeNumber(quote?.l), o: safeNumber(quote?.o), pc: safeNumber(quote?.pc) }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality. News sentiment is displayed separately.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment remains separate because Twelve Data does not provide the requested news sentiment feed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data", news: recentNews.length ? "News provider + OpenAI" : "Neutral fallback" } } }, metrics: reportMetrics, aiScoreSummary, newsSentiment };
+}) {
+  const cleanSymbol = String(symbol || "").trim().toUpperCase();
+  if (!cleanSymbol) throw new Error("Missing ticker symbol.");
+
+  const cachedReport = options?.cachedReport || null;
+  const hasCachedReport = Boolean(cachedReport?.grades?.categories);
 
   const refreshProfile = options?.refreshProfile ?? !hasCachedReport;
   const refreshFundamentals = options?.refreshFundamentals ?? true;
@@ -1706,6 +2123,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const shouldFetchFundamentalMetrics = refreshFundamentals || refreshValuation;
 
   const [
+    twelveProfile,
+    twelveQuote,
+    twelveMarket,
     finnhubProfile,
     finnhubQuote,
     metricsRaw,
@@ -1714,6 +2134,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
     fmpFundamentals,
     fmpQuote,
   ] = await Promise.all([
+    refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : null,
+    refreshMarket ? fetchTwelveDataQuote(cleanSymbol) : null,
+    refreshMarket ? fetchTwelveDataMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Twelve Data cached" },
     refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
     refreshMarket ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
     shouldFetchFundamentalMetrics ? fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }) : null,
@@ -1727,30 +2150,35 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const profile = {
     ...(cachedProfile || {}),
     ...(finnhubProfile || {}),
-    ticker: finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || cachedProfile?.ticker || cleanSymbol,
+    ...(twelveProfile || {}),
+    ticker: twelveProfile?.ticker || finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || cachedProfile?.ticker || cleanSymbol,
     name:
+      twelveProfile?.name ||
       finnhubProfile?.name ||
       fmpFundamentals?.profile?.companyName ||
       cachedProfile?.name ||
       cleanSymbol,
     finnhubIndustry:
+      twelveProfile?.finnhubIndustry ||
       finnhubProfile?.finnhubIndustry ||
       fmpFundamentals?.profile?.sector ||
       fmpFundamentals?.profile?.industry ||
       cachedProfile?.finnhubIndustry ||
       "Public company",
     marketCapitalization: firstNumber(
+      twelveProfile?.marketCapitalization,
       finnhubProfile?.marketCapitalization,
       fmpFundamentals?.metrics?.marketCapM,
       cachedProfile?.marketCapitalization
     ),
-    weburl: finnhubProfile?.weburl || fmpFundamentals?.profile?.website || cachedProfile?.weburl || "",
-    logo: finnhubProfile?.logo || fmpFundamentals?.profile?.image || cachedProfile?.logo || "",
+    weburl: twelveProfile?.weburl || finnhubProfile?.weburl || fmpFundamentals?.profile?.website || cachedProfile?.weburl || "",
+    logo: twelveProfile?.logo || finnhubProfile?.logo || fmpFundamentals?.profile?.image || cachedProfile?.logo || "",
   };
 
   const quote = refreshMarket
     ? bestQuote({
         cachedQuote: cachedReport?.quote || {},
+        twelveQuote: twelveQuote || twelveMarket?.quote || {},
         finnhubQuote,
         massiveQuote: massiveMarket?.quote || {},
         fmpQuote,
@@ -1766,16 +2194,19 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const cachedMetrics = metricsFromCachedReport(cachedReport);
   const finnhubMetrics = metricsRaw?.metric || {};
   const fmpMetrics = fmpFundamentals?.metrics || {};
+  const twelveMarketMetrics = twelveMarket?.metrics || {};
   const massiveMetrics = massiveMarket?.metrics || {};
 
-  const raw = mergeDefined(cachedMetrics, finnhubMetrics, massiveMetrics);
+  const raw = mergeDefined(cachedMetrics, finnhubMetrics, twelveMarketMetrics, massiveMetrics);
   const extracted = buildExtractedMetrics(profile, quote, raw);
 
   // Source priority by responsibility:
   // FMP = fundamentals, ratios, statements, growth, margins, valuation.
-  // Massive = quote-derived market data, historical returns, 52-week high/low.
+  // Twelve Data = primary quote-derived market data, historical returns, 52-week high/low.
+  // Massive = fallback quote-derived market data, historical returns, 52-week high/low.
   // Finnhub = profile/news and fallback metrics only.
   applyMetricFallbacks(extracted, fmpMetrics, cachedMetrics);
+  applyMetricFallbacks(extracted, twelveMarketMetrics, cachedMetrics);
   applyMetricFallbacks(extracted, massiveMetrics, cachedMetrics);
   const reportedFinancials = buildExactReportedFinancials(financialsReported);
   const reportedLatest = reportedFinancials.latest || {};
