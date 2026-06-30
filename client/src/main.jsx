@@ -1999,9 +1999,11 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
 
 
 function ScoreRingSvg({ value, className = "", label = null }) {
-  const score = Math.max(0, Math.min(10, Number(score10(value)) || 0));
-  const tone = scoreTone(score);
-  const percent = Math.max(0, Math.min(100, score * 10));
+  const raw = score10(value);
+  const hasScore = raw !== null;
+  const score = hasScore ? Math.max(0, Math.min(10, Number(raw))) : 0;
+  const tone = hasScore ? scoreTone(score) : "neutral";
+  const percent = hasScore ? Math.max(0, Math.min(100, score * 10)) : 0;
 
   return (
     <div className={`svg-score-ring ${tone} ${className}`}>
@@ -2017,7 +2019,7 @@ function ScoreRingSvg({ value, className = "", label = null }) {
         />
         <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
       </svg>
-      <strong>{label || scoreText(score)}</strong>
+      <strong>{label || (hasScore ? scoreText(score) : "N/A")}</strong>
     </div>
   );
 }
@@ -3620,7 +3622,6 @@ function MorningMugsDashboard({ onBack, backLabel = "Back to dashboard" }) {
 const PORTFOLIO_HOLDING_COLUMNS = [
   { key: "shares", label: "Quantity", shortLabel: "Q" },
   { key: "averageCost", label: "Avg. cost", shortLabel: "Avg" },
-  { key: "currentPrice", label: "Current price", shortLabel: "Price" },
   { key: "value", label: "Value", shortLabel: "Value" },
   { key: "return", label: "Return", shortLabel: "Return" },
   { key: "portfolioWeight", label: "Portfolio weight", shortLabel: "Port %" },
@@ -3645,7 +3646,6 @@ const PORTFOLIO_DETAILED_COLUMNS = [
   { key: "reversal", label: "Pullback", type: "score" },
   { key: "shares", label: "Quantity", type: "number" },
   { key: "averageCost", label: "Avg. Cost", type: "money" },
-  { key: "currentPrice", label: "Current Price", type: "money" },
   { key: "value", label: "Value", type: "money" },
   { key: "return", label: "Return", type: "return" },
   { key: "portfolioWeight", label: "Portfolio %", type: "percent" },
@@ -4238,7 +4238,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
     columns.forEach((column) => {
       if (column.key === "return") units.push("minmax(62px, .86fr)");
       else if (column.key === "eval") units.push("minmax(34px, .42fr)");
-      else if (column.key === "averageCost" || column.key === "currentPrice" || column.key === "value") units.push("minmax(52px, .66fr)");
+      else if (column.key === "averageCost" || column.key === "value") units.push("minmax(52px, .66fr)");
       else units.push("minmax(42px, .56fr)");
     });
     return units.join(" ");
@@ -4260,7 +4260,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
     setVisibleHoldingColumns({
       shares: false,
       averageCost: false,
-      currentPrice: false,
       value: true,
       return: true,
       portfolioWeight: true,
@@ -4295,7 +4294,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
       newsSentiment: false,
       shares: false,
       averageCost: false,
-      currentPrice: false,
       value: true,
       return: true,
       portfolioWeight: true,
@@ -11889,10 +11887,6 @@ function EvalStockChartPanel({ data, edgeScore = null }) {
         </div>
         <div className="eval-stock-chart-right-stack">
           <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
-          <div className="eval-live-price-panel">
-            <strong>{money(live?.current ?? data?.quote?.c)}</strong>
-            <span className={`eval-live-change ${tone}`}>{signedMoney(live?.change ?? data?.quote?.d)} · {signedPercent(changePercent)}</span>
-          </div>
         </div>
       </div>
     </section>
@@ -12295,17 +12289,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         </div>
 
         <div className="snapshot-grid snapshot-grid-refined">
-          <MiniStat
-            icon={<Activity size={17} />}
-            label="Price"
-            value={money(data.quote?.c)}
-            className="price-mini-stat"
-            extra={
-              <span className={`daily-change-chip ${dailyChangeClass(data.quote?.dp)}`}>
-                {signedPercent(data.quote?.dp)}
-              </span>
-            }
-          />
           <MiniStat
             icon={<ShieldCheck size={17} />}
             label="Risk"
