@@ -2038,16 +2038,25 @@ function normalizeTwelveSeriesRows(data = {}) {
   })).filter((row) => row.datetime && Number.isFinite(row.close)).reverse();
 }
 
+function historicalSeriesTtlMs(interval = "1day") {
+  const normalized = String(interval || "").toLowerCase();
+  if (normalized.includes("min")) return 60 * 1000;
+  if (isPostMarketCloseEt()) return 18 * 60 * 60 * 1000;
+  return 15 * 60 * 1000;
+}
+
 async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 180 } = {}) {
   const cleanSymbol = cleanTicker(symbol);
   if (!cleanSymbol) return [];
   const key = historicalCacheKey(cleanSymbol, interval, outputsize);
   const cached = historicalPriceCache.get(key);
-  if (cached?.rows?.length) return cached.rows;
+  if (cached?.rows?.length && (!cached.expiresAt || cached.expiresAt > Date.now())) return cached.rows;
+  if (cached) historicalPriceCache.delete(key);
+
   const data = await fetchTwelveDataJson("/time_series", { symbol: cleanSymbol, interval, outputsize, order: "ASC" }, 6000);
   const rows = normalizeTwelveSeriesRows(data);
-  if (rows.length && isPostMarketCloseEt()) {
-    historicalPriceCache.set(key, { savedAt: Date.now(), rows });
+  if (rows.length) {
+    historicalPriceCache.set(key, { savedAt: Date.now(), expiresAt: Date.now() + historicalSeriesTtlMs(interval), rows });
     if (historicalPriceCache.size > HISTORICAL_PRICE_CACHE_MAX) historicalPriceCache.delete(historicalPriceCache.keys().next().value);
   }
   return rows;
@@ -2074,6 +2083,28 @@ function dcfScenarioFromReport(report, scenario = "average") {
   return { scenario, projectedGrowthAnnual: projectedGrowth * 100, sixMonthGrowth: sixMonthGrowth * 100, expectedPrice: Number.isFinite(expectedPrice) ? Number(expectedPrice.toFixed(2)) : null };
 }
 
+app.get("/api/company-logo/:symbol", async (req, res) => {
+  const symbol = cleanTicker(req.params.symbol);
+  if (!symbol) return res.status(404).end();
+
+  const cached = companyLogoCache.get(symbol);
+  if (cached && cached.expiresAt > Date.now()) {
+    if (cached.logoUrl) return res.redirect(302, cached.logoUrl);
+    return res.status(404).end();
+  }
+
+  try {
+    const data = await fetchTwelveDataJson("/logo", { symbol }, 4000);
+    const logoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || "").trim();
+    const valid = /^https?:\/\//i.test(logoUrl) ? logoUrl : "";
+    companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 30 * DAY_MS, logoUrl: valid });
+    if (valid) return res.redirect(302, valid);
+  } catch {}
+
+  companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + 24 * 60 * 60 * 1000, logoUrl: "" });
+  return res.status(404).end();
+});
+
 app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
@@ -2091,31 +2122,113 @@ app.get("/api/analyze/:symbol", async (req, res) => {
 
 
 
+async function fetchTwelveDataPriceFallback(symbol) {
+  const cleanSymbol = cleanTicker(symbol);
+  if (!cleanSymbol) return null;
+  const price = await fetchTwelveDataJson("/price", { symbol: cleanSymbol }, 3500);
+  const current = cleanTwelveNumber(price?.price);
+  if (!Number.isFinite(current) || current <= 0) return null;
+  return { symbol: cleanSymbol, current, previousClose: null, change: null, changePercent: null };
+}
+
+async function fetchSafeLiveQuote(symbol) {
+  const cleanSymbol = cleanTicker(symbol);
+  if (!cleanSymbol) return null;
+  const quote = await fetchTwelveDataMorningQuote(cleanSymbol);
+  if (quote) return quote;
+  return await fetchTwelveDataPriceFallback(cleanSymbol);
+}
+
 app.get("/api/live-quote/:symbol", async (req, res) => {
+  const symbol = cleanTicker(req.params.symbol);
   try {
-    const symbol = cleanTicker(req.params.symbol);
-    const quote = await fetchTwelveDataMorningQuote(symbol);
-    if (!quote) return res.status(404).json({ error: "No Twelve Data quote returned.", route: "api/live-quote" });
-    res.json({ ...quote, source: "Twelve Data", updatedAt: new Date().toISOString() });
+    const quote = await fetchSafeLiveQuote(symbol);
+    return res.json({
+      symbol,
+      current: quote?.current ?? null,
+      previousClose: quote?.previousClose ?? null,
+      change: quote?.change ?? null,
+      changePercent: quote?.changePercent ?? null,
+      source: quote ? "Twelve Data" : "Twelve Data unavailable",
+      cacheSeconds: 10,
+      updatedAt: new Date().toISOString(),
+    });
   } catch (error) {
-    res.status(500).json({ error: error?.message || "Could not fetch live quote.", route: "api/live-quote" });
+    console.warn("Live quote route failed:", symbol, error?.message || error);
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 10, updatedAt: new Date().toISOString() });
+  }
+});
+
+app.get("/api/quote/:symbol", async (req, res) => {
+  req.url = `/api/live-quote/${encodeURIComponent(req.params.symbol)}`;
+  const symbol = cleanTicker(req.params.symbol);
+  try {
+    const quote = await fetchSafeLiveQuote(symbol);
+    return res.json({
+      symbol,
+      current: quote?.current ?? null,
+      previousClose: quote?.previousClose ?? null,
+      change: quote?.change ?? null,
+      changePercent: quote?.changePercent ?? null,
+      source: quote ? "Twelve Data" : "Twelve Data unavailable",
+      cacheSeconds: 10,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch {
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 10, updatedAt: new Date().toISOString() });
   }
 });
 
 app.get("/api/twelve-chart/:symbol", async (req, res) => {
+  const symbol = cleanTicker(req.params.symbol);
+  const timeframe = String(req.query.timeframe || "6M").toUpperCase();
+  const map = {
+    "1D": { interval: "5min", outputsize: 96 },
+    "5D": { interval: "30min", outputsize: 80 },
+    "1M": { interval: "1day", outputsize: 32 },
+    "6M": { interval: "1day", outputsize: 190 },
+    "1Y": { interval: "1day", outputsize: 265 },
+    "5Y": { interval: "1week", outputsize: 270 },
+  };
+  const cfg = map[timeframe] || map["6M"];
+
   try {
-    const symbol = cleanTicker(req.params.symbol);
-    const timeframe = String(req.query.timeframe || "6M").toUpperCase();
-    const map = { "1D": { interval: "5min", outputsize: 78 }, "5D": { interval: "30min", outputsize: 65 }, "1M": { interval: "1day", outputsize: 31 }, "6M": { interval: "1day", outputsize: 185 }, "1Y": { interval: "1day", outputsize: 260 }, "5Y": { interval: "1week", outputsize: 260 } };
-    const cfg = map[timeframe] || map["6M"];
-    const [rows, report, live] = await Promise.all([
+    const lightMode = String(req.query.light || "0") === "1";
+    const [rowsResult, reportResult, liveResult] = await Promise.allSettled([
       fetchTwelveHistoricalSeries(symbol, cfg),
-      getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
-      fetchTwelveDataMorningQuote(symbol),
+      lightMode ? Promise.resolve(null) : getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
+      lightMode ? Promise.resolve(null) : fetchSafeLiveQuote(symbol),
     ]);
-    res.json({ symbol, timeframe, rows, live, profile: report?.profile || {}, source: "Twelve Data", historicalCachePolicy: "Daily historical prices cache only after 4:00 PM ET on trading days." });
+
+    const rows = rowsResult.status === "fulfilled" && Array.isArray(rowsResult.value) ? rowsResult.value : [];
+    const report = reportResult.status === "fulfilled" ? reportResult.value : null;
+    const live = liveResult.status === "fulfilled" ? liveResult.value : null;
+
+    return res.json({
+      symbol,
+      timeframe,
+      rows,
+      live,
+      profile: report?.profile || { ticker: symbol, name: symbol },
+      source: "Twelve Data",
+      historicalCachePolicy: "Daily historical prices cache only after 4:00 PM ET on trading days.",
+      warnings: [
+        rowsResult.status === "rejected" ? "historical-series-unavailable" : null,
+        reportResult.status === "rejected" ? "analysis-profile-unavailable" : null,
+        liveResult.status === "rejected" ? "live-quote-unavailable" : null,
+      ].filter(Boolean),
+    });
   } catch (error) {
-    res.status(500).json({ error: error?.message || "Could not load chart.", route: "api/twelve-chart" });
+    console.error("Twelve chart route failed:", symbol, error?.stack || error?.message || error);
+    return res.json({
+      symbol,
+      timeframe,
+      rows: [],
+      live: null,
+      profile: { ticker: symbol, name: symbol },
+      source: "Twelve Data unavailable",
+      error: error?.message || "Could not load chart.",
+    });
   }
 });
 
@@ -2375,9 +2488,53 @@ function cleanTwelveNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+const twelveRestCache = new Map();
+const companyLogoCache = new Map();
+const TWELVE_REST_CACHE_MAX = 900;
+
+function stableCacheKey(endpoint, params = {}) {
+  const cleanEntries = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([a], [b]) => a.localeCompare(b));
+  return `${endpoint}:${JSON.stringify(cleanEntries)}`;
+}
+
+function twelveEndpointTtlMs(endpoint, params = {}) {
+  const interval = String(params?.interval || "").toLowerCase();
+  if (endpoint === "/quote" || endpoint === "/price") return 10 * 1000;
+  if (endpoint === "/logo" || endpoint === "/profile") return 30 * DAY_MS;
+  if (["/income_statement", "/balance_sheet", "/cash_flow", "/earnings"].includes(endpoint)) return 14 * DAY_MS;
+  if (endpoint === "/statistics") return 24 * 60 * 60 * 1000;
+  if (endpoint === "/time_series") {
+    if (interval.includes("min")) return 60 * 1000;
+    if (isPostMarketCloseEt()) return 18 * 60 * 60 * 1000;
+    return 15 * 60 * 1000;
+  }
+  return 60 * 1000;
+}
+
+function readTwelveRestCache(endpoint, params = {}) {
+  const key = stableCacheKey(endpoint, params);
+  const cached = twelveRestCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+  if (cached) twelveRestCache.delete(key);
+  return undefined;
+}
+
+function writeTwelveRestCache(endpoint, params = {}, data) {
+  if (!data) return;
+  const key = stableCacheKey(endpoint, params);
+  twelveRestCache.set(key, { savedAt: Date.now(), expiresAt: Date.now() + twelveEndpointTtlMs(endpoint, params), data });
+  if (twelveRestCache.size > TWELVE_REST_CACHE_MAX) twelveRestCache.delete(twelveRestCache.keys().next().value);
+}
+
 async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
   const apiKey = twelveDataApiKey();
   if (!apiKey) return null;
+
+  const cached = readTwelveRestCache(endpoint, params);
+  if (cached !== undefined) return cached;
+
   const url = new URL(`https://api.twelvedata.com${endpoint}`);
   Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
@@ -2388,6 +2545,7 @@ async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(pro
     const response = await fetch(url, { signal: controller.signal });
     const data = await response.json().catch(() => null);
     if (!response.ok || data?.status === "error" || data?.code) return null;
+    writeTwelveRestCache(endpoint, params, data);
     return data;
   } catch {
     return null;
