@@ -411,9 +411,10 @@ function websocketUrlForSymbols(symbols = []) {
 function normalizeLivePacket(packet = {}, fallbackSymbol = "") {
   const symbol = String(packet.symbol || fallbackSymbol || "").trim().toUpperCase();
   const price = Number(packet.price ?? packet.current ?? packet.c);
-  const previousClose = Number(packet.previousClose ?? packet.pc ?? packet.previous_close);
-  const change = Number(packet.change ?? packet.d ?? (Number.isFinite(price) && Number.isFinite(previousClose) ? price - previousClose : NaN));
-  const changePercent = Number(packet.changePercent ?? packet.dp ?? packet.percent_change ?? (Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : NaN));
+  const previousClose = Number(packet.previousClose ?? packet.pc ?? packet.previous_close ?? packet.previous_close_price);
+  const rawChange = Number(packet.change ?? packet.d ?? packet.day_change ?? packet.change_price);
+  const change = Number.isFinite(rawChange) ? rawChange : (Number.isFinite(price) && Number.isFinite(previousClose) ? price - previousClose : NaN);
+  const changePercent = Number(packet.changePercent ?? packet.dp ?? packet.percent_change ?? packet.change_percent ?? (Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : NaN));
   return {
     symbol,
     current: Number.isFinite(price) ? price : null,
@@ -11957,10 +11958,18 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   const xScale = (x) => 28 + (x / Math.max(1, points.length - 1)) * (width - 56);
   const yScale = (y) => 220 - ((y - minY) / range) * 180;
   const path = points.map((pnt, i) => `${i === 0 ? "M" : "L"}${xScale(pnt.x).toFixed(1)},${yScale(pnt.y).toFixed(1)}`).join(" ");
+  const highPoint = points.reduce((best, point) => point.y > best.y ? point : best, points[0]);
+  const lowPoint = points.reduce((best, point) => point.y < best.y ? point : best, points[0]);
+  const highX = xScale(highPoint.x);
+  const highY = yScale(highPoint.y);
+  const lowX = xScale(lowPoint.x);
+  const lowY = yScale(lowPoint.y);
+  const highLabelY = Math.max(22, highY - 14);
+  const lowLabelY = Math.min(height - 10, lowY + 24);
   const startX = xScale(points.length - 1);
   const startY = yScale(points[points.length - 1].y);
   return (
-    <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart">
+    <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart with high and low markers">
       <defs>
         <linearGradient id="evalChartFill" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="rgba(159,92,255,.45)" />
@@ -11971,6 +11980,16 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
       {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
       <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" />
       <path d={path} className="eval-chart-line" filter="url(#evalChartGlow)" />
+      <g className="eval-chart-extreme eval-chart-high-marker">
+        <line x1={highX} x2={highX} y1={highY} y2={highLabelY + 6} className="eval-chart-extreme-stem" />
+        <circle cx={highX} cy={highY} r="5.5" />
+        <text x={highX} y={highLabelY} textAnchor="middle">{money(highPoint.y)}</text>
+      </g>
+      <g className="eval-chart-extreme eval-chart-low-marker">
+        <line x1={lowX} x2={lowX} y1={lowY} y2={lowLabelY - 14} className="eval-chart-extreme-stem" />
+        <circle cx={lowX} cy={lowY} r="5.5" />
+        <text x={lowX} y={lowLabelY} textAnchor="middle">{money(lowPoint.y)}</text>
+      </g>
       <line x1={startX} x2={startX} y1="34" y2="232" className="eval-chart-current-price-line" />
       <circle cx={startX} cy={startY} r="5" className="eval-chart-current-price-dot" />
       {projectionPoints.map((proj) => {
@@ -11994,7 +12013,7 @@ const EVAL_CHART_RANGES = [
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
   const symbol = String(data?.symbol || "").trim().toUpperCase();
   const liveEnabled = isLiveWebSocketSymbol(symbol);
-  const [live, setLive] = useState({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
+  const [live, setLive] = useState({ current: data?.quote?.c, previousClose: data?.quote?.pc, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartRange, setChartRange] = useState("3M");
@@ -12002,8 +12021,8 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
 
   useEffect(() => {
     if (!symbol) return undefined;
-    setLive({ current: data?.quote?.c, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
-  }, [symbol, data?.quote?.c, data?.quote?.d, data?.quote?.dp]);
+    setLive({ current: data?.quote?.c, previousClose: data?.quote?.pc, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
+  }, [symbol, data?.quote?.c, data?.quote?.pc, data?.quote?.d, data?.quote?.dp]);
 
   useEffect(() => {
     if (!symbol) return undefined;
@@ -12081,15 +12100,21 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         const now = Date.now();
         if (now - lastLiveUpdate >= 5_000) {
           lastLiveUpdate = now;
-          setLive((prev) => ({
-            ...prev,
-            current: next.current ?? prev.current,
-            previousClose: next.previousClose ?? prev.previousClose,
-            change: next.change ?? prev.change,
-            changePercent: next.changePercent ?? prev.changePercent,
-            timestamp: next.timestamp,
-            source: "Twelve Data WebSocket",
-          }));
+          setLive((prev) => {
+            const current = next.current ?? prev.current;
+            const previousClose = next.previousClose ?? prev.previousClose ?? data?.quote?.pc;
+            const change = next.change ?? (Number.isFinite(Number(current)) && Number.isFinite(Number(previousClose)) ? Number(current) - Number(previousClose) : prev.change);
+            const changePercent = next.changePercent ?? (Number.isFinite(Number(change)) && Number.isFinite(Number(previousClose)) && Number(previousClose) > 0 ? (Number(change) / Number(previousClose)) * 100 : prev.changePercent);
+            return {
+              ...prev,
+              current,
+              previousClose,
+              change,
+              changePercent,
+              timestamp: next.timestamp,
+              source: "Twelve Data WebSocket",
+            };
+          });
         }
         if (now - lastChartUpdate >= 5_000) {
           lastChartUpdate = now;
@@ -12297,14 +12322,28 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   );
 
   const gradeDescriptions = {
+    growth: "Shows whether the company is expanding sales, earnings, and market traction. Higher means the business is growing with stronger recent support.",
     profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
     financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
+    quality: "Shows how durable and efficient the business looks. Higher means cash conversion, returns on capital, and operating consistency are stronger.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
+    pullback: "Shows whether the stock has cooled off from highs without completely breaking down. Higher means the entry setup looks less stretched.",
     newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
   };
 
   const categoryMetrics = {
+    growth: usableMetricLines([
+      metricLine("Revenue Growth", metrics.revenueGrowth),
+      metricLine("3-Year Revenue Growth", metrics.revenueGrowth3Y),
+      metricLine("EPS Growth", metrics.epsGrowth),
+      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
+      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
+      metricLine("Net Income Growth", metrics.netIncomeGrowth),
+      metricLine("3-Year Net Income Growth", metrics.netIncomeGrowth3Y),
+      metricLine("13-Week Stock Movement", metrics.priceReturn13Week),
+      metricLine("26-Week Stock Movement", metrics.priceReturn26Week),
+    ]),
     profitability: usableMetricLines([
       metricLine("ROE", metrics.roe),
       metricLine("ROA", metrics.roa),
@@ -12313,10 +12352,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Operating Margin", metrics.operatingMargin),
       metricLine("Pretax Margin", metrics.pretaxMargin),
       metricLine("Net Margin", metrics.netMargin),
-      metricLine("EPS Growth", metrics.epsGrowth),
-      metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
-      metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
-      metricLine("3-Year Net Income Growth", metrics.netIncomeGrowth3Y),
     ]),
     financialHealth: usableMetricLines([
       metricLine("Debt-to-Equity", metrics.debtToEquity),
@@ -12338,8 +12373,15 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Enterprise Value", metrics.enterpriseValue),
       metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
-      metricLine("News Sentiment", metrics.newsSentiment),
       metricLine("Dividend Yield", metrics.dividendYield),
+    ]),
+    quality: usableMetricLines([
+      metricLine("ROIC Quality", metrics.roicCalculated),
+      metricLine("FCF Margin", metrics.fcfMargin),
+      metricLine("OCF Margin", metrics.ocfMargin),
+      metricLine("Cash Conversion", metrics.cashConversionRatio),
+      metricLine("Accrual Ratio", metrics.accrualRatio),
+      metricLine("Asset Turnover", metrics.assetTurnover),
     ]),
     momentum: usableMetricLines([
       metricLine("Beta", metrics.beta),
@@ -12349,6 +12391,12 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("26-Week Return", metrics.priceReturn26Week),
       metricLine("52-Week Return", metrics.priceReturn52Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
+    ]),
+    pullback: usableMetricLines([
+      metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
+      metricLine("4-Week Cooling", metrics.priceReturn4Week),
+      metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
+      metricLine("Daily Dip", metrics.dayChangePercent),
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
@@ -12518,7 +12566,19 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           </div>
         </section>
       )}
-<section id="score-metrics" className="grade-grid">
+<section id="score-metrics" className="grade-grid grade-grid-seven">
+        <Grade
+          id="growth"
+          name="Growth"
+          value={cats.growth}
+          icon={<TrendingUp size={18} />}
+          description={gradeDescriptions.growth}
+          metricsUsed={categoryMetrics.growth}
+          isOpen={openScoreHelp === "growth"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "growth" ? null : "growth")
+          }
+        />
         <Grade
           id="profitability"
           name="Profitability"
@@ -12560,6 +12620,18 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           }
         />
         <Grade
+          id="quality"
+          name="Quality"
+          value={cats.quality}
+          icon={<Gauge size={18} />}
+          description={gradeDescriptions.quality}
+          metricsUsed={categoryMetrics.quality}
+          isOpen={openScoreHelp === "quality"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "quality" ? null : "quality")
+          }
+        />
+        <Grade
           id="momentum"
           name="Momentum"
           value={cats.momentum}
@@ -12571,7 +12643,18 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
             setOpenScoreHelp(openScoreHelp === "momentum" ? null : "momentum")
           }
         />
-
+        <Grade
+          id="pullback"
+          name="Pullback"
+          value={cats.pullback}
+          icon={<Activity size={18} />}
+          description={gradeDescriptions.pullback}
+          metricsUsed={categoryMetrics.pullback}
+          isOpen={openScoreHelp === "pullback"}
+          onToggle={() =>
+            setOpenScoreHelp(openScoreHelp === "pullback" ? null : "pullback")
+          }
+        />
       </section>
 
     </>
