@@ -41616,3 +41616,105 @@ body {
     min-width: 56px !important;
   }
 }
+
+
+/* Eval redesign patch: chart hero replaces old Eval Score card */
+.eval-stack-report { display: none !important; }
+.eval-stock-quote-shell .eval-stock-chart-svg,
+.eval-stock-quote-shell .eval-stock-chart-empty {
+  display: block !important;
+}
+.eval-stock-quote-shell .eval-chart-timeframe-row,
+.eval-quote-no-chart-note {
+  display: none !important;
+}
+.eval-chart-hero-card {
+  padding: 26px !important;
+  display: grid !important;
+  gap: 16px !important;
+}
+.eval-chart-hero-top {
+  align-items: flex-start !important;
+}
+.eval-chart-hero-right {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 22px;
+  min-width: 310px;
+}
+.eval-chart-score-side {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.eval-chart-score-side span {
+  color: rgba(248,251,255,.62);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .10em;
+}
+.eval-chart-score-side .eval-score-text-badge {
+  font-size: clamp(46px, 5.5vw, 78px) !important;
+  line-height: .86 !important;
+  font-style: italic !important;
+  font-weight: 950 !important;
+}
+.eval-stock-chart-svg {
+  min-height: 270px !important;
+  max-height: 360px;
+  background: radial-gradient(circle at 18% 0%, rgba(159,92,255,.28), transparent 34%), radial-gradient(circle at 86% 8%, rgba(21,231,255,.18), transparent 28%), rgba(0,0,0,.20) !important;
+  border: 1px solid rgba(255,255,255,.09);
+}
+.eval-chart-line {
+  stroke: #ffffff !important;
+  stroke-width: 4.2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+.eval-chart-current-price-line {
+  stroke: rgba(255,255,255,.82) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 6 7 !important;
+}
+.eval-chart-current-price-dot {
+  fill: #ffffff !important;
+  filter: drop-shadow(0 0 13px rgba(255,255,255,.75));
+}
+.eval-chart-hero-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.eval-chart-hero-actions button {
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 16px;
+  padding: 12px 16px;
+  color: #fff;
+  background: rgba(255,255,255,.09);
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.watch-panel .watch-row.watch-row-logo-format,
+.eval-watchlist-panel .watch-row.watch-row-logo-format,
+.watchlist-page-panel .watch-row.watch-row-logo-format {
+  grid-template-columns: 54px minmax(0, 1fr) 92px 34px !important;
+}
+.watch-row-logo-format .eval-score-text-badge.watch-score-plain,
+.watch-row-logo-format .watch-score-plain {
+  justify-self: end !important;
+  margin-left: 14px !important;
+}
+@media (max-width: 760px) {
+  .eval-chart-hero-top { display: grid !important; gap: 14px !important; }
+  .eval-chart-hero-right { width: 100%; min-width: 0; justify-content: space-between; }
+  .eval-stock-chart-svg { min-height: 210px !important; }
+  .eval-chart-score-side .eval-score-text-badge { font-size: 46px !important; }
+}
