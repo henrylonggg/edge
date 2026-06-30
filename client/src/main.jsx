@@ -421,6 +421,9 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
+const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal"];
+const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
+
 function categoryLabel(key) {
   return (
     {
@@ -432,6 +435,13 @@ function categoryLabel(key) {
       reversal: "Pullback",
     }[key] || key
   );
+}
+
+function cleanEvalCategories(categories = {}) {
+  return EVAL_CATEGORY_KEYS.reduce((acc, key) => {
+    if (categories?.[key] !== undefined) acc[key] = categories[key];
+    return acc;
+  }, {});
 }
 
 function getScoreInsight(score) {
@@ -1108,9 +1118,9 @@ function App() {
 
   function buildStockListItem(analyzed, fallbackSymbol) {
     const clean = String(analyzed?.symbol || fallbackSymbol || "").trim().toUpperCase();
-    const cats = analyzed?.grades?.categories || {};
+    const cats = cleanEvalCategories(analyzed?.grades?.categories || {});
     const orderedCats = Object.entries(cats)
-      .filter(([, value]) => value !== null && value !== undefined && Number.isFinite(Number(score10(value))))
+      .filter(([key, value]) => EVAL_CATEGORY_KEY_SET.has(key) && value !== null && value !== undefined && Number.isFinite(Number(score10(value))))
       .sort((a, b) => Number(score10(b[1])) - Number(score10(a[1])));
 
     const strongest = orderedCats[0];
@@ -1119,7 +1129,7 @@ function App() {
     return {
       symbol: clean,
       name: analyzed?.profile?.name || clean,
-      logo: `/api/company-logo/${encodeURIComponent(clean)}`,
+      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}`,
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -2261,7 +2271,7 @@ function ComparePage({
   const stocks = reports.map((report) => ({
     symbol: report?.symbol || "Stock",
     score: score10(report?.grades?.edgeScore),
-    categories: report?.grades?.categories || {},
+    categories: cleanEvalCategories(report?.grades?.categories || {}),
   }));
 
   return (
@@ -2277,7 +2287,7 @@ function ComparePage({
           </div>
           <h2>Compare watchlist stocks</h2>
           <p>
-            Your selected watchlist stocks are preloaded below. Eval compares their Power Scores and all seven category ratings side by side.
+            Your selected watchlist stocks are preloaded below. Eval compares their Power Scores and all six category ratings side by side.
           </p>
         </div>
 
@@ -2298,8 +2308,8 @@ function ComparePage({
             </div>
 
             <div className="compare-chart-intro">
-              <strong>Seven-metric radar comparison</strong>
-              <p>The radar chart shows each selected stock across the same seven Eval categories. A wider shape means stronger scores across more areas.</p>
+              <strong>Six-category radar comparison</strong>
+              <p>The radar chart shows each selected stock across the same six Eval categories. A wider shape means stronger scores across more areas.</p>
             </div>
 
             <CompareRadar
@@ -2366,7 +2376,7 @@ function IndustryRadar({ leaders }) {
   ];
 
   const categoryValues = (item) => {
-    const raw = item.categories || item.grades?.categories || item.categoryScores || {};
+    const raw = cleanEvalCategories(item.categories || item.grades?.categories || item.categoryScores || {});
 
     return categories.reduce((acc, key) => {
       const n = score10(raw?.[key]);
@@ -11951,7 +11961,7 @@ function DcfCalculatorPanel({ data }) {
 
 
 function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
-  const cats = data?.grades?.categories || {};
+  const cats = cleanEvalCategories(data?.grades?.categories || {});
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
   const tone = scoreTone(edge);
@@ -12019,7 +12029,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const strongest = useMemo(
     () =>
       Object.entries(cats)
-        .filter(([, v]) => v != null)
+        .filter(([key, v]) => EVAL_CATEGORY_KEY_SET.has(key) && v != null)
         .sort((a, b) => score10(b[1]) - score10(a[1]))[0],
     [cats]
   );
@@ -12027,7 +12037,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const weakest = useMemo(
     () =>
       Object.entries(cats)
-        .filter(([, v]) => v != null)
+        .filter(([key, v]) => EVAL_CATEGORY_KEY_SET.has(key) && v != null)
         .sort((a, b) => score10(a[1]) - score10(b[1]))[0],
     [cats]
   );
@@ -12040,7 +12050,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     reversal: "Shows whether the stock has pulled back enough to create a better entry setup. Higher means the pullback looks more attractive.",
     newsSentiment: "News sentiment is shown separately and is not part of the Eval Score.",
-    quality: "Shows higher-quality earnings inputs such as cash conversion, ROIC, and free cash flow per share.",
   };
 
   const categoryMetrics = {
@@ -12052,6 +12061,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("EPS Growth", metrics.epsGrowth),
       metricLine("3-Year EPS Growth", metrics.epsGrowth3Y),
       metricLine("5-Year EPS Growth", metrics.epsGrowth5Y),
+      metricLine("3-Year Net Income Growth", metrics.netIncomeGrowth3Y),
     ]),
     profitability: usableMetricLines([
       metricLine("ROE", metrics.roe),
@@ -12110,11 +12120,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     ]),
     newsSentiment: usableMetricLines([
       metricLine("Weighted News Score", metrics.newsSentiment),
-    ]),
-    quality: usableMetricLines([
-      metricLine("ROIC", metrics.roi),
-      metricLine("Free Cash Flow / Share", metrics.freeCashFlowPerShare),
-      metricLine("Operating Cash Flow / Share", metrics.operatingCashFlowPerShare),
     ]),
   };
 
@@ -12445,20 +12450,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           }
         />
 
-        <Grade
-          id="quality"
-          name="Quality"
-          value={cats.quality}
-          icon={<CheckCircle2 size={18} />}
-          description={gradeDescriptions.quality}
-          metricsUsed={categoryMetrics.quality}
-          isOpen={openScoreHelp === "quality"}
-          onToggle={() =>
-            setOpenScoreHelp(
-              openScoreHelp === "quality" ? null : "quality"
-            )
-          }
-        />
       </section>
 
     </>
