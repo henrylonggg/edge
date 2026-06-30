@@ -391,7 +391,7 @@ const CLIENT_CHART_CACHE = new Map();
 const CLIENT_LIVE_QUOTE_CACHE = new Map();
 const CLIENT_SPARKLINE_CACHE = new Map();
 const CLIENT_CHART_TTL_MS = 10 * 60 * 1000;
-const CLIENT_LIVE_QUOTE_TTL_MS = 60 * 1000;
+const CLIENT_LIVE_QUOTE_TTL_MS = 15 * 60 * 1000;
 const CLIENT_SPARKLINE_TTL_MS = 10 * 60 * 1000;
 
 function readClientTimedCache(map, key) {
@@ -1034,6 +1034,8 @@ function App() {
     navigateView(resolvedAppHomeView);
   }
 
+  const analyzeInFlightRef = useRef(new Map());
+
   async function analyze(e, overrideSymbol, options = {}) {
     e?.preventDefault();
 
@@ -1042,6 +1044,11 @@ function App() {
 
     const silent = Boolean(options?.silent);
     const skipState = Boolean(options?.skipState);
+    const forceRefresh = Boolean(options?.forceRefresh);
+
+    if (!forceRefresh && analyzeInFlightRef.current.has(clean)) {
+      return analyzeInFlightRef.current.get(clean);
+    }
 
     if (!skipState) {
       setSymbol(clean);
@@ -1052,52 +1059,51 @@ function App() {
       setError("");
     }
 
-    try {
-      const cached = !options?.forceRefresh ? readLocalAnalysis(clean) : null;
-      if (cached) {
-        if (!skipState) setData(cached);
+    const analysisPromise = (async () => {
+      try {
+        const cached = !forceRefresh ? readLocalAnalysis(clean) : null;
+        if (cached) {
+          if (!skipState) setData(cached);
+          return cached;
+        }
+
+        const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          mode: "cors",
+          headers: { Accept: "application/json" },
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(
+            json?.error ||
+              json?.message ||
+              `Could not analyze ${clean}. Backend returned ${res.status}.`
+          );
+        }
+
+        saveLocalAnalysis(clean, json);
+        if (!skipState) setData(json);
+        return json;
+      } catch (err) {
+        if (!silent) {
+          setError(
+            err.message ||
+              "Failed to fetch from Render. Check Render logs and browser console."
+          );
+        }
+        return null;
+      } finally {
+        analyzeInFlightRef.current.delete(clean);
         if (!silent) setLoading(false);
-        return cached;
       }
+    })();
 
-      const url = `${API}/api/analyze/${encodeURIComponent(clean)}`;
-
-      const res = await fetch(url, {
-        method: "GET",
-        mode: "cors",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const json = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(
-          json?.error ||
-            json?.message ||
-            `Could not analyze ${clean}. Backend returned ${res.status}.`
-        );
-      }
-
-      saveLocalAnalysis(clean, json);
-      if (!skipState) {
-        setData(json);
-      }
-      return json;
-    } catch (err) {
-      if (!silent) {
-        setError(
-          err.message ||
-            "Failed to fetch from Render. Check Render logs and browser console."
-        );
-      }
-      return null;
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
+    if (!forceRefresh) analyzeInFlightRef.current.set(clean, analysisPromise);
+    return analysisPromise;
   }
 
   function buildStockListItem(analyzed, fallbackSymbol) {
@@ -3469,7 +3475,7 @@ function MorningMugsDashboard({ onBack, backLabel = "Back to dashboard" }) {
   useEffect(() => {
     const timer = setInterval(() => {
       loadBrew(false);
-    }, 60 * 1000);
+    }, 15 * 60 * 1000);
     return () => clearInterval(timer);
   }, [user?.id]);
 
