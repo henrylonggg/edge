@@ -1,16 +1,14 @@
-// Eval update: removed Earnings Quality and Efficiency categories.
+// Eval update: Growth, Pullback, Quality categories removed; EPS growth supports profitability/valuation.
 // Eval score.js Twelve Data only provider update.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
 const CATEGORY_LABELS = {
-  growth: "Growth",
   profitability: "Profitability",
   financialHealth: "Financial Health",
   valuation: "Valuation",
   momentum: "Momentum",
-  reversal: "Pullback",
 };
 
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
@@ -262,7 +260,7 @@ async function fetchTwelveDataProfile(symbol) {
 }
 
 async function fetchTwelveDataMarketData(symbol) {
-  // One compact weekly history call only when the scoring model needs momentum/pullback.
+  // One compact weekly history call only when the scoring model needs momentum.
   // Current price remains hidden in the UI, but the latest weekly close is needed to
   // calculate 4/13/26/52-week returns and distance from the 52-week range.
   const data = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1week", outputsize: 60 });
@@ -1178,16 +1176,30 @@ function scoreGrowth(m = {}) {
 }
 
 function scoreProfitability(m = {}) {
-  return categoryAverage(
+  const marginReturnScore = categoryAverage(
     [
-      { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3]]), weight: 0.22 },
-      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0, 5], [-999, 3]]), weight: 0.14 },
-      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0, 5], [-999, 3]]), weight: 0.14 },
-      { score: metricScore(m.grossMargin, [[70, 10], [55, 9], [40, 8], [28, 7], [18, 6], [8, 5], [-999, 3]]), weight: 0.13 },
-      { score: metricScore(m.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.20 },
-      { score: metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.17 },
+      { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3]]), weight: 0.20 },
+      { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0, 5], [-999, 3]]), weight: 0.12 },
+      { score: metricScore(m.roi, [[30, 10], [20, 9], [14, 8], [9, 7], [4, 6], [0, 5], [-999, 3]]), weight: 0.12 },
+      { score: metricScore(m.grossMargin, [[70, 10], [55, 9], [40, 8], [28, 7], [18, 6], [8, 5], [-999, 3]]), weight: 0.12 },
+      { score: metricScore(m.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.19 },
+      { score: metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.15 },
     ]
   );
+
+  const earningsGrowthSupport = categoryAverage(
+    [
+      { score: metricScore(m.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.45 },
+      { score: metricScore(m.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.25 },
+      { score: metricScore(m.epsGrowth5Y, [[22, 10], [16, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
+      { score: metricScore(m.netIncomeGrowth3Y, [[30, 10], [20, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
+    ]
+  );
+
+  return availableWeightedAverage([
+    { score: marginReturnScore, weight: marginReturnScore === null ? 0 : 0.82 },
+    { score: earningsGrowthSupport, weight: earningsGrowthSupport === null ? 0 : 0.18 },
+  ], null);
 }
 
 function scoreFinancialHealth(m = {}) {
@@ -1338,13 +1350,11 @@ function strongestWeakest(categories = {}) {
 
 function labelCategory(key) {
   const labels = {
-    growth: "Growth",
-    profitability: "Profitability",
+      profitability: "Profitability",
     financialHealth: "Financial Health",
     valuation: "Valuation",
     momentum: "Momentum",
-    reversal: "Pullback",
-  };
+    };
 
   return labels[key] || key;
 }
@@ -1682,12 +1692,6 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
     summary: `${companyName}'s Eval Score blends company fundamentals, market behavior, valuation, and recent news. The strongest area is ${strongestLabel.toLowerCase()}, while ${weakestLabel.toLowerCase()} is the biggest reason the score is not higher.`,
     metricBreakdown: [
       {
-        category: "Growth",
-        score: safeNumber(categories?.growth),
-        tone: categoryTone(categories?.growth),
-        why: `Growth looks at sales and EPS expansion. Revenue growth is ${simpleMetricText(metrics?.revenueGrowth, "%")} and EPS growth is ${simpleMetricText(metrics?.epsGrowth, "%")}.`,
-      },
-      {
         category: "Profitability",
         score: safeNumber(categories?.profitability),
         tone: categoryTone(categories?.profitability),
@@ -1761,7 +1765,6 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       priceToBook: metrics?.priceToBook,
       beta: metrics?.beta,
       priceReturn52Week: metrics?.priceReturn52Week,
-      pullbackFromHigh: metrics?.pullbackFromHigh,
     },
   };
 
@@ -1910,45 +1913,41 @@ export async function buildStockAnalysis(symbol, options = {}) {
   extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
   extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
 
-  const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
-  const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
+  const earningsGrowthSupportScore = categoryAverage([
+    { score: metricScore(extracted.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.45 },
+    { score: metricScore(extracted.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.25 },
+    { score: metricScore(extracted.epsGrowth5Y, [[22, 10], [16, 9], [10, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
+    { score: metricScore(extracted.netIncomeGrowth3Y, [[30, 10], [20, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.15 },
+  ]);
+  const valuationScore = scoreValuation(extracted, earningsGrowthSupportScore ?? 6, profitabilityScore);
   const momentumScore = scoreMomentum(extracted);
-  const reversalScore = scorePullback(extracted);
 
-  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore, reversal: reversalScore };
+  const categories = { profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore };
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const validInputCounts = {
-    growth: countValidMetricInputs([extracted.revenueGrowth, extracted.revenueGrowthQuarterly, extracted.revenueGrowth3Y, extracted.revenueGrowth5Y, extracted.epsGrowth, extracted.epsGrowth3Y, extracted.epsGrowth5Y, extracted.netIncomeGrowth3Y]),
-    profitability: countValidMetricInputs([extracted.grossMargin, extracted.operatingMargin, extracted.pretaxMargin, extracted.netMargin, extracted.roe, extracted.roa, extracted.roicCalculated, extracted.freeCashFlowPerShare]),
+    profitability: countValidMetricInputs([extracted.roe, extracted.roa, extracted.roicCalculated, extracted.grossMargin, extracted.operatingMargin, extracted.pretaxMargin, extracted.netMargin, extracted.epsGrowth, extracted.epsGrowth3Y, extracted.epsGrowth5Y, extracted.netIncomeGrowth3Y]),
     financialHealth: countValidMetricInputs([extracted.debtToEquity, extracted.longTermDebtToEquity, extracted.totalDebtToCapital, extracted.netDebtToEbitda, extracted.currentRatio, extracted.quickRatio, extracted.cashRatio, extracted.interestCoverage, extracted.cashFlowToDebt, extracted.totalDebt, extracted.shareholderEquity, extracted.cashAndEquivalents]),
     valuation: countValidMetricInputs([extracted.peRatio, extracted.forwardPe, extracted.priceToSales, extracted.priceToBook, extracted.priceToCashFlow, extracted.priceToFreeCashFlow, extracted.pegRatio, extracted.dividendYield, extracted.marketCapM, extracted.enterpriseValue]),
-    momentum: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week]),
-    reversal: countValidMetricInputs([extracted.pullbackFromHigh, extracted.distanceFrom52WeekLow, extracted.weekHigh, extracted.weekLow, extracted.priceReturn4Week, extracted.priceReturn13Week]),
+    momentum: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.dayChangePercent, extracted.distanceFrom52WeekLow]),
   };
 
   const totalValidMetricInputs = Object.values(validInputCounts).reduce((sum, value) => sum + Number(value || 0), 0);
   const categoriesWithDataCount = Object.values(validInputCounts).filter((value) => Number(value || 0) > 0).length;
-  const hasAllSixCategoryScores = validCategoryCount === 6 && categoriesWithDataCount === 6;
-  const canCalculateEvalScore = hasAllSixCategoryScores && totalValidMetricInputs >= 12;
+  const hasAllCoreCategoryScores = validCategoryCount === 4 && categoriesWithDataCount === 4;
+  const canCalculateEvalScore = hasAllCoreCategoryScores && totalValidMetricInputs >= 12;
   const edgeScore = canCalculateEvalScore ? availableWeightedAverage([
-    { score: growthScore, weight: 0.20 },
-    { score: profitabilityScore, weight: 0.19 },
-    { score: healthScore, weight: 0.18 },
-    { score: valuationScore, weight: 0.18 },
-    { score: momentumScore, weight: 0.13 },
-    { score: reversalScore, weight: 0.12 },
+    { score: profitabilityScore, weight: 0.30 },
+    { score: healthScore, weight: 0.24 },
+    { score: valuationScore, weight: 0.27 },
+    { score: momentumScore, weight: 0.19 },
   ], null) : null;
 
   const riskLabel = null;
   const sw = strongestWeakest(categories);
   const src = "Twelve Data";
   const reportMetrics = {
-    revenueGrowth: metric(extracted.revenueGrowth, "%", src, "Revenue growth YoY"),
-    revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", src, "Quarterly revenue growth YoY"),
-    revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", src, "3-year revenue growth"),
-    revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", src, "5-year revenue growth"),
     epsGrowth: metric(extracted.epsGrowth, "%", src, "EPS growth YoY"),
     epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", src, "3-year EPS growth"),
     epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", src, "5-year EPS growth"),
@@ -1956,7 +1955,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     roe: metric(extracted.roe, "%", src, "Return on equity"), roa: metric(extracted.roa, "%", src, "Return on assets"), roi: metric(extracted.roicCalculated, "%", src, "Return on invested capital"), grossMargin: metric(extracted.grossMargin, "%", src, "Gross profit / revenue"), operatingMargin: metric(extracted.operatingMargin, "%", src, "Operating income / revenue"), pretaxMargin: metric(extracted.pretaxMargin, "%", src, "Pretax income / revenue"), netMargin: metric(extracted.netMargin, "%", src, "Net income / revenue"),
     debtToEquity: metric(extracted.debtToEquity, "", src, "Total debt / equity"), longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", src, "Long-term debt / equity"), currentRatio: metric(extracted.currentRatio, "", src, "Current assets / current liabilities"), quickRatio: metric(extracted.quickRatio, "", src, "Quick assets / current liabilities"), cashRatio: metric(extracted.cashRatio, "", src, "Cash / current liabilities"), assetTurnover: metric(extracted.assetTurnover, "", src, "Revenue / assets"), interestCoverage: metric(extracted.interestCoverage, "", src, "EBIT / interest expense"), cashFlowToDebt: metric(extracted.cashFlowToDebt, "", src, "Operating cash flow / total debt"), operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", src, "Operating cash flow / share"), freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", src, "Free cash flow / share"), totalDebtToCapital: metric(extracted.totalDebtToCapital, "", src, "Debt / total capital"), netDebtToEbitda: metric(extracted.netDebtToEbitda, "", src, "Net debt / EBITDA"),
     peRatio: metric(extracted.peRatio, "", src, "Price / earnings"), forwardPe: metric(extracted.forwardPe, "", src, "Forward price / earnings"), pegRatio: metric(extracted.pegRatio, "", src, "P/E / growth"), priceToSales: metric(extracted.priceToSales, "", src, "Price / sales"), priceToBook: metric(extracted.priceToBook, "", src, "Price / book value"), priceToCashFlow: metric(extracted.priceToCashFlow, "", src, "Price / cash flow"), priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", src, "Price / free cash flow"), dividendYield: metric(extracted.dividendYield, "%", src, "Annual dividend yield"),
-    beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "(52-week high - current price) / 52-week high"),
+    beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"),
     revenue: metric(extracted.revenue, "", src, "Revenue"),
     sharesOutstanding: metric(extracted.sharesOutstanding, "", src, "Shares outstanding"),
     marketCapM: metric(extracted.marketCapM, "M", src, "Market capitalization in millions"), enterpriseValue: metric(extracted.enterpriseValue, "M", src, "Enterprise value"), ebitda: metric(extracted.ebitda, "M", src, "EBITDA"), evToEbitda: metric(extracted.evToEbitda, "", src, "EV/EBITDA"),
@@ -1972,8 +1971,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
     quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
-      ? `${cleanSymbol} does not have enough usable data across all six Eval categories for an Eval Score yet.`
-      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback. Quality is not part of the calculation, and missing metric inputs are ignored inside each category.`,
+      ? `${cleanSymbol} does not have enough usable data across the core Eval categories for an Eval Score yet.`
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends profitability, financial health, valuation, and momentum. Growth, Pullback, and Quality are not categories; EPS growth supports profitability/valuation only. Missing metric inputs are ignored and remaining weights are redistributed.`,
     strengths: [sw.strongest],
     weaknesses: [sw.weakest],
     grades: {
@@ -1990,10 +1989,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
         minRequiredMetrics: 12,
         targetMetricInputs: 30,
         minimumTargetPerCategory: 5,
-        requiredCategories: ["growth", "profitability", "financialHealth", "valuation", "momentum", "reversal"],
-        hasAllSixCategoryScores,
+        requiredCategories: ["profitability", "financialHealth", "valuation", "momentum"],
+        hasAllCoreCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Quality is completely removed. Eval Score is N/A unless all six categories have at least one usable input and at least 12 total usable inputs. Eval targets about 5 inputs per category / 30 total inputs when Twelve Data provides them; missing inputs are ignored and remaining weights are redistributed.",
+        scoreRule: "Growth, Pullback, and Quality are completely removed as categories. Eval Score is N/A unless all four core categories have at least one usable input and at least 12 total usable inputs. Missing inputs are ignored and remaining weights are redistributed.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; adds cached statement and weekly time-series fallbacks only when needed. Current-price display is disabled." },
         sources: { price: "Hidden", marketData: twelveMarket?.source || "Twelve Data", fundamentals: twelveFundamentals?.source || "Twelve Data", profile: "Twelve Data" }
       }
