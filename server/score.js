@@ -44,7 +44,7 @@ function twelveProviderTtlMs(endpoint, params = {}) {
   const period = String(params?.period || "").toLowerCase();
 
   if (endpoint === "/profile" || endpoint === "/logo") return PERMANENT_IDENTITY_CACHE_MS_SCORE;
-  if (endpoint === "/quote" || endpoint === "/price") return 60 * 1000;
+  if (endpoint === "/quote" || endpoint === "/price") return scoreMarketQuoteCacheTtlMs();
 
   if (["/income_statement", "/balance_sheet", "/cash_flow"].includes(endpoint)) {
     if (period.includes("quarter")) return QUARTERLY_METRIC_CACHE_MS_SCORE;
@@ -240,7 +240,7 @@ async function fetchTwelveDataProfile(symbol) {
     currency: data?.currency || "",
     country: data?.country || "",
     weburl: data?.website || data?.weburl || "",
-    logo: data?.logo || "",
+    logo: "",
   };
 }
 
