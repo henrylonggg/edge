@@ -2138,20 +2138,24 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   }
 
   const loadLogo = async () => {
-    const data = await fetchTwelveDataJson("/logo", { symbol }, 5000);
-    const twelveLogoUrl = String(data?.url || data?.logo || data?.logo_url || data?.image || data?.image_url || data?.meta?.url || "").trim();
+    const [twelveLogoData, twelveProfile, finnhubProfile] = await Promise.all([
+      fetchTwelveDataJson("/logo", { symbol }, 5000).catch(() => null),
+      fetchTwelveDataJson("/profile", { symbol }, 5000).catch(() => null),
+      fetchFinnhubJson("/stock/profile2", { symbol }, 5000).catch(() => null),
+    ]);
+    const twelveLogoUrl = String(twelveLogoData?.url || twelveLogoData?.logo || twelveLogoData?.logo_url || twelveLogoData?.image || twelveLogoData?.image_url || twelveLogoData?.meta?.url || "").trim();
+    const finnhubLogoUrl = String(finnhubProfile?.logo || "").trim();
     const candidates = [];
     if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
-    // Some Twelve Data plans/edge responses expose logo via predictable asset URLs even when /logo is sparse.
+    if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
     candidates.push(
       `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.png`,
       `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.jpg`
     );
 
-    // Keep Twelve Data first. Only if Twelve does not return a usable logo, try
-    // website-domain icon fallbacks so the UI still has a logo instead of a blank.
-    const profile = await fetchTwelveDataJson("/profile", { symbol }, 5000).catch(() => null);
-    const website = String(profile?.website || profile?.weburl || profile?.url || "").trim();
+    // Twelve frequently returns no logo for many US tickers on some plans. Finnhub
+    // profile2 is the most reliable logo fallback; then website-domain icons.
+    const website = String(finnhubProfile?.weburl || twelveProfile?.website || twelveProfile?.weburl || twelveProfile?.url || "").trim();
     if (/^https?:\/\//i.test(website)) {
       try {
         const host = new URL(website).hostname.replace(/^www\./i, "");
@@ -2612,6 +2616,28 @@ function writeTwelveRestCache(endpoint, params = {}, data) {
   const key = stableCacheKey(endpoint, params);
   twelveRestCache.set(key, { savedAt: Date.now(), expiresAt: Date.now() + twelveEndpointTtlMs(endpoint, params), data });
   if (twelveRestCache.size > TWELVE_REST_CACHE_MAX) twelveRestCache.delete(twelveRestCache.keys().next().value);
+}
+
+
+async function fetchFinnhubJson(endpoint, params = {}, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
+  const token = process.env.FINNHUB_API_KEY || process.env.VITE_FINNHUB_API_KEY;
+  if (!token) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = new URL(`https://finnhub.io/api/v1${endpoint}`);
+    Object.entries({ ...params, token }).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
+    });
+    const response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "Eval/1.0" } });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || data?.error) return null;
+    return data;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchTwelveDataJson(endpoint, params = {}, timeoutMs = Number(process.env.PROVIDER_TIMEOUT_MS || 3500)) {
