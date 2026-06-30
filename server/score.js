@@ -455,7 +455,74 @@ async function fetchTwelveDataFundamentals(symbol) {
     evToEbitda: statNumber(flat, ["enterprise_value_to_ebitda", "ev_to_ebitda", "evEbitda"]),
   };
 
-  return { metrics, raw: { statistics, flat }, source: "Twelve Data /statistics only" };
+  // If /statistics is too sparse, add the minimum statement calls needed to build real metrics.
+  // This only runs when the first low-credit call returns 3 or fewer usable scoring inputs.
+  const initialUsableCount = validMetricInputCount([
+    metrics.revenueGrowth, metrics.epsGrowth, metrics.roe, metrics.roa, metrics.roi,
+    metrics.grossMargin, metrics.operatingMargin, metrics.netMargin, metrics.debtToEquity,
+    metrics.currentRatio, metrics.quickRatio, metrics.peRatio, metrics.priceToSales,
+    metrics.priceToBook, metrics.beta, metrics.priceReturn52Week,
+  ]);
+
+  let statementRaw = null;
+  if (initialUsableCount <= 3) {
+    const [incomeData, balanceData, cashData] = await Promise.all([
+      fetchTwelveDataOptional("/income_statement", { symbol, period: "annual" }),
+      fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual" }),
+      fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual" }),
+    ]);
+
+    const incomeRows = twelveList(incomeData);
+    const balanceRows = twelveList(balanceData);
+    const cashRows = twelveList(cashData);
+    const income = incomeRows[0] || {};
+    const priorIncome = incomeRows[1] || incomeRows[2] || {};
+    const balance = balanceRows[0] || {};
+    const cash = cashRows[0] || {};
+
+    const statementRevenue = pickTwelveNumber(income, ["revenue", "total_revenue", "sales"]);
+    const priorRevenue = pickTwelveNumber(priorIncome, ["revenue", "total_revenue", "sales"]);
+    const netIncome = pickTwelveNumber(income, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
+    const operatingIncome = pickTwelveNumber(income, ["operating_income", "ebit"]);
+    const grossProfit = pickTwelveNumber(income, ["gross_profit"]);
+    const totalDebt = pickTwelveNumber(balance, ["total_debt", "short_term_debt", "long_term_debt"]);
+    const shareholderEquity = pickTwelveNumber(balance, ["total_equity", "shareholders_equity", "total_shareholders_equity"]);
+    const totalAssets = pickTwelveNumber(balance, ["total_assets"]);
+    const currentAssets = pickTwelveNumber(balance, ["total_current_assets", "current_assets"]);
+    const currentLiabilities = pickTwelveNumber(balance, ["total_current_liabilities", "current_liabilities"]);
+    const cashAndEquivalents = pickTwelveNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash"]);
+    const operatingCashFlow = pickTwelveNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities"]);
+    const freeCashFlow = pickTwelveNumber(cash, ["free_cash_flow"]);
+
+    metrics.revenue = firstNumber(metrics.revenue, statementRevenue);
+    metrics.netIncome = firstNumber(metrics.netIncome, netIncome);
+    metrics.operatingIncome = firstNumber(metrics.operatingIncome, operatingIncome);
+    metrics.grossProfit = firstNumber(metrics.grossProfit, grossProfit);
+    metrics.totalDebt = firstNumber(metrics.totalDebt, totalDebt);
+    metrics.shareholderEquity = firstNumber(metrics.shareholderEquity, shareholderEquity);
+    metrics.totalAssets = firstNumber(metrics.totalAssets, totalAssets);
+    metrics.cashAndEquivalents = firstNumber(metrics.cashAndEquivalents, cashAndEquivalents);
+    metrics.operatingCashFlow = firstNumber(metrics.operatingCashFlow, operatingCashFlow);
+    metrics.freeCashFlow = firstNumber(metrics.freeCashFlow, freeCashFlow);
+
+    metrics.revenueGrowth = firstNumber(metrics.revenueGrowth, statementRevenue !== null && priorRevenue !== null && priorRevenue !== 0 ? ((statementRevenue - priorRevenue) / Math.abs(priorRevenue)) * 100 : null);
+    metrics.grossMargin = firstNumber(metrics.grossMargin, divide(grossProfit, statementRevenue) !== null ? divide(grossProfit, statementRevenue) * 100 : null);
+    metrics.operatingMargin = firstNumber(metrics.operatingMargin, divide(operatingIncome, statementRevenue) !== null ? divide(operatingIncome, statementRevenue) * 100 : null);
+    metrics.netMargin = firstNumber(metrics.netMargin, divide(netIncome, statementRevenue) !== null ? divide(netIncome, statementRevenue) * 100 : null);
+    metrics.roe = firstNumber(metrics.roe, divide(netIncome, shareholderEquity) !== null ? divide(netIncome, shareholderEquity) * 100 : null);
+    metrics.roa = firstNumber(metrics.roa, divide(netIncome, totalAssets) !== null ? divide(netIncome, totalAssets) * 100 : null);
+    metrics.debtToEquity = firstNumber(metrics.debtToEquity, divide(totalDebt, shareholderEquity));
+    metrics.currentRatio = firstNumber(metrics.currentRatio, divide(currentAssets, currentLiabilities));
+    metrics.cashFlowToDebt = firstNumber(metrics.cashFlowToDebt, divide(operatingCashFlow, totalDebt));
+    metrics.operatingCashFlowPerShare = firstNumber(metrics.operatingCashFlowPerShare, divide(operatingCashFlow, sharesOutstanding));
+    metrics.freeCashFlowPerShare = firstNumber(metrics.freeCashFlowPerShare, divide(freeCashFlow, sharesOutstanding));
+    metrics.priceToSales = firstNumber(metrics.priceToSales, metrics.marketCapM !== null && statementRevenue !== null ? divide(metrics.marketCapM * 1_000_000, statementRevenue) : null);
+    metrics.priceToBook = firstNumber(metrics.priceToBook, metrics.marketCapM !== null && shareholderEquity !== null ? divide(metrics.marketCapM * 1_000_000, shareholderEquity) : null);
+
+    statementRaw = { incomeData, balanceData, cashData };
+  }
+
+  return { metrics, raw: { statistics, flat, statements: statementRaw }, source: statementRaw ? "Twelve Data /statistics + sparse fallback statements" : "Twelve Data /statistics only" };
 }
 
 
@@ -593,6 +660,8 @@ function availableWeightedAverage(items = [], fallback = null) {
     const score = safeNumber(item?.score);
     const w = safeNumber(item?.weight) ?? 1;
 
+    // Missing metrics are skipped entirely. Their weight is redistributed across
+    // the metrics that actually exist, so one missing API field cannot tank a score.
     if (score !== null && w > 0) {
       total += score * w;
       weight += w;
@@ -601,6 +670,18 @@ function availableWeightedAverage(items = [], fallback = null) {
 
   if (!weight) return fallback;
   return Number((total / weight).toFixed(1));
+}
+
+function validMetricInputCount(values = []) {
+  return values.filter((value) => scoreInputNumber(value) !== null).length;
+}
+
+function categoryAverage(items = []) {
+  return availableWeightedAverage(items, null);
+}
+
+function publicMetricCount(metrics = {}) {
+  return Object.values(metrics || {}).filter((entry) => safeNumber(entry?.value) !== null).length;
 }
 
 function getRiskLabel(metrics = {}, healthScore = null) {
@@ -1015,7 +1096,7 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
 }
 
 function scoreGrowth(m = {}) {
-  return availableWeightedAverage(
+  return categoryAverage(
     [
       { score: metricScore(m.revenueGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.30 },
       { score: metricScore(m.revenueGrowthQuarterly, [[35, 10], [22, 9], [12, 8], [6, 7], [2, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.15 },
@@ -1023,13 +1104,12 @@ function scoreGrowth(m = {}) {
       { score: metricScore(m.revenueGrowth5Y, [[20, 10], [14, 9], [9, 8], [5, 7], [2, 6], [0, 5], [-5, 4], [-999, 3]]), weight: 0.10 },
       { score: metricScore(m.epsGrowth, [[40, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.20 },
       { score: metricScore(m.epsGrowth3Y, [[25, 10], [18, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-10, 4], [-999, 3]]), weight: 0.10 },
-    ],
-    6
+    ]
   );
 }
 
 function scoreProfitability(m = {}) {
-  return availableWeightedAverage(
+  return categoryAverage(
     [
       { score: metricScore(m.roe, [[60, 10], [35, 9], [20, 8], [12, 7], [5, 6], [0, 5], [-999, 3]]), weight: 0.22 },
       { score: metricScore(m.roa, [[18, 10], [12, 9], [8, 8], [5, 7], [2, 6], [0, 5], [-999, 3]]), weight: 0.14 },
@@ -1037,8 +1117,7 @@ function scoreProfitability(m = {}) {
       { score: metricScore(m.grossMargin, [[70, 10], [55, 9], [40, 8], [28, 7], [18, 6], [8, 5], [-999, 3]]), weight: 0.13 },
       { score: metricScore(m.operatingMargin, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.20 },
       { score: metricScore(m.netMargin, [[30, 10], [20, 9], [12, 8], [7, 7], [3, 6], [0, 5], [-999, 3]]), weight: 0.17 },
-    ],
-    6
+    ]
   );
 }
 
@@ -1125,17 +1204,17 @@ function scoreFinancialHealth(m = {}) {
       { score: coreScore, weight: coreScore === null ? 0 : 1 - supportWeight },
       { score: supportScore, weight: supportScore === null ? 0 : supportWeight },
     ],
-    supportScore ?? coreScore ?? 6.5
+    null
   );
 
-  return Number(clamp(finalScore, 0, 10).toFixed(1));
+  return finalScore === null ? null : Number(clamp(finalScore, 0, 10).toFixed(1));
 }
 
 
 
 
 function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
-  const raw = availableWeightedAverage(
+  const raw = categoryAverage(
     [
       { score: inverseMetricScore(m.peRatio, [[12, 9.5], [18, 8.5], [25, 7.5], [35, 6.5], [50, 5.5], [75, 4.5], [9999, 3.5]]), weight: 0.25 },
       { score: inverseMetricScore(m.forwardPe, [[14, 9], [20, 8], [28, 7], [40, 6], [60, 5], [9999, 3.5]]), weight: 0.10 },
@@ -1143,36 +1222,34 @@ function scoreValuation(m = {}, growthScore = 6, profitabilityScore = 6) {
       { score: inverseMetricScore(m.priceToSales, [[2, 9], [4, 8], [7, 6.5], [12, 5], [20, 3.5], [9999, 2.5]]), weight: 0.18 },
       { score: inverseMetricScore(m.priceToBook, [[2, 9], [4, 8], [7, 6.5], [12, 5], [20, 3.5], [9999, 2.5]]), weight: 0.12 },
       { score: inverseMetricScore(m.priceToFreeCashFlow, [[15, 9], [25, 8], [40, 6.5], [65, 5], [100, 3.5], [9999, 2.5]]), weight: 0.20 },
-    ],
-    6
+    ]
   );
 
+  if (raw === null) return null;
   const quality = availableWeightedAverage([{ score: growthScore, weight: 0.215 }, { score: profitabilityScore, weight: 0.205 }], 6);
   return Number(clamp(raw + Math.max(-0.5, Math.min(0.8, (quality - 6) * 0.12))).toFixed(1));
 }
 
 function scoreMomentum(m = {}) {
-  return availableWeightedAverage(
+  return categoryAverage(
     [
       { score: metricScore(m.priceReturn4Week, [[15, 10], [8, 9], [3, 8], [0, 7], [-5, 5], [-12, 4], [-999, 3]]), weight: 0.22 },
       { score: metricScore(m.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), weight: 0.25 },
       { score: metricScore(m.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), weight: 0.22 },
       { score: metricScore(m.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), weight: 0.21 },
       { score: metricScore(m.dayChangePercent, [[5, 9], [2, 8], [0, 6.5], [-2, 5], [-5, 4], [-999, 3]]), weight: 0.10 },
-    ],
-    6
+    ]
   );
 }
 
 function scorePullback(m = {}) {
-  return availableWeightedAverage(
+  return categoryAverage(
     [
       { score: metricScore(m.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), weight: 0.42 },
       { score: inverseMetricScore(m.priceReturn4Week, [[-8, 8.5], [-4, 7.5], [0, 6.5], [5, 5], [12, 4], [999, 3]]), weight: 0.25 },
       { score: metricScore(m.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), weight: 0.18 },
       { score: inverseMetricScore(m.dayChangePercent, [[-5, 8.5], [-2, 7.5], [0, 6.5], [3, 5.5], [8, 4], [999, 3]]), weight: 0.15 },
-    ],
-    6
+    ]
   );
 }
 
@@ -1770,14 +1847,16 @@ export async function buildStockAnalysis(symbol, options = {}) {
     marketData: countValidMetricInputs([extracted.priceReturn4Week, extracted.priceReturn13Week, extracted.priceReturn26Week, extracted.priceReturn52Week, extracted.weekHigh, extracted.weekLow]),
   };
 
-  const edgeScore = availableWeightedAverage([
+  const totalValidMetricInputs = Object.values(validInputCounts).reduce((sum, value) => sum + Number(value || 0), 0);
+  const canCalculateEvalScore = totalValidMetricInputs > 3;
+  const edgeScore = canCalculateEvalScore ? availableWeightedAverage([
     { score: growthScore, weight: 0.22 },
     { score: profitabilityScore, weight: 0.20 },
     { score: healthScore, weight: 0.17 },
     { score: valuationScore, weight: 0.16 },
     { score: momentumScore, weight: 0.11 },
     { score: reversalScore, weight: 0.14 },
-  ], 5);
+  ], null) : null;
 
   const riskLabel = getRiskLabel(extracted, healthScore);
   const sw = strongestWeakest(categories);
@@ -1800,6 +1879,38 @@ export async function buildStockAnalysis(symbol, options = {}) {
     wacc: metric(null, "%", "DCF", "User-selected DCF calculator"), costOfEquity: metric(null, "%", "DCF", "User-selected DCF calculator"), afterTaxCostOfDebt: metric(null, "%", "DCF", "User-selected DCF calculator"), taxRate: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfEnterpriseValue: metric(null, "M", "DCF", "User-selected DCF calculator"), intrinsicValue: metric(null, "", "DCF", "User-selected DCF calculator"), intrinsicValueGap: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfGrowthRate: metric(null, "%", "DCF", "User-selected DCF calculator"),
   };
 
-  const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
-  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: extracted.currentPrice ?? null, d: null, dp: extracted.dayChangePercent ?? null, h: extracted.weekHigh ?? null, l: extracted.weekLow ?? null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
+  const publicUsableMetricCount = publicMetricCount(reportMetrics);
+  const aiScoreSummary = includeAiScoreSummary && edgeScore !== null ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
+  const scoreTextForSummary = edgeScore === null ? "N/A" : edgeScore.toFixed(1);
+  return {
+    symbol: cleanSymbol,
+    profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" },
+    quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
+    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
+    evaluationSummary: edgeScore === null
+      ? `${cleanSymbol} does not have enough usable metric data for an Eval Score yet.`
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score blends only the usable growth, profitability, financial health, valuation, momentum, and pullback data available.`,
+    strengths: [sw.strongest],
+    weaknesses: [sw.weakest],
+    grades: {
+      edgeScore,
+      grade: gradeFrom10(edgeScore),
+      riskLabel,
+      categories,
+      context: { marketCapM: extracted.marketCapM },
+      dataQuality: {
+        validCategoryCount,
+        validInputCounts,
+        totalValidMetricInputs,
+        publicUsableMetricCount,
+        minRequiredMetrics: 4,
+        canCalculateEvalScore,
+        scoreRule: "Eval Score is N/A when 3 or fewer usable metrics are available. Missing metrics are ignored and remaining weights are redistributed.",
+        providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Starts with Twelve Data /statistics; only uses statement fallback when statistics is too sparse. Current-price display is disabled." },
+        sources: { price: "Disabled", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" }
+      }
+    },
+    metrics: reportMetrics,
+    aiScoreSummary,
+  };
 }
