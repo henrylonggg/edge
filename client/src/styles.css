@@ -41525,3 +41525,94 @@ body {
 .watch-sparkline {
   display: none !important;
 }
+
+/* Eval patch: remove main pie score and risk card; use bold colored score text */
+.hero-card.eval-stack-report {
+  grid-template-columns: 300px minmax(0, 1fr) !important;
+  align-items: center !important;
+}
+.score-panel-text-only {
+  display: grid !important;
+  align-content: center !important;
+  justify-items: center !important;
+  min-height: 220px !important;
+}
+.main-eval-score-text-wrap {
+  display: grid !important;
+  justify-items: center !important;
+  gap: 8px !important;
+  padding: 18px 12px !important;
+}
+.main-eval-score-label {
+  color: rgba(248,251,255,.64) !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: .12em !important;
+  text-transform: uppercase !important;
+}
+.eval-score-text-badge.main-eval-score-text {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  font-size: clamp(88px, 9vw, 140px) !important;
+  line-height: .82 !important;
+  letter-spacing: -7px !important;
+  font-style: italic !important;
+  font-weight: 950 !important;
+}
+.eval-score-text-badge.main-eval-score-text.green {
+  color: #85ff47 !important;
+  text-shadow: 0 0 18px rgba(133,255,71,.42), 0 0 40px rgba(21,231,255,.16) !important;
+}
+.eval-score-text-badge.main-eval-score-text.yellow {
+  color: #ffd66b !important;
+  text-shadow: 0 0 18px rgba(255,214,107,.40), 0 0 40px rgba(255,159,28,.16) !important;
+}
+.eval-score-text-badge.main-eval-score-text.red {
+  color: #ff5f73 !important;
+  text-shadow: 0 0 18px rgba(255,95,115,.42), 0 0 40px rgba(255,159,28,.14) !important;
+}
+.eval-score-text-badge.main-eval-score-text.neutral {
+  color: #ffffff !important;
+  text-shadow: 0 0 18px rgba(255,255,255,.22), 0 0 34px rgba(21,231,255,.12) !important;
+}
+.snapshot-grid-refined {
+  display: none !important;
+}
+.watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format,
+.watch-row-logo-format {
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 86px) 30px !important;
+  column-gap: 18px !important;
+}
+.eval-score-text-badge.watch-score-plain,
+.watch-score-plain {
+  justify-self: end !important;
+  min-width: 70px !important;
+  text-align: right !important;
+  padding-right: 4px !important;
+}
+@media (max-width: 700px) {
+  .hero-card.eval-stack-report {
+    grid-template-columns: 1fr !important;
+  }
+  .score-panel-text-only { min-height: 150px !important; }
+  .eval-score-text-badge.main-eval-score-text {
+    font-size: clamp(72px, 22vw, 104px) !important;
+    letter-spacing: -5px !important;
+  }
+  .watch-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .eval-watchlist-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .watchlist-page-panel .watch-row.watch-row-simple.watch-row-logo-format,
+  .watch-row-logo-format {
+    grid-template-columns: minmax(0, 1fr) minmax(56px, 68px) 24px !important;
+    column-gap: 12px !important;
+  }
+  .eval-score-text-badge.watch-score-plain,
+  .watch-score-plain {
+    min-width: 56px !important;
+  }
+}
