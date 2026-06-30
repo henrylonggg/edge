@@ -38,6 +38,28 @@ function isPostMarketCloseEtScore() {
   return !["Sat", "Sun"].includes(weekday) && (hour > 16 || (hour === 16 && minute >= 0));
 }
 
+
+function scoreMarketQuoteCacheTtlMs() {
+  // One quote per symbol per market window. This prevents live price routes from burning credits
+  // while still allowing a fresh value after the open/close window changes.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const weekday = map.weekday;
+  const hour = Number(map.hour || 0);
+  const minute = Number(map.minute || 0);
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  if (!isTradingDay) return 24 * 60 * 60 * 1000;
+  if (hour < 9 || (hour === 9 && minute < 30)) return 6 * 60 * 60 * 1000;
+  if (hour < 16) return 15 * 60 * 1000;
+  return 18 * 60 * 60 * 1000;
+}
+
 function twelveProviderTtlMs(endpoint, params = {}) {
   const interval = String(params?.interval || "").toLowerCase();
   const period = String(params?.period || "").toLowerCase();
@@ -51,7 +73,7 @@ function twelveProviderTtlMs(endpoint, params = {}) {
   }
 
   if (endpoint === "/earnings") return QUARTERLY_METRIC_CACHE_MS_SCORE;
-  if (endpoint === "/statistics") return DAILY_METRIC_CACHE_MS_SCORE;
+  if (endpoint === "/statistics") return 30 * DAY_MS_SCORE;
 
   if (endpoint === "/time_series") return YEARLY_METRIC_CACHE_MS_SCORE;
 
@@ -426,7 +448,7 @@ async function fetchTwelveDataFundamentals(symbol) {
     priceReturn52Week: statPercent(flat, ["52_week_price_return", "52weekpricereturndaily", "year_to_date_price_return"]),
     weekHigh: statNumber(flat, ["52_week_high", "52weekhigh", "year_high"]),
     weekLow: statNumber(flat, ["52_week_low", "52weeklow", "year_low"]),
-    currentPrice: null,
+    currentPrice: statNumber(flat, ["current_price", "currentprice", "last_price", "lastprice", "price", "close"]),
     marketCapM,
     sharesOutstanding,
     enterpriseValue: toMillions(statNumber(flat, ["enterprise_value", "enterpriseValue"])),
@@ -909,7 +931,7 @@ function buildReportedFinancials(reported = {}) {
 
 
 function buildExtractedMetrics(profile, quote, raw = {}) {
-  const currentPrice = safeNumber(quote?.c);
+  const currentPrice = firstNumber(quote?.c, raw.currentPrice);
   const marketCapM = firstNumber(profile?.marketCapitalization, raw.marketCapM);
 
   const weekHigh = firstNumber(raw.weekHigh, raw["52WeekHigh"], raw["52WeekHighDate"]);
@@ -1779,5 +1801,5 @@ export async function buildStockAnalysis(symbol, options = {}) {
   };
 
   const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
-  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
+  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: extracted.currentPrice ?? null, d: null, dp: extracted.dayChangePercent ?? null, h: extracted.weekHigh ?? null, l: extracted.weekLow ?? null, o: null, pc: null }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, and pullback.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
 }
