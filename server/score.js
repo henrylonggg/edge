@@ -1,10 +1,6 @@
 // Eval update: removed Earnings Quality and Efficiency categories.
-// Eval score.js momentum-return fix: Finnhub price-return fields are already percentages. Do not multiply them by 100.
-const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+// Eval score.js Twelve Data only provider update.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
-const MASSIVE_BASE_URL = "https://api.massive.com";
-const FMP_STABLE_BASE_URL = "https://financialmodelingprep.com/stable";
-const FMP_LEGACY_BASE_URL = "https://financialmodelingprep.com/api/v3";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
@@ -15,17 +11,10 @@ const CATEGORY_LABELS = {
   valuation: "Valuation",
   momentum: "Momentum",
   reversal: "Pullback",
-  newsSentiment: "News Sentiment",
   quality: "Quality",
 };
 
 const PROVIDER_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 4500);
-const MASSIVE_429_COOLDOWN_MS = Number(process.env.MASSIVE_429_COOLDOWN_MS || 10 * 60 * 1000);
-let massiveCooldownUntil = 0;
-
-function fmpFundamentalsEnabled() {
-  return String(process.env.ENABLE_FMP_FUNDAMENTALS || "").toLowerCase() === "true";
-}
 
 function safeNumber(value) {
   const number = Number(value);
@@ -89,43 +78,6 @@ function percentFromDecimal(value) {
 function scoreText(value) {
   const n = safeNumber(value);
   return n === null ? "N/A" : n.toFixed(1);
-}
-
-async function fetchFinnhub(path, params = {}) {
-  const apiKey = process.env.FINNHUB_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("Missing FINNHUB_API_KEY in Render environment variables.");
-  }
-
-  const url = new URL(`${FINNHUB_BASE_URL}${path}`);
-  Object.entries({ ...params, token: apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  const response = await fetch(url);
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(`Finnhub request failed for ${path}: ${response.status}`);
-  }
-
-  if (data?.error) {
-    throw new Error(`Finnhub error for ${path}: ${data.error}`);
-  }
-
-  return data;
-}
-
-async function fetchFinnhubOptional(path, params = {}) {
-  try {
-    return await fetchFinnhub(path, params);
-  } catch (error) {
-    console.warn(`Optional Finnhub fetch failed for ${path}:`, error?.message || error);
-    return null;
-  }
 }
 
 function twelveDataEnabled() {
@@ -309,9 +261,6 @@ async function fetchJsonOptional(url, providerName) {
     if (!response.ok) {
       console.warn(`${providerName} request failed: ${response.status} ${url.pathname || ""}`);
 
-      if (providerName === "Massive" && response.status === 429) {
-        massiveCooldownUntil = Date.now() + MASSIVE_429_COOLDOWN_MS;
-      }
 
       return null;
     }
@@ -330,68 +279,6 @@ async function fetchJsonOptional(url, providerName) {
     clearTimeout(timeout);
   }
 }
-async function fetchMassiveOptional(path, params = {}) {
-  const apiKey = process.env.MASSIVE_API_KEY;
-  if (!apiKey) return null;
-
-  if (massiveCooldownUntil && Date.now() < massiveCooldownUntil) {
-    console.warn("Massive skipped: temporary 429 cooldown active.");
-    return null;
-  }
-
-  const url = new URL(`${MASSIVE_BASE_URL}${path}`);
-  Object.entries({ ...params, apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  return fetchJsonOptional(url, "Massive");
-}
-
-async function fetchFmpStableOptional(path, params = {}) {
-  if (!fmpFundamentalsEnabled()) return null;
-
-  const apiKey = process.env.FMP_API_KEY;
-  if (!apiKey) return null;
-
-  const url = new URL(`${FMP_STABLE_BASE_URL}${path}`);
-  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  return fetchJsonOptional(url, "FMP stable");
-}
-
-async function fetchFmpLegacyOptional(path, params = {}) {
-  if (!fmpFundamentalsEnabled()) return null;
-
-  const apiKey = process.env.FMP_API_KEY;
-  if (!apiKey) return null;
-
-  const url = new URL(`${FMP_LEGACY_BASE_URL}${path}`);
-  Object.entries({ ...params, apikey: apiKey }).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  return fetchJsonOptional(url, "FMP legacy");
-}
-
-async function fetchFmpListOptional(stablePath, legacyPath, params = {}) {
-  const stable = await fetchFmpStableOptional(stablePath, params);
-  if (Array.isArray(stable) && stable.length) return stable;
-  if (stable && typeof stable === "object" && Object.keys(stable).length) return Array.isArray(stable) ? stable : [stable];
-
-  const legacy = await fetchFmpLegacyOptional(legacyPath, params);
-  if (Array.isArray(legacy)) return legacy;
-  if (legacy && typeof legacy === "object") return [legacy];
-  return [];
-}
-
 function latestObject(list) {
   return Array.isArray(list) && list.length ? list[0] || {} : {};
 }
@@ -536,110 +423,6 @@ async function fetchTwelveDataFundamentals(symbol) {
   };
 }
 
-async function fetchFmpFundamentals(symbol) {
-  if (!fmpFundamentalsEnabled()) {
-    return { metrics: {}, profile: null, source: "FMP disabled" };
-  }
-
-  if (!process.env.FMP_API_KEY) {
-    return { metrics: {}, profile: null, source: "FMP unavailable" };
-  }
-
-  // Keep FMP light on the free plan:
-  // 1 profile + 1 key-metrics-ttm + 1 ratios-ttm + 1 financial-growth = about 4 FMP calls per fresh uncached ticker.
-  const [profileList, keyMetricsTtmList, ratiosTtmList, growthList] =
-    await Promise.all([
-      fetchFmpListOptional("/profile", `/profile/${symbol}`, { symbol, limit: 1 }),
-      fetchFmpListOptional("/key-metrics-ttm", `/key-metrics-ttm/${symbol}`, { symbol }),
-      fetchFmpListOptional("/ratios-ttm", `/ratios-ttm/${symbol}`, { symbol }),
-      fetchFmpListOptional("/financial-growth", `/financial-growth/${symbol}`, { symbol, limit: 5, period: "annual" }),
-    ]);
-
-  const profile = latestObject(profileList);
-  const kmTtm = latestObject(keyMetricsTtmList);
-  const ratiosTtm = latestObject(ratiosTtmList);
-  const growth = latestObject(growthList);
-
-  const metrics = {
-    marketCapM: toMillions(firstFmpNumber(profile, "mktCap", "marketCap")),
-
-    peRatio: firstFmpNumber(kmTtm, "peRatioTTM", "peRatio"),
-    priceToSales: firstFmpNumber(kmTtm, "priceToSalesRatioTTM", "priceToSalesRatio"),
-    priceToBook: firstFmpNumber(kmTtm, "pbRatioTTM", "pbRatio"),
-    priceToCashFlow: firstFmpNumber(kmTtm, "pocfratioTTM", "pocfratio"),
-    priceToFreeCashFlow: firstFmpNumber(kmTtm, "pfcfRatioTTM", "pfcfRatio"),
-    dividendYield: fmpPercent(firstFmpNumber(ratiosTtm, "dividendYieldTTM", "dividendYield")),
-
-    revenueGrowth: fmpPercent(firstFmpNumber(growth, "revenueGrowth")),
-    revenueGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYRevenueGrowthPerShare", "threeYRevenueGrowth")),
-    revenueGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYRevenueGrowthPerShare", "fiveYRevenueGrowth")),
-    epsGrowth: fmpPercent(firstFmpNumber(growth, "epsgrowth", "epsGrowth")),
-    epsGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYEpsGrowth")),
-    epsGrowth5Y: fmpPercent(firstFmpNumber(growth, "fiveYNetIncomeGrowthPerShare", "fiveYEpsGrowth")),
-    netIncomeGrowth3Y: fmpPercent(firstFmpNumber(growth, "threeYNetIncomeGrowthPerShare", "threeYNetIncomeGrowth")),
-
-    roe: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnEquityTTM", "returnOnEquity")),
-    roa: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnAssetsTTM", "returnOnAssets")),
-    roi: fmpPercent(firstFmpNumber(ratiosTtm, "returnOnCapitalEmployedTTM", "returnOnCapitalEmployed")),
-    grossMargin: fmpPercent(firstFmpNumber(ratiosTtm, "grossProfitMarginTTM", "grossProfitMargin")),
-    operatingMargin: fmpPercent(firstFmpNumber(ratiosTtm, "operatingProfitMarginTTM", "operatingProfitMargin")),
-    pretaxMargin: fmpPercent(firstFmpNumber(ratiosTtm, "pretaxProfitMarginTTM", "pretaxProfitMargin")),
-    netMargin: fmpPercent(firstFmpNumber(ratiosTtm, "netProfitMarginTTM", "netProfitMargin")),
-
-    debtToEquity: firstFmpNumber(ratiosTtm, "debtEquityRatioTTM", "debtEquityRatio"),
-    longTermDebtToEquity: firstFmpNumber(ratiosTtm, "longTermDebtToCapitalizationTTM", "longTermDebtToCapitalization"),
-    currentRatio: firstFmpNumber(ratiosTtm, "currentRatioTTM", "currentRatio"),
-    quickRatio: firstFmpNumber(ratiosTtm, "quickRatioTTM", "quickRatio"),
-    cashRatio: firstFmpNumber(ratiosTtm, "cashRatioTTM", "cashRatio"),
-    assetTurnover: firstFmpNumber(ratiosTtm, "assetTurnoverTTM", "assetTurnover"),
-    interestCoverage: firstFmpNumber(ratiosTtm, "interestCoverageTTM", "interestCoverage"),
-    cashFlowToDebt: firstFmpNumber(ratiosTtm, "cashFlowToDebtRatioTTM", "cashFlowToDebtRatio"),
-    operatingCashFlowPerShare: firstFmpNumber(kmTtm, "operatingCashFlowPerShareTTM", "operatingCashFlowPerShare"),
-    freeCashFlowPerShare: firstFmpNumber(kmTtm, "freeCashFlowPerShareTTM", "freeCashFlowPerShare"),
-  };
-
-  return {
-    profile,
-    metrics,
-    source: "FMP light",
-  };
-}
-
-async function fetchFmpQuoteOptional(symbol) {
-  if (!process.env.FMP_API_KEY) {
-    return null;
-  }
-
-  const rows = await fetchFmpListOptional("/quote", `/quote/${symbol}`, { symbol });
-  const q = latestObject(rows);
-  const price = firstFmpNumber(q, "price", "previousClose");
-  const previousClose = firstFmpNumber(q, "previousClose");
-  const change = firstFmpNumber(q, "change", "changes");
-  const changesPercentage = fmpPercent(firstFmpNumber(q, "changesPercentage", "changePercentage"));
-
-  if (price === null && previousClose === null && changesPercentage === null) {
-    return null;
-  }
-
-  const calculatedChange = change !== null ? change : price !== null && previousClose !== null ? price - previousClose : null;
-  const calculatedPercent =
-    changesPercentage !== null
-      ? changesPercentage
-      : price !== null && previousClose !== null && previousClose > 0
-        ? ((price - previousClose) / previousClose) * 100
-        : null;
-
-  return {
-    c: price,
-    d: calculatedChange,
-    dp: calculatedPercent,
-    h: firstFmpNumber(q, "dayHigh"),
-    l: firstFmpNumber(q, "dayLow"),
-    o: firstFmpNumber(q, "open"),
-    pc: previousClose,
-  };
-}
-
 function hasUsableQuote(quote = {}) {
   return safeNumber(quote?.c) !== null || safeNumber(quote?.dp) !== null;
 }
@@ -647,9 +430,9 @@ function hasUsableQuote(quote = {}) {
 function bestQuote({ cachedQuote, twelveQuote, finnhubQuote, massiveQuote, fmpQuote }) {
   // Current price and percent change priority:
   // 1. Twelve Data quote
-  // 2. Finnhub quote
-  // 3. Twelve Data/Massive aggregate-derived latest close
-  // 4. FMP quote
+  // 2. Twelve Data quote
+  // 3. Twelve Data/Twelve Data aggregate-derived latest close
+  // 4. Twelve Data quote
   // 5. cached previous quote
   const sources = [twelveQuote, finnhubQuote, massiveQuote, fmpQuote, cachedQuote].filter(Boolean);
   const out = {};
@@ -673,87 +456,6 @@ function bestQuote({ cachedQuote, twelveQuote, finnhubQuote, massiveQuote, fmpQu
   }
 
   return out;
-}
-
-async function fetchMassiveMarketData(symbol) {
-  if (!process.env.MASSIVE_API_KEY) {
-    return { quote: null, metrics: {}, source: "Massive unavailable" };
-  }
-
-  const toDate = new Date();
-  const fromDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 390);
-  const to = toDate.toISOString().slice(0, 10);
-  const from = fromDate.toISOString().slice(0, 10);
-
-  const aggs = await fetchMassiveOptional(`/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/1/day/${from}/${to}`, {
-    adjusted: "true",
-    sort: "asc",
-    limit: 5000,
-  });
-
-  const rows = Array.isArray(aggs?.results) ? aggs.results.filter((row) => safeNumber(row?.c) !== null) : [];
-  if (!rows.length) return { quote: null, metrics: {}, source: "Massive" };
-
-  const last = rows[rows.length - 1];
-  const prev = rows[rows.length - 2] || null;
-  const currentPrice = safeNumber(last.c);
-  const previousClose = safeNumber(prev?.c);
-  const high52 = rows.reduce((max, row) => {
-    const h = safeNumber(row.h);
-    return h === null ? max : Math.max(max, h);
-  }, -Infinity);
-  const low52 = rows.reduce((min, row) => {
-    const l = safeNumber(row.l);
-    return l === null ? min : Math.min(min, l);
-  }, Infinity);
-
-  const closeDaysAgo = (days) => {
-    if (!rows.length) return null;
-    const target = last.t - days * 24 * 60 * 60 * 1000;
-    let selected = rows[0];
-    for (const row of rows) {
-      if (row.t <= target) selected = row;
-      else break;
-    }
-    return safeNumber(selected?.c);
-  };
-
-  const pctReturn = (days) => {
-    const past = closeDaysAgo(days);
-    return currentPrice !== null && past !== null && past > 0 ? ((currentPrice - past) / past) * 100 : null;
-  };
-
-  const dayChange = currentPrice !== null && previousClose !== null ? currentPrice - previousClose : null;
-  const dayChangePercent = currentPrice !== null && previousClose !== null && previousClose > 0
-    ? ((currentPrice - previousClose) / previousClose) * 100
-    : null;
-
-  return {
-    quote: {
-      c: currentPrice,
-      d: dayChange,
-      dp: dayChangePercent,
-      h: safeNumber(last.h),
-      l: safeNumber(last.l),
-      o: safeNumber(last.o),
-      pc: previousClose,
-    },
-    metrics: {
-      priceReturn4Week: pctReturn(28),
-      priceReturn13Week: pctReturn(91),
-      priceReturn26Week: pctReturn(182),
-      priceReturn52Week: pctReturn(364),
-      weekHigh: Number.isFinite(high52) ? high52 : null,
-      weekLow: Number.isFinite(low52) ? low52 : null,
-      dayChangePercent,
-    },
-    source: "Massive",
-  };
-}
-
-async function fetchMassiveProfile(symbol) {
-  const data = await fetchMassiveOptional(`/v3/reference/tickers/${encodeURIComponent(symbol)}`);
-  return data?.results || null;
 }
 
 function mergeDefined(...objects) {
@@ -1436,8 +1138,7 @@ function labelCategory(key) {
     valuation: "Valuation",
     momentum: "Momentum",
     reversal: "Pullback",
-    newsSentiment: "News Sentiment",
-  quality: "Quality",
+    quality: "Quality",
   };
 
   return labels[key] || key;
@@ -1570,47 +1271,15 @@ function newsSpecificityScore(item = {}, symbol, profile = {}) {
 }
 
 async function fetchRecentNews(symbol, profile = {}) {
-  const to = new Date();
-  const from = new Date(Date.now() - 1000 * 60 * 60 * 24 * 21);
-
-  const news = await fetchFinnhubOptional("/company-news", {
-    symbol,
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
-  });
-
-  if (!Array.isArray(news)) return [];
-
-  const mapped = news
-    .filter((item) => item?.headline || item?.title || item?.summary)
-    .map((item) => ({
-      ...item,
-      __specificity: newsSpecificityScore(item, symbol, profile),
-      __datetime: Number(item.datetime || 0),
-    }))
-    .sort((a, b) => (b.__specificity - a.__specificity) || (b.__datetime - a.__datetime));
-
-  const highlyRelevant = mapped.filter((item) => item.__specificity >= 3);
-  const selected = (highlyRelevant.length >= 3 ? highlyRelevant : mapped)
-    .slice(0, 3)
-    .sort((a, b) => Number(b.datetime || 0) - Number(a.datetime || 0));
-
-  return await Promise.all(selected.map(async (item, index) => ({
-    n: index + 1,
-    title: item.headline || item.title || `News article ${index + 1}`,
-    summary: item.summary || "",
-    source: item.source || "",
-    url: item.url || "",
-    image: await resolveEvalArticleImage(item),
-    datetime: item.datetime || null,
-    relevanceScore: item.__specificity,
-  })));
+  // Twelve Data does not provide the requested ticker-specific news sentiment feed.
+  // Stock data remains Twelve Data only; news sentiment stays neutral until a separate news provider is added.
+  return [];
 }
 
 
 function buildFallbackNewsOverallSummary(news = []) {
   if (!Array.isArray(news) || !news.length) {
-    return "No recent ticker-specific company news was available from Finnhub. Eval keeps the news score neutral when there are no usable recent articles, so the overall score is not pushed higher or lower by missing headlines. The rest of the Eval Score still comes from company metrics, valuation, market behavior, and financial-health signals. When new ticker-specific articles become available, Eval will summarize them and give the news section a weighted score. This section is educational and should be read as context, not as a buy or sell signal.";
+    return "No recent ticker-specific company news was available from the active stock data provider. Eval keeps the news score neutral when there are no usable recent articles, so the overall score is not pushed higher or lower by missing headlines. The rest of the Eval Score still comes from company metrics, valuation, market behavior, and financial-health signals. When new ticker-specific articles become available, Eval will summarize them and give the news section a weighted score. This section is educational and should be read as context, not as a buy or sell signal.";
   }
 
   const titles = news.slice(0, 3).map((item, index) => item?.title || `article ${index + 1}`);
@@ -1618,7 +1287,7 @@ function buildFallbackNewsOverallSummary(news = []) {
   const second = titles[1] || "the second article";
   const third = titles[2] || "the third article";
 
-  return `The latest ticker-specific news set includes ${first}, ${second}, and ${third}. AI scoring is temporarily unavailable, so Eval is using a neutral 5.0 placeholder instead of inventing a precise news impact. The articles are still shown below so users can read the actual headlines and summaries behind the news section. Because the news score is neutral, it should not be treated as the main reason the Eval Score moved higher or lower. The company’s fundamentals, valuation, market behavior, and financial-health data carry more weight until AI news scoring is available again. Once OpenAI responds successfully, this section will become a weighted AI summary of the three Finnhub articles.`;
+  return `The latest ticker-specific news set includes ${first}, ${second}, and ${third}. AI scoring is temporarily unavailable, so Eval is using a neutral 5.0 placeholder instead of inventing a precise news impact. The articles are still shown below so users can read the actual headlines and summaries behind the news section. Because the news score is neutral, it should not be treated as the main reason the Eval Score moved higher or lower. The company’s fundamentals, valuation, market behavior, and financial-health data carry more weight until AI news scoring is available again. Once OpenAI responds successfully, this section will become a weighted AI summary of the three ticker-specific news articles.`;
 }
 
 function fallbackNewsSentiment(news = []) {
@@ -1703,7 +1372,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
           {
             role: "system",
             content:
-              "You are Eval's stock-specific news sentiment rater. Analyze only the latest Finnhub company-news articles provided for the requested ticker. Return only valid JSON with keys score, label, summary, topics. score must be a precise 0.0-10.0 number to one decimal, not a whole-number placeholder, where 0.0 is very negative for this stock, 5.0 is neutral, and 10.0 is very positive for this stock. label must be Bullish, Neutral, or Bearish. summary must be 5-7 clear sentences that summarize all three articles together, explain the shared theme, mention why the news matters for this specific company, and explain why the weighted news score received that exact decimal score. topics must be exactly 3 objects when 3 articles are provided. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences: what happened, why it matters for this company/ticker, and whether it helps or hurts the stock context. Each topic score must be a precise decimal to one tenth such as 2.1, 5.3, or 6.7. Weight each topic by actual stock impact, company specificity, recency, and importance; weights must total 100. If an article is broad market/peer news and only weakly related to the ticker, give it lower weight and explain that. Do not give buy/sell advice.",
+              "You are Eval's stock-specific news sentiment rater. Analyze only the latest ticker-specific company-news articles provided for the requested ticker. Return only valid JSON with keys score, label, summary, topics. score must be a precise 0.0-10.0 number to one decimal, not a whole-number placeholder, where 0.0 is very negative for this stock, 5.0 is neutral, and 10.0 is very positive for this stock. label must be Bullish, Neutral, or Bearish. summary must be 5-7 clear sentences that summarize all three articles together, explain the shared theme, mention why the news matters for this specific company, and explain why the weighted news score received that exact decimal score. topics must be exactly 3 objects when 3 articles are provided. Each topic must include title, summary, url, source, score, weight, impact. Each topic summary must be exactly 3 short simple sentences: what happened, why it matters for this company/ticker, and whether it helps or hurts the stock context. Each topic score must be a precise decimal to one tenth such as 2.1, 5.3, or 6.7. Weight each topic by actual stock impact, company specificity, recency, and importance; weights must total 100. If an article is broad market/peer news and only weakly related to the ticker, give it lower weight and explain that. Do not give buy/sell advice.",
           },
           {
             role: "user",
@@ -1755,7 +1424,7 @@ async function scoreNewsSentiment(symbol, profile, news = []) {
       topics,
       articleCount: topics.length,
       articles: news,
-      source: "OpenAI weighted top 3 Finnhub company-news articles",
+      source: "OpenAI weighted top 3 ticker-specific company-news articles",
       model: NEWS_SENTIMENT_MODEL,
     };
   } catch (error) {
@@ -1837,12 +1506,6 @@ function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentimen
         tone: categoryTone(categories?.momentum),
         why: `Momentum measures recent market strength. The 52-week return is ${simpleMetricText(metrics?.priceReturn52Week, "%")} and beta is ${simpleMetricText(metrics?.beta)}.`,
       },
-      {
-        category: "News Sentiment",
-        score: safeNumber(categories?.newsSentiment),
-        tone: categoryTone(categories?.newsSentiment),
-        why: newsSentiment?.summary || "Recent news is included as a smaller part of the Eval Score so headlines can support or pressure the final rating.",
-      },
     ].filter((item) => safeNumber(item.score) !== null),
     positives: strongest ? [`Best category: ${strongestLabel} at ${scoreText(strongest[1])}/10`] : [],
     concerns: weakest ? [`Weakest category: ${weakestLabel} at ${scoreText(weakest[1])}/10`] : [],
@@ -1894,20 +1557,6 @@ async function generateScoreSummary(symbol, profile, categories, metrics, newsSe
       beta: metrics?.beta,
       priceReturn52Week: metrics?.priceReturn52Week,
       pullbackFromHigh: metrics?.pullbackFromHigh,
-    },
-    news: {
-      score: safeNumber(newsSentiment?.score),
-      label: newsSentiment?.label || "Recent news",
-      summary: newsSentiment?.summary || "",
-      topics: Array.isArray(newsSentiment?.topics)
-        ? newsSentiment.topics.slice(0, 3).map((topic) => ({
-            title: topic?.title || "",
-            score: safeNumber(topic?.score),
-            weight: safeNumber(topic?.weight),
-            impact: topic?.impact || "",
-            summary: topic?.summary || "",
-          }))
-        : [],
     },
   };
 
@@ -1983,10 +1632,9 @@ export async function buildAiScoreSummaryFromReport(report = {}) {
   const profile = report?.profile || { ticker: symbol, name: symbol, finnhubIndustry: "Public company" };
   const categories = report?.grades?.categories || {};
   const metrics = metricsFromReportValues(report?.metrics || {});
-  const newsSentiment = report?.newsSentiment || null;
   const edgeScore = report?.grades?.edgeScore;
 
-  return generateScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore);
+  return generateScoreSummary(symbol, profile, categories, metrics, null, edgeScore);
 }
 
 export async function buildStockAnalysis(symbol, options = {}) {
@@ -2046,9 +1694,6 @@ export async function buildStockAnalysis(symbol, options = {}) {
   extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
   extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
 
-  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol, profile) : [];
-  const newsSentiment = refreshNews ? await scoreNewsSentiment(cleanSymbol, profile, recentNews) : (cachedReport?.newsSentiment || fallbackNewsSentiment([]));
-
   const growthScore = scoreGrowth(extracted);
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
@@ -2101,425 +1746,8 @@ export async function buildStockAnalysis(symbol, options = {}) {
     sharesOutstanding: metric(extracted.sharesOutstanding, "", src, "Shares outstanding"),
     marketCapM: metric(extracted.marketCapM, "M", src, "Market capitalization in millions"), enterpriseValue: metric(extracted.enterpriseValue, "M", src, "Enterprise value"), ebitda: metric(extracted.ebitda, "M", src, "EBITDA"), evToEbitda: metric(extracted.evToEbitda, "", src, "EV/EBITDA"),
     wacc: metric(null, "%", "DCF", "User-selected DCF calculator"), costOfEquity: metric(null, "%", "DCF", "User-selected DCF calculator"), afterTaxCostOfDebt: metric(null, "%", "DCF", "User-selected DCF calculator"), taxRate: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfEnterpriseValue: metric(null, "M", "DCF", "User-selected DCF calculator"), intrinsicValue: metric(null, "", "DCF", "User-selected DCF calculator"), intrinsicValueGap: metric(null, "%", "DCF", "User-selected DCF calculator"), dcfGrowthRate: metric(null, "%", "DCF", "User-selected DCF calculator"),
-    newsSentiment: metric(newsSentiment?.score ?? 5, "", newsSentiment?.source || "OpenAI + news provider", "News sentiment is displayed separately and is not part of the Eval Score categories"),
   };
 
-  const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore) : null;
-  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: safeNumber(quote?.c), d: safeNumber(quote?.d), dp: safeNumber(quote?.dp), h: safeNumber(quote?.h), l: safeNumber(quote?.l), o: safeNumber(quote?.o), pc: safeNumber(quote?.pc) }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality. News sentiment is displayed separately.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment remains separate because Twelve Data does not provide the requested news sentiment feed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data", news: recentNews.length ? "News provider + OpenAI" : "Neutral fallback" } } }, metrics: reportMetrics, aiScoreSummary, newsSentiment };
-}) {
-  const cleanSymbol = String(symbol || "").trim().toUpperCase();
-  if (!cleanSymbol) throw new Error("Missing ticker symbol.");
-
-  const cachedReport = options?.cachedReport || null;
-  const hasCachedReport = Boolean(cachedReport?.grades?.categories);
-
-  const refreshProfile = options?.refreshProfile ?? !hasCachedReport;
-  const refreshFundamentals = options?.refreshFundamentals ?? true;
-  const refreshValuation = options?.refreshValuation ?? refreshFundamentals;
-  const refreshMarket = options?.refreshMarket ?? true;
-  const refreshNews = options?.refreshNews ?? true;
-  const includeAiScoreSummary = options?.includeAiScoreSummary !== false;
-
-  const shouldFetchFundamentalMetrics = refreshFundamentals || refreshValuation;
-
-  const [
-    twelveProfile,
-    twelveQuote,
-    twelveMarket,
-    finnhubProfile,
-    finnhubQuote,
-    metricsRaw,
-    financialsReported,
-    massiveMarket,
-    fmpFundamentals,
-    fmpQuote,
-  ] = await Promise.all([
-    refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : null,
-    refreshMarket ? fetchTwelveDataQuote(cleanSymbol) : null,
-    refreshMarket ? fetchTwelveDataMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Twelve Data cached" },
-    refreshProfile ? fetchFinnhubOptional("/stock/profile2", { symbol: cleanSymbol }) : null,
-    refreshMarket ? fetchFinnhubOptional("/quote", { symbol: cleanSymbol }) : null,
-    shouldFetchFundamentalMetrics ? fetchFinnhubOptional("/stock/metric", { symbol: cleanSymbol, metric: "all" }) : null,
-    refreshFundamentals && !fmpFundamentalsEnabled() ? fetchFinnhubOptional("/stock/financials-reported", { symbol: cleanSymbol, freq: "annual" }) : null,
-    refreshMarket ? fetchMassiveMarketData(cleanSymbol) : { quote: null, metrics: {}, source: "Massive cached" },
-    shouldFetchFundamentalMetrics ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, profile: null, source: "FMP cached" },
-    refreshMarket && fmpFundamentalsEnabled() ? fetchFmpQuoteOptional(cleanSymbol) : null,
-  ]);
-
-  const cachedProfile = cachedReport?.profile || {};
-  const profile = {
-    ...(cachedProfile || {}),
-    ...(finnhubProfile || {}),
-    ...(twelveProfile || {}),
-    ticker: twelveProfile?.ticker || finnhubProfile?.ticker || fmpFundamentals?.profile?.symbol || cachedProfile?.ticker || cleanSymbol,
-    name:
-      twelveProfile?.name ||
-      finnhubProfile?.name ||
-      fmpFundamentals?.profile?.companyName ||
-      cachedProfile?.name ||
-      cleanSymbol,
-    finnhubIndustry:
-      twelveProfile?.finnhubIndustry ||
-      finnhubProfile?.finnhubIndustry ||
-      fmpFundamentals?.profile?.sector ||
-      fmpFundamentals?.profile?.industry ||
-      cachedProfile?.finnhubIndustry ||
-      "Public company",
-    marketCapitalization: firstNumber(
-      twelveProfile?.marketCapitalization,
-      finnhubProfile?.marketCapitalization,
-      fmpFundamentals?.metrics?.marketCapM,
-      cachedProfile?.marketCapitalization
-    ),
-    weburl: twelveProfile?.weburl || finnhubProfile?.weburl || fmpFundamentals?.profile?.website || cachedProfile?.weburl || "",
-    logo: twelveProfile?.logo || finnhubProfile?.logo || fmpFundamentals?.profile?.image || cachedProfile?.logo || "",
-  };
-
-  const quote = refreshMarket
-    ? bestQuote({
-        cachedQuote: cachedReport?.quote || {},
-        twelveQuote: twelveQuote || twelveMarket?.quote || {},
-        finnhubQuote,
-        massiveQuote: massiveMarket?.quote || {},
-        fmpQuote,
-      })
-    : {
-        ...(cachedReport?.quote || {}),
-      };
-
-  if (!profile || (!profile.ticker && !profile.name)) {
-    throw new Error(`No company profile found for ${cleanSymbol}.`);
-  }
-
-  const cachedMetrics = metricsFromCachedReport(cachedReport);
-  const finnhubMetrics = metricsRaw?.metric || {};
-  const fmpMetrics = fmpFundamentals?.metrics || {};
-  const twelveMarketMetrics = twelveMarket?.metrics || {};
-  const massiveMetrics = massiveMarket?.metrics || {};
-
-  const raw = mergeDefined(cachedMetrics, finnhubMetrics, twelveMarketMetrics, massiveMetrics);
-  const extracted = buildExtractedMetrics(profile, quote, raw);
-
-  // Source priority by responsibility:
-  // FMP = fundamentals, ratios, statements, growth, margins, valuation.
-  // Twelve Data = primary quote-derived market data, historical returns, 52-week high/low.
-  // Massive = fallback quote-derived market data, historical returns, 52-week high/low.
-  // Finnhub = profile/news and fallback metrics only.
-  applyMetricFallbacks(extracted, fmpMetrics, cachedMetrics);
-  applyMetricFallbacks(extracted, twelveMarketMetrics, cachedMetrics);
-  applyMetricFallbacks(extracted, massiveMetrics, cachedMetrics);
-  const reportedFinancials = buildExactReportedFinancials(financialsReported);
-  const reportedLatest = reportedFinancials.latest || {};
-
-  // Exact requested inputs from Finnhub metric endpoint first, then reported statements.
-  extracted.operatingIncome = firstNumber(extracted.operatingIncome, reportedLatest.operatingIncome);
-  extracted.netIncome = firstNumber(extracted.netIncome, reportedLatest.netIncome);
-  extracted.totalDebt = firstNumber(extracted.totalDebt, reportedLatest.totalDebt);
-  extracted.shareholderEquity = firstNumber(extracted.shareholderEquity, reportedLatest.shareholderEquity);
-  extracted.cashAndEquivalents = firstNumber(extracted.cashAndEquivalents, reportedLatest.cashAndEquivalents);
-  extracted.totalAssets = firstNumber(extracted.totalAssets, reportedLatest.totalAssets);
-  extracted.currentLiabilities = firstNumber(extracted.currentLiabilities, reportedLatest.currentLiabilities);
-  extracted.operatingCashFlow = firstNumber(extracted.operatingCashFlow, reportedLatest.operatingCashFlow);
-  extracted.capex = firstNumber(extracted.capex, reportedLatest.capex);
-  extracted.freeCashFlow = firstNumber(
-    extracted.freeCashFlow,
-    reportedLatest.freeCashFlow,
-    extracted.operatingCashFlow !== null && extracted.capex !== null
-      ? extracted.operatingCashFlow - Math.abs(extracted.capex)
-      : null
-  );
-
-  extracted.revenueGrowth3Y = firstNumber(extracted.revenueGrowth3Y, reportedFinancials.revenueGrowth3Y);
-  extracted.netIncomeGrowth3Y = firstNumber(extracted.netIncomeGrowth3Y, reportedFinancials.netIncomeGrowth3Y);
-  extracted.epsGrowth3Y = firstNumber(extracted.epsGrowth3Y, reportedFinancials.epsGrowth3Y);
-
-  // Exact requested calculations.
-  extracted.nopat =
-    scoreInputNumber(extracted.operatingIncome) !== null
-      ? extracted.operatingIncome * (1 - 0.21)
-      : null;
-
-  extracted.investedCapital =
-    scoreInputNumber(extracted.totalDebt) !== null &&
-    scoreInputNumber(extracted.shareholderEquity) !== null
-      ? extracted.totalDebt + extracted.shareholderEquity - (safeNumber(extracted.cashAndEquivalents) || 0)
-      : null;
-
-  extracted.roicCalculated =
-    scoreInputNumber(extracted.nopat) !== null && scoreInputNumber(extracted.investedCapital) !== null
-      ? (extracted.nopat / extracted.investedCapital) * 100
-      : null;
-
-  extracted.cashRatioCalculated =
-    scoreInputNumber(extracted.cashAndEquivalents) !== null &&
-    scoreInputNumber(extracted.currentLiabilities) !== null
-      ? extracted.cashAndEquivalents / extracted.currentLiabilities
-      : firstNumber(extracted.cashRatio);
-
-  // Earnings quality calculations.
-  extracted.cashConversionRatio =
-    scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null
-      ? extracted.freeCashFlow / extracted.netIncome
-      : null;
-
-  extracted.accrualRatio =
-    scoreInputNumber(extracted.totalAssets) !== null &&
-    scoreInputNumber(extracted.netIncome) !== null &&
-    scoreInputNumber(extracted.freeCashFlow) !== null
-      ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
-      : null;
-
-
-
-  extracted.nopat =
-    scoreInputNumber(extracted.operatingIncome) !== null
-      ? extracted.operatingIncome * (1 - 0.21)
-      : null;
-
-  extracted.investedCapital =
-    scoreInputNumber(extracted.totalDebt) !== null &&
-    scoreInputNumber(extracted.shareholderEquity) !== null
-      ? extracted.totalDebt + extracted.shareholderEquity - (safeNumber(extracted.cashAndEquivalents) || 0)
-      : null;
-
-  extracted.roicCalculated =
-    scoreInputNumber(extracted.nopat) !== null && scoreInputNumber(extracted.investedCapital) !== null
-      ? (extracted.nopat / extracted.investedCapital) * 100
-      : null;
-
-  extracted.freeCashFlow = firstNumber(
-    extracted.freeCashFlow,
-    extracted.operatingCashFlow !== null && extracted.capex !== null
-      ? extracted.operatingCashFlow - Math.abs(extracted.capex)
-      : null
-  );
-  extracted.cashConversionRatio =
-    scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null
-      ? extracted.freeCashFlow / extracted.netIncome
-      : null;
-  extracted.accrualRatio =
-    scoreInputNumber(extracted.totalAssets) !== null &&
-    scoreInputNumber(extracted.netIncome) !== null &&
-    scoreInputNumber(extracted.freeCashFlow) !== null
-      ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets
-      : null;
-  const recentNews = refreshNews ? await fetchRecentNews(cleanSymbol, profile) : [];
-  const newsSentiment = refreshNews
-    ? await scoreNewsSentiment(cleanSymbol, profile, recentNews)
-    : (cachedReport?.newsSentiment || fallbackNewsSentiment([]));
-
-  const growthScore = scoreGrowth(extracted);
-  const profitabilityScore = scoreProfitability(extracted);
-  const healthScore = scoreFinancialHealth(extracted);
-  const valuationScore = scoreValuation(extracted, growthScore, profitabilityScore);
-  const momentumScore = scoreMomentum(extracted);
-  const reversalScore = scorePullback(extracted);
-  const newsSentimentScore = safeNumber(newsSentiment?.score) ?? 5.0;
-
-  const categories = {
-    growth: growthScore,
-    profitability: profitabilityScore,
-    financialHealth: healthScore,
-    valuation: valuationScore,
-    momentum: momentumScore,
-    reversal: reversalScore,
-    newsSentiment: newsSentimentScore,
-  };
-
-  const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
-  const validInputCounts = {
-    growth: countValidMetricInputs([
-      extracted.revenueGrowth,
-      extracted.revenueGrowthQuarterly,
-      extracted.revenueGrowth3Y,
-      extracted.revenueGrowth5Y,
-      extracted.epsGrowth,
-      extracted.epsGrowth3Y,
-      extracted.epsGrowth5Y,
-      extracted.netIncomeGrowth3Y,
-    ]),
-    profitability: countValidMetricInputs([
-      extracted.operatingMargin,
-      extracted.netMargin,
-      extracted.roe,
-      extracted.roa,
-      extracted.roicCalculated,
-      extracted.freeCashFlowPerShare,
-    ]),
-    financialHealth: countValidMetricInputs([
-      extracted.debtToEquity,
-      extracted.longTermDebtToEquity,
-      extracted.currentRatio,
-      extracted.quickRatio,
-      extracted.cashRatio,
-      extracted.interestCoverage,
-      extracted.cashFlowToDebt,
-      extracted.totalDebt,
-      extracted.shareholderEquity,
-      extracted.cashAndEquivalents,
-    ]),
-    valuation: countValidMetricInputs([
-      extracted.peRatio,
-      extracted.forwardPe,
-      extracted.priceToSales,
-      extracted.priceToBook,
-      extracted.priceToCashFlow,
-      extracted.priceToFreeCashFlow,
-      extracted.pegRatio,
-      extracted.marketCapM,
-    ]),
-    marketData: countValidMetricInputs([
-      extracted.currentPrice,
-      extracted.priceReturn4Week,
-      extracted.priceReturn13Week,
-      extracted.priceReturn26Week,
-      extracted.priceReturn52Week,
-      extracted.weekHigh,
-      extracted.weekLow,
-      extracted.dayChangePercent,
-    ]),
-  };
-
-  const edgeScore = availableWeightedAverage(
-    [
-      { score: growthScore, weight: 0.215 },
-      { score: profitabilityScore, weight: 0.205 },
-      { score: healthScore, weight: 0.175 },
-      { score: valuationScore, weight: 0.150 },
-      { score: momentumScore, weight: 0.105 },
-      { score: reversalScore, weight: 0.075 },
-      { score: newsSentimentScore, weight: 0.075 },
-    ],
-    6
-  );
-
-  const riskLabel = getRiskLabel(extracted, healthScore);
-  const sw = strongestWeakest(categories);
-
-
-  const reportMetrics = {
-      revenueGrowth: metric(extracted.revenueGrowth, "%", "FMP", "Revenue growth YoY"),
-      revenueGrowthQuarterly: metric(extracted.revenueGrowthQuarterly, "%", "FMP", "Quarterly revenue growth YoY"),
-      revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", "FMP", "3-year revenue growth"),
-      revenueGrowth5Y: metric(extracted.revenueGrowth5Y, "%", "FMP", "5-year revenue growth"),
-      epsGrowth: metric(extracted.epsGrowth, "%", "FMP", "EPS growth YoY"),
-      epsGrowth3Y: metric(extracted.epsGrowth3Y, "%", "FMP", "3-year EPS growth"),
-      epsGrowth5Y: metric(extracted.epsGrowth5Y, "%", "FMP", "5-year EPS growth"),
-
-      roe: metric(extracted.roe, "%", "FMP", "Return on equity"),
-      roa: metric(extracted.roa, "%", "FMP", "Return on assets"),
-      roi: metric(extracted.roi, "%", "FMP", "Return on investment / capital"),
-      grossMargin: metric(extracted.grossMargin, "%", "FMP", "Gross profit / revenue"),
-      operatingMargin: metric(extracted.operatingMargin, "%", "FMP", "Operating income / revenue"),
-      pretaxMargin: metric(extracted.pretaxMargin, "%", "FMP", "Pretax income / revenue"),
-      netMargin: metric(extracted.netMargin, "%", "FMP", "Net income / revenue"),
-
-      debtToEquity: metric(extracted.debtToEquity, "", "FMP", "Total debt / equity"),
-      longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", "FMP", "Long-term debt / equity"),
-      currentRatio: metric(extracted.currentRatio, "", "FMP", "Current assets / current liabilities"),
-      quickRatio: metric(extracted.quickRatio, "", "FMP", "Quick assets / current liabilities"),
-      cashRatio: metric(extracted.cashRatio, "", "FMP", "Cash / current liabilities"),
-      assetTurnover: metric(extracted.assetTurnover, "", "FMP", "Revenue / assets"),
-      interestCoverage: metric(extracted.interestCoverage, "", "FMP", "EBIT / interest expense"),
-      cashFlowToDebt: metric(extracted.cashFlowToDebt, "", "FMP", "Operating cash flow / total debt"),
-      operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", "FMP", "Operating cash flow / share"),
-      freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", "FMP", "Free cash flow / share"),
-      totalDebtToCapital: metric(extracted.totalDebtToCapital, "", "FMP", "Debt / total capital"),
-      netDebtToEbitda: metric(extracted.netDebtToEbitda, "", "FMP", "Net debt / EBITDA"),
-
-      peRatio: metric(extracted.peRatio, "", "FMP", "Price / earnings"),
-      forwardPe: metric(extracted.forwardPe, "", "FMP", "Forward price / earnings"),
-      pegRatio: metric(extracted.pegRatio, "", "FMP", "P/E / growth"),
-      priceToSales: metric(extracted.priceToSales, "", "FMP", "Price / sales"),
-      priceToBook: metric(extracted.priceToBook, "", "FMP", "Price / book value"),
-      priceToCashFlow: metric(extracted.priceToCashFlow, "", "FMP", "Price / cash flow"),
-      priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", "FMP", "Price / free cash flow"),
-      dividendYield: metric(extracted.dividendYield, "%", "FMP", "Annual dividend yield"),
-
-      beta: metric(extracted.beta, "", "FMP", "Volatility compared with market"),
-      dayChangePercent: metric(extracted.dayChangePercent, "%", "Finnhub", "Current daily price change"),
-      priceReturn4Week: metric(extracted.priceReturn4Week, "%", "Massive", "4-week price return"),
-      priceReturn13Week: metric(extracted.priceReturn13Week, "%", "Massive", "13-week price return"),
-      priceReturn26Week: metric(extracted.priceReturn26Week, "%", "Massive", "26-week price return"),
-      priceReturn52Week: metric(extracted.priceReturn52Week, "%", "Massive", "52-week price return"),
-      distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", "Massive + Calculated", "(Current price - 52-week low) / 52-week low"),
-      pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", "Massive + Calculated", "(52-week high - current price) / 52-week high"),
-
-      marketCapM: metric(extracted.marketCapM, "M", "FMP", "Market capitalization in millions"),
-      enterpriseValue: metric(null, "M", "Unavailable", "Disabled in backend reset"),
-      ebitda: metric(null, "M", "Unavailable", "Disabled in backend reset"),
-      evToEbitda: metric(null, "", "Unavailable", "Disabled in backend reset"),
-
-      wacc: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      costOfEquity: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      afterTaxCostOfDebt: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      taxRate: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      dcfEnterpriseValue: metric(null, "M", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      intrinsicValue: metric(null, "", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      intrinsicValueGap: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-      dcfGrowthRate: metric(null, "%", "Unavailable", "Will be rebuilt cleanly with FMP"),
-
-      newsSentiment: metric(newsSentimentScore, "", newsSentiment?.source || "OpenAI + Finnhub news", "Weighted AI score from the latest 3 stock news articles"),
-    };
-
-  const aiScoreSummary = includeAiScoreSummary
-    ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore)
-    : null;
-
-  return {
-    symbol: cleanSymbol,
-    profile: {
-      ...profile,
-      ticker: profile.ticker || cleanSymbol,
-      name: profile.name || cleanSymbol,
-      finnhubIndustry: profile.finnhubIndustry || "Public company",
-    },
-    quote: {
-      c: safeNumber(quote?.c),
-      d: safeNumber(quote?.d),
-      dp: safeNumber(quote?.dp),
-      h: safeNumber(quote?.h),
-      l: safeNumber(quote?.l),
-      o: safeNumber(quote?.o),
-      pc: safeNumber(quote?.pc),
-    },
-    companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${
-      profile.finnhubIndustry || "market"
-    } industry.`,
-    evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(
-      1
-    )} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and news sentiment.`,
-    strengths: [sw.strongest],
-    weaknesses: [sw.weakest],
-    grades: {
-      edgeScore,
-      grade: gradeFrom10(edgeScore),
-      riskLabel,
-      categories,
-      context: {
-        marketCapM: extracted.marketCapM,
-      },
-      dataQuality: {
-        validCategoryCount,
-        minRequiredCategories: 5,
-        validInputCounts,
-        providerStatus: {
-          massiveKey: Boolean(process.env.MASSIVE_API_KEY),
-          fmpKey: Boolean(process.env.FMP_API_KEY),
-          finnhubKey: Boolean(process.env.FINNHUB_API_KEY),
-          apiMinimization: "Uses component TTL cache; Finnhub quote is primary for current price/% change with Massive then FMP then cache as backups; skips Finnhub financial statements when FMP exists; skips Massive profile lookup.",
-        },
-        sources: {
-          price: hasUsableQuote(finnhubQuote) ? "Finnhub" : hasUsableQuote(massiveMarket?.quote) ? "Massive" : hasUsableQuote(fmpQuote) ? "FMP" : cachedReport?.quote ? "Cached" : "Unavailable",
-          marketData: isUsableProviderPayload(massiveMetrics) ? "Massive" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
-          fundamentals: isUsableProviderPayload(fmpMetrics) ? "FMP" : isUsableProviderPayload(finnhubMetrics) ? "Finnhub" : "Unavailable",
-          profile: finnhubProfile ? "Finnhub" : fmpFundamentals?.profile ? "FMP" : cachedReport?.profile ? "Cached" : "Unavailable",
-          news: recentNews.length ? "Finnhub + OpenAI" : "Cached/neutral fallback",
-        },
-      },
-    },
-    metrics: reportMetrics,
-    aiScoreSummary,
-    newsSentiment,
-  };
+  const aiScoreSummary = includeAiScoreSummary ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), null, edgeScore) : null;
+  return { symbol: cleanSymbol, profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" }, quote: { c: safeNumber(quote?.c), d: safeNumber(quote?.d), dp: safeNumber(quote?.dp), h: safeNumber(quote?.h), l: safeNumber(quote?.l), o: safeNumber(quote?.o), pc: safeNumber(quote?.pc) }, companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`, evaluationSummary: `${cleanSymbol} has an Eval Score of ${edgeScore.toFixed(1)} out of 10. The score blends growth, profitability, financial health, valuation, momentum, pullback, and quality.`, strengths: [sw.strongest], weaknesses: [sw.weakest], grades: { edgeScore, grade: gradeFrom10(edgeScore), riskLabel, categories, context: { marketCapM: extracted.marketCapM }, dataQuality: { validCategoryCount, minRequiredCategories: 5, validInputCounts, providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), apiMinimization: "Twelve Data is the only stock data provider. News sentiment is currently removed." }, sources: { price: "Twelve Data", marketData: "Twelve Data", fundamentals: "Twelve Data", profile: "Twelve Data" } } }, metrics: reportMetrics, aiScoreSummary };
 }
