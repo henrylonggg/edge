@@ -215,7 +215,12 @@ async function fetchTwelveDataOptional(endpoint, params = {}) {
       }
     });
 
-    const data = await fetchJsonOptional(url, "Twelve Data");
+    const data = await fetchJsonOptional(url, "Twelve Data", {
+      headers: {
+        Authorization: apiKey,
+        "X-Api-Key": apiKey,
+      },
+    });
     if (!data || data?.status === "error" || data?.code || data?.message === "**symbol** not found") {
       if (data?.message) console.warn("Twelve Data returned message:", data.message);
       return null;
@@ -415,12 +420,12 @@ async function fetchTwelveDataMarketData(symbol) {
   };
 }
 
-async function fetchJsonOptional(url, providerName) {
+async function fetchJsonOptional(url, providerName, fetchOptions = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { ...fetchOptions, signal: controller.signal });
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
@@ -487,6 +492,75 @@ function pickTwelveNumber(obj = {}, keys = []) {
   return deepFindTwelveNumber(obj, keys);
 }
 
+function normalizeTwelveMetricName(value = "") {
+  return String(value || "")
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function flattenTwelveRecord(value, out = {}) {
+  if (!value || typeof value !== "object") return out;
+  if (Array.isArray(value)) {
+    for (const item of value) flattenTwelveRecord(item, out);
+    return out;
+  }
+
+  const possibleName = value.name ?? value.metric ?? value.label ?? value.key ?? value.field ?? value.title;
+  const possibleValue = value.value ?? value.amount ?? value.number ?? value.raw ?? value.current ?? value.ttm;
+  if (possibleName !== undefined && possibleValue !== undefined) {
+    const normalized = normalizeTwelveMetricName(possibleName);
+    if (normalized && out[normalized] === undefined) out[normalized] = possibleValue;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    const normalizedKey = normalizeTwelveMetricName(key);
+    if (child === null || child === undefined) continue;
+    if (typeof child !== "object") {
+      if (out[normalizedKey] === undefined) out[normalizedKey] = child;
+      continue;
+    }
+    if (Array.isArray(child)) {
+      for (const item of child) flattenTwelveRecord(item, out);
+    } else {
+      flattenTwelveRecord(child, out);
+    }
+  }
+  return out;
+}
+
+function mergeTwelveRecords(...records) {
+  const out = {};
+  for (const record of records) {
+    const flat = flattenTwelveRecord(record, {});
+    for (const [key, value] of Object.entries(flat)) {
+      if (out[key] === undefined || out[key] === null || out[key] === "") out[key] = value;
+    }
+  }
+  return out;
+}
+
+function pickTwelveFlatNumber(obj = {}, keys = []) {
+  const flat = flattenTwelveRecord(obj, {});
+  for (const key of keys) {
+    const direct = cleanTwelveNumber(obj?.[key]);
+    if (direct !== null) return direct;
+    const normalized = normalizeTwelveMetricName(key);
+    const value = cleanTwelveNumber(flat[normalized]);
+    if (value !== null) return value;
+  }
+  return pickTwelveNumber(obj, keys);
+}
+
+function pickTwelveAnyNumber(records = [], keys = []) {
+  for (const record of Array.isArray(records) ? records : [records]) {
+    const value = pickTwelveFlatNumber(record, keys);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function pctChangeFromList(list, key) {
   const rows = Array.isArray(list) ? list : [];
   if (rows.length < 2) return null;
@@ -497,70 +571,87 @@ function pctChangeFromList(list, key) {
 }
 
 async function fetchTwelveDataFundamentals(symbol) {
-  const [statisticsRaw, incomeRaw, balanceRaw, cashRaw, incomeQuarterlyRaw, balanceQuarterlyRaw, cashQuarterlyRaw, earningsRaw] = await Promise.all([
+  const [statisticsRaw, incomeRaw, balanceRaw, cashRaw, incomeQuarterlyRaw, balanceQuarterlyRaw, cashQuarterlyRaw, marketCapRaw, earningsRaw] = await Promise.all([
     fetchTwelveDataOptional("/statistics", { symbol }),
-    fetchTwelveDataOptional("/income_statement", { symbol, period: "annual" }),
-    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual" }),
-    fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual" }),
-    fetchTwelveDataOptional("/income_statement", { symbol, period: "quarterly" }),
-    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "quarterly" }),
-    fetchTwelveDataOptional("/cash_flow", { symbol, period: "quarterly" }),
-    fetchTwelveDataOptional("/earnings", { symbol }),
+    fetchTwelveDataOptional("/income_statement", { symbol, period: "annual", outputsize: 6 }),
+    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "annual", outputsize: 6 }),
+    fetchTwelveDataOptional("/cash_flow", { symbol, period: "annual", outputsize: 6 }),
+    fetchTwelveDataOptional("/income_statement", { symbol, period: "quarterly", outputsize: 8 }),
+    fetchTwelveDataOptional("/balance_sheet", { symbol, period: "quarterly", outputsize: 8 }),
+    fetchTwelveDataOptional("/cash_flow", { symbol, period: "quarterly", outputsize: 8 }),
+    fetchTwelveDataOptional("/market_cap", { symbol, outputsize: 1 }),
+    fetchTwelveDataOptional("/earnings", { symbol, outputsize: 8 }),
   ]);
 
-  const s = statisticsRaw?.statistics || statisticsRaw?.data || statisticsRaw || {};
+  const statisticsList = twelveList(statisticsRaw);
   const incomeList = twelveList(incomeRaw);
   const balanceList = twelveList(balanceRaw);
   const cashList = twelveList(cashRaw);
   const incomeQuarterlyList = twelveList(incomeQuarterlyRaw);
   const balanceQuarterlyList = twelveList(balanceQuarterlyRaw);
   const cashQuarterlyList = twelveList(cashQuarterlyRaw);
-  const income = incomeList[0] || incomeQuarterlyList[0] || {};
-  const balance = balanceList[0] || balanceQuarterlyList[0] || {};
-  const cash = cashList[0] || cashQuarterlyList[0] || {};
-  const qIncome = incomeQuarterlyList[0] || {};
-  const qPriorIncome = incomeQuarterlyList[4] || incomeQuarterlyList[1] || {};
+  const marketCapList = twelveList(marketCapRaw);
+  const earningsList = twelveList(earningsRaw);
 
-  const revenue = firstNumber(
-    pickTwelveNumber(income, ["revenue", "total_revenue", "totalRevenue", "sales"]),
-    pickTwelveNumber(s, ["revenue_ttm", "revenue", "total_revenue"])
+  const income = mergeTwelveRecords(incomeList[0], incomeQuarterlyList[0]);
+  const priorIncome = mergeTwelveRecords(incomeList[1], incomeList[2], incomeList[3]);
+  const balance = mergeTwelveRecords(balanceList[0], balanceQuarterlyList[0]);
+  const cash = mergeTwelveRecords(cashList[0], cashQuarterlyList[0]);
+  const stats = mergeTwelveRecords(statisticsRaw?.statistics, statisticsRaw?.data, statisticsRaw, statisticsList[0]);
+  const marketCapRecord = mergeTwelveRecords(marketCapRaw, marketCapList[0]);
+  const qIncome = mergeTwelveRecords(incomeQuarterlyList[0]);
+  const qPriorIncome = mergeTwelveRecords(incomeQuarterlyList[4], incomeQuarterlyList[1]);
+
+  const revenueKeys = ["revenue", "total_revenue", "totalRevenue", "sales", "operating_revenue"];
+  const epsKeys = ["eps", "diluted_eps", "eps_diluted", "epsDiluted", "earnings_per_share", "basic_eps"];
+  const netIncomeKeys = ["net_income", "netIncome", "net_income_common_stockholders", "net_income_available_to_common_shareholders"];
+
+  const revenue = firstNumber(pickTwelveFlatNumber(income, revenueKeys), pickTwelveAnyNumber([stats], ["revenue_ttm", "total_revenue_ttm", "revenue"]));
+  const priorRevenue = pickTwelveFlatNumber(priorIncome, revenueKeys);
+  const netIncome = firstNumber(pickTwelveFlatNumber(income, netIncomeKeys), pickTwelveFlatNumber(stats, ["net_income_ttm", "net_income"]));
+  const grossProfit = pickTwelveFlatNumber(income, ["gross_profit", "grossProfit"]);
+  const operatingIncome = pickTwelveFlatNumber(income, ["operating_income", "operatingIncome", "ebit", "income_from_operations"]);
+  const pretaxIncome = pickTwelveFlatNumber(income, ["income_before_tax", "pretax_income", "incomeBeforeTax"]);
+  const interestExpense = pickTwelveFlatNumber(income, ["interest_expense", "interestExpense", "interest_and_debt_expense"]);
+  const ebit = firstNumber(pickTwelveFlatNumber(income, ["ebit", "operating_income", "operatingIncome"]), operatingIncome);
+  const ebitda = firstNumber(pickTwelveFlatNumber(income, ["ebitda"]), pickTwelveFlatNumber(stats, ["ebitda", "ebitda_ttm"]));
+  const eps = firstNumber(pickTwelveFlatNumber(income, epsKeys), pickTwelveFlatNumber(stats, ["eps", "eps_ttm", "trailing_eps"]));
+
+  const totalDebt = firstNumber(pickTwelveFlatNumber(balance, ["total_debt", "short_long_term_debt_total", "shortLongTermDebtTotal", "long_term_debt", "short_term_debt", "totalDebt", "total_liabilities"]), pickTwelveFlatNumber(stats, ["total_debt", "totalDebt"]));
+  const equity = firstNumber(pickTwelveFlatNumber(balance, ["total_equity", "total_shareholder_equity", "shareholder_equity", "totalStockholderEquity", "total_stockholders_equity", "stockholders_equity"]), pickTwelveFlatNumber(stats, ["shareholder_equity", "stockholders_equity"]));
+  const assets = firstNumber(pickTwelveFlatNumber(balance, ["total_assets", "totalAssets"]), pickTwelveFlatNumber(stats, ["total_assets"]));
+  const currentAssets = pickTwelveFlatNumber(balance, ["total_current_assets", "current_assets", "totalCurrentAssets"]);
+  const currentLiabilities = pickTwelveFlatNumber(balance, ["total_current_liabilities", "current_liabilities", "totalCurrentLiabilities"]);
+  const cashEq = pickTwelveFlatNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cashAndCashEquivalents", "cash_cash_equivalents_and_short_term_investments"]);
+  const inventory = pickTwelveFlatNumber(balance, ["inventory", "inventories"]);
+  const longTermDebt = pickTwelveFlatNumber(balance, ["long_term_debt", "longTermDebt"]);
+
+  const operatingCashFlow = pickTwelveFlatNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_from_operating_activities", "net_cash_provided_by_operating_activities"]);
+  const capex = pickTwelveFlatNumber(cash, ["capital_expenditures", "capital_expenditure", "capex", "payments_for_property_plant_and_equipment"]);
+  const fcf = firstNumber(pickTwelveFlatNumber(cash, ["free_cash_flow", "freeCashFlow"]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
+
+  const shares = firstNumber(
+    pickTwelveFlatNumber(stats, ["shares_outstanding", "weighted_average_shares", "shares", "sharesOutstanding"]),
+    pickTwelveFlatNumber(income, ["weighted_average_shares", "weightedAverageShsOut", "weightedAverageSharesOutstanding", "weighted_average_shares_outstanding"])
   );
-  const netIncome = firstNumber(pickTwelveNumber(income, ["net_income", "netIncome", "net_income_common_stockholders"]), pickTwelveNumber(s, ["net_income_ttm", "net_income"]));
-  const grossProfit = pickTwelveNumber(income, ["gross_profit", "grossProfit"]);
-  const operatingIncome = pickTwelveNumber(income, ["operating_income", "operatingIncome", "ebit"]);
-  const pretaxIncome = pickTwelveNumber(income, ["income_before_tax", "pretax_income", "incomeBeforeTax"]);
-  const interestExpense = pickTwelveNumber(income, ["interest_expense", "interestExpense"]);
-  const ebit = firstNumber(pickTwelveNumber(income, ["ebit", "operating_income", "operatingIncome"]), operatingIncome);
-  const ebitda = firstNumber(pickTwelveNumber(income, ["ebitda"]), pickTwelveNumber(s, ["ebitda", "ebitda_ttm"]));
-  const eps = firstNumber(pickTwelveNumber(income, ["eps", "diluted_eps", "eps_diluted", "epsDiluted"]), pickTwelveNumber(s, ["eps", "eps_ttm", "trailing_eps"]));
-
-  const totalDebt = firstNumber(pickTwelveNumber(balance, ["total_debt", "short_long_term_debt_total", "shortLongTermDebtTotal", "long_term_debt", "short_term_debt", "totalDebt"]), pickTwelveNumber(s, ["total_debt", "totalDebt"]));
-  const equity = firstNumber(pickTwelveNumber(balance, ["total_equity", "total_shareholder_equity", "shareholder_equity", "totalStockholderEquity"]), pickTwelveNumber(s, ["shareholder_equity"]));
-  const assets = firstNumber(pickTwelveNumber(balance, ["total_assets", "totalAssets"]), pickTwelveNumber(s, ["total_assets"]));
-  const currentAssets = pickTwelveNumber(balance, ["total_current_assets", "current_assets", "totalCurrentAssets"]);
-  const currentLiabilities = pickTwelveNumber(balance, ["total_current_liabilities", "current_liabilities", "totalCurrentLiabilities"]);
-  const cashEq = pickTwelveNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cashAndCashEquivalents"]);
-  const inventory = pickTwelveNumber(balance, ["inventory", "inventories"]);
-  const longTermDebt = pickTwelveNumber(balance, ["long_term_debt", "longTermDebt"]);
-
-  const operatingCashFlow = pickTwelveNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_from_operating_activities"]);
-  const capex = pickTwelveNumber(cash, ["capital_expenditures", "capital_expenditure", "capex"]);
-  const fcf = firstNumber(pickTwelveNumber(cash, ["free_cash_flow", "freeCashFlow"]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
-
-  const shares = firstNumber(pickTwelveNumber(s, ["shares_outstanding", "weighted_average_shares", "shares", "sharesOutstanding"]), pickTwelveNumber(income, ["weighted_average_shares", "weightedAverageShsOut", "weightedAverageSharesOutstanding"]));
-  const marketCap = firstNumber(pickTwelveNumber(s, ["market_capitalization", "market_cap", "marketCapitalization", "marketCap"]));
-  const enterpriseValue = firstNumber(pickTwelveNumber(s, ["enterprise_value", "enterpriseValue"]), marketCap !== null ? marketCap + (totalDebt || 0) - (cashEq || 0) : null);
-  const investedCapital = firstNumber(pickTwelveNumber(s, ["invested_capital", "investedCapital"]), equity !== null || totalDebt !== null || cashEq !== null ? (equity || 0) + (totalDebt || 0) - (cashEq || 0) : null);
+  const marketCap = firstNumber(pickTwelveFlatNumber(marketCapRecord, ["market_cap", "market_capitalization", "value"]), pickTwelveFlatNumber(stats, ["market_capitalization", "market_cap", "marketCapitalization", "marketCap"]));
+  const enterpriseValue = firstNumber(pickTwelveFlatNumber(stats, ["enterprise_value", "enterpriseValue"]), marketCap !== null ? marketCap + (totalDebt || 0) - (cashEq || 0) : null);
+  const investedCapital = firstNumber(pickTwelveFlatNumber(stats, ["invested_capital", "investedCapital"]), equity !== null || totalDebt !== null || cashEq !== null ? (equity || 0) + (totalDebt || 0) - (cashEq || 0) : null);
   const taxRateDecimal = pretaxIncome && netIncome !== null ? Math.max(0, Math.min(0.5, 1 - (netIncome / pretaxIncome))) : null;
   const nopat = ebit !== null ? ebit * (1 - (taxRateDecimal ?? 0.21)) : null;
+
   const qRevenueGrowth = (() => {
-    const latest = pickTwelveNumber(qIncome, ["revenue", "total_revenue", "totalRevenue", "sales"]);
-    const prior = pickTwelveNumber(qPriorIncome, ["revenue", "total_revenue", "totalRevenue", "sales"]);
+    const latest = pickTwelveFlatNumber(qIncome, revenueKeys);
+    const prior = pickTwelveFlatNumber(qPriorIncome, revenueKeys);
     return latest !== null && prior !== null && prior !== 0 ? ((latest - prior) / Math.abs(prior)) * 100 : null;
   })();
 
+  const calculatedRevenueGrowth = revenue !== null && priorRevenue !== null && priorRevenue !== 0 ? ((revenue - priorRevenue) / Math.abs(priorRevenue)) * 100 : null;
+
   return {
-    raw: { statistics, income, balance, cash, earnings: earningsRaw },
+    raw: { statistics: stats, income, balance, cash, earnings: earningsRaw, endpointStatus: {
+      statistics: Boolean(statisticsRaw), income: Boolean(incomeRaw), balance: Boolean(balanceRaw), cash: Boolean(cashRaw), marketCap: Boolean(marketCapRaw), earnings: Boolean(earningsRaw),
+    } },
     metrics: {
       revenue,
       netIncome,
@@ -573,41 +664,41 @@ async function fetchTwelveDataFundamentals(symbol) {
       operatingCashFlow,
       capex,
       freeCashFlow: fcf,
-      revenueGrowth: firstNumber(pickTwelveNumber(s, ["revenue_growth", "revenue_growth_ttm", "revenueGrowth", "revenueGrowthTTM"]), pctChangeFromList(incomeList, "revenue"), pctChangeFromList(incomeList, "total_revenue")),
+      revenueGrowth: firstNumber(pickTwelveFlatNumber(stats, ["revenue_growth", "revenue_growth_ttm", "revenueGrowth", "revenueGrowthTTM", "quarterly_revenue_growth_yoy"]), calculatedRevenueGrowth),
       revenueGrowthQuarterly: qRevenueGrowth,
       revenueGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "revenue"), pctChangeFromList(incomeList.slice(0,4), "total_revenue")),
       revenueGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "revenue"), pctChangeFromList(incomeList.slice(0,6), "total_revenue")),
-      epsGrowth: firstNumber(pickTwelveNumber(s, ["eps_growth", "epsGrowth"]), pctChangeFromList(incomeList, "eps"), pctChangeFromList(incomeList, "diluted_eps")),
+      epsGrowth: firstNumber(pickTwelveFlatNumber(stats, ["eps_growth", "epsGrowth", "earnings_growth"]), pctChangeFromList(incomeList, "eps"), pctChangeFromList(incomeList, "diluted_eps")),
       epsGrowth3Y: firstNumber(pctChangeFromList(incomeList.slice(0,4), "eps"), pctChangeFromList(incomeList.slice(0,4), "diluted_eps")),
       epsGrowth5Y: firstNumber(pctChangeFromList(incomeList.slice(0,6), "eps"), pctChangeFromList(incomeList.slice(0,6), "diluted_eps")),
       netIncomeGrowth3Y: pctChangeFromList(incomeList.slice(0,4), "net_income"),
-      grossMargin: firstNumber(pickTwelveNumber(s, ["gross_margin", "gross_margin_ttm"]), revenue && grossProfit !== null ? grossProfit / revenue * 100 : null),
-      operatingMargin: firstNumber(pickTwelveNumber(s, ["operating_margin", "operating_margin_ttm"]), revenue && operatingIncome !== null ? operatingIncome / revenue * 100 : null),
+      grossMargin: firstNumber(pickTwelveFlatNumber(stats, ["gross_margin", "gross_margin_ttm"]), revenue && grossProfit !== null ? grossProfit / revenue * 100 : null),
+      operatingMargin: firstNumber(pickTwelveFlatNumber(stats, ["operating_margin", "operating_margin_ttm"]), revenue && operatingIncome !== null ? operatingIncome / revenue * 100 : null),
       pretaxMargin: revenue && pretaxIncome !== null ? pretaxIncome / revenue * 100 : null,
-      netMargin: firstNumber(pickTwelveNumber(s, ["profit_margin", "net_margin", "net_profit_margin_ttm"]), revenue && netIncome !== null ? netIncome / revenue * 100 : null),
-      roe: firstNumber(pickTwelveNumber(s, ["return_on_equity", "roe"]), equity && netIncome !== null ? netIncome / equity * 100 : null),
-      roa: firstNumber(pickTwelveNumber(s, ["return_on_assets", "roa"]), assets && netIncome !== null ? netIncome / assets * 100 : null),
-      roicCalculated: firstNumber(pickTwelveNumber(s, ["return_on_invested_capital", "roic"]), investedCapital && nopat !== null ? (nopat / investedCapital) * 100 : null),
+      netMargin: firstNumber(pickTwelveFlatNumber(stats, ["profit_margin", "net_margin", "net_profit_margin_ttm"]), revenue && netIncome !== null ? netIncome / revenue * 100 : null),
+      roe: firstNumber(pickTwelveFlatNumber(stats, ["return_on_equity", "roe"]), equity && netIncome !== null ? netIncome / equity * 100 : null),
+      roa: firstNumber(pickTwelveFlatNumber(stats, ["return_on_assets", "roa"]), assets && netIncome !== null ? netIncome / assets * 100 : null),
+      roicCalculated: firstNumber(pickTwelveFlatNumber(stats, ["return_on_invested_capital", "roic"]), investedCapital && nopat !== null ? (nopat / investedCapital) * 100 : null),
       nopat,
       investedCapital,
-      debtToEquity: firstNumber(pickTwelveNumber(s, ["debt_to_equity", "debt_equity_ratio"]), equity && totalDebt !== null ? totalDebt / equity : null),
+      debtToEquity: firstNumber(pickTwelveFlatNumber(stats, ["debt_to_equity", "debt_equity_ratio"]), equity && totalDebt !== null ? totalDebt / equity : null),
       longTermDebtToEquity: equity && longTermDebt !== null ? longTermDebt / equity : null,
-      currentRatio: firstNumber(pickTwelveNumber(s, ["current_ratio"]), currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null),
-      quickRatio: currentAssets && inventory !== null && currentLiabilities ? (currentAssets - inventory) / currentLiabilities : pickTwelveNumber(s, ["quick_ratio"]),
+      currentRatio: firstNumber(pickTwelveFlatNumber(stats, ["current_ratio"]), currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null),
+      quickRatio: firstNumber(pickTwelveFlatNumber(stats, ["quick_ratio"]), currentAssets && inventory !== null && currentLiabilities ? (currentAssets - inventory) / currentLiabilities : null),
       cashRatio: cashEq !== null && currentLiabilities ? cashEq / currentLiabilities : null,
-      interestCoverage: interestExpense ? Math.abs(ebit || operatingIncome || 0) / Math.abs(interestExpense) : pickTwelveNumber(s, ["interest_coverage", "interestCoverage"]),
+      interestCoverage: firstNumber(pickTwelveFlatNumber(stats, ["interest_coverage", "interestCoverage"]), interestExpense ? Math.abs(ebit || operatingIncome || 0) / Math.abs(interestExpense) : null),
       cashFlowToDebt: totalDebt && operatingCashFlow !== null ? operatingCashFlow / totalDebt : null,
       freeCashFlowPerShare: shares && fcf !== null ? fcf / shares : null,
       operatingCashFlowPerShare: shares && operatingCashFlow !== null ? operatingCashFlow / shares : null,
-      peRatio: pickTwelveNumber(s, ["trailing_pe", "pe_ratio", "price_to_earnings"]),
-      forwardPe: pickTwelveNumber(s, ["forward_pe"]),
-      pegRatio: pickTwelveNumber(s, ["peg_ratio"]),
-      priceToSales: pickTwelveNumber(s, ["price_to_sales", "price_sales_ttm"]),
-      priceToBook: pickTwelveNumber(s, ["price_to_book", "price_book"]),
-      priceToCashFlow: firstNumber(pickTwelveNumber(s, ["price_to_cash_flow", "priceCashFlowRatio"]), marketCap && operatingCashFlow ? marketCap / operatingCashFlow : null),
-      priceToFreeCashFlow: firstNumber(pickTwelveNumber(s, ["price_to_free_cash_flow", "priceFreeCashFlowRatio"]), marketCap && fcf ? marketCap / fcf : null),
-      dividendYield: pickTwelveNumber(s, ["dividend_yield", "trailing_annual_dividend_yield"]),
-      beta: pickTwelveNumber(s, ["beta"]),
+      peRatio: pickTwelveFlatNumber(stats, ["trailing_pe", "pe_ratio", "price_to_earnings", "price_earnings_ratio"]),
+      forwardPe: pickTwelveFlatNumber(stats, ["forward_pe"]),
+      pegRatio: pickTwelveFlatNumber(stats, ["peg_ratio"]),
+      priceToSales: pickTwelveFlatNumber(stats, ["price_to_sales", "price_sales_ttm", "price_to_sales_ttm"]),
+      priceToBook: pickTwelveFlatNumber(stats, ["price_to_book", "price_book", "price_to_book_mrq"]),
+      priceToCashFlow: firstNumber(pickTwelveFlatNumber(stats, ["price_to_cash_flow", "priceCashFlowRatio"]), marketCap && operatingCashFlow ? marketCap / operatingCashFlow : null),
+      priceToFreeCashFlow: firstNumber(pickTwelveFlatNumber(stats, ["price_to_free_cash_flow", "priceFreeCashFlowRatio"]), marketCap && fcf ? marketCap / fcf : null),
+      dividendYield: pickTwelveFlatNumber(stats, ["dividend_yield", "trailing_annual_dividend_yield"]),
+      beta: pickTwelveFlatNumber(stats, ["beta"]),
       marketCapM: toMillions(marketCap),
       enterpriseValue: toMillions(enterpriseValue),
       ebitda: toMillions(ebitda),
