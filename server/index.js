@@ -2022,6 +2022,40 @@ function isPostMarketCloseEt(now = new Date()) {
   return isTradingDay && (hour > 16 || (hour === 16 && minute >= 0));
 }
 
+function marketQuoteCacheWindowEt(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "numeric", year: "numeric", month: "2-digit", day: "2-digit", hour12: false }).formatToParts(now);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = map.weekday;
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  const hour = Number(map.hour);
+  const minute = Number(map.minute);
+  const date = `${map.year}-${map.month}-${map.day}`;
+  if (!isTradingDay) return `${date}:closed`;
+  if (hour < 9 || (hour === 9 && minute < 30)) return `${date}:preopen`;
+  if (hour < 16) return `${date}:open930`;
+  return `${date}:close4pm`;
+}
+
+function nextWeekdayBoundaryEt(boundary = "09:30", from = new Date()) {
+  const oneHour = 60 * 60 * 1000;
+  // Conservative server-side TTL. The cache key changes at 9:30/4:00 ET, so stale data cannot cross windows.
+  if (boundary === "16:00") return Date.now() + 7 * oneHour;
+  return Date.now() + 18 * oneHour;
+}
+
+function marketQuoteCacheTtlMs() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const weekday = map.weekday;
+  const isTradingDay = !["Sat", "Sun"].includes(weekday);
+  const hour = Number(map.hour);
+  const minute = Number(map.minute);
+  if (!isTradingDay) return 24 * 60 * 60 * 1000;
+  if (hour < 9 || (hour === 9 && minute < 30)) return Math.max(5 * 60 * 1000, nextWeekdayBoundaryEt("09:30") - Date.now());
+  if (hour < 16) return Math.max(5 * 60 * 1000, nextWeekdayBoundaryEt("16:00") - Date.now());
+  return 18 * 60 * 60 * 1000;
+}
+
 function historicalCacheKey(symbol, interval, outputsize) {
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
   return `${cleanTicker(symbol)}:${interval}:${outputsize}:${day}`;
@@ -2151,12 +2185,12 @@ app.get("/api/live-quote/:symbol", async (req, res) => {
       change: quote?.change ?? null,
       changePercent: quote?.changePercent ?? null,
       source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: 60,
+      cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000),
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.warn("Live quote route failed:", symbol, error?.message || error);
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 60, updatedAt: new Date().toISOString() });
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000), updatedAt: new Date().toISOString() });
   }
 });
 
@@ -2172,83 +2206,28 @@ app.get("/api/quote/:symbol", async (req, res) => {
       change: quote?.change ?? null,
       changePercent: quote?.changePercent ?? null,
       source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: 60,
+      cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000),
       updatedAt: new Date().toISOString(),
     });
   } catch {
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: 60, updatedAt: new Date().toISOString() });
+    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000), updatedAt: new Date().toISOString() });
   }
 });
 
 app.get("/api/twelve-chart/:symbol", async (req, res) => {
-  const symbol = cleanTicker(req.params.symbol);
-  const timeframe = String(req.query.timeframe || "6M").toUpperCase();
-  const map = {
-    "1D": { interval: "5min", outputsize: 96 },
-    "5D": { interval: "30min", outputsize: 80 },
-    "1M": { interval: "1day", outputsize: 32 },
-    "6M": { interval: "1day", outputsize: 190 },
-    "1Y": { interval: "1day", outputsize: 265 },
-    "5Y": { interval: "1week", outputsize: 270 },
-  };
-  const cfg = map[timeframe] || map["6M"];
-
-  try {
-    const lightMode = String(req.query.light || "0") === "1";
-    const [rowsResult, reportResult, liveResult] = await Promise.allSettled([
-      fetchTwelveHistoricalSeries(symbol, cfg),
-      lightMode ? Promise.resolve(null) : getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
-      lightMode ? Promise.resolve(null) : fetchSafeLiveQuote(symbol),
-    ]);
-
-    const rows = rowsResult.status === "fulfilled" && Array.isArray(rowsResult.value) ? rowsResult.value : [];
-    const report = reportResult.status === "fulfilled" ? reportResult.value : null;
-    const live = liveResult.status === "fulfilled" ? liveResult.value : null;
-
-    return res.json({
-      symbol,
-      timeframe,
-      rows,
-      live,
-      profile: report?.profile || { ticker: symbol, name: symbol },
-      source: "Twelve Data",
-      historicalCachePolicy: "Daily historical prices cache only after 4:00 PM ET on trading days.",
-      warnings: [
-        rowsResult.status === "rejected" ? "historical-series-unavailable" : null,
-        reportResult.status === "rejected" ? "analysis-profile-unavailable" : null,
-        liveResult.status === "rejected" ? "live-quote-unavailable" : null,
-      ].filter(Boolean),
-    });
-  } catch (error) {
-    console.error("Twelve chart route failed:", symbol, error?.stack || error?.message || error);
-    return res.json({
-      symbol,
-      timeframe,
-      rows: [],
-      live: null,
-      profile: { ticker: symbol, name: symbol },
-      source: "Twelve Data unavailable",
-      error: error?.message || "Could not load chart.",
-    });
-  }
+  return res.status(410).json({ error: "Historical chart data has been disabled to protect API usage.", rows: [] });
 });
 
 app.get("/api/dcf/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
     const scenario = String(req.query.scenario || "average").toLowerCase();
-    const [report, rows] = await Promise.all([
-      getCachedAnalysis(symbol, { includeAiScoreSummary: false }),
-      fetchTwelveHistoricalSeries(symbol, { interval: "1day", outputsize: 185 }),
-    ]);
-    const currentPrice = Number(report?.quote?.c);
+    const report = await getCachedAnalysis(symbol, { includeAiScoreSummary: false });
     const low = dcfScenarioFromReport(report, "low");
     const average = dcfScenarioFromReport(report, "average");
     const high = dcfScenarioFromReport(report, "high");
     const chosen = { low, average, high }[scenario] || average;
-    const lastDate = rows[rows.length - 1]?.datetime || new Date().toISOString().slice(0, 10);
-    const projections = [low, average, high].map((item) => ({ ...item, startPrice: currentPrice, targetPrice: item.expectedPrice, startDate: lastDate, targetDate: new Date(Date.now() + 183 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) }));
-    res.json({ symbol, scenario, chosen, projections, sixMonthHistory: rows, profile: report?.profile || {}, source: "Twelve Data + Eval projection model" });
+    res.json({ symbol, scenario, chosen, projections: [low, average, high], sixMonthHistory: [], profile: report?.profile || {}, source: "Eval DCF calculator without historical chart calls" });
   } catch (error) {
     res.status(500).json({ error: error?.message || "Could not calculate DCF projection.", route: "api/dcf" });
   }
@@ -2499,7 +2478,9 @@ const QUARTERLY_METRIC_CACHE_MS = 120 * DAY_MS;
 const YEARLY_METRIC_CACHE_MS = 180 * DAY_MS;
 
 function stableCacheKey(endpoint, params = {}) {
-  const cleanEntries = Object.entries(params)
+  const enriched = { ...params };
+  if (endpoint === "/quote" || endpoint === "/price") enriched.__marketWindow = marketQuoteCacheWindowEt();
+  const cleanEntries = Object.entries(enriched)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .sort(([a], [b]) => a.localeCompare(b));
   return `${endpoint}:${JSON.stringify(cleanEntries)}`;
@@ -2512,8 +2493,8 @@ function twelveEndpointTtlMs(endpoint, params = {}) {
   // Identity data barely changes. Cache logos/company names almost permanently to avoid repeated logo/profile calls.
   if (endpoint === "/logo" || endpoint === "/profile") return PERMANENT_IDENTITY_CACHE_MS;
 
-  // Live price REST fallback only. Frontend should not poll this rapidly; server still protects usage.
-  if (endpoint === "/quote" || endpoint === "/price") return 60 * 1000;
+  // Current price/change only refreshes at the market-open window and after the closing print.
+  if (endpoint === "/quote" || endpoint === "/price") return marketQuoteCacheTtlMs();
 
   // Fundamental statements are slow-moving. Annual values drive YoY metrics and can safely cache 6 months.
   if (["/income_statement", "/balance_sheet", "/cash_flow"].includes(endpoint)) {
