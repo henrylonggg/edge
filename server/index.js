@@ -2081,7 +2081,7 @@ function normalizeTwelveSeriesRows(data = {}) {
     low: cleanTwelveNumber(row.low),
     close: cleanTwelveNumber(row.close),
     volume: cleanTwelveNumber(row.volume),
-  })).filter((row) => row.datetime && Number.isFinite(row.close)).reverse();
+  })).filter((row) => row.datetime && Number.isFinite(row.close) && row.close > 0).reverse();
 }
 
 function historicalSeriesTtlMs(interval = "1day") {
@@ -2094,7 +2094,7 @@ function historicalSeriesTtlMs(interval = "1day") {
 async function fetchTwelveHistoricalSeries(symbol, { interval = "1day", outputsize = 90 } = {}) {
   const clean = cleanTicker(symbol);
   if (!clean) return [];
-  const safeInterval = ["1min", "5min", "15min", "30min", "45min", "1h", "1day", "1week"].includes(String(interval)) ? String(interval) : "1day";
+  const safeInterval = ["1min", "5min", "15min", "30min", "45min", "1h", "1day", "1week", "1month"].includes(String(interval)) ? String(interval) : "1day";
   const safeOutputsize = Math.max(30, Math.min(520, Number(outputsize || 90)));
   const data = await fetchTwelveDataJson("/time_series", { symbol: clean, interval: safeInterval, outputsize: safeOutputsize }, 5000);
   return normalizeTwelveSeriesRows(data);
@@ -2146,11 +2146,9 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
     const twelveLogoUrl = String(twelveLogoData?.url || twelveLogoData?.logo || twelveLogoData?.logo_url || twelveLogoData?.image || twelveLogoData?.image_url || twelveLogoData?.meta?.url || "").trim();
     const finnhubLogoUrl = String(finnhubProfile?.logo || "").trim();
     const candidates = [];
-    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
     if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
+    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
     candidates.push(
-      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.png`,
-      `https://api.twelvedata.com/logo/${encodeURIComponent(symbol)}.jpg`,
       `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
       `https://storage.googleapis.com/iex/api/logos/${encodeURIComponent(symbol)}.png`,
       `https://eodhd.com/img/logos/US/${encodeURIComponent(symbol)}.png`
@@ -2180,7 +2178,9 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
         if (!/^image\//i.test(contentType)) continue;
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        if (!buffer.length) continue;
+        if (!buffer.length || buffer.length < 650) continue;
+        const lowerCandidate = String(candidate).toLowerCase();
+        if (/placeholder|default|avatar|generic|favicon/.test(lowerCandidate) && !/clearbit|duckduckgo|google/.test(lowerCandidate)) continue;
         companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
         return { buffer, contentType };
       } catch {}
