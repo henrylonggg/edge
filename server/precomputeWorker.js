@@ -16,12 +16,12 @@ const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET after the o
 const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET after the one-time test morning
 const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || "2026-07-01";
 const ONE_TIME_TEST_WINDOW_ENABLED = String(process.env.EVAL_ONE_TIME_TEST_WINDOW_ENABLED || "true").toLowerCase() !== "false";
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || 15); // 10:10 AM ET
-const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || 8 * 60 + 45); // 6:40 PM ET
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 20)); // 10:20 AM ET today
+const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (18 * 60 + 50)); // 6:50 PM ET today, same 8h30m test window
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
 const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
-const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 8:00 AM ET
-const TECH_WINDOW_END_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_END_MINUTES || 9 * 60 + 30); // 8:30 AM ET
+const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 9:15 AM ET
+const TECH_WINDOW_END_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_END_MINUTES || 9 * 60 + 30); // 9:30 AM ET
 const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500);
 const WEEKLY_SIZE = Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500);
 const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 60_000));
@@ -65,7 +65,7 @@ function activePrecomputeWindow() {
     return {
       startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
       endMinutes: ONE_TIME_TEST_WINDOW_END_MINUTES,
-      label: "12:15 AM-8:45 AM ET one-time test window",
+      label: "10:20 AM-6:50 PM ET one-time test window",
       oneTime: true,
     };
   }
