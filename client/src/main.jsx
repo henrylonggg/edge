@@ -5079,7 +5079,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
                     <span>{group.sector}</span>
                     <small>{Number(group.totalWeightPercent || 0).toFixed(2)}% • {money(group.totalHoldingDollars)} • {signedMoney(group.totalDollarChange)} ({signedPercent(group.totalReturnPercent)}) • {isOpen ? "Close" : "Open"}</small>
                   </div>
-                  <EvalScoreTextBadge value={group.sectorEvalScore} className="portfolio-industry-eval-score watch-score-plain" />
+                  <EvalScoreTextBadge value={group.sectorEvalScore} className="portfolio-holding-eval-score portfolio-industry-eval-score industry-score-as-stock watch-score-plain" />
                 </button>
                 {isOpen && (
                   <div className="portfolio-holdings-table portfolio-industry-table-v3" style={{ "--holding-grid-template": holdingsTemplate, "--mobile-holding-cols": holdingColumns.length }}>
