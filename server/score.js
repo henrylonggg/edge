@@ -2756,7 +2756,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
         requiredCategories: coreCategoryKeys,
         hasAllCoreCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Eval Score uses seven weighted categories with automatic redistribution when a metric is missing: Profitability 20%, Valuation 17%, Growth 16%, Financial Health 16%, News Sentiment 13%, Momentum 11%, Pullback 7%.",
+        scoreRule: "Eval Score uses six weighted categories with automatic redistribution when a metric is missing: Profitability 22%, Valuation 20%, Growth 19%, Financial Health 18%, Momentum 13%, Pullback 8%.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), databaseOnly: true, apiMinimization: "Browser/UI reads stored Eval database reports only. Twelve Data calls run inside scheduled backend workers." },
         sources: { price: "Twelve Data quote/WebSocket", marketData: twelveMarket?.source || "Twelve Data time_series", fundamentals: [finnhubFundamentals?.source, fmpFundamentals?.source, massiveFundamentals?.source, twelveFundamentals?.source].filter(Boolean).join(" | "), profile: finnhubProfile ? "Finnhub profile2" : "Twelve Data profile" }
       }
