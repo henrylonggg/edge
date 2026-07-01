@@ -16,8 +16,8 @@ const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET after the o
 const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET after the one-time test morning
 const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || "2026-07-01";
 const ONE_TIME_TEST_WINDOW_ENABLED = String(process.env.EVAL_ONE_TIME_TEST_WINDOW_ENABLED || "true").toLowerCase() !== "false";
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 35)); // 10:35 AM ET today
-const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (19 * 60 + 5)); // 7:05 PM ET today, same 8h30m test window
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 50)); // 10:50 AM ET today
+const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (19 * 60 + 20)); // 7:20 PM ET today, same 8h30m test window
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
 const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
 const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 9:15 AM ET
@@ -65,7 +65,7 @@ function activePrecomputeWindow() {
     return {
       startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
       endMinutes: ONE_TIME_TEST_WINDOW_END_MINUTES,
-      label: "10:35 AM-7:05 PM ET one-time restart test window",
+      label: "10:50 AM-7:20 PM ET one-time restart test window",
       oneTime: true,
     };
   }
@@ -90,7 +90,7 @@ function operationalBatchDateKey(startMinutes, endMinutes) {
   const active = activePrecomputeWindow();
   // Give today's manual 10:35 AM restart its own batch key so it starts again
   // even if an earlier one-time test already wrote progress for the same date.
-  if (active.oneTime) return `${dateKey}:one-time-1035-restart`;
+  if (active.oneTime) return `${dateKey}:one-time-1050-restart`;
   // For overnight windows such as 11:00 PM-7:30 AM, the after-midnight portion
   // belongs to the previous evening's batch instead of accidentally starting a new batch.
   if (startMinutes > endMinutes && minutes < endMinutes) return previousEtDateKey(now);
