@@ -11140,7 +11140,7 @@ function Watchlist({
                   <span className="watch-ticker-main">{ticker}</span>
                 </button>
 
-                <div className="watch-row-sparkline-wrap"><WatchSparkline symbol={ticker} score={item.score} liveEnabled={false} /></div>
+                <div className="watch-row-sparkline-wrap"><WatchMiniSparkline symbol={ticker} /></div>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
 
@@ -11167,7 +11167,7 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
       "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
       "Margin of safety and percent difference from intrinsic value",
-      "      "More detailed metric explanations in plain English",
+      "More detailed metric explanations in plain English",
       "Expanded Eval AI Assistant access for stock questions",
     ],
   };
