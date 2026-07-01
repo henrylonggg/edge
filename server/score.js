@@ -1,4 +1,4 @@
-// Eval update: Hybrid provider scoring. Twelve Data = live/chart/quote. Finnhub = primary metrics. FMP/Massive = metric fallbacks.
+// Eval update: Twelve Data database-only scoring. UI reads stored reports; nightly worker refreshes metrics.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
 const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
 const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
@@ -11,8 +11,7 @@ const CATEGORY_LABELS = {
   profitability: "Profitability",
   financialHealth: "Financial Health",
   valuation: "Valuation",
-  newsSentiment: "News Sentiment",
-  momentum: "Momentum",
+    momentum: "Momentum",
   pullback: "Pullback",
 };
 
@@ -211,6 +210,27 @@ function divide(a, b) {
   return x / y;
 }
 
+function percentChange(latest, prior) {
+  const l = safeNumber(latest);
+  const p = safeNumber(prior);
+  if (l === null || p === null || p === 0) return null;
+  return ((l - p) / Math.abs(p)) * 100;
+}
+
+function annualizedGrowth(latest, prior, years) {
+  const l = safeNumber(latest);
+  const p = safeNumber(prior);
+  const y = safeNumber(years);
+  if (l === null || p === null || l <= 0 || p <= 0 || y === null || y <= 0) return null;
+  return (Math.pow(l / p, 1 / y) - 1) * 100;
+}
+
+function setDerivedMetric(target, key, value) {
+  if (scoreInputNumber(target?.[key]) === null && scoreInputNumber(value) !== null) {
+    target[key] = value;
+  }
+}
+
 function toMillions(value) {
   const n = safeNumber(value);
   return n === null ? null : n / 1_000_000;
@@ -330,45 +350,55 @@ async function fetchTwelveDataProfile(symbol) {
 }
 
 async function fetchTwelveDataMarketData(symbol) {
-  // One compact weekly history call only when the scoring model needs momentum.
-  // Current price remains hidden in the UI, but the latest weekly close is needed to
-  // calculate 4/13/26/52-week returns and distance from the 52-week range.
-  const data = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1week", outputsize: 60 });
+  // One Twelve Data /time_series call supplies daily closes for chart history,
+  // momentum, RSI, and pullback. This is the cheap technical data path.
+  const data = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1day", outputsize: 1300 });
   const rows = twelveList(data)
     .map((row) => ({
       date: row?.datetime || row?.date || row?.timestamp || "",
+      datetime: row?.datetime || row?.date || row?.timestamp || "",
       close: cleanTwelveNumber(row?.close),
       high: cleanTwelveNumber(row?.high),
       low: cleanTwelveNumber(row?.low),
+      open: cleanTwelveNumber(row?.open),
+      volume: cleanTwelveNumber(row?.volume),
     }))
-    .filter((row) => row.close !== null)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    .filter((row) => row.close !== null && row.close > 0)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
-  const latest = rows[0] || null;
-  const priceAt = (index) => rows[Math.min(index, Math.max(0, rows.length - 1))]?.close ?? null;
-  const pctReturn = (weeks) => {
+  const latest = rows.at(-1) || null;
+  const priceAtBack = (days) => rows.length > days ? rows[rows.length - 1 - days]?.close ?? null : null;
+  const pctReturnDays = (days) => {
     const current = latest?.close ?? null;
-    const past = priceAt(weeks);
+    const past = priceAtBack(days);
     return current !== null && past !== null && past > 0 ? ((current - past) / past) * 100 : null;
   };
 
-  const highs = rows.map((row) => row.high).filter((value) => value !== null);
-  const lows = rows.map((row) => row.low).filter((value) => value !== null);
+  const trailingYear = rows.slice(-260);
+  const highs = trailingYear.map((row) => row.high ?? row.close).filter((value) => value !== null);
+  const lows = trailingYear.map((row) => row.low ?? row.close).filter((value) => value !== null);
   const weekHigh = highs.length ? Math.max(...highs) : null;
   const weekLow = lows.length ? Math.min(...lows) : null;
+  const current = latest?.close ?? null;
+  const rsi14 = computeRsiFromCloses(rows.map((row) => row.close), 14);
 
   return {
-    quote: latest ? { c: latest.close, d: null, dp: null, h: latest.high, l: latest.low, o: null, pc: priceAt(1) } : null,
+    rows,
+    quote: latest ? { c: latest.close, d: null, dp: null, h: latest.high, l: latest.low, o: latest.open, pc: priceAtBack(1) } : null,
     metrics: {
-      currentPrice: latest?.close ?? null,
-      priceReturn4Week: pctReturn(4),
-      priceReturn13Week: pctReturn(13),
-      priceReturn26Week: pctReturn(26),
-      priceReturn52Week: pctReturn(52),
+      currentPrice: current,
+      priceReturn4Week: pctReturnDays(20),
+      priceReturn12Week: pctReturnDays(60),
+      priceReturn13Week: pctReturnDays(65),
+      priceReturn26Week: pctReturnDays(130),
+      priceReturn52Week: pctReturnDays(260),
+      rsi14,
       weekHigh,
       weekLow,
+      pullbackFromHigh: current !== null && weekHigh ? ((weekHigh - current) / weekHigh) * 100 : null,
+      distanceFrom52WeekLow: current !== null && weekLow ? ((current - weekLow) / weekLow) * 100 : null,
     },
-    source: "Twelve Data /time_series weekly",
+    source: "Twelve Data /time_series daily",
   };
 }
 
@@ -438,6 +468,47 @@ function twelveLatest(data) {
 function pickTwelveNumber(obj = {}, keys = []) {
   for (const key of keys) {
     const value = cleanTwelveNumber(obj?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+function pickTwelveNumberFlexible(obj = {}, keyGroups = []) {
+  const flat = flattenTwelveStats(obj || {});
+  for (const keys of keyGroups) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    const direct = pickTwelveNumber(obj, list);
+    if (direct !== null) return direct;
+    for (const key of list) {
+      const normalized = normalizeStatKey(key);
+      const fromFlat = cleanTwelveNumber(flat?.[normalized]);
+      if (fromFlat !== null) return fromFlat;
+    }
+  }
+  return null;
+}
+
+function trailingSum(rows = [], aliases = [], count = 4) {
+  const values = (Array.isArray(rows) ? rows : [])
+    .slice(0, count)
+    .map((row) => pickTwelveNumberFlexible(row, aliases))
+    .filter((value) => value !== null);
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0);
+}
+
+function trailingAverage(rows = [], aliases = [], count = 4) {
+  const values = (Array.isArray(rows) ? rows : [])
+    .slice(0, count)
+    .map((row) => pickTwelveNumberFlexible(row, aliases))
+    .filter((value) => value !== null);
+  if (!values.length) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function firstStatementNumber(rows = [], aliases = []) {
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const value = pickTwelveNumberFlexible(row, aliases);
     if (value !== null) return value;
   }
   return null;
@@ -803,28 +874,41 @@ async function fetchTwelveDataFundamentals(symbol) {
     const balance = balanceRows[0] || {};
     const cash = cashRows[0] || {};
 
-    const statementRevenue = pickTwelveNumber(income, ["revenue", "total_revenue", "sales"]);
-    const priorRevenue = pickTwelveNumber(priorIncome, ["revenue", "total_revenue", "sales"]);
+    const statementRevenue = pickTwelveNumberFlexible(income, [["revenue", "total_revenue", "sales", "total_operating_revenue"]]);
+    const priorRevenue = pickTwelveNumberFlexible(priorIncome, [["revenue", "total_revenue", "sales", "total_operating_revenue"]]);
     const olderIncome = incomeRows[2] || incomeRows[3] || {};
     const oldestIncome = incomeRows[Math.min(incomeRows.length - 1, 4)] || {};
-    const olderRevenue = pickTwelveNumber(olderIncome, ["revenue", "total_revenue", "sales"]);
-    const oldestRevenue = pickTwelveNumber(oldestIncome, ["revenue", "total_revenue", "sales"]);
-    const epsLatest = pickTwelveNumber(income, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
-    const epsPrior = pickTwelveNumber(priorIncome, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
-    const epsOldest = pickTwelveNumber(oldestIncome, ["eps", "eps_diluted", "diluted_eps", "earnings_per_share"]);
-    const netIncome = pickTwelveNumber(income, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
-    const priorNetIncome = pickTwelveNumber(priorIncome, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
-    const oldestNetIncome = pickTwelveNumber(oldestIncome, ["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]);
-    const operatingIncome = pickTwelveNumber(income, ["operating_income", "ebit"]);
-    const grossProfit = pickTwelveNumber(income, ["gross_profit"]);
-    const totalDebt = pickTwelveNumber(balance, ["total_debt", "short_term_debt", "long_term_debt"]);
-    const shareholderEquity = pickTwelveNumber(balance, ["total_equity", "shareholders_equity", "total_shareholders_equity"]);
-    const totalAssets = pickTwelveNumber(balance, ["total_assets"]);
-    const currentAssets = pickTwelveNumber(balance, ["total_current_assets", "current_assets"]);
-    const currentLiabilities = pickTwelveNumber(balance, ["total_current_liabilities", "current_liabilities"]);
-    const cashAndEquivalents = pickTwelveNumber(balance, ["cash_and_cash_equivalents", "cash_and_equivalents", "cash"]);
-    const operatingCashFlow = pickTwelveNumber(cash, ["operating_cash_flow", "cash_flow_from_operating_activities"]);
-    const freeCashFlow = pickTwelveNumber(cash, ["free_cash_flow"]);
+    const olderRevenue = pickTwelveNumberFlexible(olderIncome, [["revenue", "total_revenue", "sales", "total_operating_revenue"]]);
+    const oldestRevenue = pickTwelveNumberFlexible(oldestIncome, [["revenue", "total_revenue", "sales", "total_operating_revenue"]]);
+    const epsLatest = pickTwelveNumberFlexible(income, [["eps", "eps_diluted", "diluted_eps", "earnings_per_share", "basic_eps"]]);
+    const epsPrior = pickTwelveNumberFlexible(priorIncome, [["eps", "eps_diluted", "diluted_eps", "earnings_per_share", "basic_eps"]]);
+    const epsOldest = pickTwelveNumberFlexible(oldestIncome, [["eps", "eps_diluted", "diluted_eps", "earnings_per_share", "basic_eps"]]);
+    const netIncome = pickTwelveNumberFlexible(income, [["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]]);
+    const priorNetIncome = pickTwelveNumberFlexible(priorIncome, [["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]]);
+    const oldestNetIncome = pickTwelveNumberFlexible(oldestIncome, [["net_income", "net_income_common_stockholders", "net_income_available_to_common_shareholders"]]);
+    const operatingIncome = pickTwelveNumberFlexible(income, [["operating_income", "operating_profit"], ["ebit"]]);
+    const grossProfit = pickTwelveNumberFlexible(income, [["gross_profit"]]);
+    const pretaxIncome = pickTwelveNumberFlexible(income, [["pretax_income", "income_before_tax", "income_before_income_taxes"]]);
+    const incomeTaxExpense = pickTwelveNumberFlexible(income, [["income_tax_expense", "tax_provision", "provision_for_income_taxes"]]);
+    const interestExpense = Math.abs(firstNumber(pickTwelveNumberFlexible(income, [["interest_expense", "interestexpense"]]), pickTwelveNumberFlexible(income, [["net_interest_income"]])) || 0) || null;
+    const ebitda = firstNumber(pickTwelveNumberFlexible(income, [["ebitda"]]), operatingIncome !== null ? operatingIncome + Math.abs(firstNumber(pickTwelveNumberFlexible(cash, [["depreciation_and_amortization", "depreciation_amortization"]]), pickTwelveNumberFlexible(income, [["depreciation_and_amortization"]])) || 0) : null);
+    const dilutedShares = firstNumber(pickTwelveNumberFlexible(income, [["weighted_average_shares_outstanding_diluted", "weighted_average_shares_diluted", "diluted_average_shares"]]), metrics.sharesOutstanding);
+    const totalAssets = pickTwelveNumberFlexible(balance, [["total_assets"]]);
+    const currentAssets = pickTwelveNumberFlexible(balance, [["total_current_assets", "current_assets"]]);
+    const inventory = pickTwelveNumberFlexible(balance, [["inventory", "inventories"]]);
+    const accountsReceivable = pickTwelveNumberFlexible(balance, [["accounts_receivable", "net_receivables", "trade_and_other_receivables"]]);
+    const shortTermInvestments = pickTwelveNumberFlexible(balance, [["short_term_investments", "marketable_securities"]]);
+    const currentLiabilities = pickTwelveNumberFlexible(balance, [["total_current_liabilities", "current_liabilities"]]);
+    const totalLiabilities = pickTwelveNumberFlexible(balance, [["total_liabilities"]]);
+    const shortTermDebt = pickTwelveNumberFlexible(balance, [["short_term_debt", "current_debt"]]);
+    const longTermDebt = pickTwelveNumberFlexible(balance, [["long_term_debt", "non_current_debt"]]);
+    const totalDebt = firstNumber(pickTwelveNumberFlexible(balance, [["total_debt"]]), (safeNumber(shortTermDebt) || 0) + (safeNumber(longTermDebt) || 0));
+    const shareholderEquity = pickTwelveNumberFlexible(balance, [["total_equity", "shareholders_equity", "total_shareholders_equity", "total_stockholders_equity"]]);
+    const cashAndEquivalents = pickTwelveNumberFlexible(balance, [["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cash_cash_equivalents_and_short_term_investments"]]);
+    const operatingCashFlow = pickTwelveNumberFlexible(cash, [["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_provided_by_operating_activities"]]);
+    const capex = pickTwelveNumberFlexible(cash, [["capital_expenditure", "capital_expenditures", "capex"]]);
+    const freeCashFlow = firstNumber(pickTwelveNumberFlexible(cash, [["free_cash_flow"]]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
+    const dividendsPaid = Math.abs(firstNumber(pickTwelveNumberFlexible(cash, [["dividends_paid", "dividend_payments", "cash_dividends_paid"]])) || 0) || null;
 
     metrics.revenue = firstNumber(metrics.revenue, statementRevenue);
     metrics.netIncome = firstNumber(metrics.netIncome, netIncome);
@@ -836,6 +920,29 @@ async function fetchTwelveDataFundamentals(symbol) {
     metrics.cashAndEquivalents = firstNumber(metrics.cashAndEquivalents, cashAndEquivalents);
     metrics.operatingCashFlow = firstNumber(metrics.operatingCashFlow, operatingCashFlow);
     metrics.freeCashFlow = firstNumber(metrics.freeCashFlow, freeCashFlow);
+    metrics.priorRevenue = firstNumber(metrics.priorRevenue, priorRevenue);
+    metrics.olderRevenue = firstNumber(metrics.olderRevenue, olderRevenue);
+    metrics.oldestRevenue = firstNumber(metrics.oldestRevenue, oldestRevenue);
+    metrics.epsLatest = firstNumber(metrics.epsLatest, epsLatest);
+    metrics.epsPrior = firstNumber(metrics.epsPrior, epsPrior);
+    metrics.epsOldest = firstNumber(metrics.epsOldest, epsOldest);
+    metrics.priorNetIncome = firstNumber(metrics.priorNetIncome, priorNetIncome);
+    metrics.oldestNetIncome = firstNumber(metrics.oldestNetIncome, oldestNetIncome);
+    metrics.currentAssets = firstNumber(metrics.currentAssets, currentAssets);
+    metrics.currentLiabilities = firstNumber(metrics.currentLiabilities, currentLiabilities);
+    metrics.totalLiabilities = firstNumber(metrics.totalLiabilities, totalLiabilities);
+    metrics.inventory = firstNumber(metrics.inventory, inventory);
+    metrics.accountsReceivable = firstNumber(metrics.accountsReceivable, accountsReceivable);
+    metrics.shortTermInvestments = firstNumber(metrics.shortTermInvestments, shortTermInvestments);
+    metrics.shortTermDebt = firstNumber(metrics.shortTermDebt, shortTermDebt);
+    metrics.longTermDebt = firstNumber(metrics.longTermDebt, longTermDebt);
+    metrics.pretaxIncome = firstNumber(metrics.pretaxIncome, pretaxIncome);
+    metrics.incomeTaxExpense = firstNumber(metrics.incomeTaxExpense, incomeTaxExpense);
+    metrics.interestExpense = firstNumber(metrics.interestExpense, interestExpense);
+    metrics.ebitda = firstNumber(metrics.ebitda, ebitda);
+    metrics.dilutedShares = firstNumber(metrics.dilutedShares, dilutedShares);
+    metrics.capex = firstNumber(metrics.capex, capex);
+    metrics.dividendsPaid = firstNumber(metrics.dividendsPaid, dividendsPaid);
 
     const compoundGrowth = (latest, prior, years) => {
       const l = safeNumber(latest);
@@ -858,15 +965,19 @@ async function fetchTwelveDataFundamentals(symbol) {
     metrics.roa = firstNumber(metrics.roa, divide(netIncome, totalAssets) !== null ? divide(netIncome, totalAssets) * 100 : null);
     metrics.debtToEquity = firstNumber(metrics.debtToEquity, divide(totalDebt, shareholderEquity));
     metrics.currentRatio = firstNumber(metrics.currentRatio, divide(currentAssets, currentLiabilities));
+    metrics.quickRatio = firstNumber(metrics.quickRatio, divide((safeNumber(cashAndEquivalents) || 0) + (safeNumber(shortTermInvestments) || 0) + (safeNumber(accountsReceivable) || 0), currentLiabilities));
+    metrics.cashRatio = firstNumber(metrics.cashRatio, divide(cashAndEquivalents, currentLiabilities));
     metrics.cashFlowToDebt = firstNumber(metrics.cashFlowToDebt, divide(operatingCashFlow, totalDebt));
     metrics.operatingCashFlowPerShare = firstNumber(metrics.operatingCashFlowPerShare, divide(operatingCashFlow, sharesOutstanding));
     metrics.freeCashFlowPerShare = firstNumber(metrics.freeCashFlowPerShare, divide(freeCashFlow, sharesOutstanding));
     metrics.assetTurnover = firstNumber(metrics.assetTurnover, divide(statementRevenue, totalAssets));
     metrics.equityRatio = firstNumber(metrics.equityRatio, divide(shareholderEquity, totalAssets));
     metrics.debtToAssets = firstNumber(metrics.debtToAssets, divide(totalDebt, totalAssets));
+    metrics.pretaxMargin = firstNumber(metrics.pretaxMargin, divide(pretaxIncome, statementRevenue) !== null ? divide(pretaxIncome, statementRevenue) * 100 : null);
     metrics.fcfMargin = firstNumber(metrics.fcfMargin, divide(freeCashFlow, statementRevenue) !== null ? divide(freeCashFlow, statementRevenue) * 100 : null);
     metrics.ocfMargin = firstNumber(metrics.ocfMargin, divide(operatingCashFlow, statementRevenue) !== null ? divide(operatingCashFlow, statementRevenue) * 100 : null);
-    metrics.interestCoverage = firstNumber(metrics.interestCoverage, divide(operatingIncome, pickTwelveNumber(income, ["interest_expense", "interestexpense"])));
+    metrics.payoutRatio = firstNumber(metrics.payoutRatio, divide(dividendsPaid, netIncome) !== null ? Math.abs(divide(dividendsPaid, netIncome)) * 100 : null);
+    metrics.interestCoverage = firstNumber(metrics.interestCoverage, divide(operatingIncome, interestExpense));
     metrics.priceToSales = firstNumber(metrics.priceToSales, metrics.marketCapM !== null && statementRevenue !== null ? divide(metrics.marketCapM * 1_000_000, statementRevenue) : null);
     metrics.priceToBook = firstNumber(metrics.priceToBook, metrics.marketCapM !== null && shareholderEquity !== null ? divide(metrics.marketCapM * 1_000_000, shareholderEquity) : null);
 
@@ -1426,13 +1537,37 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     assetTurnover: firstNumber(raw.assetTurnoverTTM, raw.assetTurnoverAnnual, raw.assetTurnover),
     operatingIncome: firstNumber(raw.operatingIncomeTTM, raw.operatingIncomeAnnual, raw.operatingIncome),
     operatingCashFlow: firstNumber(raw.operatingCashFlowTTM, raw.operatingCashFlowAnnual, raw.operatingCashFlow),
-    capex: firstNumber(raw.capexTTM, raw.capexAnnual, raw.capitalExpenditureTTM, raw.capitalExpenditureAnnual, raw.capex),
+    capex: firstNumber(raw.capexTTM, raw.capexAnnual, raw.capitalExpenditureTTM, raw.capitalExpenditureAnnual, raw.capex, raw.capitalExpenditure),
     freeCashFlow: firstNumber(raw.freeCashFlowTTM, raw.freeCashFlowAnnual, raw.freeCashFlow),
+    pretaxIncome: firstNumber(raw.pretaxIncomeTTM, raw.pretaxIncomeAnnual, raw.pretaxIncome, raw.incomeBeforeTax),
+    incomeTaxExpense: firstNumber(raw.incomeTaxExpenseTTM, raw.incomeTaxExpenseAnnual, raw.incomeTaxExpense),
+    ebitda: firstNumber(raw.ebitdaTTM, raw.ebitdaAnnual, raw.ebitda),
+    dilutedShares: firstNumber(raw.dilutedSharesOutstanding, raw.weightedAverageShsOutDil, raw.sharesOutstanding),
+    dividendsPaid: firstNumber(raw.dividendsPaid, raw.dividendPayments),
     fcfMargin: percentFromDecimal(firstNumber(raw.fcfMargin, raw.freeCashFlowMargin)),
     ocfMargin: percentFromDecimal(firstNumber(raw.ocfMargin, raw.operatingCashFlowMargin)),
     netIncome: firstNumber(raw.netIncomeTTM, raw.netIncomeAnnual, raw.netIncome),
+    priorRevenue: firstNumber(raw.priorRevenue),
+    olderRevenue: firstNumber(raw.olderRevenue),
+    oldestRevenue: firstNumber(raw.oldestRevenue),
+    epsLatest: firstNumber(raw.epsLatest),
+    epsPrior: firstNumber(raw.epsPrior),
+    epsOldest: firstNumber(raw.epsOldest),
+    priorNetIncome: firstNumber(raw.priorNetIncome),
+    oldestNetIncome: firstNumber(raw.oldestNetIncome),
+    grossProfit: firstNumber(raw.grossProfitTTM, raw.grossProfitAnnual, raw.grossProfit),
+    ebitda: firstNumber(raw.ebitdaTTM, raw.ebitdaAnnual, raw.ebitda),
+    ebit: firstNumber(raw.ebitTTM, raw.ebitAnnual, raw.ebit, raw.operatingIncomeTTM, raw.operatingIncomeAnnual, raw.operatingIncome),
+    interestExpense: firstNumber(raw.interestExpenseTTM, raw.interestExpenseAnnual, raw.interestExpense),
+    currentAssets: firstNumber(raw.totalCurrentAssetsQuarterly, raw.totalCurrentAssetsAnnual, raw.currentAssetsQuarterly, raw.currentAssetsAnnual, raw.currentAssets),
     totalAssets: firstNumber(raw.totalAssetsQuarterly, raw.totalAssetsAnnual, raw.totalAssets),
     currentLiabilities: firstNumber(raw.totalCurrentLiabilitiesQuarterly, raw.totalCurrentLiabilitiesAnnual, raw.currentLiabilitiesQuarterly, raw.currentLiabilitiesAnnual, raw.currentLiabilities),
+    totalLiabilities: firstNumber(raw.totalLiabilitiesQuarterly, raw.totalLiabilitiesAnnual, raw.totalLiabilities),
+    inventory: firstNumber(raw.inventoryQuarterly, raw.inventoryAnnual, raw.inventory),
+    accountsReceivable: firstNumber(raw.accountsReceivableQuarterly, raw.accountsReceivableAnnual, raw.accountsReceivable, raw.netReceivables),
+    shortTermInvestments: firstNumber(raw.shortTermInvestmentsQuarterly, raw.shortTermInvestmentsAnnual, raw.shortTermInvestments),
+    shortTermDebt: firstNumber(raw.shortTermDebtQuarterly, raw.shortTermDebtAnnual, raw.shortTermDebt),
+    longTermDebt: firstNumber(raw.longTermDebtQuarterly, raw.longTermDebtAnnual, raw.longTermDebt),
     totalDebt: firstNumber(raw.totalDebtQuarterly, raw.totalDebtAnnual, raw.totalDebt),
     debtToAssets: firstNumber(raw.debtToAssets),
     equityRatio: firstNumber(raw.equityRatio),
@@ -1447,15 +1582,86 @@ function buildExtractedMetrics(profile, quote, raw = {}) {
     netDebtToEbitda: firstNumber(raw.netDebtToEBITDATTM, raw.netDebtToEBITDAAnnual, raw.netDebtToEbitda),
 
     priceReturn4Week: firstNumber(raw["4WeekPriceReturnDaily"], raw.monthToDatePriceReturnDaily, raw.priceReturn4Week),
+    priceReturn12Week: firstNumber(raw.priceReturn12Week, raw["12WeekPriceReturnDaily"]),
     priceReturn13Week: firstNumber(raw["13WeekPriceReturnDaily"], raw["3MonthPriceReturnDaily"], raw.priceReturn13Week),
     priceReturn26Week: firstNumber(raw["26WeekPriceReturnDaily"], raw["6MonthPriceReturnDaily"], raw.priceReturn26Week),
     priceReturn52Week: firstNumber(raw["52WeekPriceReturnDaily"], raw.yearToDatePriceReturnDaily, raw.priceReturn52Week),
     weekHigh,
     weekLow,
-    pullbackFromHigh,
+    rsi14: firstNumber(raw.rsi14, raw.rsi, raw.relativeStrengthIndex14),
+    pullbackFromHigh: firstNumber(raw.pullbackFromHigh, pullbackFromHigh),
     distanceFrom52WeekLow,
     dayChangePercent: firstNumber(quote?.dp),
   };
+}
+
+
+function deriveMissingMetrics(m = {}) {
+  // This is the core "calculate it if we can" layer. Provider fields are treated as
+  // raw ingredients. If Twelve gives revenue + prior revenue but not YoY growth, we
+  // calculate YoY growth. If it gives balance-sheet pieces but not ratios, we derive
+  // the ratios. Missing values remain voided and never count as zero.
+  setDerivedMetric(m, "revenueGrowth", percentChange(m.revenue, m.priorRevenue));
+  setDerivedMetric(m, "revenueGrowth3Y", annualizedGrowth(m.revenue, m.olderRevenue, 3));
+  setDerivedMetric(m, "revenueGrowth5Y", annualizedGrowth(m.revenue, m.oldestRevenue, 5));
+
+  setDerivedMetric(m, "epsGrowth", percentChange(firstNumber(m.epsLatest, m.eps), m.epsPrior));
+  setDerivedMetric(m, "epsGrowth3Y", annualizedGrowth(firstNumber(m.epsLatest, m.eps), m.epsOldest, 3));
+  setDerivedMetric(m, "epsGrowth5Y", annualizedGrowth(firstNumber(m.epsLatest, m.eps), m.epsOldest, 5));
+  setDerivedMetric(m, "netIncomeGrowth3Y", annualizedGrowth(m.netIncome, m.oldestNetIncome, 3));
+  setDerivedMetric(m, "netIncomeGrowth", percentChange(m.netIncome, m.priorNetIncome));
+
+  setDerivedMetric(m, "grossMargin", divide(m.grossProfit, m.revenue) !== null ? divide(m.grossProfit, m.revenue) * 100 : null);
+  setDerivedMetric(m, "operatingMargin", divide(m.operatingIncome, m.revenue) !== null ? divide(m.operatingIncome, m.revenue) * 100 : null);
+  setDerivedMetric(m, "pretaxMargin", divide(m.pretaxIncome, m.revenue) !== null ? divide(m.pretaxIncome, m.revenue) * 100 : null);
+  setDerivedMetric(m, "netMargin", divide(m.netIncome, m.revenue) !== null ? divide(m.netIncome, m.revenue) * 100 : null);
+  setDerivedMetric(m, "fcfMargin", divide(m.freeCashFlow, m.revenue) !== null ? divide(m.freeCashFlow, m.revenue) * 100 : null);
+  setDerivedMetric(m, "ocfMargin", divide(m.operatingCashFlow, m.revenue) !== null ? divide(m.operatingCashFlow, m.revenue) * 100 : null);
+
+  setDerivedMetric(m, "roe", divide(m.netIncome, m.shareholderEquity) !== null ? divide(m.netIncome, m.shareholderEquity) * 100 : null);
+  setDerivedMetric(m, "roa", divide(m.netIncome, m.totalAssets) !== null ? divide(m.netIncome, m.totalAssets) * 100 : null);
+  const investedCapital = firstNumber(m.investedCapital, (safeNumber(m.totalDebt) !== null && safeNumber(m.shareholderEquity) !== null) ? m.totalDebt + m.shareholderEquity - (safeNumber(m.cashAndEquivalents) || 0) : null);
+  setDerivedMetric(m, "investedCapital", investedCapital);
+  setDerivedMetric(m, "roicCalculated", divide(firstNumber(m.nopat, safeNumber(m.operatingIncome) !== null ? m.operatingIncome * 0.79 : null), investedCapital) !== null ? divide(firstNumber(m.nopat, safeNumber(m.operatingIncome) !== null ? m.operatingIncome * 0.79 : null), investedCapital) * 100 : null);
+  setDerivedMetric(m, "roi", m.roicCalculated);
+
+  setDerivedMetric(m, "debtToEquity", divide(m.totalDebt, m.shareholderEquity));
+  setDerivedMetric(m, "debtToAssets", divide(m.totalDebt, m.totalAssets));
+  setDerivedMetric(m, "equityRatio", divide(m.shareholderEquity, m.totalAssets));
+  setDerivedMetric(m, "totalDebt", firstNumber(m.totalDebt, (safeNumber(m.shortTermDebt) || 0) + (safeNumber(m.longTermDebt) || 0)));
+  setDerivedMetric(m, "longTermDebtToEquity", divide(m.longTermDebt, m.shareholderEquity));
+  setDerivedMetric(m, "totalLiabilitiesToAssets", divide(m.totalLiabilities, m.totalAssets));
+  setDerivedMetric(m, "totalDebtToCapital", divide(m.totalDebt, (safeNumber(m.totalDebt) || 0) + (safeNumber(m.shareholderEquity) || 0)));
+  setDerivedMetric(m, "currentRatio", divide(m.currentAssets, m.currentLiabilities));
+  setDerivedMetric(m, "quickRatio", divide((safeNumber(m.cashAndEquivalents) || 0) + (safeNumber(m.shortTermInvestments) || 0) + (safeNumber(m.accountsReceivable) || 0), m.currentLiabilities));
+  setDerivedMetric(m, "cashRatio", divide(m.cashAndEquivalents, m.currentLiabilities));
+  setDerivedMetric(m, "cashFlowToDebt", divide(m.operatingCashFlow, m.totalDebt));
+  setDerivedMetric(m, "interestCoverage", divide(firstNumber(m.ebit, m.operatingIncome), Math.abs(safeNumber(m.interestExpense) || 0)));
+
+  setDerivedMetric(m, "freeCashFlow", safeNumber(m.operatingCashFlow) !== null && safeNumber(m.capex) !== null ? m.operatingCashFlow - Math.abs(m.capex) : null);
+  setDerivedMetric(m, "freeCashFlowPerShare", divide(m.freeCashFlow, m.sharesOutstanding));
+  setDerivedMetric(m, "operatingCashFlowPerShare", divide(m.operatingCashFlow, m.sharesOutstanding));
+  setDerivedMetric(m, "assetTurnover", divide(m.revenue, m.totalAssets));
+  setDerivedMetric(m, "cashConversionRatio", divide(m.freeCashFlow, m.netIncome));
+  setDerivedMetric(m, "operatingCashConversion", divide(m.operatingCashFlow, m.netIncome));
+  setDerivedMetric(m, "accrualRatio", divide((safeNumber(m.netIncome) || 0) - (safeNumber(m.operatingCashFlow) || 0), m.totalAssets));
+  setDerivedMetric(m, "payoutRatio", divide(Math.abs(safeNumber(m.dividendsPaid) || 0), m.netIncome) !== null ? divide(Math.abs(safeNumber(m.dividendsPaid) || 0), m.netIncome) * 100 : null);
+  setDerivedMetric(m, "taxRate", divide(m.incomeTaxExpense, m.pretaxIncome) !== null ? divide(m.incomeTaxExpense, m.pretaxIncome) * 100 : null);
+
+  const marketCapDollars = safeNumber(m.marketCapM) !== null ? m.marketCapM * 1_000_000 : null;
+  setDerivedMetric(m, "priceToSales", divide(marketCapDollars, m.revenue));
+  setDerivedMetric(m, "priceToBook", divide(marketCapDollars, m.shareholderEquity));
+  setDerivedMetric(m, "priceToCashFlow", divide(marketCapDollars, m.operatingCashFlow));
+  setDerivedMetric(m, "priceToFreeCashFlow", divide(marketCapDollars, m.freeCashFlow));
+  setDerivedMetric(m, "enterpriseValue", safeNumber(m.enterpriseValue) !== null ? m.enterpriseValue : (marketCapDollars !== null ? toMillions(marketCapDollars + (safeNumber(m.totalDebt) || 0) - (safeNumber(m.cashAndEquivalents) || 0)) : null));
+  const evDollars = safeNumber(m.enterpriseValue) !== null ? (m.enterpriseValue > 1_000_000 ? m.enterpriseValue : m.enterpriseValue * 1_000_000) : null;
+  setDerivedMetric(m, "evToEbitda", divide(evDollars, m.ebitda));
+  setDerivedMetric(m, "peRatio", divide(safeNumber(m.currentPrice) !== null ? m.currentPrice : null, m.epsLatest));
+
+  setDerivedMetric(m, "pullbackFromHigh", safeNumber(m.currentPrice) !== null && safeNumber(m.weekHigh) !== null && m.weekHigh > 0 ? ((m.weekHigh - m.currentPrice) / m.weekHigh) * 100 : null);
+  setDerivedMetric(m, "distanceFrom52WeekLow", safeNumber(m.currentPrice) !== null && safeNumber(m.weekLow) !== null && m.weekLow > 0 ? ((m.currentPrice - m.weekLow) / m.weekLow) * 100 : null);
+
+  return m;
 }
 
 function scoreGrowth(m = {}) {
@@ -1627,11 +1833,9 @@ function scoreQuality(m = {}) {
 function scoreMomentum(m = {}) {
   return categoryAverage(
     [
-      { score: metricScore(m.priceReturn4Week, [[15, 10], [8, 9], [3, 8], [0, 7], [-5, 5], [-12, 4], [-999, 3]]), weight: 0.22 },
-      { score: metricScore(m.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), weight: 0.25 },
-      { score: metricScore(m.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), weight: 0.22 },
-      { score: metricScore(m.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), weight: 0.21 },
-      { score: metricScore(m.dayChangePercent, [[5, 9], [2, 8], [0, 6.5], [-2, 5], [-5, 4], [-999, 3]]), weight: 0.10 },
+      { score: metricScore(m.priceReturn12Week ?? m.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), weight: 0.36 },
+      { score: metricScore(m.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), weight: 0.34 },
+      { score: metricScore(m.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), weight: 0.30 },
     ]
   );
 }
@@ -1639,10 +1843,9 @@ function scoreMomentum(m = {}) {
 function scorePullback(m = {}) {
   return categoryAverage(
     [
-      { score: metricScore(m.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), weight: 0.42 },
-      { score: inverseMetricScore(m.priceReturn4Week, [[-8, 8.5], [-4, 7.5], [0, 6.5], [5, 5], [12, 4], [999, 3]]), weight: 0.25 },
-      { score: metricScore(m.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), weight: 0.18 },
-      { score: inverseMetricScore(m.dayChangePercent, [[-5, 8.5], [-2, 7.5], [0, 6.5], [3, 5.5], [8, 4], [999, 3]]), weight: 0.15 },
+      { score: inverseMetricScore(m.rsi14, [[30, 8.8], [40, 8], [55, 7], [65, 6], [75, 4.5], [999, 3.5]]), weight: 0.45 },
+      { score: metricScore(m.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), weight: 0.35 },
+      { score: metricScore(m.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), weight: 0.20 },
     ]
   );
 }
@@ -1662,12 +1865,7 @@ function strongestWeakest(categories = {}) {
 }
 
 function labelCategory(key) {
-  const labels = {
-      profitability: "Profitability",
-    financialHealth: "Financial Health",
-    valuation: "Valuation",
-    momentum: "Momentum",
-    };
+  const labels = { growth: "Growth", profitability: "Profitability", financialHealth: "Financial Health", valuation: "Valuation", momentum: "Momentum", pullback: "Pullback" };
 
   return labels[key] || key;
 }
@@ -1987,7 +2185,7 @@ function metricsFromReportValues(reportMetrics = {}) {
   return out;
 }
 
-function fallbackScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore) {
+function fallbackScoreSummary(symbol, profile, categories, metrics, edgeScore) {
   const entries = Object.entries(categories || {})
     .filter(([, value]) => safeNumber(value) !== null)
     .sort((a, b) => safeNumber(b[1]) - safeNumber(a[1]));
@@ -2056,8 +2254,8 @@ function parseScoreSummaryJson(content) {
   }
 }
 
-async function generateScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore) {
-  const fallback = fallbackScoreSummary(symbol, profile, categories, metrics, newsSentiment, edgeScore);
+async function generateScoreSummary(symbol, profile, categories, metrics, edgeScore) {
+  const fallback = fallbackScoreSummary(symbol, profile, categories, metrics, edgeScore);
   const openAiKey = process.env.OPENAI_API_KEY;
   if (!openAiKey) return fallback;
 
@@ -2164,6 +2362,112 @@ export async function buildAiScoreSummaryFromReport(report = {}) {
   return generateScoreSummary(symbol, profile, categories, metrics, null, edgeScore);
 }
 
+function buildStoredChartData(rows = []) {
+  const clean = Array.isArray(rows) ? rows.filter((row) => safeNumber(row?.close) !== null && safeNumber(row?.close) > 0) : [];
+  return {
+    D: clean.slice(-120),
+    "1M": clean.slice(-32),
+    "3M": clean.slice(-90),
+    "6M": clean.slice(-180),
+    "1Y": clean.filter((_, i) => i % 5 === 0).slice(-58),
+    "5Y": clean.filter((_, i) => i % 21 === 0).slice(-62),
+  };
+}
+
+function computeRsiFromCloses(closes = [], period = 14) {
+  const vals = closes.map(safeNumber).filter((v) => v !== null && v > 0);
+  if (vals.length < period + 1) return null;
+  const slice = vals.slice(-(period + 1));
+  let gains = 0;
+  let losses = 0;
+  for (let i = 1; i < slice.length; i += 1) {
+    const diff = slice[i] - slice[i - 1];
+    if (diff >= 0) gains += diff;
+    else losses += Math.abs(diff);
+  }
+  const avgGain = gains / period;
+  const avgLoss = losses / period;
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return Number((100 - (100 / (1 + rs))).toFixed(2));
+}
+
+function calculateTechnicalFromRows(rows = []) {
+  const normalized = Array.isArray(rows) ? rows
+    .map((row) => ({ datetime: row?.datetime || row?.date, close: safeNumber(row?.close) }))
+    .filter((row) => row.close !== null && row.close > 0) : [];
+  const closes = normalized.map((row) => row.close);
+  const last = closes.at(-1) ?? null;
+  const atBack = (n) => closes.length > n ? closes[closes.length - 1 - n] : null;
+  const ret = (n) => {
+    const prior = atBack(n);
+    return last !== null && prior !== null && prior > 0 ? ((last - prior) / prior) * 100 : null;
+  };
+  const high52 = closes.length ? Math.max(...closes.slice(-260)) : null;
+  const low52 = closes.length ? Math.min(...closes.slice(-260)) : null;
+  return {
+    rows: normalized,
+    current: last,
+    priceReturn4Week: ret(20),
+    priceReturn12Week: ret(60),
+    priceReturn13Week: ret(65),
+    priceReturn26Week: ret(130),
+    priceReturn52Week: ret(260),
+    rsi14: computeRsiFromCloses(closes, 14),
+    pullbackFromHigh: last !== null && high52 ? ((high52 - last) / high52) * 100 : null,
+    distanceFrom52WeekLow: last !== null && low52 ? ((last - low52) / low52) * 100 : null,
+  };
+}
+
+export async function buildDailyTechnicalRefresh(symbol, cachedReport = null) {
+  const cleanSymbol = String(symbol || '').trim().toUpperCase();
+  const quote = await fetchTwelveDataQuote(cleanSymbol);
+  const marketData = await fetchTwelveDataMarketData(cleanSymbol);
+  const rows = Array.isArray(marketData?.rows) ? marketData.rows : [];
+  const tech = calculateTechnicalFromRows(rows);
+  const extracted = { ...(cachedReport?.extracted || {}), ...tech, dayChangePercent: quote?.dp ?? cachedReport?.metrics?.dayChangePercent?.value ?? null };
+  const momentumInputs = [
+    weightedMetricInput("12W return", "momentum", extracted.priceReturn12Week ?? extracted.priceReturn13Week, metricScore(extracted.priceReturn12Week ?? extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), 4),
+    weightedMetricInput("26W return", "momentum", extracted.priceReturn26Week, metricScore(extracted.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), 4),
+    weightedMetricInput("52W return", "momentum", extracted.priceReturn52Week, metricScore(extracted.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), 3),
+  ].filter(Boolean);
+  const pullbackInputs = [
+    weightedMetricInput("RSI 14", "pullback", extracted.rsi14, inverseMetricScore(extracted.rsi14, [[30, 8.8], [40, 8], [55, 7], [65, 6], [75, 4.5], [999, 3.5]]), 5),
+    weightedMetricInput("Pullback from high", "pullback", extracted.pullbackFromHigh, metricScore(extracted.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), 3),
+    weightedMetricInput("52W low distance", "pullback", extracted.distanceFrom52WeekLow, metricScore(extracted.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), 2),
+  ].filter(Boolean);
+  const momentumScore = availableWeightedAverage(momentumInputs, null);
+  const pullbackScore = availableWeightedAverage(pullbackInputs, null);
+  const categories = { ...(cachedReport?.grades?.categories || {}) };
+  if (momentumScore !== null) categories.momentum = momentumScore;
+  if (pullbackScore !== null) categories.pullback = pullbackScore;
+  delete categories.newsSentiment;
+  delete categories.quality;
+  const categoryScoreInputs = [
+    weightedMetricInput("Profitability", "overall", categories.profitability, categories.profitability, 22),
+    weightedMetricInput("Financial Health", "overall", categories.financialHealth, categories.financialHealth, 20),
+    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 18),
+    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 16),
+    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 14),
+    weightedMetricInput("Pullback", "overall", categories.pullback, categories.pullback, 10),
+  ].filter(Boolean);
+  const edgeScore = availableWeightedAverage(categoryScoreInputs, null);
+  const metrics = { ...(cachedReport?.metrics || {}) };
+  for (const [key, val] of Object.entries({ priceReturn4Week: extracted.priceReturn4Week, priceReturn12Week: extracted.priceReturn12Week, priceReturn13Week: extracted.priceReturn13Week, priceReturn26Week: extracted.priceReturn26Week, priceReturn52Week: extracted.priceReturn52Week, rsi14: extracted.rsi14, pullbackFromHigh: extracted.pullbackFromHigh, distanceFrom52WeekLow: extracted.distanceFrom52WeekLow, dayChangePercent: extracted.dayChangePercent })) {
+    metrics[key] = metric(val, key.includes('Return') || key.includes('pullback') || key.includes('distance') || key === 'dayChangePercent' ? '%' : '', 'Twelve Data daily technical refresh', 'Stored daily technical value');
+  }
+  return {
+    ...(cachedReport || {}),
+    symbol: cleanSymbol,
+    quote: { ...(cachedReport?.quote || {}), ...(quote || {}), c: quote?.c ?? tech.current ?? cachedReport?.quote?.c ?? null },
+    chartData: { ...(cachedReport?.chartData || {}), D: rows.slice(-120), '6M': rows.slice(-180), '1Y': rows.filter((_, i) => i % 5 === 0).slice(-58), '5Y': rows.filter((_, i) => i % 21 === 0).slice(-62) },
+    metrics,
+    grades: { ...(cachedReport?.grades || {}), edgeScore, grade: gradeFrom10(edgeScore), categories },
+    extracted,
+    technicalRefreshedAt: new Date().toISOString(),
+  };
+}
+
 export async function buildStockAnalysis(symbol, options = {}) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
   if (!cleanSymbol) throw new Error("Missing ticker symbol.");
@@ -2173,22 +2477,21 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const refreshProfile = options?.refreshProfile ?? !hasCachedReport;
   const refreshFundamentals = options?.refreshFundamentals ?? true;
   const refreshMarket = options?.refreshMarket ?? true;
-  const refreshNews = options?.refreshNews ?? true;
+  const refreshNews = false;
   const includeAiScoreSummary = options?.includeAiScoreSummary !== false;
 
   if (!process.env.TWELVE_DATA_API_KEY) {
     throw new Error("Missing TWELVE_DATA_API_KEY in Render environment variables.");
   }
 
-  const [twelveProfile, finnhubProfile, finnhubFundamentals, fmpFundamentals, massiveFundamentals, twelveFundamentals, finnhubNews] = await Promise.all([
+  const [twelveProfile, twelveFundamentals] = await Promise.all([
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
-    refreshProfile ? fetchFinnhubProfile(cleanSymbol) : (cachedReport?.profile || null),
-    (refreshFundamentals || !hasCachedReport) ? fetchFinnhubFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {}, source: "Cached report" },
-    (refreshFundamentals || !hasCachedReport) ? fetchFmpFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "FMP skipped" },
-    (refreshFundamentals || !hasCachedReport) ? fetchMassiveFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "Massive skipped" },
-    (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: {}, raw: {}, source: "Twelve Data fundamentals skipped" },
-    refreshNews ? fetchFinnhubCompanyNews(cleanSymbol) : [],
+    (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {}, source: "Cached report" },
   ]);
+  const finnhubProfile = {};
+  const finnhubFundamentals = { metrics: {}, raw: {}, source: "Finnhub disabled" };
+  const fmpFundamentals = { metrics: {}, raw: {}, source: "FMP disabled" };
+  const massiveFundamentals = { metrics: {}, raw: {}, source: "Massive disabled" };
   const existingMarketInputs = validMetricInputCount([
     twelveFundamentals?.metrics?.priceReturn4Week,
     twelveFundamentals?.metrics?.priceReturn13Week,
@@ -2225,8 +2528,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const fmpMetrics = fmpFundamentals?.metrics || {};
   const massiveMetrics = massiveFundamentals?.metrics || {};
   const twelveFundamentalMetrics = twelveFundamentals?.metrics || {};
-  // Provider priority for metrics: Finnhub primary, then FMP, Massive, Twelve sparse fallback, cached last.
-  // Twelve remains the source of live quotes, WebSocket prices, and chart time-series.
+  // Metric priority: cached report + Twelve Data profile/statistics/time-series only. Missing values are voided, never counted as zero.
   const raw = mergeDefined(cachedMetrics, twelveFundamentalMetrics, massiveMetrics, fmpMetrics, finnhubMetrics, twelveMarketMetrics);
   const extracted = buildExtractedMetrics(profile, quote, raw);
   applyMetricFallbacks(extracted, cachedMetrics, cachedMetrics);
@@ -2235,6 +2537,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   applyMetricFallbacks(extracted, fmpMetrics, cachedMetrics);
   applyMetricFallbacks(extracted, finnhubMetrics, cachedMetrics);
   applyMetricFallbacks(extracted, twelveMarketMetrics, cachedMetrics);
+  deriveMissingMetrics(extracted);
 
   extracted.nopat = scoreInputNumber(extracted.operatingIncome) !== null ? extracted.operatingIncome * (1 - 0.21) : null;
   extracted.investedCapital = scoreInputNumber(extracted.totalDebt) !== null && scoreInputNumber(extracted.shareholderEquity) !== null
@@ -2247,9 +2550,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
   extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
 
-  const newsSentiment = await scoreNewsSentiment(cleanSymbol, profile, Array.isArray(finnhubNews) ? finnhubNews : []);
-  const newsSentimentScore = safeNumber(newsSentiment?.score);
-
+  
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
   const growthScore = categoryAverage([
@@ -2265,7 +2566,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const momentumScore = scoreMomentum(extracted);
   const pullbackScore = scorePullback(extracted);
 
-  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, newsSentiment: newsSentimentScore, momentum: momentumScore, pullback: pullbackScore };
+  const categories = { growth: growthScore, profitability: profitabilityScore, financialHealth: healthScore, valuation: valuationScore, momentum: momentumScore, pullback: pullbackScore };
   const metricScoreInputs = [
     // Growth: revenue growth, earnings growth, and recent stock movement. Missing values are skipped, never counted as zero.
     weightedMetricInput("Revenue growth", "growth", extracted.revenueGrowth, metricScore(extracted.revenueGrowth, [[35, 10], [25, 9], [15, 8], [8, 7], [3, 6], [0, 5], [-8, 4], [-999, 3]]), 7.5),
@@ -2303,18 +2604,15 @@ export async function buildStockAnalysis(symbol, options = {}) {
     weightedMetricInput("EV / EBITDA", "valuation", extracted.evToEbitda, inverseMetricScore(extracted.evToEbitda, [[10, 9], [16, 8], [24, 6.5], [35, 5], [60, 3.5], [9999, 2.5]]), 4.0),
     weightedMetricInput("Dividend yield", "valuation", extracted.dividendYield, metricScore(extracted.dividendYield, [[6, 8.5], [3, 7.5], [1, 6.5], [0, 5.5], [-999, 5]]), 1.5),
 
-    // Momentum: useful, but smaller than company fundamentals.
-    weightedMetricInput("4W return", "momentum", extracted.priceReturn4Week, metricScore(extracted.priceReturn4Week, [[15, 10], [8, 9], [3, 8], [0, 7], [-5, 5], [-12, 4], [-999, 3]]), 2.5),
-    weightedMetricInput("13W return", "momentum", extracted.priceReturn13Week, metricScore(extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), 3.0),
-    weightedMetricInput("26W return", "momentum", extracted.priceReturn26Week, metricScore(extracted.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), 3.0),
-    weightedMetricInput("52W return", "momentum", extracted.priceReturn52Week, metricScore(extracted.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), 2.5),
-    weightedMetricInput("Daily change", "momentum", extracted.dayChangePercent, metricScore(extracted.dayChangePercent, [[5, 9], [2, 8], [0, 6.5], [-2, 5], [-5, 4], [-999, 3]]), 1.0),
+    // Momentum: 12-week, 26-week, and 52-week price movement only.
+    weightedMetricInput("12W return", "momentum", extracted.priceReturn12Week ?? extracted.priceReturn13Week, metricScore(extracted.priceReturn12Week ?? extracted.priceReturn13Week, [[25, 10], [15, 9], [8, 8], [2, 7], [-5, 5], [-15, 4], [-999, 3]]), 4.0),
+    weightedMetricInput("26W return", "momentum", extracted.priceReturn26Week, metricScore(extracted.priceReturn26Week, [[40, 10], [25, 9], [12, 8], [3, 7], [-8, 5], [-20, 4], [-999, 3]]), 3.5),
+    weightedMetricInput("52W return", "momentum", extracted.priceReturn52Week, metricScore(extracted.priceReturn52Week, [[70, 10], [40, 9], [20, 8], [5, 7], [-10, 5], [-25, 4], [-999, 3]]), 3.0),
 
-    // Pullback: rewards a healthier entry setup without making it more important than fundamentals.
-    weightedMetricInput("Pullback from high", "pullback", extracted.pullbackFromHigh, metricScore(extracted.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), 4.5),
-    weightedMetricInput("4W cooling", "pullback", extracted.priceReturn4Week, inverseMetricScore(extracted.priceReturn4Week, [[-8, 8.5], [-4, 7.5], [0, 6.5], [5, 5], [12, 4], [999, 3]]), 2.8),
-    weightedMetricInput("52W low distance", "pullback", extracted.distanceFrom52WeekLow, metricScore(extracted.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), 1.8),
-    weightedMetricInput("Daily dip", "pullback", extracted.dayChangePercent, inverseMetricScore(extracted.dayChangePercent, [[-5, 8.5], [-2, 7.5], [0, 6.5], [3, 5.5], [8, 4], [999, 3]]), 1.5),
+    // Pullback: RSI + technical distance from recent highs/lows.
+    weightedMetricInput("RSI 14", "pullback", extracted.rsi14, inverseMetricScore(extracted.rsi14, [[30, 8.8], [40, 8], [55, 7], [65, 6], [75, 4.5], [999, 3.5]]), 4.5),
+    weightedMetricInput("Pullback from high", "pullback", extracted.pullbackFromHigh, metricScore(extracted.pullbackFromHigh, [[35, 9], [25, 8], [15, 7], [8, 6], [3, 5], [0, 4], [-999, 3]]), 3.5),
+    weightedMetricInput("52W low distance", "pullback", extracted.distanceFrom52WeekLow, metricScore(extracted.distanceFrom52WeekLow, [[80, 9], [50, 8], [30, 7], [15, 6], [5, 5], [-999, 3]]), 2.0),
   ].filter(Boolean);
 
   const validInputCounts = {
@@ -2322,7 +2620,6 @@ export async function buildStockAnalysis(symbol, options = {}) {
     profitability: metricScoreInputs.filter((item) => item.category === "profitability").length,
     financialHealth: metricScoreInputs.filter((item) => item.category === "financialHealth").length,
     valuation: metricScoreInputs.filter((item) => item.category === "valuation").length,
-    newsSentiment: metricScoreInputs.filter((item) => item.category === "newsSentiment").length,
     momentum: metricScoreInputs.filter((item) => item.category === "momentum").length,
     pullback: metricScoreInputs.filter((item) => item.category === "pullback").length,
   };
@@ -2330,23 +2627,22 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const validCategoryCount = Object.values(categories).filter((value) => safeNumber(value) !== null).length;
   const totalValidMetricInputs = metricScoreInputs.length;
   const categoriesWithDataCount = Object.values(validInputCounts).filter((value) => Number(value || 0) > 0).length;
-  const coreCategoryKeys = ["growth", "profitability", "financialHealth", "valuation", "newsSentiment", "momentum", "pullback"];
+  const coreCategoryKeys = ["growth", "profitability", "financialHealth", "valuation",  "momentum", "pullback"];
   const hasAllCoreCategoryScores = coreCategoryKeys.every((key) => safeNumber(categories[key]) !== null);
   const categoryScoreInputs = [
-    weightedMetricInput("Profitability", "overall", categories.profitability, categories.profitability, 20),
-    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 17),
-    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 16),
-    weightedMetricInput("Financial Health", "overall", categories.financialHealth, categories.financialHealth, 16),
-    weightedMetricInput("News Sentiment", "overall", categories.newsSentiment, categories.newsSentiment, 13),
-    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 11),
-    weightedMetricInput("Pullback", "overall", categories.pullback, categories.pullback, 7),
+    weightedMetricInput("Profitability", "overall", categories.profitability, categories.profitability, 22),
+    weightedMetricInput("Financial Health", "overall", categories.financialHealth, categories.financialHealth, 19),
+    weightedMetricInput("Valuation", "overall", categories.valuation, categories.valuation, 18),
+    weightedMetricInput("Growth", "overall", categories.growth, categories.growth, 17),
+    weightedMetricInput("Momentum", "overall", categories.momentum, categories.momentum, 14),
+    weightedMetricInput("Pullback", "overall", categories.pullback, categories.pullback, 10),
   ].filter(Boolean);
-  const canCalculateEvalScore = validCategoryCount >= 2 && totalValidMetricInputs >= 8;
+  const canCalculateEvalScore = validCategoryCount >= 3 && totalValidMetricInputs >= 10;
   const edgeScore = canCalculateEvalScore ? availableWeightedAverage(categoryScoreInputs, null) : null;
 
   const riskLabel = null;
   const sw = strongestWeakest(categories);
-  const src = "Finnhub / FMP / Massive with Twelve Data chart/quote";
+  const src = "Twelve Data precomputed database";
   const reportMetrics = {
     revenueGrowth: metric(extracted.revenueGrowth, "%", src, "Revenue growth YoY"),
     revenueGrowth3Y: metric(extracted.revenueGrowth3Y, "%", src, "3-year revenue CAGR"),
@@ -2358,25 +2654,26 @@ export async function buildStockAnalysis(symbol, options = {}) {
     roe: metric(extracted.roe, "%", src, "Return on equity"), roa: metric(extracted.roa, "%", src, "Return on assets"), roi: metric(extracted.roicCalculated, "%", src, "Return on invested capital"), grossMargin: metric(extracted.grossMargin, "%", src, "Gross profit / revenue"), operatingMargin: metric(extracted.operatingMargin, "%", src, "Operating income / revenue"), pretaxMargin: metric(extracted.pretaxMargin, "%", src, "Pretax income / revenue"), netMargin: metric(extracted.netMargin, "%", src, "Net income / revenue"), fcfMargin: metric(extracted.fcfMargin, "%", src, "Free cash flow / revenue"), ocfMargin: metric(extracted.ocfMargin, "%", src, "Operating cash flow / revenue"),
     debtToEquity: metric(extracted.debtToEquity, "", src, "Total debt / equity"), longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", src, "Long-term debt / equity"), debtToAssets: metric(extracted.debtToAssets, "", src, "Total debt / assets"), equityRatio: metric(extracted.equityRatio, "", src, "Equity / assets"), currentRatio: metric(extracted.currentRatio, "", src, "Current assets / current liabilities"), quickRatio: metric(extracted.quickRatio, "", src, "Quick assets / current liabilities"), cashRatio: metric(extracted.cashRatio, "", src, "Cash / current liabilities"), assetTurnover: metric(extracted.assetTurnover, "", src, "Revenue / assets"), interestCoverage: metric(extracted.interestCoverage, "", src, "EBIT / interest expense"), cashFlowToDebt: metric(extracted.cashFlowToDebt, "", src, "Operating cash flow / total debt"), operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", src, "Operating cash flow / share"), freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", src, "Free cash flow / share"), totalDebtToCapital: metric(extracted.totalDebtToCapital, "", src, "Debt / total capital"), netDebtToEbitda: metric(extracted.netDebtToEbitda, "", src, "Net debt / EBITDA"),
     peRatio: metric(extracted.peRatio, "", src, "Price / earnings"), forwardPe: metric(extracted.forwardPe, "", src, "Forward price / earnings"), pegRatio: metric(extracted.pegRatio, "", src, "P/E / growth"), priceToSales: metric(extracted.priceToSales, "", src, "Price / sales"), priceToBook: metric(extracted.priceToBook, "", src, "Price / book value"), priceToCashFlow: metric(extracted.priceToCashFlow, "", src, "Price / cash flow"), priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", src, "Price / free cash flow"), dividendYield: metric(extracted.dividendYield, "%", src, "Annual dividend yield"),
-    beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"),
+    beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn12Week: metric(extracted.priceReturn12Week, "%", src, "12-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"),
     revenue: metric(extracted.revenue, "", src, "Revenue"),
     sharesOutstanding: metric(extracted.sharesOutstanding, "", src, "Shares outstanding"),
     marketCapM: metric(extracted.marketCapM, "M", src, "Market capitalization in millions"), enterpriseValue: metric(extracted.enterpriseValue, "M", src, "Enterprise value"), ebitda: metric(extracted.ebitda, "M", src, "EBITDA"), evToEbitda: metric(extracted.evToEbitda, "", src, "EV/EBITDA"),
-    cashConversionRatio: metric(extracted.cashConversionRatio, "", src, "Free cash flow / net income"), accrualRatio: metric(extracted.accrualRatio, "", src, "(Net income - FCF) / assets"), roicCalculated: metric(extracted.roicCalculated, "%", src, "NOPAT / invested capital"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "Distance below 52-week high"), newsSentiment: metric(newsSentimentScore, "", "Finnhub + OpenAI", "AI-weighted score from the 3 most recent Finnhub company-news articles"),
+    cashConversionRatio: metric(extracted.cashConversionRatio, "", src, "Free cash flow / net income"), operatingCashConversion: metric(extracted.operatingCashConversion, "", src, "Operating cash flow / net income"), accrualRatio: metric(extracted.accrualRatio, "", src, "(Net income - operating cash flow) / assets"), roicCalculated: metric(extracted.roicCalculated, "%", src, "NOPAT / invested capital"), payoutRatio: metric(extracted.payoutRatio, "%", src, "Dividends paid / net income"), taxRate: metric(extracted.taxRate, "%", src, "Income tax / pretax income"), totalLiabilitiesToAssets: metric(extracted.totalLiabilitiesToAssets, "", src, "Total liabilities / total assets"), pullbackFromHigh: metric(extracted.pullbackFromHigh, "%", src, "Distance below 52-week high"),
 
   };
 
   const publicUsableMetricCount = publicMetricCount(reportMetrics);
-  const aiScoreSummary = includeAiScoreSummary && edgeScore !== null ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), newsSentiment, edgeScore) : null;
+  const aiScoreSummary = includeAiScoreSummary && edgeScore !== null ? await generateScoreSummary(cleanSymbol, profile, categories, metricsFromReportValues(reportMetrics), edgeScore) : null;
   const scoreTextForSummary = edgeScore === null ? "N/A" : edgeScore.toFixed(1);
   return {
     symbol: cleanSymbol,
     profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" },
-    quote: { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
+    quote: quote || { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
+    chartData: buildStoredChartData(twelveMarket?.rows || []),
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
       ? `${cleanSymbol} does not have enough usable data across the core Eval categories for an Eval Score yet.`
-      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score is calculated from available weighted metrics across growth, profitability, financial health, valuation, news sentiment, momentum, and pullback. Finnhub is the primary fundamentals source, FMP and Massive fill gaps, Twelve Data powers live quote/chart data, and missing or voided inputs are skipped instead of counted as zero.`,
+      : `${cleanSymbol} has an Eval Score of ${scoreTextForSummary} out of 10. The score is calculated from available weighted metrics across growth, profitability, financial health, valuation, momentum, and pullback. Twelve Data precomputes the stored report, using profile, key metrics, income statement, balance sheet, and time-series data. Missing or voided inputs are skipped instead of counted as zero.`,
     strengths: [sw.strongest],
     weaknesses: [sw.weakest],
     grades: {
@@ -2397,11 +2694,10 @@ export async function buildStockAnalysis(symbol, options = {}) {
         hasAllCoreCategoryScores,
         canCalculateEvalScore,
         scoreRule: "Eval Score uses seven weighted categories with automatic redistribution when a metric is missing: Profitability 20%, Valuation 17%, Growth 16%, Financial Health 16%, News Sentiment 13%, Momentum 11%, Pullback 7%.",
-        providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), finnhubKey: Boolean(providerApiKey("FINNHUB_API_KEY", "VITE_FINNHUB_API_KEY")), fmpKey: Boolean(providerApiKey("FMP_API_KEY", "FINANCIAL_MODELING_PREP_API_KEY")), massiveKey: Boolean(providerApiKey("MASSIVE_API_KEY", "POLYGON_API_KEY")), apiMinimization: "Finnhub fundamentals are cached and used first. FMP and Massive only fill missing metric gaps when their keys exist. Twelve Data is reserved for live quotes, WebSocket, and historical chart/range data." },
+        providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), databaseOnly: true, apiMinimization: "Browser/UI reads stored Eval database reports only. Twelve Data calls run inside scheduled backend workers." },
         sources: { price: "Twelve Data quote/WebSocket", marketData: twelveMarket?.source || "Twelve Data time_series", fundamentals: [finnhubFundamentals?.source, fmpFundamentals?.source, massiveFundamentals?.source, twelveFundamentals?.source].filter(Boolean).join(" | "), profile: finnhubProfile ? "Finnhub profile2" : "Twelve Data profile" }
       }
     },
-    newsSentiment,
     metrics: reportMetrics,
     aiScoreSummary,
   };
