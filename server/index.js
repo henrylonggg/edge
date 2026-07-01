@@ -2253,67 +2253,20 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
   if (!symbol) return res.status(404).end();
 
-  const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#0b1220"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
-  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "no-store, no-cache, must-revalidate").send(fallbackSvg);
-
-  const cached = companyLogoCache.get(symbol);
-  if (cached && cached.expiresAt > Date.now() && cached.buffer && cached.contentType) {
-    return res.type(cached.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(cached.buffer);
-  }
-
-  const loadLogo = async () => {
+  try {
     const domain = await resolveCompanyDomainForLogo(symbol);
     const logoUrl = logoDevUrlFromDomain(domain);
-    if (!logoUrl) return null;
+    if (!logoUrl) return res.status(404).end();
 
-    try {
-      const imageResponse = await fetch(logoUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 Eval/1.0",
-          "Accept": "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
-        },
-      });
-
-      console.log("[logo.dev]", symbol, domain, imageResponse.status, logoUrl);
-      if (!imageResponse.ok) return null;
-
-      const contentType = imageResponse.headers.get("content-type") || "image/webp";
-      if (!/^image\//i.test(contentType)) return null;
-
-      const finalUrl = String(imageResponse.url || logoUrl);
-      if (/placeholder|fallback|not-found|default|question|paint/i.test(finalUrl)) return null;
-
-      const arrayBuffer = await imageResponse.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      if (!buffer.length || buffer.length < 220) return null;
-
-      companyLogoCache.set(symbol, {
-        savedAt: Date.now(),
-        expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS,
-        buffer,
-        contentType,
-        domain,
-      });
-      return { buffer, contentType };
-    } catch (error) {
-      console.warn("[logo.dev] failed", symbol, domain, error?.message || error);
-      return null;
-    }
-  };
-
-  try {
-    if (!companyLogoInFlight.has(symbol)) {
-      companyLogoInFlight.set(symbol, loadLogo().finally(() => companyLogoInFlight.delete(symbol)));
-    }
-    const loaded = await companyLogoInFlight.get(symbol);
-    if (loaded?.buffer && loaded?.contentType) {
-      return res.type(loaded.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(loaded.buffer);
-    }
+    // Do not proxy/download Logo.dev through Render. Let the browser request the
+    // exact Logo.dev image URL directly so the public pk token behaves the same
+    // as the URL that works in a normal browser tab.
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.redirect(302, logoUrl);
   } catch (error) {
-    console.warn("Company logo route failed:", symbol, error?.message || error);
+    console.warn("Company logo redirect failed:", symbol, error?.message || error);
+    return res.status(404).end();
   }
-
-  return sendFallback();
 });
 
 app.get("/api/company-logo-debug/:symbol", async (req, res) => {
