@@ -1,9 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { buildStockAnalysis } from "./score.js";
+import { buildDailyTechnicalRefresh, buildStockAnalysis } from "./score.js";
 import {
   cleanPrecomputeTicker,
   getPrecomputeState,
+  getPrecomputedReport,
   putPrecomputedReport,
   updatePrecomputeState,
 } from "./precomputeStore.js";
@@ -11,14 +12,25 @@ import {
 const DEFAULT_UNIVERSE = ["AAPL","MSFT","NVDA","GOOGL","AMZN","META","TSLA","AVGO","JPM","LLY"];
 const DEFAULT_UNIVERSE_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), "data", "universe.json");
 
-const WINDOW_START_MINUTES = 23 * 60 + 30; // 11:30 PM ET
-const WINDOW_END_MINUTES = 8 * 60; // 8:00 AM ET
+const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET after the one-time test morning
+const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET after the one-time test morning
+const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || "2026-07-01";
+const ONE_TIME_TEST_WINDOW_ENABLED = String(process.env.EVAL_ONE_TIME_TEST_WINDOW_ENABLED || "true").toLowerCase() !== "false";
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || 15); // 12:25 AM ET
+const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || 8 * 60 + 45); // 8:55 AM ET
+const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
+const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
+const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 9:15 AM ET
+const TECH_WINDOW_END_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_END_MINUTES || 9 * 60 + 30); // 9:30 AM ET
 const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500);
 const WEEKLY_SIZE = Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500);
-const TICKER_INTERVAL_MS = Math.max(45_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 60_000));
-const LOOP_INTERVAL_MS = Math.max(30_000, Number(process.env.EVAL_PRECOMPUTE_LOOP_INTERVAL_MS || 60_000));
+const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 60_000));
+const TECH_TICKER_INTERVAL_MS = Math.max(100, Number(process.env.EVAL_TECH_REFRESH_TICKER_INTERVAL_MS || 250));
+const LOOP_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_LOOP_INTERVAL_MS || 30_000));
 const ENABLED = String(process.env.EVAL_PRECOMPUTE_ENABLED || "false").toLowerCase() === "true";
+const TECH_ENABLED = String(process.env.EVAL_TECH_REFRESH_ENABLED || "true").toLowerCase() !== "false";
 let running = false;
+let techRunning = false;
 let timer = null;
 
 function etParts(date = new Date()) {
@@ -38,9 +50,56 @@ function etParts(date = new Date()) {
   };
 }
 
-function isInsidePrecomputeWindow() {
+function getEtDateKey(date = new Date()) {
+  return etParts(date).dateKey;
+}
+
+function previousEtDateKey(date = new Date()) {
+  return getEtDateKey(new Date(date.getTime() - 24 * 60 * 60 * 1000));
+}
+
+function activePrecomputeWindow() {
+  const now = new Date();
+  const parts = etParts(now);
+  if (ONE_TIME_TEST_WINDOW_ENABLED && parts.dateKey === ONE_TIME_TEST_WINDOW_DATE) {
+    return {
+      startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
+      endMinutes: ONE_TIME_TEST_WINDOW_END_MINUTES,
+      label: "12:15 AM-8:45 AM ET one-time test window",
+      oneTime: true,
+    };
+  }
+
+  return {
+    startMinutes: NIGHTLY_WINDOW_START_MINUTES,
+    endMinutes: NIGHTLY_WINDOW_END_MINUTES,
+    label: "11:00 PM-7:30 AM ET",
+    oneTime: false,
+  };
+}
+
+function isInsideWindow(startMinutes, endMinutes) {
   const { minutes } = etParts();
-  return minutes >= WINDOW_START_MINUTES || minutes < WINDOW_END_MINUTES;
+  if (startMinutes <= endMinutes) return minutes >= startMinutes && minutes < endMinutes;
+  return minutes >= startMinutes || minutes < endMinutes;
+}
+
+function operationalBatchDateKey(startMinutes, endMinutes) {
+  const now = new Date();
+  const { dateKey, minutes } = etParts(now);
+  // For overnight windows such as 11:00 PM-7:30 AM, the after-midnight portion
+  // belongs to the previous evening's batch instead of accidentally starting a new batch.
+  if (startMinutes > endMinutes && minutes < endMinutes) return previousEtDateKey(now);
+  return dateKey;
+}
+
+function isInsidePrecomputeWindow() {
+  const window = activePrecomputeWindow();
+  return isInsideWindow(window.startMinutes, window.endMinutes);
+}
+
+function isInsideTechRefreshWindow() {
+  return isInsideWindow(TECH_WINDOW_START_MINUTES, TECH_WINDOW_END_MINUTES);
 }
 
 function normalizeUniverseEntry(entry) {
@@ -59,11 +118,7 @@ function parseUniverseFromFile(filePath) {
       const entries = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.tickers) ? parsed.tickers : [];
       return entries.map(normalizeUniverseEntry).filter(Boolean);
     }
-    return raw
-      .split(/\r?\n/g)
-      .map((line) => line.split(",")[0])
-      .map(cleanPrecomputeTicker)
-      .filter(Boolean);
+    return raw.split(/\r?\n/g).map((line) => line.split(",")[0]).map(cleanPrecomputeTicker).filter(Boolean);
   } catch (error) {
     console.warn("Precompute universe file failed:", error?.message || error);
     return [];
@@ -71,12 +126,7 @@ function parseUniverseFromFile(filePath) {
 }
 
 export function getPrecomputeUniverse() {
-  // Fixed order matters: position 1 stays position 1, position 3500 stays position 3500.
-  // Do not sort by rank, market cap, usage, watchlist count, or search activity here.
-  const overrideTickers = String(process.env.EVAL_PRECOMPUTE_OVERRIDE_TICKERS || "")
-    .split(",")
-    .map(cleanPrecomputeTicker)
-    .filter(Boolean);
+  const overrideTickers = String(process.env.EVAL_PRECOMPUTE_OVERRIDE_TICKERS || "").split(",").map(cleanPrecomputeTicker).filter(Boolean);
   const universePath = process.env.EVAL_PRECOMPUTE_UNIVERSE_PATH || DEFAULT_UNIVERSE_PATH;
   const fileTickers = parseUniverseFromFile(universePath);
   const base = overrideTickers.length ? overrideTickers : (fileTickers.length ? fileTickers : DEFAULT_UNIVERSE);
@@ -93,7 +143,8 @@ export function getPrecomputeUniverse() {
 
 function todaysBatch() {
   const universe = getPrecomputeUniverse();
-  const { dateKey } = etParts();
+  const window = activePrecomputeWindow();
+  const dateKey = operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const current = getPrecomputeState();
   let weekCursor = Number(current.weekCursor || 0);
   let dayCursor = Number(current.dayCursor || 0);
@@ -109,6 +160,19 @@ function todaysBatch() {
   return { batch, dayCursor, weekCursor, universeSize: universe.length, dateKey };
 }
 
+function technicalRefreshCursor() {
+  const universe = getPrecomputeUniverse();
+  const window = activePrecomputeWindow();
+  const dateKey = operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const current = getPrecomputeState();
+  let techCursor = Number(current.techCursor || 0);
+  if (current.lastTechRefreshDate !== dateKey) {
+    techCursor = 0;
+    updatePrecomputeState({ lastTechRefreshDate: dateKey, techCursor });
+  }
+  return { universe, techCursor, dateKey };
+}
+
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -119,12 +183,19 @@ async function computeOne(symbol) {
     refreshFundamentals: true,
     refreshValuation: true,
     refreshMarket: true,
-    refreshNews: true,
-    refreshRisk: true,
+    refreshNews: false,
+    refreshRisk: false,
     refreshProfile: true,
     includeAiScoreSummary: false,
     precomputeMode: true,
   });
+  putPrecomputedReport(symbol, report);
+  return report;
+}
+
+async function refreshOneTechnical(symbol) {
+  const current = getPrecomputedReport(symbol);
+  const report = await buildDailyTechnicalRefresh(symbol, current);
   putPrecomputedReport(symbol, report);
   return report;
 }
@@ -147,28 +218,46 @@ async function runPrecomputeLoopOnce() {
     const nextDayCursor = dayCursor + 1;
     const finishedBatch = nextDayCursor >= batch.length;
     const nextWeekCursor = finishedBatch ? (weekCursor + BATCH_SIZE >= universeSize ? 0 : weekCursor + BATCH_SIZE) : weekCursor;
-    updatePrecomputeState({
-      lastBatchDate: dateKey,
-      dayCursor: nextDayCursor,
-      weekCursor: nextWeekCursor,
-      lastRunAt: new Date().toISOString(),
-      lastSymbol: symbol,
-    });
+    updatePrecomputeState({ lastBatchDate: dateKey, dayCursor: nextDayCursor, weekCursor: nextWeekCursor, lastRunAt: new Date().toISOString(), lastSymbol: symbol });
     await sleep(TICKER_INTERVAL_MS);
   } finally {
     running = false;
   }
 }
 
+async function runTechnicalRefreshLoopOnce() {
+  if (!ENABLED || !TECH_ENABLED || techRunning || !isInsideTechRefreshWindow()) return;
+  techRunning = true;
+  try {
+    const { universe, techCursor, dateKey } = technicalRefreshCursor();
+    if (!universe.length || techCursor >= universe.length) return;
+    const symbol = universe[techCursor];
+    console.log(`[tech-refresh] ${dateKey} ${techCursor + 1}/${universe.length}: ${symbol}`);
+    try {
+      await refreshOneTechnical(symbol);
+    } catch (error) {
+      console.warn(`[tech-refresh] failed ${symbol}:`, error?.message || error);
+    }
+    updatePrecomputeState({ lastTechRefreshDate: dateKey, techCursor: techCursor + 1, lastTechRefreshAt: new Date().toISOString(), lastTechSymbol: symbol });
+    await sleep(TECH_TICKER_INTERVAL_MS);
+  } finally {
+    techRunning = false;
+  }
+}
+
 export function startPrecomputeWorker() {
   if (!ENABLED) {
-    console.log("[precompute] disabled. Set EVAL_PRECOMPUTE_ENABLED=true to turn on nightly database refresh.");
+    console.log("[precompute] disabled. Set EVAL_PRECOMPUTE_ENABLED=true to turn on database refresh.");
     return null;
   }
   if (timer) return timer;
-  console.log(`[precompute] enabled. Window 11:30 PM-8:00 AM ET, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap.`);
-  timer = setInterval(runPrecomputeLoopOnce, LOOP_INTERVAL_MS);
-  setTimeout(runPrecomputeLoopOnce, 5000);
+  const window = activePrecomputeWindow();
+  console.log(`[precompute] enabled. Fundamentals window ${window.label}, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap. Tech refresh 9:15-9:30 AM ET.`);
+  timer = setInterval(() => {
+    runPrecomputeLoopOnce();
+    runTechnicalRefreshLoopOnce();
+  }, LOOP_INTERVAL_MS);
+  setTimeout(() => { runPrecomputeLoopOnce(); runTechnicalRefreshLoopOnce(); }, 5000);
   return timer;
 }
 
@@ -180,6 +269,21 @@ export async function runPrecomputeNow(symbols = []) {
       const report = await computeOne(symbol);
       results.push({ symbol, ok: true, score: report?.grades?.edgeScore ?? null });
       await sleep(TICKER_INTERVAL_MS);
+    } catch (error) {
+      results.push({ symbol, ok: false, error: error?.message || "failed" });
+    }
+  }
+  return results;
+}
+
+export async function runTechnicalRefreshNow(symbols = []) {
+  const cleaned = [...new Set(symbols.map(cleanPrecomputeTicker).filter(Boolean))];
+  const results = [];
+  for (const symbol of cleaned) {
+    try {
+      const report = await refreshOneTechnical(symbol);
+      results.push({ symbol, ok: true, score: report?.grades?.edgeScore ?? null });
+      await sleep(TECH_TICKER_INTERVAL_MS);
     } catch (error) {
       results.push({ symbol, ok: false, error: error?.message || "failed" });
     }
