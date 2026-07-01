@@ -1,8 +1,5 @@
 // Eval update: Twelve Data database-only scoring. UI reads stored reports; nightly worker refreshes metrics.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
-const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
-const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
-const MASSIVE_BASE_URL = "https://api.massive.com";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
