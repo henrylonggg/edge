@@ -43074,3 +43074,240 @@ body {
     min-width: 42px !important;
   }
 }
+
+/* =========================================================
+   FINAL SCORE SYSTEM RESET — ONE CLEAN STACKED SCORE STYLE
+   Applies to dashboard Eval, watchlist, portfolio, industries, stocks, and metric/category scores.
+========================================================= */
+.eval-score-text-badge,
+.eval-score-text-badge *,
+.portfolio-score-text-badge,
+.portfolio-score-text-badge *,
+.score-ovr-stack,
+.score-ovr-stack *,
+.watch-score-plain,
+.watch-score-plain *,
+.portfolio-main-eval-score,
+.portfolio-main-eval-score *,
+.portfolio-industry-eval-score,
+.portfolio-industry-eval-score *,
+.portfolio-holding-eval-score,
+.portfolio-holding-eval-score *,
+.portfolio-detail-eval-score,
+.portfolio-detail-eval-score *,
+.metric-score-stack,
+.metric-score-stack *,
+.grade-score-row strong,
+.grade-score-row strong *,
+.svg-score-ring .score-ovr-stack,
+.svg-score-ring .score-ovr-stack * {
+  font-style: normal !important;
+  font-synthesis-style: none !important;
+  text-transform: uppercase !important;
+}
+
+.eval-score-text-badge.score-ovr-stack,
+.portfolio-score-text-badge.score-ovr-stack,
+.score-ovr-stack.unified-score-display,
+.grade-score-row .score-ovr-stack,
+.watch-score-plain.score-ovr-stack,
+.portfolio-main-eval-score.score-ovr-stack,
+.portfolio-industry-eval-score.score-ovr-stack,
+.portfolio-holding-eval-score.score-ovr-stack,
+.portfolio-detail-eval-score.score-ovr-stack,
+.industry-score-as-stock.watch-score-plain.score-ovr-stack {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 2px !important;
+  line-height: .88 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  font-family: 'Oxanium', system-ui, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 950 !important;
+  letter-spacing: -.05em !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.score-ovr-stack > .score-ovr-number,
+.score-ovr-stack > strong,
+.score-ovr-stack > span,
+.eval-score-text-badge.score-ovr-stack > strong,
+.portfolio-score-text-badge.score-ovr-stack > strong,
+.grade-score-row .score-ovr-stack > span {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: .86 !important;
+  font-family: 'Oxanium', system-ui, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 950 !important;
+  letter-spacing: -.055em !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  background: var(--score-gradient, linear-gradient(135deg, #f8fbff 0%, #8aa4ff 100%)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  text-shadow: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.score-ovr-stack.green,
+.score-ovr-stack.green > .score-ovr-number,
+.score-ovr-stack.green > strong,
+.score-ovr-stack.green > span,
+.eval-score-text-badge.green,
+.portfolio-score-text-badge.green {
+  --score-gradient: linear-gradient(135deg, #85ff47 0%, #15e7ff 100%);
+}
+.score-ovr-stack.yellow,
+.score-ovr-stack.yellow > .score-ovr-number,
+.score-ovr-stack.yellow > strong,
+.score-ovr-stack.yellow > span,
+.eval-score-text-badge.yellow,
+.portfolio-score-text-badge.yellow {
+  --score-gradient: linear-gradient(135deg, #ffe45f 0%, #ff9f1c 100%);
+}
+.score-ovr-stack.red,
+.score-ovr-stack.red > .score-ovr-number,
+.score-ovr-stack.red > strong,
+.score-ovr-stack.red > span,
+.eval-score-text-badge.red,
+.portfolio-score-text-badge.red {
+  --score-gradient: linear-gradient(135deg, #ff5570 0%, #ff9f1c 100%);
+}
+.score-ovr-stack.neutral,
+.score-ovr-stack.neutral > .score-ovr-number,
+.score-ovr-stack.neutral > strong,
+.score-ovr-stack.neutral > span,
+.eval-score-text-badge.neutral,
+.portfolio-score-text-badge.neutral {
+  --score-gradient: linear-gradient(135deg, #f8fbff 0%, #8aa4ff 100%);
+}
+
+.score-ovr-stack > .score-ovr-label,
+.score-ovr-stack > small,
+.eval-score-text-badge.score-ovr-stack > small,
+.portfolio-score-text-badge.score-ovr-stack > small,
+.grade-score-row .score-ovr-stack > small {
+  display: block !important;
+  width: 100% !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  font-size: .27em !important;
+  font-family: 'Oxanium', system-ui, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+  text-align: center !important;
+  color: rgba(255,255,255,.68) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.68) !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  text-shadow: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* kill every old pseudo OVR/decoration so only the real stacked small label remains */
+.eval-score-text-badge::before,
+.eval-score-text-badge::after,
+.portfolio-score-text-badge::before,
+.portfolio-score-text-badge::after,
+.watch-score-plain::before,
+.watch-score-plain::after,
+.portfolio-main-eval-score::before,
+.portfolio-main-eval-score::after,
+.portfolio-industry-eval-score::before,
+.portfolio-industry-eval-score::after,
+.portfolio-holding-eval-score::before,
+.portfolio-holding-eval-score::after,
+.portfolio-detail-eval-score::before,
+.portfolio-detail-eval-score::after,
+.industry-score-as-stock::before,
+.industry-score-as-stock::after,
+.grade-score-row strong::before,
+.grade-score-row strong::after,
+.svg-score-ring strong::before,
+.svg-score-ring strong::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* exact same format, only size changes by context */
+.eval-stock-chart-score.score-ovr-stack,
+.eval-chart-score-side .eval-score-text-badge.score-ovr-stack {
+  font-size: clamp(52px, 7.6vw, 98px) !important;
+}
+.portfolio-main-eval-score.score-ovr-stack {
+  font-size: clamp(50px, 7vw, 92px) !important;
+}
+.portfolio-industry-eval-score.score-ovr-stack,
+.industry-score-as-stock.watch-score-plain.score-ovr-stack {
+  font-size: clamp(25px, 3.2vw, 36px) !important;
+}
+.watch-score-text.score-ovr-stack,
+.portfolio-holding-eval-score.score-ovr-stack,
+.portfolio-detail-eval-score.score-ovr-stack {
+  font-size: clamp(20px, 2.4vw, 26px) !important;
+}
+.grade-score-row .score-ovr-stack,
+.metric-score-stack.score-ovr-stack {
+  font-size: clamp(28px, 4vw, 42px) !important;
+}
+
+/* make rows align cleanly around the simple score stack */
+.grade-score-row {
+  align-items: center !important;
+  gap: 10px !important;
+}
+.portfolio-industry-head-v3 .portfolio-industry-eval-score,
+.portfolio-industry-tab-toggle .portfolio-industry-eval-score {
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+}
+.watch-row-ranked-format .watch-score-text,
+.portfolio-holding-row .portfolio-holding-eval-score {
+  justify-self: end !important;
+}
+
+@media (max-width: 760px) {
+  .eval-stock-chart-score.score-ovr-stack,
+  .eval-chart-score-side .eval-score-text-badge.score-ovr-stack {
+    font-size: clamp(46px, 15vw, 72px) !important;
+  }
+  .portfolio-main-eval-score.score-ovr-stack {
+    font-size: clamp(44px, 14vw, 70px) !important;
+  }
+  .portfolio-industry-eval-score.score-ovr-stack,
+  .industry-score-as-stock.watch-score-plain.score-ovr-stack {
+    font-size: clamp(23px, 7.5vw, 32px) !important;
+  }
+  .watch-score-text.score-ovr-stack,
+  .portfolio-holding-eval-score.score-ovr-stack,
+  .portfolio-detail-eval-score.score-ovr-stack {
+    font-size: 20px !important;
+  }
+  .grade-score-row .score-ovr-stack,
+  .metric-score-stack.score-ovr-stack {
+    font-size: 31px !important;
+  }
+}
