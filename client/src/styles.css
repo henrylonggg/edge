@@ -42207,3 +42207,62 @@ body {
   .portfolio-stock-detail-page #score-metrics.grade-grid-seven { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
   .portfolio-stock-detail-page .score-breakdown-dashboard-shell { margin-top: 0 !important; }
 }
+
+
+/* FINAL UI PATCH: category scores mirror Eval score text styling without boxes */
+.grade-score-row strong,
+.grade-card strong.green,
+.grade-card strong.yellow,
+.grade-card strong.red,
+.grade-card strong.neutral {
+  font-style: italic !important;
+  font-weight: 1000 !important;
+  letter-spacing: -0.055em !important;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  text-shadow: 0 0 12px rgba(255,255,255,.10) !important;
+}
+.grade-score-row strong.green,
+.grade-card strong.green { background-image: linear-gradient(135deg, #85ff47 0%, #32d9ff 100%) !important; }
+.grade-score-row strong.yellow,
+.grade-card strong.yellow { background-image: linear-gradient(135deg, #ffe45f 0%, #ff9f1c 100%) !important; }
+.grade-score-row strong.red,
+.grade-card strong.red { background-image: linear-gradient(135deg, #ff5570 0%, #ff9f1c 100%) !important; }
+.grade-score-row strong.neutral,
+.grade-card strong.neutral { background-image: linear-gradient(135deg, #f8fbff 0%, #8aa4ff 100%) !important; }
+
+/* FINAL PORTFOLIO SCALE PATCH: same theme, slightly smaller */
+.portfolio-score-text-badge.main {
+  width: 140px !important;
+  height: 140px !important;
+  font-size: 48px !important;
+}
+.portfolio-score-text-badge.industry {
+  width: 82px !important;
+  height: 82px !important;
+  font-size: 29px !important;
+}
+.portfolio-score-text-badge.stock,
+.portfolio-score-text-badge.small.stock,
+.portfolio-detail-eval-score {
+  width: 58px !important;
+  height: 58px !important;
+  font-size: 22px !important;
+}
+
+/* FINAL CHART PATCH: current price only, no change field */
+.eval-live-price-panel {
+  min-width: 132px !important;
+}
+.eval-live-price-panel strong {
+  font-size: clamp(23px, 3vw, 38px) !important;
+}
+@media (max-width: 680px) {
+  .eval-live-price-panel {
+    width: 100% !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    margin-left: 0 !important;
+  }
+}
