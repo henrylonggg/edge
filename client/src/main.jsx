@@ -11136,13 +11136,11 @@ function Watchlist({
             const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=logo-dev-redirect-v1`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
-                <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
-                  <a className="watch-logo-shell logo-dev-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev" onClick={(event) => event.stopPropagation()}>
-                    <img key={ticker} src={logoSrc} alt="" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = "none"; }} />
-                    <b>{ticker.slice(0, 1)}</b>
-                  </a>
+                <button className="watch-info watch-info-new watch-info-logo-ticker watch-info-no-logo" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <span className="watch-ticker-main">{ticker}</span>
                 </button>
+
+                <div className="watch-row-sparkline-wrap"><WatchSparkline symbol={ticker} score={item.score} liveEnabled={false} /></div>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
 
@@ -11164,14 +11162,12 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
     price: "$9.99/mo",
     yearly: "$99.99/yr",
     description:
-      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
+      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, expanded AI explanations in one simple package.",
     features: [
       "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
       "Margin of safety and percent difference from intrinsic value",
-      "News sentiment score from recent company headlines",
-      "AI summaries that explain what the news means",
-      "More detailed metric explanations in plain English",
+      "      "More detailed metric explanations in plain English",
       "Expanded Eval AI Assistant access for stock questions",
     ],
   };
@@ -11191,7 +11187,7 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
             <h2>One plan. Deeper stock research.</h2>
             <p>
               Eval Pro keeps the upgrade simple: stronger scoring, more company
-              metrics, valuation tools, news sentiment, and cleaner AI-powered
+              metrics, valuation tools and cleaner AI-powered
               explanations for one price.
             </p>
           </div>
@@ -11590,6 +11586,18 @@ function WatchMiniSparkline({ symbol }) {
 }
 
 
+
+function formatChartAxisDate(value) {
+  const raw = value?.datetime || value?.date || value?.timestamp || value?.time;
+  const parsed = raw ? new Date(raw) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) return "";
+  try {
+    return parsed.toLocaleDateString("en-US", { month: "short", year: "2-digit" }).replace(" ", "-");
+  } catch {
+    return "";
+  }
+}
+
 function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone = "neutral" }) {
   const width = 720;
   const height = 250;
@@ -11597,7 +11605,7 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
   if (Number.isFinite(Number(livePrice)) && sourceRows.length) {
     sourceRows = [...sourceRows.slice(0, -1), { ...sourceRows[sourceRows.length - 1], close: Number(livePrice), live: true }];
   }
-  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y) && p.y > 0);
+  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close), rowIndex: index, row })).filter((p) => Number.isFinite(p.y) && p.y > 0);
   const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
   if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
   const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
@@ -11677,6 +11685,9 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
         const cls = proj.scenario === "high" ? "high" : proj.scenario === "low" ? "low" : "average";
         return <line key={proj.scenario} x1={startX} y1={startY} x2={endX} y2={endY} className={`eval-chart-projection ${cls}`} />;
       })}
+      {points.length > 1 && [points[0], points[Math.floor(points.length / 2)], points[points.length - 1]].map((point, idx) => (
+        <text key={`axis-${idx}`} className="eval-chart-axis-date" x={xScale(point.x)} y="246" textAnchor={idx === 0 ? "start" : idx === 2 ? "end" : "middle"}>{formatChartAxisDate(point.row)}</text>
+      ))}
     </svg>
   );
 }
@@ -11695,12 +11706,7 @@ function shouldPlaceIntradayChartPoint(ms = Date.now()) {
 }
 
 const EVAL_CHART_RANGES = [
-  { key: "D", label: "D", interval: "15min", outputsize: 32, intraday: true },
-  { key: "1M", label: "1M", interval: "1day", outputsize: 32, historicalEod: true },
-  { key: "3M", label: "3M", interval: "1day", outputsize: 90, historicalEod: true },
   { key: "6M", label: "6M", interval: "1day", outputsize: 180, historicalEod: true },
-  { key: "1Y", label: "1Y", interval: "1week", outputsize: 58, historicalEod: true },
-  { key: "5Y", label: "5Y", interval: "1month", outputsize: 62, historicalEod: true },
 ];
 
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
@@ -11710,7 +11716,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartRange, setChartRange] = useState("6M");
-  const activeChartRange = EVAL_CHART_RANGES.find((item) => item.key === chartRange) || EVAL_CHART_RANGES[1];
+  const activeChartRange = EVAL_CHART_RANGES.find((item) => item.key === chartRange) || EVAL_CHART_RANGES[0];
 
   useEffect(() => {
     if (!symbol) return undefined;
@@ -11856,19 +11862,12 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           </div>
         </div>
       </div>
-
-      <div className="eval-chart-range-toggle" aria-label="Stock chart range">
-        {EVAL_CHART_RANGES.map((item) => (
-          <button key={item.key} type="button" className={chartRange === item.key ? "active" : ""} onClick={() => setChartRange(item.key)}>{item.label}</button>
-        ))}
-      </div>
+      <div className="eval-chart-range-toggle single-six-month" aria-label="Stock chart range"><span>6M</span></div>
 
       {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} tone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
 
-      <div className="eval-chart-hero-actions">
-        {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
-        <button type="button" className="score-metrics-jump-btn" onClick={onMetrics}>Metrics</button>
-        <button type="button" className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`} onClick={onScoreBreakdown}>Score Breakdown</button>
+      <div className="eval-chart-hero-actions mobile-symbol-only-actions">
+        {onAdd && <button className="eval-hero-add-btn eval-hero-add-symbol-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={22} /></button>}
       </div>
     </section>
   );
