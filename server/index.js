@@ -2132,7 +2132,7 @@ function normalizeCompanyDomain(value = "") {
 }
 
 function logoDevToken() {
-  return process.env.LOGO_DEV_PUBLIC_TOKEN || process.env.LOGO_DEV_API_KEY || process.env.LOGO_DEV_TOKEN || "";
+  return process.env.LOGO_DEV_PUBLIC_TOKEN || process.env.LOGO_DEV_API_KEY || process.env.LOGO_DEV_TOKEN || "pk_PP6K9ZrGREG1mMs6M29v-g";
 }
 
 function logoDevUrlFromDomain(domain = "") {
