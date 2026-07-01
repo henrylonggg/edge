@@ -2125,6 +2125,43 @@ function dcfScenarioFromReport(report, scenario = "average") {
 
 const companyLogoInFlight = new Map();
 
+function logoDevToken() {
+  return process.env.LOGO_DEV_API_KEY || process.env.LOGODEV_API_KEY || process.env.LOGO_DEV_TOKEN || process.env.LOGODEV_TOKEN || "";
+}
+
+function normalizeCompanyDomain(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = raw.includes("://") ? new URL(raw) : new URL(`https://${raw}`);
+    return url.hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return raw.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].trim().toLowerCase();
+  }
+}
+
+function domainFromReport(report = {}) {
+  const profile = report?.profile || {};
+  return normalizeCompanyDomain(
+    profile.website || profile.weburl || profile.url || profile.domain || report?.website || report?.weburl || ""
+  );
+}
+
+async function resolveLogoDomain(symbol) {
+  const stored = getPrecomputedReport(symbol);
+  const storedDomain = domainFromReport(stored);
+  if (storedDomain) return storedDomain;
+
+  const [twelveProfile, finnhubProfile] = await Promise.all([
+    fetchTwelveDataJson("/profile", { symbol }, 5000).catch(() => null),
+    fetchFinnhubJson("/stock/profile2", { symbol }, 5000).catch(() => null),
+  ]);
+
+  return normalizeCompanyDomain(
+    finnhubProfile?.weburl || finnhubProfile?.website || twelveProfile?.website || twelveProfile?.weburl || twelveProfile?.url || ""
+  );
+}
+
 app.get("/api/company-logo/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
   if (!symbol) return res.status(404).end();
@@ -2139,64 +2176,46 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
     }
   }
 
+  const token = logoDevToken();
+  if (!token) {
+    console.warn(`[logo.dev] Missing LOGO_DEV_API_KEY / LOGO_DEV_TOKEN for ${symbol}`);
+    return sendFallback();
+  }
+
   const loadLogo = async () => {
-    const [twelveLogoData, twelveProfile, finnhubProfile] = await Promise.all([
-      fetchTwelveDataJson("/logo", { symbol }, 5000).catch(() => null),
-      fetchTwelveDataJson("/profile", { symbol }, 5000).catch(() => null),
-      fetchFinnhubJson("/stock/profile2", { symbol }, 5000).catch(() => null),
-    ]);
-    const twelveLogoUrl = String(twelveLogoData?.url || twelveLogoData?.logo || twelveLogoData?.logo_url || twelveLogoData?.image || twelveLogoData?.image_url || twelveLogoData?.meta?.url || "").trim();
-    const finnhubLogoUrl = String(finnhubProfile?.logo || "").trim();
-    const candidates = [];
-
-    // Primary approach: pull the company icon directly from its own website.
-    // Finnhub/Twelve are used to discover the official company website, then Eval
-    // fetches common site-owned logo/icon paths and permanently caches only real images.
-    const website = String(finnhubProfile?.weburl || twelveProfile?.website || twelveProfile?.weburl || twelveProfile?.url || "").trim();
-    if (/^https?:\/\//i.test(website)) {
-      try {
-        const parsedWebsite = new URL(website);
-        const host = parsedWebsite.hostname.replace(/^www\./i, "");
-        const origins = [...new Set([
-          `${parsedWebsite.protocol}//${parsedWebsite.hostname}`,
-          `https://${host}`,
-          `https://www.${host}`,
-        ])];
-        for (const origin of origins) {
-          candidates.push(
-            `${origin}/apple-touch-icon.png`,
-            `${origin}/apple-touch-icon-precomposed.png`,
-            `${origin}/favicon-192x192.png`,
-            `${origin}/favicon-96x96.png`,
-            `${origin}/favicon-32x32.png`,
-            `${origin}/favicon.ico`
-          );
-        }
-      } catch {}
+    const domain = await resolveLogoDomain(symbol);
+    if (!domain) {
+      console.warn(`[logo.dev] No domain resolved for ${symbol}`);
+      return null;
     }
 
-    // Provider logos are fallbacks only. Avoid generic logo warehouses here because
-    // several return painter/default placeholders for symbols that do not exist.
-    if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
-    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
+    const logoUrl = `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(token)}&size=128&format=png&retina=true`;
+    const imageResponse = await fetch(logoUrl, {
+      headers: {
+        "User-Agent": "Eval/1.0 (+https://getstockeval.com)",
+        "Accept": "image/png,image/webp,image/*,*/*;q=0.8",
+      },
+    });
 
-    for (const candidate of [...new Set(candidates)]) {
-      try {
-        const imageResponse = await fetch(candidate, { headers: { "User-Agent": "Mozilla/5.0 Eval/1.0" } });
-        if (!imageResponse.ok) continue;
-        const contentType = imageResponse.headers.get("content-type") || "image/png";
-        if (!/^image\//i.test(contentType)) continue;
-        const arrayBuffer = await imageResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        if (!buffer.length || buffer.length < 220) continue;
-        const lowerCandidate = String(candidate).toLowerCase();
-        if (/placeholder|default|avatar|generic|blank|missing/.test(lowerCandidate)) continue;
-        companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
-        return { buffer, contentType };
-      } catch {}
+    if (!imageResponse.ok) {
+      console.warn(`[logo.dev] ${symbol} ${domain} failed: ${imageResponse.status}`);
+      return null;
     }
 
-    return null;
+    const contentType = imageResponse.headers.get("content-type") || "image/png";
+    if (!/^image\//i.test(contentType)) return null;
+    const buffer = Buffer.from(await imageResponse.arrayBuffer());
+    if (!buffer.length || buffer.length < 220) return null;
+
+    companyLogoCache.set(symbol, {
+      savedAt: Date.now(),
+      expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS,
+      buffer,
+      contentType,
+      domain,
+      provider: "logo.dev",
+    });
+    return { buffer, contentType };
   };
 
   try {
@@ -2208,11 +2227,9 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
       return res.type(loaded.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(loaded.buffer);
     }
   } catch (error) {
-    console.warn("Company logo route failed:", symbol, error?.message || error);
+    console.warn("Logo.dev route failed:", symbol, error?.message || error);
   }
 
-  // Do not permanently cache fallback letters. A temporary fallback lets the next
-  // refresh try Twelve Data again instead of getting stuck forever.
   return sendFallback();
 });
 
