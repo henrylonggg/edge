@@ -1166,7 +1166,7 @@ function App() {
     return {
       symbol: clean,
       name: analyzed?.profile?.name || clean,
-      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}`,
+      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=domain-logo-v2`,
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -11131,12 +11131,12 @@ function Watchlist({
         ) : (
           items.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}`;
+            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=domain-logo-v2`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
                 <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <a className="watch-logo-shell logo-dev-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev" onClick={(event) => event.stopPropagation()}>
-                    <img key={ticker} src={logoSrc} alt="" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
+                    <img key={ticker} src={logoSrc} alt="" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = "none"; }} />
                     <b>{ticker.slice(0, 1)}</b>
                   </a>
                   <span className="watch-ticker-main">{ticker}</span>
@@ -11830,7 +11830,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     };
   }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
 
-  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
+  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=domain-logo-v2`;
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
   const tone = "neutral";
@@ -11839,7 +11839,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
       <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          <a className="logo-dev-link eval-stock-logo-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev"><img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} /></a>
+          <a className="logo-dev-link eval-stock-logo-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev"><img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = "none"; }} /></a>
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
             <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
