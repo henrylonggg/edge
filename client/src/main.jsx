@@ -12044,7 +12044,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   const [live, setLive] = useState({ current: data?.quote?.c, previousClose: data?.quote?.pc, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
-  const [chartRange, setChartRange] = useState("D");
+  const [chartRange, setChartRange] = useState("6M");
   const activeChartRange = EVAL_CHART_RANGES.find((item) => item.key === chartRange) || EVAL_CHART_RANGES[1];
 
   useEffect(() => {
@@ -12170,9 +12170,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
-  const change = Number.isFinite(current) && Number.isFinite(previousCloseForChange) && previousCloseForChange > 0 ? current - previousCloseForChange : Number(live?.change ?? data?.quote?.d);
-  const changePercent = Number.isFinite(change) && Number.isFinite(previousCloseForChange) && previousCloseForChange > 0 ? (change / previousCloseForChange) * 100 : Number(live?.changePercent ?? data?.quote?.dp);
-  const tone = !Number.isFinite(changePercent) ? "neutral" : changePercent >= 0 ? "up" : "down";
+  const tone = "neutral";
 
   return (
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
@@ -12187,7 +12185,6 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         <div className="eval-chart-hero-right">
           <div className={`eval-live-price-panel ${tone}`}>
             <strong>{money(current)}</strong>
-            <span className={`eval-live-change ${tone}`}>{signedMoney(change)} · {signedPercent(changePercent)}</span>
           </div>
           <div className="eval-chart-score-side no-label">
             <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
