@@ -656,6 +656,7 @@ function App() {
   const [tickerInputLocked, setTickerInputLocked] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
   const [error, setError] = useState("");
+  const [accessNotice, setAccessNotice] = useState("");
   const [view, setView] = useState("landing");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [sectorPage, setIndustryPage] = useState(null);
@@ -1126,11 +1127,29 @@ function App() {
         const json = await res.json().catch(() => null);
 
         if (!res.ok) {
+          const accessMessage = json?.accessDenied
+            ? `You do not have access to ${clean}.`
+            : "";
+          if (accessMessage && !silent) {
+            setAccessNotice(accessMessage);
+            setError("");
+            setTimeout(() => setAccessNotice(""), 3800);
+            return null;
+          }
           throw new Error(
             json?.error ||
               json?.message ||
               `Could not analyze ${clean}. Backend returned ${res.status}.`
           );
+        }
+
+        if (json?.accessDenied || json?.available === false) {
+          if (!silent) {
+            setAccessNotice(`You do not have access to ${clean}.`);
+            setError("");
+            setTimeout(() => setAccessNotice(""), 3800);
+          }
+          return null;
         }
 
         if (!skipState) setData(json);
@@ -1683,6 +1702,13 @@ function App() {
       {error && (
         <div className="error-banner">
           <AlertTriangle size={18} /> {error}
+        </div>
+      )}
+
+      {accessNotice && (
+        <div className="access-toast" role="alert">
+          <AlertTriangle size={18} />
+          <span>{accessNotice}</span>
         </div>
       )}
 
