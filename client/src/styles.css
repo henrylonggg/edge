@@ -43520,3 +43520,129 @@ body {
   .landing-chart-preview-card { border-radius: 22px; padding: 14px; }
   .landing-preview-line { stroke-width: 7; }
 }
+
+
+/* FINAL PORTFOLIO SCORE CLEANUP: remove score backgrounds and duplicate OVR labels */
+.portfolio-dashboard-v3 .portfolio-score-text-badge,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.main,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.small,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.stock,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.industry,
+.portfolio-dashboard-v3 .portfolio-holding-eval-score,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score,
+.portfolio-dashboard-v3 .industry-score-as-stock,
+.portfolio-dashboard-v3 .eval-score-text-badge,
+.portfolio-dashboard-v3 .score-ovr-stack,
+.portfolio-dashboard-v3 .unified-score-display {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  filter: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-score-text-badge::before,
+.portfolio-dashboard-v3 .portfolio-score-text-badge::after,
+.portfolio-dashboard-v3 .portfolio-holding-eval-score::before,
+.portfolio-dashboard-v3 .portfolio-holding-eval-score::after,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score::before,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score::after,
+.portfolio-dashboard-v3 .industry-score-as-stock::before,
+.portfolio-dashboard-v3 .industry-score-as-stock::after,
+.portfolio-dashboard-v3 .score-ovr-stack::before,
+.portfolio-dashboard-v3 .score-ovr-stack::after,
+.portfolio-dashboard-v3 .unified-score-display::before,
+.portfolio-dashboard-v3 .unified-score-display::after,
+.portfolio-dashboard-v3 .eval-score-text-badge::before,
+.portfolio-dashboard-v3 .eval-score-text-badge::after {
+  content: none !important;
+  display: none !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holding-eval-score,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score,
+.portfolio-dashboard-v3 .industry-score-as-stock,
+.portfolio-dashboard-v3 .score-ovr-stack,
+.portfolio-dashboard-v3 .eval-score-text-badge {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  line-height: 0.92 !important;
+  text-align: center !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holding-eval-score .score-ovr-number,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score .score-ovr-number,
+.portfolio-dashboard-v3 .industry-score-as-stock .score-ovr-number,
+.portfolio-dashboard-v3 .score-ovr-stack .score-ovr-number,
+.portfolio-dashboard-v3 .eval-score-text-badge .score-ovr-number {
+  display: block !important;
+  font-style: normal !important;
+  font-weight: 950 !important;
+  line-height: 0.9 !important;
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: inherit;
+}
+
+.portfolio-dashboard-v3 .portfolio-holding-eval-score .score-ovr-label,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score .score-ovr-label,
+.portfolio-dashboard-v3 .industry-score-as-stock .score-ovr-label,
+.portfolio-dashboard-v3 .score-ovr-stack .score-ovr-label,
+.portfolio-dashboard-v3 .eval-score-text-badge .score-ovr-label {
+  display: block !important;
+  margin-top: 2px !important;
+  font-size: 0.48em !important;
+  line-height: 0.9 !important;
+  letter-spacing: 0.12em !important;
+  font-style: normal !important;
+  font-weight: 850 !important;
+  color: rgba(255,255,255,0.58) !important;
+  background: transparent !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.58) !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-holding-eval-score { font-size: 1.02rem !important; }
+.portfolio-dashboard-v3 .portfolio-industry-eval-score,
+.portfolio-dashboard-v3 .industry-score-as-stock { font-size: 1.18rem !important; }
+
+.portfolio-dashboard-v3 .portfolio-holding-eval-score.green,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score.green,
+.portfolio-dashboard-v3 .industry-score-as-stock.green,
+.portfolio-dashboard-v3 .score-ovr-stack.green {
+  background: linear-gradient(135deg, #86ff61 0%, #40dfff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.portfolio-dashboard-v3 .portfolio-holding-eval-score.yellow,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score.yellow,
+.portfolio-dashboard-v3 .industry-score-as-stock.yellow,
+.portfolio-dashboard-v3 .score-ovr-stack.yellow {
+  background: linear-gradient(135deg, #fff36a 0%, #ff9f39 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.portfolio-dashboard-v3 .portfolio-holding-eval-score.red,
+.portfolio-dashboard-v3 .portfolio-industry-eval-score.red,
+.portfolio-dashboard-v3 .industry-score-as-stock.red,
+.portfolio-dashboard-v3 .score-ovr-stack.red {
+  background: linear-gradient(135deg, #ff4c68 0%, #ff9f39 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
