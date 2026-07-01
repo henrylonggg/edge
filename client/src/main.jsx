@@ -11588,7 +11588,7 @@ function WatchMiniSparkline({ symbol }) {
 }
 
 
-function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, chartTone = "neutral" }) {
+function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone = "neutral" }) {
   const width = 720;
   const height = 250;
   let sourceRows = Array.isArray(rows) ? [...rows] : [];
@@ -11615,34 +11615,51 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, chart
   const lowLabelY = Math.min(height - 10, lowY + 24);
   const startX = xScale(points.length - 1);
   const startY = yScale(points[points.length - 1].y);
+  const chartTone = ["green", "yellow", "red", "neutral"].includes(tone) ? tone : "neutral";
   return (
-    <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart with high and low markers">
+    <svg className={`eval-stock-chart-svg ${chartTone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart with high and low markers">
       <defs>
-        <linearGradient id="evalChartFadeGreen" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(130,243,92,.16)" />
-          <stop offset="62%" stopColor="rgba(55,216,145,.055)" />
-          <stop offset="100%" stopColor="rgba(38,185,232,0)" />
+        <linearGradient id="evalChartStrokeGreen" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#85ff47" />
+          <stop offset="100%" stopColor="#15e7ff" />
         </linearGradient>
-        <linearGradient id="evalChartFadeYellow" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,230,107,.15)" />
-          <stop offset="62%" stopColor="rgba(255,209,102,.05)" />
-          <stop offset="100%" stopColor="rgba(245,158,56,0)" />
+        <linearGradient id="evalChartStrokeYellow" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#ffe45f" />
+          <stop offset="100%" stopColor="#ff9f1c" />
         </linearGradient>
-        <linearGradient id="evalChartFadeRed" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,90,114,.15)" />
-          <stop offset="62%" stopColor="rgba(255,112,67,.05)" />
-          <stop offset="100%" stopColor="rgba(255,159,28,0)" />
+        <linearGradient id="evalChartStrokeRed" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#ff4f67" />
+          <stop offset="100%" stopColor="#ff9f1c" />
         </linearGradient>
-        <linearGradient id="evalChartFadeNeutral" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,.11)" />
-          <stop offset="62%" stopColor="rgba(21,231,255,.04)" />
-          <stop offset="100%" stopColor="rgba(21,231,255,0)" />
+        <linearGradient id="evalChartStrokeNeutral" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#9f5cff" />
+          <stop offset="100%" stopColor="#15e7ff" />
         </linearGradient>
-        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="evalChartFadeGreen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#85ff47" stopOpacity="0.12" />
+          <stop offset="45%" stopColor="#15e7ff" stopOpacity="0.035" />
+          <stop offset="100%" stopColor="#15e7ff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="evalChartFadeYellow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffe45f" stopOpacity="0.11" />
+          <stop offset="45%" stopColor="#ff9f1c" stopOpacity="0.035" />
+          <stop offset="100%" stopColor="#ff9f1c" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="evalChartFadeRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ff4f67" stopOpacity="0.11" />
+          <stop offset="45%" stopColor="#ff9f1c" stopOpacity="0.035" />
+          <stop offset="100%" stopColor="#ff9f1c" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="evalChartFadeNeutral" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#9f5cff" stopOpacity="0.10" />
+          <stop offset="45%" stopColor="#15e7ff" stopOpacity="0.03" />
+          <stop offset="100%" stopColor="#15e7ff" stopOpacity="0" />
+        </linearGradient>
+        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="2.4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
-      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className={`eval-chart-area ${chartTone}`} />
-      <path d={path} className={`eval-chart-line ${chartTone}`} filter="url(#evalChartGlow)" />
+      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" fill={`url(#evalChartFade${chartTone[0].toUpperCase()}${chartTone.slice(1)})`} />
+      <path d={path} className="eval-chart-line" stroke={`url(#evalChartStroke${chartTone[0].toUpperCase()}${chartTone.slice(1)})`} filter="url(#evalChartGlow)" />
       <g className="eval-chart-extreme eval-chart-high-marker no-dot">
         <line x1={highX} x2={highX} y1={highY} y2={highLabelY + 6} className="eval-chart-extreme-stem" />
         <text className="eval-chart-extreme-label" x={highX} y={highLabelY} textAnchor="middle" dominantBaseline="middle">{money(highPoint.y)}</text>
@@ -11844,7 +11861,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         ))}
       </div>
 
-      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} chartTone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
+      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} tone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
 
       <div className="eval-chart-hero-actions">
         {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
@@ -11896,7 +11913,7 @@ function DcfCalculatorPanel({ data }) {
           </div>
           {loading ? <div className="eval-stock-chart-empty">Calculating projection...</div> : (
             <>
-              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} chartTone={scoreTone(data?.grades?.edgeScore)} />
+              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} tone={scoreTone(data?.grades?.edgeScore)} />
               <div className="eval-dcf-result-grid">
                 <div><span>Selected case</span><strong>{scenario}</strong></div>
                 <div><span>Expected price</span><strong>{money(result?.chosen?.expectedPrice)}</strong></div>
