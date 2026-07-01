@@ -43311,3 +43311,212 @@ body {
     font-size: 31px !important;
   }
 }
+
+/* Final score cleanup: text color only, no colored backgrounds behind score text */
+.score-ovr-stack,
+.score-ovr-stack span,
+.score-ovr-stack strong,
+.score-ovr-stack b,
+.metric-score,
+.category-score,
+.grade-score-row strong,
+.watch-score-text,
+.watch-score-plain,
+.portfolio-score-text-badge,
+.portfolio-main-eval-score,
+.portfolio-industry-eval-score,
+.portfolio-holding-eval-score,
+.portfolio-detail-eval-score,
+.eval-score-text-badge,
+.eval-stock-chart-score,
+.industry-score-as-stock,
+.landing-preview-score {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  font-style: normal !important;
+  border-radius: 0 !important;
+}
+.score-ovr-stack::before,
+.score-ovr-stack::after,
+.metric-score::before,
+.metric-score::after,
+.category-score::before,
+.category-score::after,
+.grade-score-row strong::before,
+.grade-score-row strong::after,
+.watch-score-text::before,
+.watch-score-text::after,
+.portfolio-score-text-badge::before,
+.portfolio-score-text-badge::after,
+.eval-score-text-badge::before,
+.eval-score-text-badge::after,
+.eval-stock-chart-score::before,
+.eval-stock-chart-score::after {
+  content: none !important;
+  display: none !important;
+}
+.score-ovr-stack {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: .86 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+.score-ovr-stack > span,
+.score-ovr-stack > strong,
+.score-ovr-stack > b,
+.portfolio-score-text-badge > strong {
+  font-weight: 900 !important;
+  letter-spacing: -.05em !important;
+  font-style: normal !important;
+  background: currentColor !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.score-ovr-stack > small,
+.portfolio-score-text-badge > small {
+  display: block !important;
+  margin-top: 5px !important;
+  font-size: .24em !important;
+  line-height: 1 !important;
+  letter-spacing: .18em !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.58) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.58) !important;
+  background: transparent !important;
+}
+.score-ovr-stack.green,
+.green .score-ovr-stack,
+.metric-score.green,
+.category-score.green,
+.grade-score-row strong.green,
+.watch-score-text.green,
+.portfolio-score-text-badge.green,
+.eval-score-text-badge.green,
+.eval-stock-chart-score.green,
+.industry-score-as-stock.green,
+.landing-preview-score.green {
+  color: #67f84e !important;
+  background-image: linear-gradient(115deg, #85ff47 0%, #28d8ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+.score-ovr-stack.yellow,
+.yellow .score-ovr-stack,
+.metric-score.yellow,
+.category-score.yellow,
+.grade-score-row strong.yellow,
+.watch-score-text.yellow,
+.portfolio-score-text-badge.yellow,
+.eval-score-text-badge.yellow,
+.eval-stock-chart-score.yellow,
+.industry-score-as-stock.yellow,
+.landing-preview-score.yellow {
+  color: #ffe45f !important;
+  background-image: linear-gradient(115deg, #fff06b 0%, #ff9d2e 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+.score-ovr-stack.red,
+.red .score-ovr-stack,
+.metric-score.red,
+.category-score.red,
+.grade-score-row strong.red,
+.watch-score-text.red,
+.portfolio-score-text-badge.red,
+.eval-score-text-badge.red,
+.eval-stock-chart-score.red,
+.industry-score-as-stock.red,
+.landing-preview-score.red {
+  color: #ff596f !important;
+  background-image: linear-gradient(115deg, #ff4f67 0%, #ff9a3d 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+/* Portfolio page: all sub-scores besides main portfolio score stay simple number + OVR only */
+.portfolio-dashboard-v3 .portfolio-industry-eval-score,
+.portfolio-dashboard-v3 .portfolio-holding-eval-score,
+.portfolio-dashboard-v3 .portfolio-detail-eval-score,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.stock,
+.portfolio-dashboard-v3 .portfolio-score-text-badge.industry {
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+/* Homepage refresh: no rings, chart-led preview */
+.landing-preview-static {
+  overflow: hidden !important;
+}
+.landing-chart-preview-card {
+  position: relative;
+  margin: 16px 0 14px;
+  padding: 16px 16px 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 20px 60px rgba(0,0,0,.32);
+}
+.landing-chart-preview-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.landing-chart-preview-head > span {
+  font-size: .74rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.55);
+  font-weight: 900;
+}
+.landing-preview-score.score-ovr-stack {
+  font-size: clamp(46px, 6vw, 74px) !important;
+}
+.landing-preview-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 4px;
+  overflow: visible;
+}
+.landing-preview-chart text {
+  fill: rgba(255,255,255,.42);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.landing-preview-grid-line {
+  stroke: rgba(255,255,255,.07);
+  stroke-width: 1;
+}
+.landing-preview-line {
+  fill: none;
+  stroke: url(#landingPreviewLine);
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 12px rgba(40,216,255,.28));
+}
+.preview-mini-grid-score-only strong.score-ovr-stack {
+  font-size: clamp(26px, 3vw, 38px) !important;
+  text-align: center;
+}
+.preview-mini-grid-score-only div {
+  align-items: center !important;
+  text-align: center !important;
+}
+@media (max-width: 760px) {
+  .landing-preview-score.score-ovr-stack { font-size: 54px !important; }
+  .landing-chart-preview-card { border-radius: 22px; padding: 14px; }
+  .landing-preview-line { stroke-width: 7; }
+}
