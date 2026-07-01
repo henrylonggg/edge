@@ -1,5 +1,8 @@
 // Eval update: Twelve Data database-only scoring. UI reads stored reports; nightly worker refreshes metrics.
 const TWELVE_DATA_BASE_URL = "https://api.twelvedata.com";
+const FINNHUB_BASE_URL = "https://finnhub.io/api/v1";
+const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
+const MASSIVE_BASE_URL = "https://api.massive.com";
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const NEWS_SENTIMENT_MODEL = process.env.OPENAI_NEWS_MODEL || "gpt-4.1-nano";
 
@@ -346,11 +349,8 @@ async function fetchTwelveDataProfile(symbol) {
   };
 }
 
-async function fetchTwelveDataMarketData(symbol) {
-  // One Twelve Data /time_series call supplies daily closes for chart history,
-  // momentum, RSI, and pullback. This is the cheap technical data path.
-  const data = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1day", outputsize: 1300 });
-  const rows = twelveList(data)
+function normalizeTwelveSeriesRows(data) {
+  return twelveList(data)
     .map((row) => ({
       date: row?.datetime || row?.date || row?.timestamp || "",
       datetime: row?.datetime || row?.date || row?.timestamp || "",
@@ -362,43 +362,103 @@ async function fetchTwelveDataMarketData(symbol) {
     }))
     .filter((row) => row.close !== null && row.close > 0)
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
 
-  const latest = rows.at(-1) || null;
-  const priceAtBack = (days) => rows.length > days ? rows[rows.length - 1 - days]?.close ?? null : null;
-  const pctReturnDays = (days) => {
-    const current = latest?.close ?? null;
-    const past = priceAtBack(days);
-    return current !== null && past !== null && past > 0 ? ((current - past) / past) * 100 : null;
+function technicalMetricsFromRows(rows = [], mode = "daily") {
+  const cleanRows = Array.isArray(rows) ? rows.filter((row) => safeNumber(row?.close) !== null && row.close > 0) : [];
+  const latest = cleanRows.at(-1) || null;
+  const current = latest?.close ?? null;
+  const closes = cleanRows.map((row) => row.close);
+  const back = (n) => cleanRows.length > n ? cleanRows[cleanRows.length - 1 - n]?.close ?? null : null;
+  const ret = (n) => {
+    const prior = back(n);
+    return current !== null && prior !== null && prior > 0 ? ((current - prior) / prior) * 100 : null;
   };
-
-  const trailingYear = rows.slice(-260);
-  const highs = trailingYear.map((row) => row.high ?? row.close).filter((value) => value !== null);
-  const lows = trailingYear.map((row) => row.low ?? row.close).filter((value) => value !== null);
+  const trailing = mode === "weekly" ? cleanRows.slice(-52) : cleanRows.slice(-260);
+  const highs = trailing.map((row) => safeNumber(row.high) ?? safeNumber(row.close)).filter((value) => value !== null);
+  const lows = trailing.map((row) => safeNumber(row.low) ?? safeNumber(row.close)).filter((value) => value !== null);
   const weekHigh = highs.length ? Math.max(...highs) : null;
   const weekLow = lows.length ? Math.min(...lows) : null;
-  const current = latest?.close ?? null;
-  const rsi14 = computeRsiFromCloses(rows.map((row) => row.close), 14);
 
   return {
-    rows,
-    quote: latest ? { c: latest.close, d: null, dp: null, h: latest.high, l: latest.low, o: latest.open, pc: priceAtBack(1) } : null,
-    metrics: {
-      currentPrice: current,
-      priceReturn4Week: pctReturnDays(20),
-      priceReturn12Week: pctReturnDays(60),
-      priceReturn13Week: pctReturnDays(65),
-      priceReturn26Week: pctReturnDays(130),
-      priceReturn52Week: pctReturnDays(260),
-      rsi14,
-      weekHigh,
-      weekLow,
-      pullbackFromHigh: current !== null && weekHigh ? ((weekHigh - current) / weekHigh) * 100 : null,
-      distanceFrom52WeekLow: current !== null && weekLow ? ((current - weekLow) / weekLow) * 100 : null,
-    },
-    source: "Twelve Data /time_series daily",
+    currentPrice: current,
+    priceReturn4Week: mode === "weekly" ? ret(4) : ret(20),
+    priceReturn12Week: mode === "weekly" ? ret(12) : ret(60),
+    priceReturn13Week: mode === "weekly" ? ret(13) : ret(65),
+    priceReturn26Week: mode === "weekly" ? ret(26) : ret(130),
+    priceReturn52Week: mode === "weekly" ? ret(52) : ret(260),
+    rsi14: computeRsiFromCloses(closes, 14),
+    weekHigh,
+    weekLow,
+    pullbackFromHigh: current !== null && weekHigh ? ((weekHigh - current) / weekHigh) * 100 : null,
+    distanceFrom52WeekLow: current !== null && weekLow ? ((current - weekLow) / weekLow) * 100 : null,
   };
 }
 
+function mergeTechnicalMetrics(primary = {}, fallback = {}) {
+  const out = { ...(fallback || {}) };
+  for (const [key, value] of Object.entries(primary || {})) {
+    if (safeNumber(value) !== null) out[key] = value;
+  }
+  return out;
+}
+
+async function fetchTwelveDataMarketData(symbol) {
+  // Daily time_series is the primary technical source. If Twelve returns too few
+  // daily rows for a ticker, retry with weekly bars so 12W/26W/52W momentum and
+  // 52-week pullback still calculate instead of saving nulls to Supabase.
+  const dailyData = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1day", outputsize: 1300 });
+  const dailyRows = normalizeTwelveSeriesRows(dailyData);
+  const dailyMetrics = technicalMetricsFromRows(dailyRows, "daily");
+
+  const needsWeeklyFallback = [
+    dailyMetrics.priceReturn12Week,
+    dailyMetrics.priceReturn26Week,
+    dailyMetrics.priceReturn52Week,
+    dailyMetrics.rsi14,
+    dailyMetrics.pullbackFromHigh,
+    dailyMetrics.distanceFrom52WeekLow,
+  ].some((value) => safeNumber(value) === null);
+
+  let weeklyRows = [];
+  let weeklyMetrics = {};
+  if (needsWeeklyFallback) {
+    const weeklyData = await fetchTwelveDataOptional("/time_series", { symbol, interval: "1week", outputsize: 260 });
+    weeklyRows = normalizeTwelveSeriesRows(weeklyData);
+    weeklyMetrics = technicalMetricsFromRows(weeklyRows, "weekly");
+  }
+
+  const metrics = mergeTechnicalMetrics(dailyMetrics, weeklyMetrics);
+  // Prefer the latest daily price if available, but keep weekly fallback values for missing returns.
+  if (safeNumber(dailyMetrics.currentPrice) !== null) metrics.currentPrice = dailyMetrics.currentPrice;
+  if (safeNumber(dailyMetrics.rsi14) !== null) metrics.rsi14 = dailyMetrics.rsi14;
+
+  const latest = dailyRows.at(-1) || weeklyRows.at(-1) || null;
+  const prev = dailyRows.length > 1 ? dailyRows[dailyRows.length - 2]?.close : (weeklyRows.length > 1 ? weeklyRows[weeklyRows.length - 2]?.close : null);
+  const current = metrics.currentPrice ?? latest?.close ?? null;
+
+  const missingCore = [metrics.priceReturn12Week, metrics.priceReturn26Week, metrics.priceReturn52Week, metrics.rsi14, metrics.pullbackFromHigh, metrics.distanceFrom52WeekLow]
+    .filter((value) => safeNumber(value) === null).length;
+  if (missingCore) {
+    console.warn(`[technical] ${symbol} missing ${missingCore}/6 momentum/pullback inputs after time_series fallback. dailyRows=${dailyRows.length} weeklyRows=${weeklyRows.length}`);
+  }
+
+  return {
+    rows: dailyRows.length ? dailyRows : weeklyRows,
+    weeklyRows,
+    quote: current !== null ? {
+      c: current,
+      d: safeNumber(prev) !== null ? current - prev : null,
+      dp: safeNumber(prev) !== null && prev > 0 ? ((current - prev) / prev) * 100 : null,
+      h: latest?.high ?? null,
+      l: latest?.low ?? null,
+      o: latest?.open ?? null,
+      pc: prev,
+    } : null,
+    metrics,
+    source: weeklyRows.length && needsWeeklyFallback ? "Twelve Data /time_series daily+weekly" : "Twelve Data /time_series daily",
+  };
+}
 async function fetchJsonOptional(url, providerName) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
@@ -2490,17 +2550,17 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const fmpFundamentals = { metrics: {}, raw: {}, source: "FMP disabled" };
   const massiveFundamentals = { metrics: {}, raw: {}, source: "Massive disabled" };
   const existingMarketInputs = validMetricInputCount([
-    twelveFundamentals?.metrics?.priceReturn4Week,
+    twelveFundamentals?.metrics?.priceReturn12Week,
     twelveFundamentals?.metrics?.priceReturn13Week,
     twelveFundamentals?.metrics?.priceReturn26Week,
     twelveFundamentals?.metrics?.priceReturn52Week,
-    twelveFundamentals?.metrics?.weekHigh,
-    twelveFundamentals?.metrics?.weekLow,
-    twelveFundamentals?.metrics?.currentPrice,
+    twelveFundamentals?.metrics?.rsi14,
+    twelveFundamentals?.metrics?.pullbackFromHigh,
+    twelveFundamentals?.metrics?.distanceFrom52WeekLow,
   ]);
   const twelveMarket = refreshMarket && existingMarketInputs < 6
     ? await fetchTwelveDataMarketData(cleanSymbol)
-    : { quote: null, metrics: {}, source: existingMarketInputs >= 6 ? "Twelve Data /statistics market data" : "Market refresh disabled" };
+    : { quote: null, metrics: {}, source: existingMarketInputs >= 6 ? "Twelve Data cached technical market data" : "Market refresh disabled" };
   const twelveQuote = null;
 
   const cachedProfile = cachedReport?.profile || {};
@@ -2534,6 +2594,12 @@ export async function buildStockAnalysis(symbol, options = {}) {
   applyMetricFallbacks(extracted, fmpMetrics, cachedMetrics);
   applyMetricFallbacks(extracted, finnhubMetrics, cachedMetrics);
   applyMetricFallbacks(extracted, twelveMarketMetrics, cachedMetrics);
+  deriveMissingMetrics(extracted);
+
+  // Hard guard: if the historical series exists, Momentum/Pullback inputs should not stay voided.
+  // This prevents saving reports like NVDA with null momentum/pullback when time_series returned usable rows.
+  const technicalFromRows = calculateTechnicalFromRows(Array.isArray(twelveMarket?.rows) ? twelveMarket.rows : []);
+  applyMetricFallbacks(extracted, technicalFromRows, cachedMetrics);
   deriveMissingMetrics(extracted);
 
   extracted.nopat = scoreInputNumber(extracted.operatingIncome) !== null ? extracted.operatingIncome * (1 - 0.21) : null;
