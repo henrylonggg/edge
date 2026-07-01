@@ -42502,3 +42502,29 @@ body {
 .grade-score-row .score-help-btn {
   margin-left: 3px !important;
 }
+
+
+/* Eval patch: move metric question marks slightly right without changing button size */
+.grade-card .score-help-btn,
+.metric-card .score-help-btn,
+.metrics-card .score-help-btn,
+.grade-head .score-help-btn,
+.metric-head .score-help-btn {
+  transform: translateX(3px) !important;
+}
+
+.grade-card .score-help-btn:hover,
+.metric-card .score-help-btn:hover,
+.metrics-card .score-help-btn:hover,
+.grade-head .score-help-btn:hover,
+.metric-head .score-help-btn:hover {
+  transform: translateX(3px) translateY(-1px) !important;
+}
+
+/* Logo.dev domain-logo cache-bust patch */
+.watch-logo-shell img[style*="display: none"] + b {
+  display: grid !important;
+}
+.eval-stock-logo[style*="display: none"] {
+  visibility: hidden !important;
+}
