@@ -42462,3 +42462,38 @@ body {
   -webkit-text-fill-color: transparent !important;
   font-style: italic !important;
 }
+
+
+/* FINAL FIX: force chart gradient strokes, shrink metric scores, and prevent white override */
+.eval-stock-chart-svg.green .eval-chart-line { stroke: url(#evalChartStrokeGreen) !important; }
+.eval-stock-chart-svg.yellow .eval-chart-line { stroke: url(#evalChartStrokeYellow) !important; }
+.eval-stock-chart-svg.red .eval-chart-line { stroke: url(#evalChartStrokeRed) !important; }
+.eval-stock-chart-svg.neutral .eval-chart-line { stroke: url(#evalChartStrokeNeutral) !important; }
+.eval-stock-chart-svg.green .eval-chart-area { fill: url(#evalChartFadeGreen) !important; }
+.eval-stock-chart-svg.yellow .eval-chart-area { fill: url(#evalChartFadeYellow) !important; }
+.eval-stock-chart-svg.red .eval-chart-area { fill: url(#evalChartFadeRed) !important; }
+.eval-stock-chart-svg.neutral .eval-chart-area { fill: url(#evalChartFadeNeutral) !important; }
+.eval-stock-chart-svg .eval-chart-line {
+  stroke-width: 3.9px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+.grade-card strong,
+.grade-score-row strong,
+.metric-score,
+.category-score {
+  font-size: clamp(25px, 3.1vw, 34px) !important;
+  line-height: .92 !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+@media (max-width: 680px) {
+  .grade-card strong,
+  .grade-score-row strong,
+  .metric-score,
+  .category-score {
+    font-size: clamp(22px, 8vw, 30px) !important;
+    letter-spacing: -0.045em !important;
+  }
+}
