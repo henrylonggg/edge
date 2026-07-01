@@ -3958,7 +3958,7 @@ app.get("/api/precompute/status", (req, res) => {
     universeSize: getPrecomputeUniverse().length,
     batchSize: Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500),
     weeklySize: Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500),
-    window: "12:15 AM-8:45 AM ET one-time test on 2026-07-01; then 11:00 PM-7:30 AM ET",
+    window: "10:20 AM-6:50 PM ET one-time test on 2026-07-01; then 11:00 PM-7:30 AM ET",
   });
 });
 
@@ -3973,78 +3973,6 @@ app.post("/api/precompute/run", async (req, res) => {
     res.json({ ok: true, results });
   } catch (error) {
     res.status(500).json({ error: error?.message || "Precompute run failed" });
-  }
-});
-
-
-function csvEscape(value) {
-  if (value === null || value === undefined) return "";
-  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-function readPrecomputeCsvRows() {
-  const storePath = process.env.EVAL_PRECOMPUTE_STORE_PATH || path.join(process.cwd(), "data", "eval-precomputed-reports.json");
-  if (!fs.existsSync(storePath)) return [];
-  const raw = JSON.parse(fs.readFileSync(storePath, "utf8"));
-  return Object.entries(raw || {}).map(([symbol, entry]) => {
-    const report = entry?.report || {};
-    const categories = report?.grades?.categories || {};
-    const metrics = report?.metrics || {};
-    const row = {
-      symbol: report?.symbol || symbol,
-      companyName: report?.companyName || report?.name || "",
-      sector: report?.sector || report?.profile?.sector || "",
-      industry: report?.industry || report?.profile?.industry || "",
-      evalScore: report?.grades?.edgeScore ?? report?.edgeScore ?? "",
-      profitability: categories?.profitability ?? "",
-      financialHealth: categories?.financialHealth ?? "",
-      valuation: categories?.valuation ?? "",
-      growth: categories?.growth ?? "",
-      momentum: categories?.momentum ?? "",
-      pullback: categories?.pullback ?? "",
-      savedAt: entry?.savedAt ? new Date(Number(entry.savedAt)).toISOString() : "",
-      precomputedAt: report?.precomputedAt || report?.generatedAt || "",
-      technicalRefreshedAt: report?.technicalRefreshedAt || "",
-    };
-
-    for (const [key, value] of Object.entries(metrics)) {
-      row[`metric_${key}`] = value?.value ?? value ?? "";
-    }
-
-    return row;
-  }).sort((a, b) => String(a.symbol).localeCompare(String(b.symbol)));
-}
-
-app.get("/api/admin/precompute.csv", (req, res) => {
-  try {
-    const rows = readPrecomputeCsvRows();
-    const baseHeaders = [
-      "symbol",
-      "companyName",
-      "sector",
-      "industry",
-      "evalScore",
-      "profitability",
-      "financialHealth",
-      "valuation",
-      "growth",
-      "momentum",
-      "pullback",
-      "savedAt",
-      "precomputedAt",
-      "technicalRefreshedAt",
-    ];
-    const metricHeaders = [...new Set(rows.flatMap((row) => Object.keys(row).filter((key) => key.startsWith("metric_"))))].sort();
-    const headers = [...baseHeaders, ...metricHeaders];
-    const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(","))].join("\n");
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=eval-precompute.csv");
-    return res.send(csv);
-  } catch (error) {
-    console.error("Precompute CSV export failed:", error?.stack || error?.message || error);
-    return res.status(500).json({ error: error?.message || "Precompute CSV export failed" });
   }
 });
 
