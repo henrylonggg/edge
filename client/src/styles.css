@@ -42528,3 +42528,144 @@ body {
 .eval-stock-logo[style*="display: none"] {
   visibility: hidden !important;
 }
+
+/* Eval visual patch: mobile chart/actions/nav/watchlist */
+.eval-chart-range-toggle.single-six-month {
+  justify-content: center;
+  gap: 0;
+  opacity: 0.78;
+  pointer-events: none;
+}
+.eval-chart-range-toggle.single-six-month span {
+  font-family: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.58);
+  text-transform: uppercase;
+}
+.eval-chart-axis-date {
+  fill: rgba(255,255,255,0.48) !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  paint-order: stroke;
+  stroke: rgba(7,9,18,0.72);
+  stroke-width: 2px;
+}
+.eval-chart-hero-actions.mobile-symbol-only-actions {
+  justify-content: center;
+  margin-top: 8px;
+  min-height: 28px;
+}
+.eval-hero-add-btn.eval-hero-add-symbol-btn,
+.eval-hero-add-btn.eval-hero-add-symbol-btn:hover,
+.eval-hero-add-btn.eval-hero-add-symbol-btn:focus-visible {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255,255,255,0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.score-metrics-jump-btn { display: none !important; }
+.watch-row.watch-row-simple.watch-row-logo-format {
+  grid-template-columns: minmax(58px, 0.85fr) minmax(86px, 1.1fr) auto 30px;
+  gap: 10px;
+  align-items: center;
+}
+.watch-info-no-logo {
+  justify-content: flex-start !important;
+  padding-left: 0 !important;
+  min-width: 0;
+}
+.watch-info-no-logo .watch-ticker-main {
+  margin-left: 0 !important;
+  text-align: left;
+}
+.watch-row-sparkline-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+}
+.watch-sparkline {
+  width: 96px;
+  height: 30px;
+  overflow: visible;
+}
+.watch-sparkline path {
+  fill: none !important;
+  stroke-width: 2.4px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.watch-sparkline.up path { stroke: url(#evalChartStrokeGreen); }
+.watch-sparkline.down path { stroke: url(#evalChartStrokeRed); }
+.watch-sparkline.neutral path { stroke: url(#evalChartStrokeNeutral); }
+/* Fallback when URL gradients are not available inside the small SVG */
+.watch-sparkline.up path { stroke: #45f5d4; }
+.watch-sparkline.down path { stroke: #ff765c; }
+
+/* Transparent-looking solid mobile nav that blends into the page */
+.mobile-bottom-nav {
+  background: linear-gradient(180deg, rgba(7,9,18,0.88), rgba(7,9,18,0.98)) !important;
+  border-top: 1px solid rgba(255,255,255,0.055) !important;
+  box-shadow: 0 -18px 40px rgba(0,0,0,0.26) !important;
+  backdrop-filter: blur(16px);
+}
+.mobile-bottom-nav-btn {
+  background: rgba(255,255,255,0.035) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+.mobile-bottom-nav-btn.nav-home {
+  background: linear-gradient(135deg, var(--mobile-home-gradient-start, #85ff47), var(--mobile-home-gradient-end, #15e7ff)) !important;
+  color: #071018 !important;
+}
+.settings-mobile-nav-card,
+.logo-color-customizer,
+.mobile-nav-customizer,
+.settings-logo-card {
+  display: none !important;
+}
+
+/* Smaller metric values so they do not cut off */
+.metric-tile strong,
+.mini-stat-value-row b,
+.grade-score-row strong,
+.metric-score-text,
+.category-score-text {
+  font-size: clamp(1.05rem, 3.8vw, 1.55rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.04em !important;
+}
+.grade-score-row .score-help-btn,
+.mini-stat-value-row .score-help-btn {
+  transform: translateX(3px);
+}
+
+@media (max-width: 720px) {
+  .eval-live-price-panel strong,
+  .eval-chart-hero-right .eval-live-price-panel strong {
+    font-size: clamp(1.75rem, 9vw, 2.55rem) !important;
+    line-height: 0.95;
+  }
+  .eval-chart-hero-actions.mobile-symbol-only-actions {
+    margin-top: 4px;
+  }
+  .watch-row.watch-row-simple.watch-row-logo-format {
+    grid-template-columns: 58px minmax(78px, 1fr) auto 28px;
+    gap: 8px;
+  }
+  .watch-sparkline { width: 84px; height: 28px; }
+  .metric-tile strong,
+  .mini-stat-value-row b,
+  .grade-score-row strong {
+    font-size: clamp(0.95rem, 5.1vw, 1.28rem) !important;
+  }
+}
