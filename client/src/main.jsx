@@ -1166,7 +1166,7 @@ function App() {
     return {
       symbol: clean,
       name: analyzed?.profile?.name || clean,
-      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=logo-dev-direct-v1`,
+      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=logo-dev-redirect-v1`,
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -5149,7 +5149,9 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
           )}
 
           {!!csvAnalysis.skipped?.length && (
-            <div className="portfolio-skipped-note"><b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}</div>
+            <div className="portfolio-skipped-note">
+              <b>You do not have access to:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}
+            </div>
           )}
         </section>
       )}
@@ -11131,7 +11133,7 @@ function Watchlist({
         ) : (
           items.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=logo-dev-direct-v1`;
+            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=logo-dev-redirect-v1`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
                 <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
@@ -11830,7 +11832,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     };
   }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
 
-  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=logo-dev-direct-v1`;
+  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=logo-dev-redirect-v1`;
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
   const tone = "neutral";
