@@ -42309,24 +42309,101 @@ body {
   }
 }
 
-/* Logo.dev attribution links */
-.logo-dev-link,
-.logo-dev-link:visited,
-.logo-dev-link:hover,
-.logo-dev-link:active {
-  color: inherit;
-  text-decoration: none;
-}
-
-.eval-stock-logo-link {
+/* LOGO.DEV + FINAL METRIC COLOR PATCH */
+.logo-dev-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  color: inherit;
+}
+.eval-stock-logo-link {
   flex: 0 0 auto;
+  border-radius: inherit;
 }
 
-.watch-info-logo-ticker .watch-logo-shell.logo-dev-link {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
+/* Force every displayed score/metric number to use the same gradient text effect as Eval Score. */
+.grade-score-row strong,
+.grade-card strong,
+.metric-score,
+.portfolio-metric-bar-head strong,
+.portfolio-weighted-metric-grid strong,
+.portfolio-main-metric-bubble .portfolio-metric-bar-head strong,
+.metric-tile strong {
+  font-style: italic !important;
+  font-weight: 1000 !important;
+  letter-spacing: -0.055em !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  text-shadow: 0 0 10px rgba(255,255,255,.08) !important;
+}
+.grade-score-row strong.green,
+.grade-card strong.green,
+.metric-score.green,
+.portfolio-metric-bar-head strong.green,
+.portfolio-weighted-metric-grid strong.green,
+.portfolio-main-metric-bubble.green .portfolio-metric-bar-head strong {
+  background-image: linear-gradient(135deg, #85ff47 0%, #32d9ff 100%) !important;
+}
+.grade-score-row strong.yellow,
+.grade-card strong.yellow,
+.metric-score.yellow,
+.portfolio-metric-bar-head strong.yellow,
+.portfolio-weighted-metric-grid strong.yellow,
+.portfolio-main-metric-bubble.yellow .portfolio-metric-bar-head strong {
+  background-image: linear-gradient(135deg, #ffe45f 0%, #ff9f1c 100%) !important;
+}
+.grade-score-row strong.red,
+.grade-card strong.red,
+.metric-score.red,
+.portfolio-metric-bar-head strong.red,
+.portfolio-weighted-metric-grid strong.red,
+.portfolio-main-metric-bubble.red .portfolio-metric-bar-head strong {
+  background-image: linear-gradient(135deg, #ff5570 0%, #ff9f1c 100%) !important;
+}
+.grade-score-row strong.neutral,
+.grade-card strong.neutral,
+.metric-score.neutral,
+.portfolio-metric-bar-head strong.neutral,
+.portfolio-weighted-metric-grid strong.neutral,
+.metric-tile strong {
+  background-image: linear-gradient(135deg, #f8fbff 0%, #8aa4ff 100%) !important;
+}
+
+/* Make SVG high/low price tags stay normal horizontal text. */
+.eval-chart-extreme-label {
+  letter-spacing: 0 !important;
+  word-spacing: 0 !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  direction: ltr !important;
+}
+
+/* Chart line now matches Eval Score / metric bar tone colors. The under-line shade is intentionally very faint, not a heavy fill. */
+.eval-chart-area {
+  opacity: .42 !important;
+  pointer-events: none !important;
+}
+.eval-chart-area.green { fill: url(#evalChartFadeGreen) !important; }
+.eval-chart-area.yellow { fill: url(#evalChartFadeYellow) !important; }
+.eval-chart-area.red { fill: url(#evalChartFadeRed) !important; }
+.eval-chart-area.neutral { fill: url(#evalChartFadeNeutral) !important; }
+
+.eval-chart-line.green {
+  stroke: #37d891 !important;
+  filter: drop-shadow(0 0 7px rgba(55,216,145,.24)) !important;
+}
+.eval-chart-line.yellow {
+  stroke: #ffd166 !important;
+  filter: drop-shadow(0 0 7px rgba(255,209,102,.22)) !important;
+}
+.eval-chart-line.red {
+  stroke: #ff7043 !important;
+  filter: drop-shadow(0 0 7px rgba(255,112,67,.22)) !important;
+}
+.eval-chart-line.neutral {
+  stroke: #15e7ff !important;
+  filter: drop-shadow(0 0 7px rgba(21,231,255,.20)) !important;
 }
