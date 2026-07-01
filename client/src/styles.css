@@ -42926,3 +42926,86 @@ body {
 }
 
 .eval-chart-ovr-label { display: none !important; }
+
+/* FRONTEND ONLY: portfolio industry tab scores mirror stock score style, only slightly larger */
+.portfolio-industry-head .portfolio-industry-eval-score.watch-score-plain,
+.portfolio-industry-tab-toggle .portfolio-industry-eval-score.watch-score-plain,
+.portfolio-industry-eval-score.watch-score-plain {
+  font-size: 23px !important;
+  line-height: .9 !important;
+  letter-spacing: -.8px !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 1px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: var(--score-gradient, linear-gradient(135deg, #ffffff, rgba(255,255,255,.72))) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.portfolio-industry-eval-score.watch-score-plain::after {
+  content: "OVR" !important;
+  display: block !important;
+  width: 100% !important;
+  margin-top: 2px !important;
+  font-size: 7px !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  font-weight: 850 !important;
+  font-style: normal !important;
+  text-align: center !important;
+  background: none !important;
+  color: rgba(255,255,255,.70) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.70) !important;
+  text-shadow: none !important;
+}
+
+.portfolio-holding-eval-score.watch-score-plain,
+.portfolio-detail-eval-score.watch-score-plain {
+  font-size: 20px !important;
+  line-height: .9 !important;
+  letter-spacing: -.7px !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+}
+
+.portfolio-holding-eval-score.watch-score-plain::after,
+.portfolio-detail-eval-score.watch-score-plain::after {
+  content: "OVR" !important;
+  display: block !important;
+  width: 100% !important;
+  margin-top: 2px !important;
+  font-size: 6px !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  font-weight: 850 !important;
+  font-style: normal !important;
+  text-align: center !important;
+  background: none !important;
+  color: rgba(255,255,255,.70) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.70) !important;
+  text-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  .portfolio-industry-eval-score.watch-score-plain {
+    font-size: 22px !important;
+    min-width: 40px !important;
+  }
+  .portfolio-holding-eval-score.watch-score-plain,
+  .portfolio-detail-eval-score.watch-score-plain {
+    font-size: 18px !important;
+  }
+}
