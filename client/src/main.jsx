@@ -11522,9 +11522,9 @@ function EvalScoreTextBadge({ value, className = "" }) {
   const display = scoreDisplay99(value);
   const tone = scoreTone(value);
   return (
-    <span className={`eval-score-text-badge score-ovr-stack ${tone} ${className}`}>
-      <strong>{display === null ? "N/A" : display}</strong>
-      <small>OVR</small>
+    <span className={`eval-score-text-badge score-ovr-stack unified-score-display ${tone} ${className}`} aria-label={`Eval score ${display === null ? "not available" : display}`}>
+      <strong className="score-ovr-number">{display === null ? "N/A" : display}</strong>
+      <small className="score-ovr-label">OVR</small>
     </span>
   );
 }
@@ -12384,7 +12384,7 @@ function Grade({
       </div>
 
       <div className="grade-score-row">
-        <strong className={`score-ovr-stack ${tone}`}><span>{scoreText(s)}</span><small>OVR</small></strong>
+        <strong className={`score-ovr-stack unified-score-display metric-score-stack ${tone}`}><span className="score-ovr-number">{scoreText(s)}</span><small className="score-ovr-label">OVR</small></strong>
         <button
           type="button"
           className="score-help-btn"
