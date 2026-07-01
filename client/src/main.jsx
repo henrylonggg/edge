@@ -459,7 +459,7 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "newsSentiment", "momentum", "pullback"];
+const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback"];
 const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
 
 function categoryLabel(key) {
@@ -469,7 +469,6 @@ function categoryLabel(key) {
       profitability: "Profitability",
       financialHealth: "Financial Health",
       valuation: "Valuation",
-      newsSentiment: "News Sentiment",
       momentum: "Momentum",
       pullback: "Pullback",
     }[key] || key
@@ -2362,7 +2361,6 @@ function ComparePage({
     "profitability",
     "financialHealth",
     "valuation",
-    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -2471,7 +2469,6 @@ function IndustryRadar({ leaders }) {
     "profitability",
     "financialHealth",
     "valuation",
-    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -2873,8 +2870,7 @@ function portfolioMetricSummary(key, value) {
     financialHealth: "Shows whether the portfolio is tilted toward stronger balance sheets and lower financial stress.",
     valuation: "Shows whether the portfolio is weighted toward holdings that look reasonably priced against fundamentals.",
     momentum: "Shows whether larger positions have stronger recent price action.",
-    newsSentiment: "Shows how current company-specific headlines affect the portfolio backdrop.",
-  };
+      };
 
   return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} in the overall Portfolio Score.`;
 }
@@ -4400,7 +4396,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
       valuation: true,
       momentum: true,
       reversal: false,
-      newsSentiment: false,
       shares: false,
       averageCost: false,
       value: true,
@@ -4432,7 +4427,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
     const key = column.key;
     if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
     if (key === "eval") return <td key={key}><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-detail-eval-score watch-score-plain" /></td>;
-    if (["profitability", "financialHealth", "valuation", "momentum", "newsSentiment"].includes(key)) {
+    if (["profitability", "financialHealth", "valuation", "momentum"].includes(key)) {
       const value = score10(holding?.[key]);
       return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(value)}`}>{value === null ? "N/A" : value.toFixed(1)}</span></td>;
     }
@@ -11907,7 +11902,7 @@ function EvalScoreTextBadge({ value, className = "" }) {
 
 function WatchMiniSparkline({ symbol }) {
   const clean = String(symbol || "").trim().toUpperCase();
-  const liveEnabled = isLiveWebSocketSymbol(clean);
+  const liveEnabled = false;
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
@@ -11921,7 +11916,7 @@ function WatchMiniSparkline({ symbol }) {
         return;
       }
       try {
-        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(clean)}?interval=1day&outputsize=32`);
+        const res = await fetch(`${API}/api/precomputed-chart/${encodeURIComponent(clean)}?range=1M`);
         const json = await res.json();
         const nextRows = Array.isArray(json?.rows) ? json.rows : [];
         if (res.ok) writeClientTimedCache(CLIENT_SPARKLINE_CACHE, cacheKey, nextRows, CLIENT_SPARKLINE_TTL_MS);
@@ -11934,36 +11929,7 @@ function WatchMiniSparkline({ symbol }) {
     return () => { cancelled = true; };
   }, [clean]);
 
-  useEffect(() => {
-    if (!clean || !liveEnabled) return undefined;
-    const url = websocketUrlForSymbols([clean]);
-    if (!url) return undefined;
-    let ws;
-    let closed = false;
-    let lastChartUpdate = 0;
-    const connect = () => {
-      if (closed) return;
-      ws = new WebSocket(url);
-      ws.onmessage = (event) => {
-        let packet = null;
-        try { packet = JSON.parse(event.data); } catch { return; }
-        const live = normalizeLivePacket(packet, clean);
-        if (live.symbol !== clean || !Number.isFinite(Number(live.current))) return;
-        const now = Date.now();
-        if (now - lastChartUpdate < 10_000) return;
-        lastChartUpdate = now;
-        setRows((currentRows) => {
-          const next = [...(Array.isArray(currentRows) ? currentRows : [])];
-          next.push({ datetime: new Date(now).toISOString(), close: live.current });
-          return next.slice(-32);
-        });
-      };
-      ws.onclose = () => { if (!closed) window.setTimeout(connect, 3000); };
-    };
-    connect();
-    return () => { closed = true; try { ws?.close(); } catch {} };
-  }, [clean, liveEnabled]);
-
+  // Watchlist sparklines use stored database chart rows only.
   const points = rows.map((row, i) => ({ x: i, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
   if (!points.length) return <div className="watch-sparkline-empty" />;
   const width = 116;
@@ -12066,7 +12032,7 @@ const EVAL_CHART_RANGES = [
 
 function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScoreBreakdown, scoreBreakdownOpen = false }) {
   const symbol = String(data?.symbol || "").trim().toUpperCase();
-  const liveEnabled = isLiveWebSocketSymbol(symbol);
+  const liveEnabled = false;
   const [live, setLive] = useState({ current: data?.quote?.c, previousClose: data?.quote?.pc, change: data?.quote?.d, changePercent: data?.quote?.dp, source: "initial" });
   const [chartRows, setChartRows] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
@@ -12081,30 +12047,6 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   useEffect(() => {
     if (!symbol) return undefined;
     let cancelled = false;
-    const key = String(symbol).toUpperCase();
-    const loadLive = async () => {
-      if (liveEnabled) return;
-      const cached = readClientTimedCache(CLIENT_LIVE_QUOTE_CACHE, key);
-      if (cached !== undefined) {
-        if (!cancelled) setLive(cached);
-        return;
-      }
-      try {
-        const res = await fetch(`${API}/api/live-quote/${encodeURIComponent(symbol)}`);
-        const json = await res.json();
-        if (res.ok) writeClientTimedCache(CLIENT_LIVE_QUOTE_CACHE, key, json, CLIENT_LIVE_QUOTE_TTL_MS);
-        if (!cancelled && res.ok) setLive(json);
-      } catch {}
-    };
-    loadLive();
-    const onFocus = () => loadLive();
-    window.addEventListener("focus", onFocus);
-    return () => { cancelled = true; window.removeEventListener("focus", onFocus); };
-  }, [symbol, liveEnabled]);
-
-  useEffect(() => {
-    if (!symbol) return undefined;
-    let cancelled = false;
     const cacheKey = `${symbol}:chart:${activeChartRange.key}`;
     const loadChart = async () => {
       setChartLoading(true);
@@ -12115,7 +12057,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         return;
       }
       try {
-        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(activeChartRange.interval)}&outputsize=${encodeURIComponent(activeChartRange.outputsize)}`);
+        const res = await fetch(`${API}/api/precomputed-chart/${encodeURIComponent(symbol)}?range=${encodeURIComponent(activeChartRange.key)}`);
         const json = await res.json();
         const nextRows = Array.isArray(json?.rows) ? json.rows : [];
         if (res.ok) writeClientTimedCache(CLIENT_CHART_CACHE, cacheKey, nextRows, CLIENT_CHART_TTL_MS);
@@ -12130,69 +12072,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     return () => { cancelled = true; };
   }, [symbol, activeChartRange.key, activeChartRange.interval, activeChartRange.outputsize]);
 
-  useEffect(() => {
-    if (!symbol || !liveEnabled) return undefined;
-    const url = websocketUrlForSymbols([symbol]);
-    if (!url) return undefined;
-    let ws;
-    let closed = false;
-    let reconnectTimer = null;
-    let lastChartUpdate = 0;
-    let lastLiveUpdate = 0;
-
-    const connect = () => {
-      if (closed) return;
-      ws = new WebSocket(url);
-      ws.onopen = () => {
-        try { ws.send(JSON.stringify({ type: "symbols", symbols: [symbol] })); } catch {}
-      };
-      ws.onmessage = (event) => {
-        let packet = null;
-        try { packet = JSON.parse(event.data); } catch { return; }
-        const next = normalizeLivePacket(packet, symbol);
-        if (next.symbol !== symbol || !Number.isFinite(Number(next.current))) return;
-        const now = Date.now();
-        if (now - lastLiveUpdate >= 5_000) {
-          lastLiveUpdate = now;
-          setLive((prev) => {
-            const current = next.current ?? prev.current;
-            const previousClose = next.previousClose ?? prev.previousClose ?? data?.quote?.pc;
-            const change = Number.isFinite(Number(current)) && Number.isFinite(Number(previousClose)) ? Number(current) - Number(previousClose) : prev.change;
-            const changePercent = Number.isFinite(Number(change)) && Number.isFinite(Number(previousClose)) && Number(previousClose) > 0 ? (Number(change) / Number(previousClose)) * 100 : prev.changePercent;
-            return {
-              ...prev,
-              current,
-              previousClose,
-              change,
-              changePercent,
-              timestamp: next.timestamp,
-              source: "Twelve Data WebSocket",
-            };
-          });
-        }
-        if (activeChartRange.intraday && shouldPlaceIntradayChartPoint(now) && now - lastChartUpdate >= 15 * 60 * 1000) {
-          lastChartUpdate = now;
-          setChartRows((currentRows) => {
-            const rows = Array.isArray(currentRows) ? [...currentRows] : [];
-            rows.push({ datetime: new Date(now).toISOString(), close: next.current, live: true });
-            return rows.slice(-120);
-          });
-        }
-      };
-      ws.onclose = () => {
-        if (!closed) reconnectTimer = window.setTimeout(connect, 3000);
-      };
-      ws.onerror = () => { try { ws?.close(); } catch {} };
-    };
-
-    connect();
-    return () => {
-      closed = true;
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      try { ws?.close(); } catch {}
-    };
-  }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
-
+  // UI is database-only: no browser websocket or provider-backed live calls.
   const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}`;
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
@@ -12205,7 +12085,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           <img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
-            <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
+            <span>{symbol}</span>
           </div>
         </div>
         <div className="eval-chart-hero-right">
@@ -12378,10 +12258,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
     financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
-    newsSentiment: "Shows whether the latest company-specific headlines look helpful, neutral, or negative for the current stock backdrop.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     pullback: "Shows whether the stock has cooled off from highs without completely breaking down. Higher means the entry setup looks less stretched.",
-    newsSentiment: "Scores the latest Finnhub company-news articles with AI and includes the weighted result in the Eval Score.",
   };
 
   const categoryMetrics = {
@@ -12427,19 +12305,18 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
     ]),
-    newsSentiment: usableMetricLines([
-      metricLine("Weighted News Score", metrics.newsSentiment),
-    ]),
     momentum: usableMetricLines([
       metricLine("Beta", metrics.beta),
       metricLine("Day Change", metrics.dayChangePercent),
       metricLine("4-Week Return", metrics.priceReturn4Week),
+      metricLine("12-Week Return", metrics.priceReturn12Week),
       metricLine("13-Week Return", metrics.priceReturn13Week),
       metricLine("26-Week Return", metrics.priceReturn26Week),
       metricLine("52-Week Return", metrics.priceReturn52Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
     ]),
     pullback: usableMetricLines([
+      metricLine("RSI 14", metrics.rsi14),
       metricLine("Pullback From 52-Week High", metrics.pullbackFromHigh),
       metricLine("4-Week Cooling", metrics.priceReturn4Week),
       metricLine("Distance From 52-Week Low", metrics.distanceFrom52WeekLow),
@@ -12575,42 +12452,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         </section>
       )}
 
-      {newsTopics.length > 0 && (
-        <section className="news-sentiment-card">
-          <div className="section-title news-section-title">
-            <Newspaper size={17} />
-            News Sentiment
-            <small>{data.newsSentiment?.label || "Recent news"}</small>
-          </div>
-
-          {data.newsSentiment?.summary && (
-            <p className="news-overall-summary">{data.newsSentiment.summary}</p>
-          )}
-
-          <div className="news-topic-list">
-            {newsTopics.map((topic, index) => (
-              <article className="news-topic-card" key={`${topic.title}-${index}`}>
-                <div className="news-topic-head">
-                  <div>
-                    <span>Topic  · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
-                    <h3>{topic.title}</h3>
-                  </div>
-                  <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
-                </div>
-
-                <p>{topic.summary}</p>
-
-                {topic.url && (
-                  <a href={topic.url} target="_blank" rel="noreferrer">
-                    Read article
-                  </a>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-<section id="score-metrics" className="grade-grid grade-grid-seven">
+      <section id="score-metrics" className="grade-grid grade-grid-seven">
         <Grade
           id="growth"
           name="Growth"
@@ -12661,18 +12503,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           isOpen={openScoreHelp === "valuation"}
           onToggle={() =>
             setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
-          }
-        />
-        <Grade
-          id="newsSentiment"
-          name="News Sentiment"
-          value={cats.newsSentiment}
-          icon={<Newspaper size={18} />}
-          description={gradeDescriptions.newsSentiment}
-          metricsUsed={categoryMetrics.newsSentiment}
-          isOpen={openScoreHelp === "newsSentiment"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "newsSentiment" ? null : "newsSentiment")
           }
         />
         <Grade
