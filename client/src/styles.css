@@ -42296,3 +42296,50 @@ body {
     font-size: 13px;
   }
 }
+
+/* Eval frontend polish: metric/category score numbers mirror Eval Score theme */
+.grade-score-row strong,
+.grade-card strong,
+.metric-score,
+.metric-score.green,
+.metric-score.yellow,
+.metric-score.red,
+.metric-score.neutral,
+.portfolio-detail-score-pill,
+.portfolio-weighted-metric-grid strong,
+.portfolio-weighted-metric-grid-premium article strong,
+.score-popup .metric-row strong,
+.score-popup .metric-item strong {
+  font-style: italic !important;
+  font-weight: 1000 !important;
+  letter-spacing: -0.045em !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  text-shadow: 0 0 12px rgba(255,255,255,.10) !important;
+}
+.grade-score-row strong.green,
+.grade-card strong.green,
+.metric-score.green,
+.portfolio-detail-score-pill.green {
+  background-image: linear-gradient(135deg, #85ff47 0%, #15e7ff 100%) !important;
+}
+.grade-score-row strong.yellow,
+.grade-card strong.yellow,
+.metric-score.yellow,
+.portfolio-detail-score-pill.yellow {
+  background-image: linear-gradient(135deg, #ffe45f 0%, #ff9f1c 100%) !important;
+}
+.grade-score-row strong.red,
+.grade-card strong.red,
+.metric-score.red,
+.portfolio-detail-score-pill.red {
+  background-image: linear-gradient(135deg, #ff5570 0%, #ff9f1c 100%) !important;
+}
+.grade-score-row strong.neutral,
+.grade-card strong.neutral,
+.metric-score.neutral,
+.portfolio-detail-score-pill.neutral {
+  background-image: linear-gradient(135deg, #f8fbff 0%, #8aa4ff 100%) !important;
+}
