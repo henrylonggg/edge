@@ -2146,29 +2146,37 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
     const twelveLogoUrl = String(twelveLogoData?.url || twelveLogoData?.logo || twelveLogoData?.logo_url || twelveLogoData?.image || twelveLogoData?.image_url || twelveLogoData?.meta?.url || "").trim();
     const finnhubLogoUrl = String(finnhubProfile?.logo || "").trim();
     const candidates = [];
-    if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
-    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
-    candidates.push(
-      `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
-      `https://storage.googleapis.com/iex/api/logos/${encodeURIComponent(symbol)}.png`,
-      `https://eodhd.com/img/logos/US/${encodeURIComponent(symbol)}.png`
-    );
 
-    // Twelve frequently returns no logo for many US tickers on some plans. Finnhub
-    // profile2 is the most reliable logo fallback; then website-domain icons.
+    // Primary approach: pull the company icon directly from its own website.
+    // Finnhub/Twelve are used to discover the official company website, then Eval
+    // fetches common site-owned logo/icon paths and permanently caches only real images.
     const website = String(finnhubProfile?.weburl || twelveProfile?.website || twelveProfile?.weburl || twelveProfile?.url || "").trim();
     if (/^https?:\/\//i.test(website)) {
       try {
-        const host = new URL(website).hostname.replace(/^www\./i, "");
-        if (host) {
+        const parsedWebsite = new URL(website);
+        const host = parsedWebsite.hostname.replace(/^www\./i, "");
+        const origins = [...new Set([
+          `${parsedWebsite.protocol}//${parsedWebsite.hostname}`,
+          `https://${host}`,
+          `https://www.${host}`,
+        ])];
+        for (const origin of origins) {
           candidates.push(
-            `https://logo.clearbit.com/${host}`,
-            `https://icons.duckduckgo.com/ip3/${host}.ico`,
-            `https://www.google.com/s2/favicons?domain=${host}&sz=128`
+            `${origin}/apple-touch-icon.png`,
+            `${origin}/apple-touch-icon-precomposed.png`,
+            `${origin}/favicon-192x192.png`,
+            `${origin}/favicon-96x96.png`,
+            `${origin}/favicon-32x32.png`,
+            `${origin}/favicon.ico`
           );
         }
       } catch {}
     }
+
+    // Provider logos are fallbacks only. Avoid generic logo warehouses here because
+    // several return painter/default placeholders for symbols that do not exist.
+    if (/^https?:\/\//i.test(finnhubLogoUrl)) candidates.push(finnhubLogoUrl);
+    if (/^https?:\/\//i.test(twelveLogoUrl)) candidates.push(twelveLogoUrl);
 
     for (const candidate of [...new Set(candidates)]) {
       try {
@@ -2178,9 +2186,9 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
         if (!/^image\//i.test(contentType)) continue;
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        if (!buffer.length || buffer.length < 650) continue;
+        if (!buffer.length || buffer.length < 220) continue;
         const lowerCandidate = String(candidate).toLowerCase();
-        if (/placeholder|default|avatar|generic|favicon/.test(lowerCandidate) && !/clearbit|duckduckgo|google/.test(lowerCandidate)) continue;
+        if (/placeholder|default|avatar|generic|blank|missing/.test(lowerCandidate)) continue;
         companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
         return { buffer, contentType };
       } catch {}
