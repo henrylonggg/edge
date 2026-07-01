@@ -2132,13 +2132,13 @@ function normalizeCompanyDomain(value = "") {
 }
 
 function logoDevToken() {
-  return process.env.LOGO_DEV_API_KEY || process.env.LOGO_DEV_TOKEN || "";
+  return process.env.LOGO_DEV_PUBLIC_TOKEN || process.env.LOGO_DEV_API_KEY || process.env.LOGO_DEV_TOKEN || "";
 }
 
 function logoDevUrlFromDomain(domain = "") {
   const cleanDomain = normalizeCompanyDomain(domain);
   if (!cleanDomain) return "";
-  const params = new URLSearchParams({ format: "webp", retina: "true" });
+  const params = new URLSearchParams({ format: "webp", retina: "true", size: "128", fallback: "404" });
   const token = logoDevToken();
   if (token) params.set("token", token);
   return `https://img.logo.dev/${encodeURIComponent(cleanDomain)}?${params.toString()}`;
@@ -2147,7 +2147,7 @@ function logoDevUrlFromDomain(domain = "") {
 function logoDevUrlFromTicker(symbol = "") {
   const clean = cleanTicker(symbol);
   if (!clean) return "";
-  const params = new URLSearchParams({ format: "webp", retina: "true" });
+  const params = new URLSearchParams({ format: "webp", retina: "true", size: "128", fallback: "404" });
   const token = logoDevToken();
   if (token) params.set("token", token);
   return `https://img.logo.dev/ticker/${encodeURIComponent(clean)}?${params.toString()}`;
@@ -2189,7 +2189,7 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
 
   const loadLogo = async () => {
     const domain = await resolveCompanyDomainForLogo(symbol);
-    const candidates = [logoDevUrlFromDomain(domain), logoDevUrlFromTicker(symbol)].filter(Boolean);
+    const candidates = [logoDevUrlFromTicker(symbol), logoDevUrlFromDomain(domain)].filter(Boolean);
 
     for (const candidate of [...new Set(candidates)]) {
       try {
