@@ -42724,3 +42724,75 @@ body {
   color: rgba(255,255,255,.86) !important;
   border: 1px solid rgba(255,255,255,.13) !important;
 }
+
+/* FRONTEND ONLY: remove score italics everywhere + chart OVR placement + hide old action buttons */
+.eval-score-text-badge,
+.eval-score-text-badge *,
+.watch-score-plain,
+.watch-score-plain *,
+.eval-stock-chart-score,
+.eval-stock-chart-score *,
+.portfolio-main-eval-score,
+.portfolio-main-eval-score *,
+.portfolio-industry-eval-score,
+.portfolio-industry-eval-score *,
+.portfolio-holding-eval-score,
+.portfolio-holding-eval-score *,
+.portfolio-detail-eval-score,
+.portfolio-detail-eval-score *,
+.metric-score,
+.metric-score *,
+.metric-score-value,
+.metric-score-value *,
+.metric-value,
+.metric-value *,
+.grade-card strong,
+.grade-card strong *,
+.category-score-value,
+.category-score-value *,
+.compare-select-score,
+.compare-select-score *,
+.sector-score-pie strong,
+.sector-score-pie strong *,
+.svg-score-ring strong,
+.svg-score-ring strong * {
+  font-style: normal !important;
+  font-synthesis-style: none !important;
+}
+
+.eval-chart-score-side.no-label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  text-align: center !important;
+}
+
+.eval-chart-score-side.no-label .eval-score-text-badge::after,
+.eval-chart-score-side .eval-score-text-badge.eval-stock-chart-score::after,
+.eval-score-text-badge.eval-stock-chart-score::after {
+  content: none !important;
+}
+
+.eval-chart-ovr-label {
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  font-size: clamp(10px, 1.1vw, 13px) !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  font-weight: 850 !important;
+  font-style: normal !important;
+  color: rgba(255,255,255,.72) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.72) !important;
+  background: none !important;
+  text-shadow: none !important;
+  margin-top: -2px !important;
+}
+
+.eval-chart-hero-actions,
+.eval-hero-add-btn,
+.score-metrics-jump-btn {
+  display: none !important;
+}
