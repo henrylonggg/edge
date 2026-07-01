@@ -42796,3 +42796,133 @@ body {
 .score-metrics-jump-btn {
   display: none !important;
 }
+
+
+/* FRONTEND ONLY: stacked OVR scores + blended nav theme */
+.score-ovr-stack,
+.eval-score-text-badge.score-ovr-stack,
+.portfolio-score-text-badge.score-ovr-stack,
+.grade-score-row .score-ovr-stack,
+.portfolio-metric-bar-head .score-ovr-stack,
+.portfolio-industry-bar-row .score-ovr-stack,
+.svg-score-ring .score-ovr-stack {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  text-align: center !important;
+  line-height: .9 !important;
+  font-style: normal !important;
+}
+
+.score-ovr-stack > strong,
+.score-ovr-stack > span,
+.eval-score-text-badge.score-ovr-stack > strong,
+.portfolio-score-text-badge.score-ovr-stack > strong {
+  display: block !important;
+  font: inherit !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  line-height: .9 !important;
+}
+
+.score-ovr-stack > small,
+.eval-score-text-badge.score-ovr-stack > small,
+.portfolio-score-text-badge.score-ovr-stack > small,
+.grade-score-row .score-ovr-stack > small,
+.portfolio-metric-bar-head .score-ovr-stack > small,
+.portfolio-industry-bar-row .score-ovr-stack > small,
+.svg-score-ring .score-ovr-stack > small {
+  display: block !important;
+  margin-top: 2px !important;
+  font-size: .26em !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  font-style: normal !important;
+  font-weight: 850 !important;
+  color: rgba(255,255,255,.72) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.72) !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  text-shadow: none !important;
+}
+
+/* remove old pseudo OVR so it never duplicates */
+.eval-score-text-badge::after,
+.eval-score-text-badge.eval-stock-chart-score::after,
+.portfolio-score-text-badge::after,
+.grade-score-row strong::after,
+.portfolio-metric-bar-head strong::after,
+.portfolio-industry-bar-row strong::after,
+.svg-score-ring strong::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* hide portfolio eval score change everywhere */
+.portfolio-score-change-pill,
+.portfolio-score-change-pill.up,
+.portfolio-score-change-pill.down {
+  display: none !important;
+}
+
+/* blended solid mobile nav with themed icons */
+.mobile-bottom-nav {
+  background: #070912 !important;
+  border-color: rgba(255,255,255,.08) !important;
+  box-shadow: 0 -10px 34px rgba(0,0,0,.30) !important;
+  backdrop-filter: none !important;
+}
+
+.mobile-bottom-nav-btn,
+.mobile-bottom-nav .nav-shortcut,
+.mobile-bottom-nav .nav-arrow {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--mobile-nav-icon-color, #19E6FF) !important;
+}
+
+.mobile-bottom-nav .nav-shortcut svg,
+.mobile-bottom-nav .nav-arrow svg {
+  color: var(--mobile-nav-icon-color, #19E6FF) !important;
+  stroke: var(--mobile-nav-icon-color, #19E6FF) !important;
+}
+
+.mobile-bottom-nav .nav-home {
+  background: var(--mobile-home-button-color, linear-gradient(135deg, #7CFF6B 0%, #19E6FF 100%)) !important;
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.34) !important;
+  color: #fff !important;
+}
+
+.mobile-bottom-nav .nav-home svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+
+.settings-gradient-choice-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.settings-gradient-choice-row button {
+  width: 52px !important;
+  height: 34px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background: var(--preset-gradient) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.24) !important;
+  cursor: pointer !important;
+}
+
+.settings-gradient-choice-row button.active {
+  outline: 2px solid rgba(255,255,255,.78) !important;
+  outline-offset: 3px !important;
+}
+
+.eval-chart-ovr-label { display: none !important; }
