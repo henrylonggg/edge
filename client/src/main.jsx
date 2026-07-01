@@ -1166,7 +1166,7 @@ function App() {
     return {
       symbol: clean,
       name: analyzed?.profile?.name || clean,
-      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=domain-logo-v2`,
+      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=logo-dev-direct-v1`,
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -11131,7 +11131,7 @@ function Watchlist({
         ) : (
           items.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=domain-logo-v2`;
+            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=logo-dev-direct-v1`;
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
                 <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
@@ -11830,7 +11830,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     };
   }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
 
-  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=domain-logo-v2`;
+  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=logo-dev-direct-v1`;
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
   const tone = "neutral";
