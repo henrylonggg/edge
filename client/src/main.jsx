@@ -245,6 +245,29 @@ const MOBILE_NAV_SHORTCUT_OPTIONS = [
   { key: "tickerLookup", label: "Ticker Lookup" },
 ];
 
+const NAV_HOME_GRADIENT_PRESETS = [
+  { key: "greenblue", label: "Green / Blue", gradient: "linear-gradient(135deg, #7CFF6B 0%, #19E6FF 100%)", icon: "#19E6FF" },
+  { key: "yelloworange", label: "Yellow / Orange", gradient: "linear-gradient(135deg, #FFE66D 0%, #FF9F1C 100%)", icon: "#FFB21C" },
+  { key: "redorange", label: "Red / Orange", gradient: "linear-gradient(135deg, #FF4D6D 0%, #FF9F1C 100%)", icon: "#FF6A3D" },
+];
+
+function normalizeNavHomeColor(value) {
+  const raw = String(value || "").trim();
+  if (NAV_HOME_GRADIENT_PRESETS.some((preset) => preset.key === raw)) return raw;
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw;
+  return "greenblue";
+}
+
+function getNavHomeGradient(value) {
+  const preset = NAV_HOME_GRADIENT_PRESETS.find((item) => item.key === value);
+  return preset?.gradient || value || NAV_HOME_GRADIENT_PRESETS[0].gradient;
+}
+
+function getNavIconColor(value) {
+  const preset = NAV_HOME_GRADIENT_PRESETS.find((item) => item.key === value);
+  return preset?.icon || value || "#19E6FF";
+}
+
 const LOGO_COLOR_PRESETS = [
   "#9f5cff", "#7d4dff", "#6d28d9", "#8b5cf6", "#a855f7", "#b56cff",
   "#c084fc", "#d946ef", "#ff2bd6", "#ec4899", "#f43f5e", "#ff5f73",
@@ -715,8 +738,8 @@ function App() {
     return DASHBOARD_START_OPTIONS.some((option) => option.key === saved) ? saved : "dashboard";
   });
   const [landingLogoColor, setLandingLogoColor] = useState(() => {
-    const saved = safeStorageGet(LANDING_LOGO_COLOR_STORAGE_KEY, "#9f5cff");
-    return /^#[0-9a-f]{6}$/i.test(saved) ? saved : "#9f5cff";
+    const saved = safeStorageGet(LANDING_LOGO_COLOR_STORAGE_KEY, "greenblue");
+    return normalizeNavHomeColor(saved);
   });
   const viewHistoryRef = useRef([]);
   const forwardHistoryRef = useRef([]);
@@ -1068,7 +1091,7 @@ function App() {
   }
 
   function updateLandingLogoColor(next) {
-    const clean = /^#[0-9a-f]{6}$/i.test(String(next || "")) ? String(next) : "#9f5cff";
+    const clean = normalizeNavHomeColor(next);
     setLandingLogoColor(clean);
     safeStorageSet(LANDING_LOGO_COLOR_STORAGE_KEY, clean);
     window.dispatchEvent(new Event("eval-account-sync-changed"));
@@ -1963,22 +1986,16 @@ function SettingsPage({
           </article>
 
           <article className="settings-option-card settings-logo-color-card">
-            <h3>Mobile home button color</h3>
-            <div className="settings-color-row">
-              <input
-                type="color"
-                value={landingLogoColor}
-                onChange={(e) => onLandingLogoColorChange(e.target.value)}
-                aria-label="Mobile home button color"
-              />
-              {LOGO_COLOR_PRESETS.map((color) => (
+            <h3>Home button color</h3>
+            <div className="settings-gradient-choice-row">
+              {NAV_HOME_GRADIENT_PRESETS.map((preset) => (
                 <button
-                  key={color}
+                  key={preset.key}
                   type="button"
-                  className={landingLogoColor.toLowerCase() === color.toLowerCase() ? "active" : ""}
-                  onClick={() => onLandingLogoColorChange(color)}
-                  style={{ "--preset-color": color }}
-                  aria-label={`Use ${color} as mobile home button color`}
+                  className={landingLogoColor === preset.key ? "active" : ""}
+                  onClick={() => onLandingLogoColorChange(preset.key)}
+                  style={{ "--preset-gradient": preset.gradient }}
+                  aria-label={`Use ${preset.label} navigation theme`}
                 />
               ))}
             </div>
@@ -2013,13 +2030,7 @@ function SettingsPage({
                   <option key={option.key} value={option.key}>{option.label}</option>
                 ))}
               </select>
-              <label>Arrow button background</label>
-              <input
-                type="color"
-                value={mobileNavArrowColor}
-                onChange={(e) => onMobileNavArrowColorChange(e.target.value)}
-                aria-label="Mobile arrow button background color"
-              />
+
             </div>
           </article>
         </div>
@@ -2053,7 +2064,7 @@ function MobileBottomNav({ homeView, leftShortcut, secondLeftShortcut, rightShor
   const secondRight = shortcutMap[resolvedSecondRightShortcut] || shortcutMap.portfolio;
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": homeButtonColor, "--mobile-arrow-button-color": arrowButtonColor }}>
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation" style={{ "--mobile-home-button-color": getNavHomeGradient(homeButtonColor), "--mobile-nav-icon-color": getNavIconColor(homeButtonColor) }}>
       <button type="button" className="mobile-bottom-nav-btn nav-arrow nav-back-arrow" onClick={onBack} aria-label="Back">
         <ArrowLeft size={15} />
       </button>
@@ -2107,7 +2118,7 @@ function ScoreRingSvg({ value, className = "", label = null }) {
         />
         <circle className="svg-ring-inner" cx="60" cy="60" r="35" />
       </svg>
-      <strong>{label || (hasScore ? scoreText(score) : "N/A")}</strong>
+      <strong className="score-ovr-stack"><span>{label || (hasScore ? scoreText(score) : "N/A")}</span><small>OVR</small></strong>
     </div>
   );
 }
@@ -2954,8 +2965,9 @@ function buildPortfolioEvalHistory(previous = [], analysis) {
 function MiniScoreRing({ value, small = false, sector = false }) {
   const tone = scoreTone(value);
   return (
-    <div className={`portfolio-score-text-badge ${small ? "small" : "main"} ${sector ? "sector" : "stock"} ${tone}`}>
-      {scoreText(value)}
+    <div className={`portfolio-score-text-badge score-ovr-stack ${small ? "small" : "main"} ${sector ? "sector" : "stock"} ${tone}`}>
+      <strong>{scoreText(value)}</strong>
+      <small>OVR</small>
     </div>
   );
 }
@@ -3135,7 +3147,7 @@ function IndustryBars({ groups = [], onSelectIndustry }) {
             <button type="button" className={`portfolio-industry-bar-row ${tone}`} key={label} onClick={() => onSelectIndustry?.(group)}>
               <div><b>{label}</b><span>{Number(group?.totalWeightPercent || 0).toFixed(1)}% of portfolio</span></div>
               <div className="portfolio-industry-bar-track"><span className={tone} style={{ width }} /></div>
-              <strong>{scoreText(score)}</strong>
+              <strong className={`score-ovr-stack ${tone}`}><span>{scoreText(score)}</span><small>OVR</small></strong>
             </button>
           );
         })}
@@ -3172,7 +3184,7 @@ function PortfolioMetricsModal({ title, subtitle, entries = [], onClose }) {
         <div className="portfolio-weighted-metric-grid portfolio-metric-bar-grid portfolio-metrics-grid-v3 portfolio-metrics-modal-grid">
           {entries.map(([key, value]) => (
             <article key={key} className={`metric-bubble portfolio-main-metric-bubble ${scoreTone(value)}`}>
-              <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong>{scoreText(value)}</strong></div>
+              <div className="portfolio-metric-bar-head"><span>{categoryLabel(key)}</span><strong className={`score-ovr-stack ${scoreTone(value)}`}><span>{scoreText(value)}</span><small>OVR</small></strong></div>
               <div className="metric-fill-track"><span className={scoreTone(value)} style={{ width: `${Math.max(0, Math.min(100, (score10(value) || 0) * 10))}%` }} /></div>
               <p>{portfolioMetricSummary(key, value)}</p>
             </article>
@@ -4961,9 +4973,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
             })}>
               <div className="portfolio-score-ring-stack portfolio-score-text-stack">
                 <EvalScoreTextBadge value={portfolioEvalScore} className="portfolio-main-eval-score watch-score-plain" />
-                <span className={`portfolio-score-change-pill ${Number(evalScoreChange) >= 0 ? "up" : "down"}`}>
-                  {Number(evalScoreChange) >= 0 ? "+" : ""}{Number(evalScoreChange || 0).toFixed(1)}
-                </span>
               </div>
             </button>
 
@@ -11512,7 +11521,12 @@ function EvalAiScoreSummaryCard({ summary, ticker }) {
 function EvalScoreTextBadge({ value, className = "" }) {
   const display = scoreDisplay99(value);
   const tone = scoreTone(value);
-  return <span className={`eval-score-text-badge ${tone} ${className}`}>{display === null ? "N/A" : display}</span>;
+  return (
+    <span className={`eval-score-text-badge score-ovr-stack ${tone} ${className}`}>
+      <strong>{display === null ? "N/A" : display}</strong>
+      <small>OVR</small>
+    </span>
+  );
 }
 
 function WatchMiniSparkline({ symbol, score = null }) {
@@ -11836,7 +11850,6 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           </div>
           <div className="eval-chart-score-side no-label">
             <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
-            <span className="eval-chart-ovr-label">OVR</span>
           </div>
         </div>
       </div>
@@ -12371,7 +12384,7 @@ function Grade({
       </div>
 
       <div className="grade-score-row">
-        <strong className={tone}>{scoreText(s)}</strong>
+        <strong className={`score-ovr-stack ${tone}`}><span>{scoreText(s)}</span><small>OVR</small></strong>
         <button
           type="button"
           className="score-help-btn"
