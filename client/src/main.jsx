@@ -459,7 +459,7 @@ function saveWatchlist(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "newsSentiment", "momentum", "pullback"];
+const EVAL_CATEGORY_KEYS = ["growth", "profitability", "financialHealth", "valuation", "momentum", "pullback"];
 const EVAL_CATEGORY_KEY_SET = new Set(EVAL_CATEGORY_KEYS);
 
 function categoryLabel(key) {
@@ -469,7 +469,6 @@ function categoryLabel(key) {
       profitability: "Profitability",
       financialHealth: "Financial Health",
       valuation: "Valuation",
-      newsSentiment: "News Sentiment",
       momentum: "Momentum",
       pullback: "Pullback",
     }[key] || key
@@ -2336,7 +2335,6 @@ function ComparePage({
     "profitability",
     "financialHealth",
     "valuation",
-    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -2445,7 +2443,6 @@ function IndustryRadar({ leaders }) {
     "profitability",
     "financialHealth",
     "valuation",
-    "newsSentiment",
     "momentum",
     "pullback",
   ];
@@ -2847,7 +2844,6 @@ function portfolioMetricSummary(key, value) {
     financialHealth: "Shows whether the portfolio is tilted toward stronger balance sheets and lower financial stress.",
     valuation: "Shows whether the portfolio is weighted toward holdings that look reasonably priced against fundamentals.",
     momentum: "Shows whether larger positions have stronger recent price action.",
-    newsSentiment: "Shows how current company-specific headlines affect the portfolio backdrop.",
   };
 
   return `${descriptions[key] || `${label} summarizes this part of the portfolio.`} At ${n.toFixed(1)}, it is ${strength} in the overall Portfolio Score.`;
@@ -4374,7 +4370,6 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
       valuation: true,
       momentum: true,
       reversal: false,
-      newsSentiment: false,
       shares: false,
       averageCost: false,
       value: true,
@@ -4406,7 +4401,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
     const key = column.key;
     if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
     if (key === "eval") return <td key={key}><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-detail-eval-score watch-score-plain" /></td>;
-    if (["profitability", "financialHealth", "valuation", "momentum", "newsSentiment"].includes(key)) {
+    if (["profitability", "financialHealth", "valuation", "momentum"].includes(key)) {
       const value = score10(holding?.[key]);
       return <td key={key}><span className={`portfolio-detail-score-pill ${scoreTone(value)}`}>{value === null ? "N/A" : value.toFixed(1)}</span></td>;
     }
@@ -5174,7 +5169,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
     {
       icon: <BarChart3 size={22} />,
       title: "Category ratings",
-      text: "Every stock is broken into Profitability, Financial Health, Valuation, Momentum, and News Sentiment so users can see exactly what is helping or hurting the score.",
+      text: "Every stock is broken into Growth, Profitability, Financial Health, Valuation, Momentum, and Pullback so users can see exactly what is helping or hurting the score.",
     },
     {
       icon: <Newspaper size={22} />,
@@ -9293,371 +9288,6 @@ const EVAL_FAQS = [
     "answer": "leaders updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
   },
   {
-    "category": "News sentiment",
-    "question": "What is News Sentiment?",
-    "answer": "News Sentiment scores and summarizes recent company news so users can see whether recent headlines look positive, neutral, or negative."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How long is news sentiment cached?",
-    "answer": "News Sentiment is cached for about 7 days."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does news sentiment decide the whole Eval Score?",
-    "answer": "No. It is one category inside the overall score, not the entire rating."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read news sentiment in Eval?",
-    "answer": "In Eval, news sentiment is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does news sentiment mean in Eval?",
-    "answer": "news sentiment is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is news sentiment important?",
-    "answer": "news sentiment helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain news sentiment?",
-    "answer": "Yes. Eval AI can explain news sentiment when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if news sentiment looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read article cards in Eval?",
-    "answer": "In Eval, article cards is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does article cards mean in Eval?",
-    "answer": "article cards is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is article cards important?",
-    "answer": "article cards helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain article cards?",
-    "answer": "Yes. Eval AI can explain article cards when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if article cards looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read headline scoring in Eval?",
-    "answer": "In Eval, headline scoring is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does headline scoring mean in Eval?",
-    "answer": "headline scoring is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is headline scoring important?",
-    "answer": "headline scoring helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain headline scoring?",
-    "answer": "Yes. Eval AI can explain headline scoring when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if headline scoring looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read OpenAI summary in Eval?",
-    "answer": "In Eval, OpenAI summary is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does OpenAI summary mean in Eval?",
-    "answer": "OpenAI summary is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is OpenAI summary important?",
-    "answer": "OpenAI summary helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain OpenAI summary?",
-    "answer": "Yes. Eval AI can explain OpenAI summary when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if OpenAI summary looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read Finnhub news in Eval?",
-    "answer": "In Eval, Finnhub news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does Finnhub news mean in Eval?",
-    "answer": "Finnhub news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is Finnhub news important?",
-    "answer": "Finnhub news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain Finnhub news?",
-    "answer": "Yes. Eval AI can explain Finnhub news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if Finnhub news looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read sentiment cache in Eval?",
-    "answer": "In Eval, sentiment cache is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does sentiment cache mean in Eval?",
-    "answer": "sentiment cache is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is sentiment cache important?",
-    "answer": "sentiment cache helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain sentiment cache?",
-    "answer": "Yes. Eval AI can explain sentiment cache when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if sentiment cache looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read news topics in Eval?",
-    "answer": "In Eval, news topics is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does news topics mean in Eval?",
-    "answer": "news topics is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is news topics important?",
-    "answer": "news topics helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain news topics?",
-    "answer": "Yes. Eval AI can explain news topics when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if news topics looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read impact weight in Eval?",
-    "answer": "In Eval, impact weight is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does impact weight mean in Eval?",
-    "answer": "impact weight is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is impact weight important?",
-    "answer": "impact weight helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain impact weight?",
-    "answer": "Yes. Eval AI can explain impact weight when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if impact weight looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read positive news in Eval?",
-    "answer": "In Eval, positive news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does positive news mean in Eval?",
-    "answer": "positive news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is positive news important?",
-    "answer": "positive news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain positive news?",
-    "answer": "Yes. Eval AI can explain positive news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if positive news looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "How do I read negative news in Eval?",
-    "answer": "In Eval, negative news is handled inside the News sentiment area. Use the dashboard, dropdown, FAQs, and Eval AI to understand or open it. If it relates to a stock, load the ticker or save it to your watchlist first."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What does negative news mean in Eval?",
-    "answer": "negative news is part of the News sentiment experience. Eval explains it in plain English so users can understand the dashboard without needing to read raw financial data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Why is negative news important?",
-    "answer": "negative news helps users understand the stock report, app navigation, or data quality. It should be read together with the Eval Score, category bars, and cached provider data."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can Eval AI explain negative news?",
-    "answer": "Yes. Eval AI can explain negative news when the question is about using Eval, understanding the dashboard, or reviewing a loaded/watchlist stock."
-  },
-  {
-    "category": "News sentiment",
-    "question": "What should I do if negative news looks wrong?",
-    "answer": "Refresh the relevant page, check whether the ticker is loaded or saved, and remember that Eval uses cached data and provider fallbacks. If it still looks wrong, use Contact support."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users read news sentiment from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does news sentiment update automatically?",
-    "answer": "news sentiment updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users score article cards from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does article cards update automatically?",
-    "answer": "article cards updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users summarize headline scoring from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does headline scoring update automatically?",
-    "answer": "headline scoring updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users explain OpenAI summary from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does OpenAI summary update automatically?",
-    "answer": "OpenAI summary updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users refresh Finnhub news from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does Finnhub news update automatically?",
-    "answer": "Finnhub news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users interpret sentiment cache from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does sentiment cache update automatically?",
-    "answer": "sentiment cache updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users open news topics from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does news topics update automatically?",
-    "answer": "news topics updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users compare impact weight from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does impact weight update automatically?",
-    "answer": "impact weight updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users review positive news from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does positive news update automatically?",
-    "answer": "positive news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Can users understand negative news from the dashboard?",
-    "answer": "Yes, when the feature is available from the dashboard or dropdown. For stock-specific actions, the ticker must be loaded on the dashboard or saved to the watchlist."
-  },
-  {
-    "category": "News sentiment",
-    "question": "Does negative news update automatically?",
-    "answer": "negative news updates based on Eval\u2019s cache and provider rules. Some data refreshes daily, some weekly, and fundamental categories can stay cached much longer to reduce API usage."
-  },
-  {
     "category": "Eval AI",
     "question": "What can Eval AI answer?",
     "answer": "Eval AI can answer app support questions, FAQ-style questions, navigation help, metric explanations, and stock questions tied to the current dashboard or watchlist."
@@ -11505,7 +11135,7 @@ function Watchlist({
             return (
               <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
                 <button className="watch-info watch-info-new watch-info-logo-ticker" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
-                  <a className="watch-logo-shell logo-dev-link" href="https://www.logo.dev" target="_blank" rel="noopener noreferrer" aria-label="Logos provided by Logo.dev" onClick={(event) => event.stopPropagation()}>
+                  <a className="watch-logo-shell logo-dev-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev" onClick={(event) => event.stopPropagation()}>
                     <img key={ticker} src={logoSrc} alt="" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
                     <b>{ticker.slice(0, 1)}</b>
                   </a>
@@ -11761,7 +11391,7 @@ function AssistantPage({ current, watchlist, onBack, backLabel = "Back to dashbo
 
             <div>
               <strong>Score and metric help</strong>
-              <p>Ask what Growth, Profitability, Financial Health, Valuation, Momentum, Pullback, or News Sentiment means.</p>
+              <p>Ask what Growth, Profitability, Financial Health, Valuation, Momentum, or Pullback means.</p>
             </div>
 
             <div>
@@ -11958,7 +11588,7 @@ function WatchMiniSparkline({ symbol }) {
 }
 
 
-function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
+function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, chartTone = "neutral" }) {
   const width = 720;
   const height = 250;
   let sourceRows = Array.isArray(rows) ? [...rows] : [];
@@ -11988,15 +11618,31 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null }) {
   return (
     <svg className="eval-stock-chart-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart with high and low markers">
       <defs>
-        <linearGradient id="evalChartFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(159,92,255,.45)" />
-          <stop offset="100%" stopColor="rgba(21,231,255,.02)" />
+        <linearGradient id="evalChartFadeGreen" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(130,243,92,.16)" />
+          <stop offset="62%" stopColor="rgba(55,216,145,.055)" />
+          <stop offset="100%" stopColor="rgba(38,185,232,0)" />
         </linearGradient>
-        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <linearGradient id="evalChartFadeYellow" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,230,107,.15)" />
+          <stop offset="62%" stopColor="rgba(255,209,102,.05)" />
+          <stop offset="100%" stopColor="rgba(245,158,56,0)" />
+        </linearGradient>
+        <linearGradient id="evalChartFadeRed" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,90,114,.15)" />
+          <stop offset="62%" stopColor="rgba(255,112,67,.05)" />
+          <stop offset="100%" stopColor="rgba(255,159,28,0)" />
+        </linearGradient>
+        <linearGradient id="evalChartFadeNeutral" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(255,255,255,.11)" />
+          <stop offset="62%" stopColor="rgba(21,231,255,.04)" />
+          <stop offset="100%" stopColor="rgba(21,231,255,0)" />
+        </linearGradient>
+        <filter id="evalChartGlow"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       {[0,1,2,3].map((i) => <line key={i} x1="28" x2={width - 28} y1={42 + i * 50} y2={42 + i * 50} className="eval-chart-gridline" />)}
-      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className="eval-chart-area" />
-      <path d={path} className="eval-chart-line" filter="url(#evalChartGlow)" />
+      <path d={`${path} L ${width - 28} 232 L 28 232 Z`} className={`eval-chart-area ${chartTone}`} />
+      <path d={path} className={`eval-chart-line ${chartTone}`} filter="url(#evalChartGlow)" />
       <g className="eval-chart-extreme eval-chart-high-marker no-dot">
         <line x1={highX} x2={highX} y1={highY} y2={highLabelY + 6} className="eval-chart-extreme-stem" />
         <text className="eval-chart-extreme-label" x={highX} y={highLabelY} textAnchor="middle" dominantBaseline="middle">{money(highPoint.y)}</text>
@@ -12176,9 +11822,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
       <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          <a className="eval-stock-logo-link logo-dev-link" href="https://www.logo.dev" target="_blank" rel="noopener noreferrer" aria-label="Logos provided by Logo.dev">
-            <img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} />
-          </a>
+          <a className="logo-dev-link eval-stock-logo-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev"><img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = ""; }} /></a>
           <div>
             <h3>{data?.profile?.name || symbol}</h3>
             <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
@@ -12200,7 +11844,7 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         ))}
       </div>
 
-      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} />}
+      {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} chartTone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
 
       <div className="eval-chart-hero-actions">
         {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
@@ -12252,7 +11896,7 @@ function DcfCalculatorPanel({ data }) {
           </div>
           {loading ? <div className="eval-stock-chart-empty">Calculating projection...</div> : (
             <>
-              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} />
+              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} chartTone={scoreTone(data?.grades?.edgeScore)} />
               <div className="eval-dcf-result-grid">
                 <div><span>Selected case</span><strong>{scenario}</strong></div>
                 <div><span>Expected price</span><strong>{money(result?.chosen?.expectedPrice)}</strong></div>
@@ -12354,10 +11998,8 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
     profitability: "Shows how efficiently the company turns revenue into profit. Higher means the company keeps more money after costs.",
     financialHealth: "Shows how stable the company looks financially. Higher means debt and balance-sheet risk are easier to handle.",
     valuation: "Shows whether the stock price looks fair compared with company fundamentals. Higher means the stock looks less overpriced.",
-    newsSentiment: "Shows whether the latest company-specific headlines look helpful, neutral, or negative for the current stock backdrop.",
     momentum: "Shows recent stock strength and trend direction. Higher means the market has been rewarding the stock lately.",
     pullback: "Shows whether the stock has cooled off from highs without completely breaking down. Higher means the entry setup looks less stretched.",
-    newsSentiment: "Scores the latest Finnhub company-news articles with AI and includes the weighted result in the Eval Score.",
   };
 
   const categoryMetrics = {
@@ -12402,9 +12044,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("EBITDA", metrics.ebitda),
       metricLine("EV/EBITDA", metrics.evToEbitda),
       metricLine("Dividend Yield", metrics.dividendYield),
-    ]),
-    newsSentiment: usableMetricLines([
-      metricLine("Weighted News Score", metrics.newsSentiment),
     ]),
     momentum: usableMetricLines([
       metricLine("Beta", metrics.beta),
@@ -12550,42 +12189,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           )}
         </section>
       )}
-
-      {newsTopics.length > 0 && (
-        <section className="news-sentiment-card">
-          <div className="section-title news-section-title">
-            <Newspaper size={17} />
-            News Sentiment
-            <small>{data.newsSentiment?.label || "Recent news"}</small>
-          </div>
-
-          {data.newsSentiment?.summary && (
-            <p className="news-overall-summary">{data.newsSentiment.summary}</p>
-          )}
-
-          <div className="news-topic-list">
-            {newsTopics.map((topic, index) => (
-              <article className="news-topic-card" key={`${topic.title}-${index}`}>
-                <div className="news-topic-head">
-                  <div>
-                    <span>Topic  · {Number(topic.weight || 0).toFixed(0)}% impact weight</span>
-                    <h3>{topic.title}</h3>
-                  </div>
-                  <b className={scoreTone(topic.score)}>{scoreText(topic.score)}</b>
-                </div>
-
-                <p>{topic.summary}</p>
-
-                {topic.url && (
-                  <a href={topic.url} target="_blank" rel="noreferrer">
-                    Read article
-                  </a>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 <section id="score-metrics" className="grade-grid grade-grid-seven">
         <Grade
           id="growth"
@@ -12637,18 +12240,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
           isOpen={openScoreHelp === "valuation"}
           onToggle={() =>
             setOpenScoreHelp(openScoreHelp === "valuation" ? null : "valuation")
-          }
-        />
-        <Grade
-          id="newsSentiment"
-          name="News Sentiment"
-          value={cats.newsSentiment}
-          icon={<Newspaper size={18} />}
-          description={gradeDescriptions.newsSentiment}
-          metricsUsed={categoryMetrics.newsSentiment}
-          isOpen={openScoreHelp === "newsSentiment"}
-          onToggle={() =>
-            setOpenScoreHelp(openScoreHelp === "newsSentiment" ? null : "newsSentiment")
           }
         />
         <Grade
