@@ -9,6 +9,8 @@ import fs from "fs";
 import path from "path";
 import { buildStockAnalysis } from "./score.js";
 import { attachTwelveQuoteWebSocket } from "./twelveWebSocket.js";
+import { getPrecomputedReport, getPrecomputeState } from "./precomputeStore.js";
+import { getPrecomputeUniverse, runPrecomputeNow, startPrecomputeWorker } from "./precomputeWorker.js";
 
 dotenv.config();
 
@@ -2218,9 +2220,28 @@ app.get("/api/analyze/:symbol", async (req, res) => {
   try {
     const symbol = cleanTicker(req.params.symbol);
     const includeAiScoreSummary = String(req.query.summary || "0") === "1";
+    const allowOnDemand = String(process.env.EVAL_ALLOW_ONDEMAND_ANALYZE || "false").toLowerCase() === "true";
+    const force = String(req.query.force || req.query.refresh || "0") === "1";
 
-    // Manual-refresh-only scoring: do not serve or save Eval Score cache here.
-    // In-flight locking still prevents double-click / debounce duplicates from stacking API calls.
+    const precomputed = !force ? getPrecomputedReport(symbol) : null;
+    if (precomputed) {
+      res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+      return res.json(precomputed);
+    }
+
+    if (!allowOnDemand) {
+      res.set("Cache-Control", "no-store");
+      return res.status(404).json({
+        symbol,
+        accessDenied: true,
+        available: false,
+        error: `You do not have access to ${symbol}.`,
+        route: "api/analyze",
+      });
+    }
+
+    // Emergency/dev fallback only. In production, leave EVAL_ALLOW_ONDEMAND_ANALYZE=false
+    // so users never trigger direct Twelve Data metric calls from the app.
     const inFlightKey = `manual-analyze:${symbol}:${includeAiScoreSummary ? "ai" : "no-ai"}`;
     if (analysisInFlight.has(inFlightKey)) return res.json(await analysisInFlight.get(inFlightKey));
 
@@ -2229,7 +2250,7 @@ app.get("/api/analyze/:symbol", async (req, res) => {
       refreshFundamentals: true,
       refreshValuation: true,
       refreshMarket: true,
-      refreshNews: false,
+      refreshNews: true,
       refreshRisk: true,
       refreshProfile: true,
       includeAiScoreSummary,
@@ -3938,6 +3959,31 @@ ${EVAL_FAQ_KNOWLEDGE}`,
 });
 
 
+app.get("/api/precompute/status", (req, res) => {
+  res.json({
+    enabled: String(process.env.EVAL_PRECOMPUTE_ENABLED || "false").toLowerCase() === "true",
+    state: getPrecomputeState(),
+    universeSize: getPrecomputeUniverse().length,
+    batchSize: Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500),
+    weeklySize: Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500),
+    window: "11:30 PM-8:00 AM America/New_York",
+  });
+});
+
+app.post("/api/precompute/run", async (req, res) => {
+  try {
+    const token = req.headers["x-eval-admin-token"] || req.query.token;
+    if (!process.env.EVAL_ADMIN_TOKEN || token !== process.env.EVAL_ADMIN_TOKEN) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const symbols = Array.isArray(req.body?.symbols) ? req.body.symbols : String(req.query.symbols || "").split(",");
+    const results = await runPrecomputeNow(symbols.slice(0, 25));
+    res.json({ ok: true, results });
+  } catch (error) {
+    res.status(500).json({ error: error?.message || "Precompute run failed" });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
@@ -3950,3 +3996,4 @@ const server = app.listen(PORT, () => {
 });
 
 attachTwelveQuoteWebSocket(server);
+startPrecomputeWorker();
