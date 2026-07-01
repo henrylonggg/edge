@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { buildDailyTechnicalRefresh, buildStockAnalysis } from "./score.js";
+import { buildStockAnalysis } from "./score.js";
 import {
   cleanPrecomputeTicker,
   getPrecomputeState,
@@ -16,8 +16,8 @@ const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET after the o
 const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET after the one-time test morning
 const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || "2026-07-01";
 const ONE_TIME_TEST_WINDOW_ENABLED = String(process.env.EVAL_ONE_TIME_TEST_WINDOW_ENABLED || "true").toLowerCase() !== "false";
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 20)); // 10:20 AM ET today
-const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (18 * 60 + 50)); // 6:50 PM ET today, same 8h30m test window
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 35)); // 10:35 AM ET today
+const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (19 * 60 + 5)); // 7:05 PM ET today, same 8h30m test window
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
 const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
 const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 9:15 AM ET
@@ -25,7 +25,7 @@ const TECH_WINDOW_END_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_END_
 const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500);
 const WEEKLY_SIZE = Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500);
 const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 60_000));
-const TECH_TICKER_INTERVAL_MS = Math.max(100, Number(process.env.EVAL_TECH_REFRESH_TICKER_INTERVAL_MS || 250));
+const TECH_TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_TECH_REFRESH_TICKER_INTERVAL_MS || 60_000));
 const LOOP_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_LOOP_INTERVAL_MS || 30_000));
 const ENABLED = String(process.env.EVAL_PRECOMPUTE_ENABLED || "false").toLowerCase() === "true";
 const TECH_ENABLED = String(process.env.EVAL_TECH_REFRESH_ENABLED || "true").toLowerCase() !== "false";
@@ -65,7 +65,7 @@ function activePrecomputeWindow() {
     return {
       startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
       endMinutes: ONE_TIME_TEST_WINDOW_END_MINUTES,
-      label: "10:20 AM-6:50 PM ET one-time test window",
+      label: "10:35 AM-7:05 PM ET one-time restart test window",
       oneTime: true,
     };
   }
@@ -87,6 +87,10 @@ function isInsideWindow(startMinutes, endMinutes) {
 function operationalBatchDateKey(startMinutes, endMinutes) {
   const now = new Date();
   const { dateKey, minutes } = etParts(now);
+  const active = activePrecomputeWindow();
+  // Give today's manual 10:35 AM restart its own batch key so it starts again
+  // even if an earlier one-time test already wrote progress for the same date.
+  if (active.oneTime) return `${dateKey}:one-time-1035-restart`;
   // For overnight windows such as 11:00 PM-7:30 AM, the after-midnight portion
   // belongs to the previous evening's batch instead of accidentally starting a new batch.
   if (startMinutes > endMinutes && minutes < endMinutes) return previousEtDateKey(now);
@@ -194,8 +198,22 @@ async function computeOne(symbol) {
 }
 
 async function refreshOneTechnical(symbol) {
+  // Use the same full scoring path as the overnight loader so Momentum/Pullback
+  // are produced from the same Twelve time-series/technical logic and then saved
+  // back into Supabase. The previous lightweight refresh could leave those
+  // categories voided because it did not rebuild the full category model.
   const current = getPrecomputedReport(symbol);
-  const report = await buildDailyTechnicalRefresh(symbol, current);
+  const report = await buildStockAnalysis(symbol, {
+    cachedReport: current || null,
+    refreshFundamentals: true,
+    refreshValuation: true,
+    refreshMarket: true,
+    refreshNews: false,
+    refreshRisk: false,
+    refreshProfile: true,
+    includeAiScoreSummary: false,
+    precomputeMode: true,
+  });
   putPrecomputedReport(symbol, report);
   return report;
 }
@@ -252,7 +270,7 @@ export function startPrecomputeWorker() {
   }
   if (timer) return timer;
   const window = activePrecomputeWindow();
-  console.log(`[precompute] enabled. Fundamentals window ${window.label}, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap. Tech refresh 9:15-9:30 AM ET.`);
+  console.log(`[precompute] enabled. Fundamentals window ${window.label}, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap. Tech refresh uses full one-stock-per-minute scoring path and saves to Supabase.`);
   timer = setInterval(() => {
     runPrecomputeLoopOnce();
     runTechnicalRefreshLoopOnce();
