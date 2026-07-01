@@ -42381,29 +42381,84 @@ body {
   direction: ltr !important;
 }
 
-/* Chart line now matches Eval Score / metric bar tone colors. The under-line shade is intentionally very faint, not a heavy fill. */
-.eval-chart-area {
-  opacity: .42 !important;
-  pointer-events: none !important;
-}
-.eval-chart-area.green { fill: url(#evalChartFadeGreen) !important; }
-.eval-chart-area.yellow { fill: url(#evalChartFadeYellow) !important; }
-.eval-chart-area.red { fill: url(#evalChartFadeRed) !important; }
-.eval-chart-area.neutral { fill: url(#evalChartFadeNeutral) !important; }
 
-.eval-chart-line.green {
-  stroke: #37d891 !important;
-  filter: drop-shadow(0 0 7px rgba(55,216,145,.24)) !important;
+/* FINAL VISUAL OVERRIDE: score-matched metric text + chart gradients */
+.eval-stock-chart-svg .eval-chart-area {
+  opacity: 1 !important;
+  fill-opacity: 1 !important;
 }
-.eval-chart-line.yellow {
-  stroke: #ffd166 !important;
-  filter: drop-shadow(0 0 7px rgba(255,209,102,.22)) !important;
+.eval-stock-chart-svg .eval-chart-line {
+  stroke-width: 3.7 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
 }
-.eval-chart-line.red {
-  stroke: #ff7043 !important;
-  filter: drop-shadow(0 0 7px rgba(255,112,67,.22)) !important;
+.grade-score-row strong,
+.grade-score-row strong.green,
+.grade-card strong.green,
+.metric-score.green,
+.category-score.green,
+.portfolio-main-metric-bubble.green .portfolio-metric-bar-head strong,
+.portfolio-metric-bar-card.green .portfolio-metric-bar-head strong,
+.portfolio-weighted-metric-grid article.green strong {
+  background: linear-gradient(135deg, #85ff47 0%, #15e7ff 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-style: italic !important;
+  text-shadow: 0 0 18px rgba(21,231,255,.14) !important;
 }
-.eval-chart-line.neutral {
-  stroke: #15e7ff !important;
-  filter: drop-shadow(0 0 7px rgba(21,231,255,.20)) !important;
+.grade-score-row strong.yellow,
+.grade-card strong.yellow,
+.metric-score.yellow,
+.category-score.yellow,
+.portfolio-main-metric-bubble.yellow .portfolio-metric-bar-head strong,
+.portfolio-metric-bar-card.yellow .portfolio-metric-bar-head strong,
+.portfolio-weighted-metric-grid article.yellow strong {
+  background: linear-gradient(135deg, #ffe45f 0%, #ff9f1c 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-style: italic !important;
+  text-shadow: 0 0 18px rgba(255,159,28,.14) !important;
+}
+.grade-score-row strong.red,
+.grade-card strong.red,
+.metric-score.red,
+.category-score.red,
+.portfolio-main-metric-bubble.red .portfolio-metric-bar-head strong,
+.portfolio-metric-bar-card.red .portfolio-metric-bar-head strong,
+.portfolio-weighted-metric-grid article.red strong {
+  background: linear-gradient(135deg, #ff4f67 0%, #ff9f1c 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-style: italic !important;
+  text-shadow: 0 0 18px rgba(255,79,103,.14) !important;
+}
+.grade-score-row strong.neutral,
+.grade-card strong.neutral,
+.metric-score.neutral,
+.category-score.neutral,
+.portfolio-main-metric-bubble.neutral .portfolio-metric-bar-head strong,
+.portfolio-metric-bar-card.neutral .portfolio-metric-bar-head strong,
+.portfolio-weighted-metric-grid article.neutral strong {
+  background: linear-gradient(135deg, #9f5cff 0%, #15e7ff 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-style: italic !important;
+  text-shadow: 0 0 18px rgba(159,92,255,.14) !important;
+}
+.metric-tile strong {
+  background: linear-gradient(135deg, rgba(255,255,255,.94) 0%, rgba(21,231,255,.78) 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  font-style: italic !important;
 }
