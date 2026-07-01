@@ -2256,16 +2256,20 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   try {
     const domain = await resolveCompanyDomainForLogo(symbol);
     const logoUrl = logoDevUrlFromDomain(domain);
-    if (!logoUrl) return res.status(404).end();
 
-    // Do not proxy/download Logo.dev through Render. Let the browser request the
-    // exact Logo.dev image URL directly so the public pk token behaves the same
-    // as the URL that works in a normal browser tab.
+    if (!domain || !logoUrl) {
+      console.warn("[logo.dev] no resolved domain", symbol, { domain });
+      return res.status(404).json({ error: "Logo domain not found", symbol, domain: domain || null });
+    }
+
+    // Important: redirect the browser directly to Logo.dev instead of proxy-fetching the image.
+    // Logo.dev image URLs work in the browser, while server-side image fetches can return provider fallbacks.
+    // The domain is cached via resolveCompanyDomainForLogo(), so Twelve /profile is not reused once found.
     res.setHeader("Cache-Control", "public, max-age=86400");
     return res.redirect(302, logoUrl);
   } catch (error) {
     console.warn("Company logo redirect failed:", symbol, error?.message || error);
-    return res.status(404).end();
+    return res.status(404).json({ error: "Logo not available", symbol });
   }
 });
 
@@ -3491,15 +3495,36 @@ app.post("/api/portfolio-csv", async (req, res) => {
       return res.status(400).json({ error: "No valid ticker and holding rows were found.", route: "api/portfolio-csv" });
     }
 
-    const analyzed = await mapWithConcurrency(submitted, 2, async (row) => {
+    const analyzed = await mapWithConcurrency(submitted, 6, async (row) => {
       try {
-        const report = await getCachedAnalysis(row.symbol, { includeAiScoreSummary: false });
-        const edgeScore = portfolioScore10(report?.grades?.edgeScore);
-        const twelveCurrentPrice = await fetchTwelvePortfolioQuote(row.symbol);
-        const price = Number(twelveCurrentPrice || report?.quote?.c);
-        if (edgeScore === null || !isSupportedPortfolioStock(report, row.symbol)) {
-          return { skipped: true, symbol: row.symbol, reason: edgeScore === null ? "No Eval Score available yet." : "Unsupported non-stock holding." };
+        // Portfolio scoring is database-only. Never call Twelve/Finnhub/FMP/Massive from a user portfolio upload.
+        const report = getPrecomputedReport(row.symbol);
+        if (!report) {
+          return {
+            skipped: true,
+            accessDenied: true,
+            symbol: row.symbol,
+            reason: `You do not have access to ${row.symbol}.`,
+          };
         }
+
+        const edgeScore = portfolioScore10(report?.grades?.edgeScore);
+        const price = Number(
+          report?.quote?.c ??
+          report?.quote?.price ??
+          report?.currentPrice ??
+          report?.metrics?.currentPrice?.value ??
+          report?.price
+        );
+
+        if (edgeScore === null || !isSupportedPortfolioStock(report, row.symbol)) {
+          return {
+            skipped: true,
+            symbol: row.symbol,
+            reason: edgeScore === null ? `You do not have access to ${row.symbol}.` : "Unsupported non-stock holding.",
+          };
+        }
+
         const categories = report?.grades?.categories || {};
         const category = (key) => {
           const score = portfolioScore10(categories?.[key]);
@@ -3519,14 +3544,14 @@ app.post("/api/portfolio-csv", async (req, res) => {
           : null;
 
         if (!Number.isFinite(Number(row.weightPercent)) && !Number.isFinite(Number(currentHoldingDollars))) {
-          return { skipped: true, symbol: row.symbol, reason: "No current holding value available." };
+          return { skipped: true, symbol: row.symbol, reason: "No stored current holding value available yet." };
         }
 
         return {
           symbol: row.symbol,
           name: report?.profile?.name || row.symbol,
-          industry: report?.profile?.finnhubIndustry || "Other",
-          sector: sectorFromIndustry(report?.profile?.finnhubIndustry || "Other"),
+          industry: report?.profile?.finnhubIndustry || report?.profile?.industry || "Other",
+          sector: sectorFromIndustry(report?.profile?.finnhubIndustry || report?.profile?.industry || "Other"),
           inputWeightPercent: Number.isFinite(Number(row.weightPercent)) && Number(row.weightPercent) > 0 ? Number(row.weightPercent) : null,
           holdingDollars: Number.isFinite(Number(currentHoldingDollars)) && Number(currentHoldingDollars) > 0 ? Number(currentHoldingDollars.toFixed(2)) : null,
           costBasisDollars: Number.isFinite(Number(costBasisDollars)) && Number(costBasisDollars) > 0 ? Number(costBasisDollars.toFixed(2)) : null,
@@ -3541,18 +3566,24 @@ app.post("/api/portfolio-csv", async (req, res) => {
           momentum: category("momentum"),
           profitability: category("profitability"),
           financialHealth: category("financialHealth"),
-          reversal: category("reversal"),
-                    riskLabel: report?.grades?.riskLabel || "N/A",
+          reversal: category("reversal") ?? category("pullback"),
+          riskLabel: report?.grades?.riskLabel || "N/A",
         };
       } catch (error) {
-        return { skipped: true, symbol: row.symbol, reason: error?.message || "Could not analyze ticker." };
+        return { skipped: true, symbol: row.symbol, reason: error?.message || `You do not have access to ${row.symbol}.` };
       }
     });
 
     const valid = analyzed.filter((row) => row && !row.skipped);
     const skipped = analyzed.filter((row) => row?.skipped);
     if (!valid.length) {
-      return res.status(400).json({ error: "None of the uploaded holdings could be scored yet.", skipped, route: "api/portfolio-csv" });
+      const denied = skipped.map((row) => row.symbol).filter(Boolean);
+      return res.status(400).json({
+        error: denied.length ? `You do not have access to: ${denied.join(", ")}.` : "None of the uploaded holdings could be scored yet.",
+        skipped,
+        unavailableTickers: denied,
+        route: "api/portfolio-csv",
+      });
     }
 
     const totalCurrentDollars = valid.reduce((sum, row) => sum + (Number(row.holdingDollars) || 0), 0);
@@ -3647,6 +3678,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
       sectorGroups,
       industryGroups,
       skipped,
+      unavailableTickers: skipped.map((row) => row.symbol).filter(Boolean),
       summary: {
         portfolioEvalScore,
         weightedCategoryScores,
@@ -3661,7 +3693,7 @@ app.post("/api/portfolio-csv", async (req, res) => {
         industryCount,
       },
       generatedAt: new Date().toISOString(),
-      disclaimer: "Educational portfolio score only. Unsupported holdings are excluded, and the weighted Eval Portfolio Score is based on the remaining scorable U.S. stock holdings.",
+      disclaimer: "Educational portfolio score only. Portfolio holdings are scored from the precomputed Supabase database. Unavailable holdings are excluded, listed as voided, and do not trigger live provider API calls.",
     });
   } catch (error) {
     console.error("Portfolio CSV route failed:", error?.stack || error?.message || error);
