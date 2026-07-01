@@ -11836,17 +11836,13 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           </div>
           <div className="eval-chart-score-side no-label">
             <EvalScoreTextBadge value={edgeScore ?? data?.grades?.edgeScore} className="eval-stock-chart-score watch-score-plain" />
+            <span className="eval-chart-ovr-label">OVR</span>
           </div>
         </div>
       </div>
 
       {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} tone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
 
-      <div className="eval-chart-hero-actions">
-        {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
-        <button type="button" className="score-metrics-jump-btn" onClick={onMetrics}>Metrics</button>
-        <button type="button" className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`} onClick={onScoreBreakdown}>Score Breakdown</button>
-      </div>
     </section>
   );
 }
