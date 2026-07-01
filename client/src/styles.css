@@ -43009,3 +43009,68 @@ body {
     font-size: 18px !important;
   }
 }
+
+
+/* FORCE: portfolio industry tab score uses exact stock-score styling, only bigger */
+.portfolio-industry-head .industry-score-as-stock.watch-score-plain,
+.portfolio-industry-tab-toggle .industry-score-as-stock.watch-score-plain,
+.industry-score-as-stock.watch-score-plain {
+  all: unset !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-width: 46px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  font-family: inherit !important;
+  font-size: 24px !important;
+  line-height: .9 !important;
+  letter-spacing: -.8px !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+  background: var(--score-gradient, linear-gradient(135deg, #7CFF6B 0%, #19E6FF 100%)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  text-shadow: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.industry-score-as-stock.watch-score-plain::before {
+  content: none !important;
+  display: none !important;
+}
+
+.industry-score-as-stock.watch-score-plain::after {
+  content: "OVR" !important;
+  display: block !important;
+  width: 100% !important;
+  margin-top: 3px !important;
+  font-size: 7px !important;
+  line-height: 1 !important;
+  letter-spacing: .14em !important;
+  font-weight: 850 !important;
+  font-style: normal !important;
+  text-align: center !important;
+  background: none !important;
+  color: rgba(255,255,255,.70) !important;
+  -webkit-text-fill-color: rgba(255,255,255,.70) !important;
+  text-shadow: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  .portfolio-industry-head .industry-score-as-stock.watch-score-plain,
+  .portfolio-industry-tab-toggle .industry-score-as-stock.watch-score-plain,
+  .industry-score-as-stock.watch-score-plain {
+    font-size: 22px !important;
+    min-width: 42px !important;
+  }
+}
