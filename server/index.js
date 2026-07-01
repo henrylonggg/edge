@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 import { buildStockAnalysis } from "./score.js";
 import { attachTwelveQuoteWebSocket } from "./twelveWebSocket.js";
-import { getPrecomputedReport, getPrecomputeState } from "./precomputeStore.js";
+import { getPrecomputedReport, getPrecomputeState, putPrecomputedReport } from "./precomputeStore.js";
 import { getPrecomputeUniverse, runPrecomputeNow, runTechnicalRefreshNow, startPrecomputeWorker } from "./precomputeWorker.js";
 
 dotenv.config();
@@ -2138,9 +2138,12 @@ function logoDevToken() {
 function logoDevUrlFromDomain(domain = "") {
   const cleanDomain = normalizeCompanyDomain(domain);
   if (!cleanDomain) return "";
-  const params = new URLSearchParams({ format: "webp", retina: "true", size: "128", fallback: "404" });
   const token = logoDevToken();
-  if (token) params.set("token", token);
+  const params = new URLSearchParams({
+    token,
+    format: "webp",
+    retina: "true",
+  });
   return `https://img.logo.dev/${encodeURIComponent(cleanDomain)}?${params.toString()}`;
 }
 
@@ -2160,7 +2163,15 @@ async function resolveCompanyDomainForLogo(symbol) {
   if (cached) return cached;
 
   const stored = getPrecomputedReport(clean);
-  const storedWebsite = stored?.profile?.website || stored?.profile?.weburl || stored?.profile?.url || stored?.company?.website || stored?.meta?.website;
+  const storedWebsite =
+    stored?.profile?.logoDomain ||
+    stored?.profile?.domain ||
+    stored?.profile?.website ||
+    stored?.profile?.weburl ||
+    stored?.profile?.url ||
+    stored?.profile?.company_url ||
+    stored?.company?.website ||
+    stored?.meta?.website;
   const storedDomain = normalizeCompanyDomain(storedWebsite);
   if (storedDomain) {
     logoDevDomainCache.set(clean, storedDomain);
@@ -2168,8 +2179,28 @@ async function resolveCompanyDomainForLogo(symbol) {
   }
 
   const twelveProfile = await fetchTwelveDataJson("/profile", { symbol: clean }, 5000).catch(() => null);
-  const domain = normalizeCompanyDomain(twelveProfile?.website || twelveProfile?.weburl || twelveProfile?.url || twelveProfile?.company_url);
-  if (domain) logoDevDomainCache.set(clean, domain);
+  const domain = normalizeCompanyDomain(
+    twelveProfile?.website ||
+    twelveProfile?.weburl ||
+    twelveProfile?.url ||
+    twelveProfile?.company_url ||
+    twelveProfile?.homepage ||
+    twelveProfile?.home_page
+  );
+
+  if (domain) {
+    logoDevDomainCache.set(clean, domain);
+    if (stored) {
+      putPrecomputedReport(clean, {
+        ...stored,
+        profile: {
+          ...(stored.profile || {}),
+          logoDomain: domain,
+          website: stored.profile?.website || `https://${domain}`,
+        },
+      });
+    }
+  }
   return domain;
 }
 
@@ -2189,7 +2220,7 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
 
   const loadLogo = async () => {
     const domain = await resolveCompanyDomainForLogo(symbol);
-    const candidates = [logoDevUrlFromTicker(symbol), logoDevUrlFromDomain(domain)].filter(Boolean);
+    const candidates = [logoDevUrlFromDomain(domain), logoDevUrlFromTicker(symbol)].filter(Boolean);
 
     for (const candidate of [...new Set(candidates)]) {
       try {
