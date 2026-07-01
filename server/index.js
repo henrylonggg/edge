@@ -10,7 +10,7 @@ import path from "path";
 import { buildStockAnalysis } from "./score.js";
 import { attachTwelveQuoteWebSocket } from "./twelveWebSocket.js";
 import { getPrecomputedReport, getPrecomputeState } from "./precomputeStore.js";
-import { getPrecomputeUniverse, runPrecomputeNow, startPrecomputeWorker } from "./precomputeWorker.js";
+import { getPrecomputeUniverse, runPrecomputeNow, runTechnicalRefreshNow, startPrecomputeWorker } from "./precomputeWorker.js";
 
 dotenv.config();
 
@@ -2288,56 +2288,48 @@ async function fetchSafeLiveQuote(symbol) {
   return await fetchTwelveDataPriceFallback(cleanSymbol);
 }
 
+function quoteFromPrecomputedReport(symbol) {
+  const report = getPrecomputedReport(symbol);
+  const q = report?.quote || {};
+  const current = Number(q.c ?? q.current ?? null);
+  const previousClose = Number(q.pc ?? q.previousClose ?? null);
+  const change = Number.isFinite(current) && Number.isFinite(previousClose) ? current - previousClose : null;
+  const changePercent = Number.isFinite(change) && Number.isFinite(previousClose) && previousClose > 0 ? (change / previousClose) * 100 : null;
+  return { report, current: Number.isFinite(current) ? current : null, previousClose: Number.isFinite(previousClose) ? previousClose : null, change, changePercent };
+}
+
 app.get("/api/live-quote/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
-  try {
-    const quote = await fetchSafeLiveQuote(symbol);
-    return res.json({
-      symbol,
-      current: quote?.current ?? null,
-      previousClose: quote?.previousClose ?? null,
-      change: quote?.change ?? null,
-      changePercent: quote?.changePercent ?? null,
-      source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000),
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.warn("Live quote route failed:", symbol, error?.message || error);
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000), updatedAt: new Date().toISOString() });
-  }
+  const q = quoteFromPrecomputedReport(symbol);
+  if (!q.report) return res.status(404).json({ symbol, accessDenied: true, available: false, error: `You do not have access to ${symbol}.` });
+  return res.json({ symbol, current: q.current, previousClose: q.previousClose, change: q.change, changePercent: q.changePercent, source: "Eval precomputed database", updatedAt: q.report?.technicalRefreshedAt || q.report?.precomputedAt || null });
 });
 
 app.get("/api/quote/:symbol", async (req, res) => {
-  req.url = `/api/live-quote/${encodeURIComponent(req.params.symbol)}`;
   const symbol = cleanTicker(req.params.symbol);
-  try {
-    const quote = await fetchSafeLiveQuote(symbol);
-    return res.json({
-      symbol,
-      current: quote?.current ?? null,
-      previousClose: quote?.previousClose ?? null,
-      change: quote?.change ?? null,
-      changePercent: quote?.changePercent ?? null,
-      source: quote ? "Twelve Data" : "Twelve Data unavailable",
-      cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000),
-      updatedAt: new Date().toISOString(),
-    });
-  } catch {
-    return res.json({ symbol, current: null, previousClose: null, change: null, changePercent: null, source: "Twelve Data unavailable", cacheSeconds: Math.round(marketQuoteCacheTtlMs() / 1000), updatedAt: new Date().toISOString() });
-  }
+  const q = quoteFromPrecomputedReport(symbol);
+  if (!q.report) return res.status(404).json({ symbol, accessDenied: true, available: false, error: `You do not have access to ${symbol}.` });
+  return res.json({ symbol, current: q.current, previousClose: q.previousClose, change: q.change, changePercent: q.changePercent, source: "Eval precomputed database", updatedAt: q.report?.technicalRefreshedAt || q.report?.precomputedAt || null });
 });
 
 app.get("/api/twelve-chart/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
-  try {
-    const interval = String(req.query.interval || "1day");
-    const outputsize = Number(req.query.outputsize || 90);
-    const rows = await fetchTwelveHistoricalSeries(symbol, { interval, outputsize });
-    res.json({ symbol, rows, source: "Twelve Data time_series", cacheSeconds: Math.round(historicalSeriesTtlMs(interval) / 1000) });
-  } catch (error) {
-    res.status(500).json({ symbol, rows: [], error: error?.message || "Could not load chart data." });
-  }
+  const range = String(req.query.range || req.query.key || "6M").toUpperCase();
+  const report = getPrecomputedReport(symbol);
+  if (!report) return res.status(404).json({ symbol, rows: [], accessDenied: true, available: false, error: `You do not have access to ${symbol}.` });
+  const chartData = report.chartData || {};
+  const rows = Array.isArray(chartData[range]) ? chartData[range] : Array.isArray(chartData["6M"]) ? chartData["6M"] : [];
+  return res.json({ symbol, range, rows, source: "Eval precomputed database", updatedAt: report?.technicalRefreshedAt || report?.precomputedAt || null });
+});
+
+app.get("/api/precomputed-chart/:symbol", async (req, res) => {
+  req.url = `/api/twelve-chart/${encodeURIComponent(req.params.symbol)}`;
+  const symbol = cleanTicker(req.params.symbol);
+  const range = String(req.query.range || "6M").toUpperCase();
+  const report = getPrecomputedReport(symbol);
+  if (!report) return res.status(404).json({ symbol, rows: [], accessDenied: true, available: false, error: `You do not have access to ${symbol}.` });
+  const rows = Array.isArray(report?.chartData?.[range]) ? report.chartData[range] : Array.isArray(report?.chartData?.["6M"]) ? report.chartData["6M"] : [];
+  return res.json({ symbol, range, rows, source: "Eval precomputed database", updatedAt: report?.technicalRefreshedAt || report?.precomputedAt || null });
 });
 
 app.get("/api/dcf/:symbol", async (req, res) => {
@@ -3966,7 +3958,7 @@ app.get("/api/precompute/status", (req, res) => {
     universeSize: getPrecomputeUniverse().length,
     batchSize: Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500),
     weeklySize: Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500),
-    window: "11:30 PM-8:00 AM America/New_York",
+    window: "12:15 AM-8:45 AM ET one-time test on 2026-07-01; then 11:00 PM-7:30 AM ET",
   });
 });
 
