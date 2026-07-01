@@ -269,9 +269,15 @@ function score10(v) {
   return n === null ? null : Number(n.toFixed(1));
 }
 
-function scoreText(v) {
+function scoreDisplay99(v) {
   const n = score10(v);
-  return n === null ? "N/A" : n.toFixed(1);
+  if (n === null) return null;
+  return Math.max(0, Math.min(99, Math.round(n * 10)));
+}
+
+function scoreText(v) {
+  const n = scoreDisplay99(v);
+  return n === null ? "N/A" : String(n);
 }
 
 function signedMoney(value) {
@@ -2653,7 +2659,7 @@ function IndustryPage({ sectorPage, loading, error, onBack, onAnalyze, backLabel
               {leaders.slice(0, 5).map((item, index) => {
               const score = score10(item.score);
               const tone = scoreTone(score);
-              const rankClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "standard";
+              const rankClass = "standard";
 
               return (
                 <button
@@ -5149,9 +5155,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
           )}
 
           {!!csvAnalysis.skipped?.length && (
-            <div className="portfolio-skipped-note">
-              <b>You do not have access to:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}
-            </div>
+            <div className="portfolio-skipped-note"><b>Voided:</b> {csvAnalysis.skipped.map((item) => item.symbol).join(", ")}</div>
           )}
         </section>
       )}
@@ -11082,6 +11086,11 @@ function Watchlist({
   pageMode = false,
 }) {
   const [manual, setManual] = useState("");
+  const rankedItems = [...(Array.isArray(items) ? items : [])].sort((a, b) => {
+    const bs = score10(b?.score);
+    const as = score10(a?.score);
+    return (bs ?? -1) - (as ?? -1);
+  });
 
   return (
     <aside className={`watch-panel eval-watchlist-panel ${mobilePage || pageMode ? "mobile-watch-panel watchlist-page-panel" : ""}`}>
@@ -11126,21 +11135,18 @@ function Watchlist({
       </form>
 
       <div className="watch-list">
-        {items.length === 0 ? (
+        {rankedItems.length === 0 ? (
           <div className="watch-empty">
             Your watchlist is empty. Add a ticker above to start building your own list.
           </div>
         ) : (
-          items.map((item) => {
+          rankedItems.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
-            const logoSrc = `${API}/api/company-logo/${encodeURIComponent(ticker)}?v=logo-dev-redirect-v1`;
             return (
-              <div className="watch-row watch-row-simple watch-row-logo-format" key={item.symbol}>
-                <button className="watch-info watch-info-new watch-info-logo-ticker watch-info-no-logo" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
+              <div className="watch-row watch-row-simple watch-row-ranked-format" key={item.symbol}>
+                <button className="watch-info watch-info-new watch-info-ticker-only" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <span className="watch-ticker-main">{ticker}</span>
                 </button>
-
-                <div className="watch-row-sparkline-wrap"><WatchMiniSparkline symbol={ticker} /></div>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
 
@@ -11162,11 +11168,13 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
     price: "$9.99/mo",
     yearly: "$99.99/yr",
     description:
-      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, expanded AI explanations in one simple package.",
+      "One upgraded plan that combines deeper fundamentals, smarter valuation tools, news sentiment, and expanded AI explanations in one simple package.",
     features: [
       "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
       "Margin of safety and percent difference from intrinsic value",
+      "News sentiment score from recent company headlines",
+      "AI summaries that explain what the news means",
       "More detailed metric explanations in plain English",
       "Expanded Eval AI Assistant access for stock questions",
     ],
@@ -11187,7 +11195,7 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
             <h2>One plan. Deeper stock research.</h2>
             <p>
               Eval Pro keeps the upgrade simple: stronger scoring, more company
-              metrics, valuation tools and cleaner AI-powered
+              metrics, valuation tools, news sentiment, and cleaner AI-powered
               explanations for one price.
             </p>
           </div>
@@ -11502,20 +11510,20 @@ function EvalAiScoreSummaryCard({ summary, ticker }) {
 
 
 function EvalScoreTextBadge({ value, className = "" }) {
-  const n = score10(value);
+  const display = scoreDisplay99(value);
   const tone = scoreTone(value);
-  return <span className={`eval-score-text-badge ${tone} ${className}`}>{n === null ? "N/A" : n.toFixed(1)}</span>;
+  return <span className={`eval-score-text-badge ${tone} ${className}`}>{display === null ? "N/A" : display}</span>;
 }
 
-function WatchMiniSparkline({ symbol }) {
+function WatchMiniSparkline({ symbol, score = null }) {
   const clean = String(symbol || "").trim().toUpperCase();
-  const liveEnabled = isLiveWebSocketSymbol(clean);
+  const chartTone = scoreTone(score);
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
     if (!clean) return undefined;
     let cancelled = false;
-    const cacheKey = `${clean}:sparkline`;
+    const cacheKey = `${clean}:sparkline:6m`;
     const loadRows = async () => {
       const cached = readClientTimedCache(CLIENT_SPARKLINE_CACHE, cacheKey);
       if (cached !== undefined) {
@@ -11523,7 +11531,7 @@ function WatchMiniSparkline({ symbol }) {
         return;
       }
       try {
-        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(clean)}?interval=1day&outputsize=32`);
+        const res = await fetch(`${API}/api/twelve-chart/${encodeURIComponent(clean)}?interval=1day&outputsize=180`);
         const json = await res.json();
         const nextRows = Array.isArray(json?.rows) ? json.rows : [];
         if (res.ok) writeClientTimedCache(CLIENT_SPARKLINE_CACHE, cacheKey, nextRows, CLIENT_SPARKLINE_TTL_MS);
@@ -11536,39 +11544,9 @@ function WatchMiniSparkline({ symbol }) {
     return () => { cancelled = true; };
   }, [clean]);
 
-  useEffect(() => {
-    if (!clean || !liveEnabled) return undefined;
-    const url = websocketUrlForSymbols([clean]);
-    if (!url) return undefined;
-    let ws;
-    let closed = false;
-    let lastChartUpdate = 0;
-    const connect = () => {
-      if (closed) return;
-      ws = new WebSocket(url);
-      ws.onmessage = (event) => {
-        let packet = null;
-        try { packet = JSON.parse(event.data); } catch { return; }
-        const live = normalizeLivePacket(packet, clean);
-        if (live.symbol !== clean || !Number.isFinite(Number(live.current))) return;
-        const now = Date.now();
-        if (now - lastChartUpdate < 10_000) return;
-        lastChartUpdate = now;
-        setRows((currentRows) => {
-          const next = [...(Array.isArray(currentRows) ? currentRows : [])];
-          next.push({ datetime: new Date(now).toISOString(), close: live.current });
-          return next.slice(-32);
-        });
-      };
-      ws.onclose = () => { if (!closed) window.setTimeout(connect, 3000); };
-    };
-    connect();
-    return () => { closed = true; try { ws?.close(); } catch {} };
-  }, [clean, liveEnabled]);
-
   const points = rows.map((row, i) => ({ x: i, y: Number(row.close) })).filter((p) => Number.isFinite(p.y));
   if (!points.length) return <div className="watch-sparkline-empty" />;
-  const width = 116;
+  const width = 124;
   const height = 34;
   const ys = points.map((p) => p.y);
   const min = Math.min(...ys);
@@ -11577,25 +11555,21 @@ function WatchMiniSparkline({ symbol }) {
   const xScale = (x) => 2 + (x / Math.max(1, points.length - 1)) * (width - 4);
   const yScale = (y) => height - 3 - ((y - min) / range) * (height - 6);
   const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.x).toFixed(1)},${yScale(p.y).toFixed(1)}`).join(" ");
-  const tone = points[points.length - 1]?.y >= points[0]?.y ? "up" : "down";
+  const tone = ["green", "yellow", "red", "neutral"].includes(chartTone) ? chartTone : "neutral";
   return (
-    <svg className={`watch-sparkline ${tone} ${liveEnabled ? "live" : "static"}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${clean} daily sparkline`}>
+    <svg className={`watch-sparkline watch-sparkline-score ${tone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${clean} 6-month sparkline`}>
       <path d={path} />
     </svg>
   );
 }
 
 
-
-function formatChartAxisDate(value) {
-  const raw = value?.datetime || value?.date || value?.timestamp || value?.time;
-  const parsed = raw ? new Date(raw) : null;
-  if (!parsed || Number.isNaN(parsed.getTime())) return "";
-  try {
-    return parsed.toLocaleDateString("en-US", { month: "short", year: "2-digit" }).replace(" ", "-");
-  } catch {
-    return "";
-  }
+function formatMonthYearShort(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "";
+  const month = date.toLocaleString("en-US", { month: "short" });
+  const year = String(date.getFullYear()).slice(-2);
+  return `${month}-${year}`;
 }
 
 function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone = "neutral" }) {
@@ -11605,7 +11579,7 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
   if (Number.isFinite(Number(livePrice)) && sourceRows.length) {
     sourceRows = [...sourceRows.slice(0, -1), { ...sourceRows[sourceRows.length - 1], close: Number(livePrice), live: true }];
   }
-  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close), rowIndex: index, row })).filter((p) => Number.isFinite(p.y) && p.y > 0);
+  const points = sourceRows.map((row, index) => ({ x: index, y: Number(row.close) })).filter((p) => Number.isFinite(p.y) && p.y > 0);
   const projectionPoints = projections.filter((p) => Number.isFinite(Number(p.targetPrice)) && Number.isFinite(Number(p.startPrice)));
   if (!points.length) return <div className="eval-stock-chart-empty">No historical prices returned yet.</div>;
   const allY = points.map((p) => p.y).concat(projectionPoints.flatMap((p) => [Number(p.startPrice), Number(p.targetPrice)]));
@@ -11625,6 +11599,9 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
   const lowLabelY = Math.min(height - 10, lowY + 24);
   const startX = xScale(points.length - 1);
   const startY = yScale(points[points.length - 1].y);
+  const labelPoints = points.length > 1 ? [0, Math.floor((points.length - 1) / 2), points.length - 1]
+    .map((idx) => ({ idx, row: sourceRows[idx] }))
+    .filter((item, index, arr) => item.row && arr.findIndex((other) => other.idx === item.idx) === index) : [];
   const chartTone = ["green", "yellow", "red", "neutral"].includes(tone) ? tone : "neutral";
   return (
     <svg className={`eval-stock-chart-svg ${chartTone}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Stock price chart with high and low markers">
@@ -11678,6 +11655,9 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
         <line x1={lowX} x2={lowX} y1={lowY} y2={lowLabelY - 14} className="eval-chart-extreme-stem" />
         <text className="eval-chart-extreme-label" x={lowX} y={lowLabelY} textAnchor="middle" dominantBaseline="middle">{money(lowPoint.y)}</text>
       </g>
+      {labelPoints.map(({ idx, row }) => (
+        <text key={`x-${idx}`} className="eval-chart-x-label" x={xScale(idx)} y="246" textAnchor={idx === 0 ? "start" : idx === points.length - 1 ? "end" : "middle"}>{formatMonthYearShort(row?.datetime || row?.date || row?.timestamp)}</text>
+      ))}
       <line x1={startX} x2={startX} y1="34" y2="232" className="eval-chart-current-price-line" />
       {projectionPoints.map((proj) => {
         const endX = width - 28;
@@ -11685,9 +11665,6 @@ function MiniSvgLineChart({ rows = [], projections = [], livePrice = null, tone 
         const cls = proj.scenario === "high" ? "high" : proj.scenario === "low" ? "low" : "average";
         return <line key={proj.scenario} x1={startX} y1={startY} x2={endX} y2={endY} className={`eval-chart-projection ${cls}`} />;
       })}
-      {points.length > 1 && [points[0], points[Math.floor(points.length / 2)], points[points.length - 1]].map((point, idx) => (
-        <text key={`axis-${idx}`} className="eval-chart-axis-date" x={xScale(point.x)} y="246" textAnchor={idx === 0 ? "start" : idx === 2 ? "end" : "middle"}>{formatChartAxisDate(point.row)}</text>
-      ))}
     </svg>
   );
 }
@@ -11862,12 +11839,13 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
           </div>
         </div>
       </div>
-      <div className="eval-chart-range-toggle single-six-month" aria-label="Stock chart range"><span>6M</span></div>
 
       {chartLoading ? <div className="eval-stock-chart-empty">Loading price chart...</div> : <MiniSvgLineChart rows={chartRows} livePrice={null} tone={scoreTone(edgeScore ?? data?.grades?.edgeScore)} />}
 
-      <div className="eval-chart-hero-actions mobile-symbol-only-actions">
-        {onAdd && <button className="eval-hero-add-btn eval-hero-add-symbol-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={22} /></button>}
+      <div className="eval-chart-hero-actions">
+        {onAdd && <button className="eval-hero-add-btn" onClick={onAdd} aria-label="Add to watchlist" title="Add to watchlist"><Plus size={17} /> Add</button>}
+        <button type="button" className="score-metrics-jump-btn" onClick={onMetrics}>Metrics</button>
+        <button type="button" className={`score-metrics-jump-btn ${scoreBreakdownOpen ? "active" : ""}`} onClick={onScoreBreakdown}>Score Breakdown</button>
       </div>
     </section>
   );
