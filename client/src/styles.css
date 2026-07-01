@@ -42497,3 +42497,8 @@ body {
     letter-spacing: -0.045em !important;
   }
 }
+
+/* Eval visual polish: shift metric question buttons slightly right without affecting popups. */
+.grade-score-row .score-help-btn {
+  margin-left: 3px !important;
+}
