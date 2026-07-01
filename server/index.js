@@ -2122,13 +2122,21 @@ const logoDevDomainCache = new Map();
 function normalizeCompanyDomain(value = "") {
   let raw = String(value || "").trim();
   if (!raw) return "";
-  try {
-    if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
-    const parsed = new URL(raw);
-    return parsed.hostname.replace(/^www\./i, "").toLowerCase();
-  } catch {
-    return raw.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
-  }
+
+  raw = raw
+    .replace(/&amp;/g, "&")
+    .replace(/^mailto:/i, "")
+    .replace(/^https?:\/\//i, "")
+    .replace(/^\/\//, "")
+    .trim();
+
+  raw = raw.split(/[?#]/)[0].split("/")[0].trim().toLowerCase();
+  raw = raw.replace(/^www\./i, "").replace(/^m\./i, "").replace(/[),.;]+$/g, "");
+
+  if (!raw || raw === "null" || raw === "undefined") return "";
+  if (!raw.includes(".")) return "";
+  if (/\s/.test(raw)) return "";
+  return raw;
 }
 
 function logoDevToken() {
@@ -2138,55 +2146,92 @@ function logoDevToken() {
 function logoDevUrlFromDomain(domain = "") {
   const cleanDomain = normalizeCompanyDomain(domain);
   if (!cleanDomain) return "";
-  const token = logoDevToken();
   const params = new URLSearchParams({
-    token,
+    token: logoDevToken(),
     format: "webp",
     retina: "true",
+    fallback: "404",
   });
-  return `https://img.logo.dev/${encodeURIComponent(cleanDomain)}?${params.toString()}`;
+  return `https://img.logo.dev/${cleanDomain}?${params.toString()}`;
 }
 
-function logoDevUrlFromTicker(symbol = "") {
-  const clean = cleanTicker(symbol);
-  if (!clean) return "";
-  const params = new URLSearchParams({ format: "webp", retina: "true", size: "128", fallback: "404" });
-  const token = logoDevToken();
-  if (token) params.set("token", token);
-  return `https://img.logo.dev/ticker/${encodeURIComponent(clean)}?${params.toString()}`;
+const DOMAIN_OVERRIDES = {
+  AAPL: "apple.com",
+  MSFT: "microsoft.com",
+  AMZN: "amazon.com",
+  GOOGL: "abc.xyz",
+  GOOG: "abc.xyz",
+  META: "meta.com",
+  NVDA: "nvidia.com",
+  TSLA: "tesla.com",
+  TSM: "tsmc.com",
+  SHOP: "shopify.com",
+};
+
+function extractStoredProfileDomain(stored = {}) {
+  const candidates = [
+    stored?.profile?.logoDomain,
+    stored?.profile?.domain,
+    stored?.profile?.website,
+    stored?.profile?.weburl,
+    stored?.profile?.url,
+    stored?.profile?.company_url,
+    stored?.profile?.homepage,
+    stored?.profile?.home_page,
+    stored?.company?.website,
+    stored?.company?.domain,
+    stored?.meta?.website,
+    stored?.meta?.domain,
+  ];
+  for (const candidate of candidates) {
+    const domain = normalizeCompanyDomain(candidate);
+    if (domain) return domain;
+  }
+  return "";
+}
+
+function extractTwelveProfileDomain(profile = {}) {
+  const candidates = [
+    profile?.website,
+    profile?.weburl,
+    profile?.url,
+    profile?.company_url,
+    profile?.homepage,
+    profile?.home_page,
+    profile?.domain,
+  ];
+  for (const candidate of candidates) {
+    const domain = normalizeCompanyDomain(candidate);
+    if (domain) return domain;
+  }
+  return "";
 }
 
 async function resolveCompanyDomainForLogo(symbol) {
   const clean = cleanTicker(symbol);
   if (!clean) return "";
+
   const cached = logoDevDomainCache.get(clean);
   if (cached) return cached;
 
   const stored = getPrecomputedReport(clean);
-  const storedWebsite =
-    stored?.profile?.logoDomain ||
-    stored?.profile?.domain ||
-    stored?.profile?.website ||
-    stored?.profile?.weburl ||
-    stored?.profile?.url ||
-    stored?.profile?.company_url ||
-    stored?.company?.website ||
-    stored?.meta?.website;
-  const storedDomain = normalizeCompanyDomain(storedWebsite);
+  const storedDomain = extractStoredProfileDomain(stored);
   if (storedDomain) {
     logoDevDomainCache.set(clean, storedDomain);
     return storedDomain;
   }
 
-  const twelveProfile = await fetchTwelveDataJson("/profile", { symbol: clean }, 5000).catch(() => null);
-  const domain = normalizeCompanyDomain(
-    twelveProfile?.website ||
-    twelveProfile?.weburl ||
-    twelveProfile?.url ||
-    twelveProfile?.company_url ||
-    twelveProfile?.homepage ||
-    twelveProfile?.home_page
-  );
+  let domain = "";
+  const twelveProfile = await fetchTwelveDataJson("/profile", { symbol: clean }, 5000).catch((error) => {
+    console.warn("[logo.dev domain] Twelve /profile failed", clean, error?.message || error);
+    return null;
+  });
+
+  domain = extractTwelveProfileDomain(twelveProfile);
+
+  // Last resort only for the most common names if Twelve profile has no website.
+  // This still avoids the Logo.dev ticker endpoint, which was returning painter/question placeholders.
+  if (!domain) domain = DOMAIN_OVERRIDES[clean] || "";
 
   if (domain) {
     logoDevDomainCache.set(clean, domain);
@@ -2209,33 +2254,51 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   if (!symbol) return res.status(404).end();
 
   const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="24" fill="#0b1220"/><text x="48" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#ffffff">${symbol.slice(0, 1)}</text></svg>`;
-  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "no-store").send(fallbackSvg);
+  const sendFallback = () => res.type("image/svg+xml").set("Cache-Control", "no-store, no-cache, must-revalidate").send(fallbackSvg);
 
   const cached = companyLogoCache.get(symbol);
-  if (cached && cached.expiresAt > Date.now()) {
-    if (cached.buffer && cached.contentType) {
-      return res.type(cached.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(cached.buffer);
-    }
+  if (cached && cached.expiresAt > Date.now() && cached.buffer && cached.contentType) {
+    return res.type(cached.contentType).set("Cache-Control", "public, max-age=31536000, immutable").send(cached.buffer);
   }
 
   const loadLogo = async () => {
     const domain = await resolveCompanyDomainForLogo(symbol);
-    const candidates = [logoDevUrlFromDomain(domain), logoDevUrlFromTicker(symbol)].filter(Boolean);
+    const logoUrl = logoDevUrlFromDomain(domain);
+    if (!logoUrl) return null;
 
-    for (const candidate of [...new Set(candidates)]) {
-      try {
-        const imageResponse = await fetch(candidate, { headers: { "User-Agent": "Mozilla/5.0 Eval/1.0", "Accept": "image/avif,image/webp,image/png,image/*,*/*;q=0.8" } });
-        if (!imageResponse.ok) continue;
-        const contentType = imageResponse.headers.get("content-type") || "image/webp";
-        if (!/^image\//i.test(contentType)) continue;
-        const arrayBuffer = await imageResponse.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        if (!buffer.length || buffer.length < 220) continue;
-        companyLogoCache.set(symbol, { savedAt: Date.now(), expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS, buffer, contentType });
-        return { buffer, contentType };
-      } catch {}
+    try {
+      const imageResponse = await fetch(logoUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 Eval/1.0",
+          "Accept": "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
+        },
+      });
+
+      console.log("[logo.dev]", symbol, domain, imageResponse.status, logoUrl);
+      if (!imageResponse.ok) return null;
+
+      const contentType = imageResponse.headers.get("content-type") || "image/webp";
+      if (!/^image\//i.test(contentType)) return null;
+
+      const finalUrl = String(imageResponse.url || logoUrl);
+      if (/placeholder|fallback|not-found|default|question|paint/i.test(finalUrl)) return null;
+
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      if (!buffer.length || buffer.length < 220) return null;
+
+      companyLogoCache.set(symbol, {
+        savedAt: Date.now(),
+        expiresAt: Date.now() + PERMANENT_IDENTITY_CACHE_MS,
+        buffer,
+        contentType,
+        domain,
+      });
+      return { buffer, contentType };
+    } catch (error) {
+      console.warn("[logo.dev] failed", symbol, domain, error?.message || error);
+      return null;
     }
-    return null;
   };
 
   try {
@@ -2253,11 +2316,25 @@ app.get("/api/company-logo/:symbol", async (req, res) => {
   return sendFallback();
 });
 
+app.get("/api/company-logo-debug/:symbol", async (req, res) => {
+  const symbol = cleanTicker(req.params.symbol);
+  const stored = getPrecomputedReport(symbol);
+  const storedDomain = extractStoredProfileDomain(stored);
+  const resolvedDomain = await resolveCompanyDomainForLogo(symbol).catch(() => "");
+  res.json({
+    symbol,
+    storedDomain,
+    resolvedDomain,
+    logoUrl: logoDevUrlFromDomain(resolvedDomain),
+    hasStoredReport: Boolean(stored),
+  });
+});
+
 app.get("/api/company-logo-link/:symbol", async (req, res) => {
   const symbol = cleanTicker(req.params.symbol);
   if (!symbol) return res.status(404).json({ url: "https://www.logo.dev" });
   const domain = await resolveCompanyDomainForLogo(symbol).catch(() => "");
-  res.json({ provider: "logo.dev", url: "https://www.logo.dev", domain });
+  res.json({ provider: "logo.dev", url: "https://www.logo.dev", domain, logoUrl: logoDevUrlFromDomain(domain) });
 });
 
 app.get("/api/analyze/:symbol", async (req, res) => {
