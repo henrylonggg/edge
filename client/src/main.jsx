@@ -5290,7 +5290,7 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
             </div>
 
             <div className="mobile-homepage-feature-strip" aria-label="Eval key features">
-              <div><b>Eval Score</b><span>0–10 company-quality score</span></div>
+              <div><b>Eval Score</b><span>0–99 company-quality score</span></div>
               <div><b>Portfolio</b><span>Upload holdings, track weighted scores</span></div>
               <div><b>Morning Mug</b><span>Daily headlines, movers, earnings</span></div>
             </div>
@@ -5301,11 +5301,30 @@ function LandingPage({ onContinue, startTarget = "dashboard" }) {
               <span>Sample Eval report</span>
               <b>NVDA</b>
             </div>
-            <ScoreRingSvg value={8} label="8.0" className="preview-score-ring" />
-            <div className="preview-mini-grid">
-              <div><span>Profitability</span><strong>10.0</strong></div>
-              <div><span>Profit</span><strong>8.8</strong></div>
-              <div><span>News</span><strong>7.2</strong></div>
+            <div className="landing-chart-preview-card green">
+              <div className="landing-chart-preview-head">
+                <span>6M chart</span>
+                <strong className="landing-preview-score score-ovr-stack green"><span>84</span><small>OVR</small></strong>
+              </div>
+              <svg className="landing-preview-chart" viewBox="0 0 360 150" role="img" aria-label="Example Eval chart">
+                <defs>
+                  <linearGradient id="landingPreviewLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#85ff47" />
+                    <stop offset="100%" stopColor="#28d8ff" />
+                  </linearGradient>
+                </defs>
+                <path className="landing-preview-grid-line" d="M18 112 H342" />
+                <path className="landing-preview-grid-line" d="M18 76 H342" />
+                <path className="landing-preview-grid-line" d="M18 40 H342" />
+                <path className="landing-preview-line" d="M18 118 C58 105 67 89 104 93 C141 98 154 66 190 70 C228 74 234 44 270 48 C302 51 315 34 342 28" />
+                <text x="22" y="142">Jan-26</text>
+                <text x="286" y="142">Jul-26</text>
+              </svg>
+            </div>
+            <div className="preview-mini-grid preview-mini-grid-score-only">
+              <div><span>Profitability</span><strong className="score-ovr-stack green"><span>92</span><small>OVR</small></strong></div>
+              <div><span>Momentum</span><strong className="score-ovr-stack yellow"><span>74</span><small>OVR</small></strong></div>
+              <div><span>Valuation</span><strong className="score-ovr-stack red"><span>58</span><small>OVR</small></strong></div>
             </div>
           </aside>
         </section>
