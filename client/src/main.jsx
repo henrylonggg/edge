@@ -55,6 +55,19 @@ function formatScore99(value) {
   return String(Math.round(n <= 10 ? n * 10 : n));
 }
 
+function metricNumber(entry) {
+  if (entry && typeof entry === "object" && "value" in entry) return Number(entry.value);
+  return Number(entry);
+}
+
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    const n = metricNumber(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 /* Force Clerk resend verification cooldown to 60 seconds.
    Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
    keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
@@ -11998,8 +12011,17 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
 
 function DcfCalculatorPanel({ data }) {
   const symbol = data?.symbol;
-  const dcf = data?.dcf || {};
-  const available = Boolean(dcf?.available);
+  const rawDcf = data?.dcf || {};
+  const metrics = data?.metrics || {};
+  const dcf = {
+    ...rawDcf,
+    latestClose: firstFiniteNumber(rawDcf.latestClose, metrics.latestClose, data?.quote?.c, data?.quote?.pc),
+    intrinsicValue: firstFiniteNumber(rawDcf.intrinsicValue, metrics.intrinsicValue),
+    marginOfSafety: firstFiniteNumber(rawDcf.marginOfSafety, metrics.marginOfSafety),
+    score: firstFiniteNumber(rawDcf.score, rawDcf.dcfScore, metrics.dcfScore),
+    confidenceScore: firstFiniteNumber(rawDcf.confidenceScore, rawDcf.dcfConfidenceScore, metrics.dcfConfidenceScore),
+  };
+  const available = Boolean(rawDcf?.available || dcf.score !== null || dcf.intrinsicValue !== null || dcf.marginOfSafety !== null);
   const mos = Number(dcf?.marginOfSafety);
   const mosTone = Number.isFinite(mos) ? (mos >= 10 ? "green" : mos >= 0 ? "yellow" : "red") : "neutral";
   const company = data?.profile?.name || data?.companyName || symbol || "Stock";
@@ -12034,7 +12056,8 @@ function DcfCalculatorPanel({ data }) {
           <div className="eval-dcf-horizontal-values">
             <div><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
             <div><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
-            <div><span>DCF score</span><strong>{formatScore99(dcf.score ?? data?.metrics?.dcfScore)}</strong></div>
+            <div><span>DCF score</span><strong>{formatScore99(dcf.score)}</strong></div>
+            <div><span>Cash flow basis</span><strong>{dcf?.assumptions?.dcfCashFlowMethod || "Stored DCF"}</strong></div>
             <div><span>Growth used</span><strong>{Number(dcf?.assumptions?.baseGrowthPercent ?? 0).toFixed(1)}%</strong></div>
             <div><span>Discount rate</span><strong>{Number(dcf?.assumptions?.discountRatePercent ?? 0).toFixed(1)}%</strong></div>
             <div><span>Terminal growth</span><strong>{Number(dcf?.assumptions?.terminalGrowthPercent ?? 0).toFixed(1)}%</strong></div>
