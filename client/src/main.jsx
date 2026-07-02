@@ -49,6 +49,12 @@ import {
 } from "lucide-react";
 import "./styles.css";
 
+function formatScore99(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "N/A";
+  return String(Math.round(n <= 10 ? n * 10 : n));
+}
+
 /* Force Clerk resend verification cooldown to 60 seconds.
    Clerk's built-in widget displays a 60s resend timer by default; this DOM guard
    keeps the UI locked and visibly counting down from 60 without rebuilding auth. */
