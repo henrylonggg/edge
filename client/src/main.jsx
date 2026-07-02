@@ -11997,29 +11997,34 @@ function DcfCalculatorPanel({ data }) {
   const available = Boolean(dcf?.available);
   const mos = Number(dcf?.marginOfSafety);
   const mosTone = Number.isFinite(mos) ? (mos >= 10 ? "green" : mos >= 0 ? "yellow" : "red") : "neutral";
+  const company = data?.profile?.name || data?.companyName || symbol || "Stock";
 
   return (
-    <section className="eval-dcf-shell eval-dcf-popup-shell">
+    <section className="eval-dcf-shell eval-dcf-popup-shell" aria-label="DCF calculator section">
       <button type="button" className={`eval-dcf-toggle ${mosTone}`} onClick={() => setOpen((v) => !v)}>
-        <Target size={18} /> DCF Calculator
+        <span className="eval-dcf-toggle-left"><Target size={18} /> DCF Calculator</span>
+        {available && <span className="eval-dcf-toggle-pill">MOS {signedPercent(dcf.marginOfSafety)}</span>}
       </button>
       {open && (
-        <div className="eval-dcf-page eval-dcf-popup-page">
+        <div className={`eval-dcf-page eval-dcf-popup-page ${mosTone}`}>
           <div className="eval-dcf-head">
             <div>
               <span>Valuation model</span>
-              <h3>{data?.profile?.name || symbol} DCF</h3>
+              <h3>{company} DCF</h3>
             </div>
-            <button type="button" className="icon-btn" onClick={() => setOpen(false)} aria-label="Close DCF calculator">×</button>
+            <button type="button" className="icon-btn eval-dcf-close" onClick={() => setOpen(false)} aria-label="Close DCF calculator">×</button>
           </div>
           {!available ? (
-            <div className="eval-stock-chart-empty">DCF is voided because Eval does not have enough usable free-cash-flow, share-count, growth, or latest-close data yet.</div>
+            <div className="eval-dcf-empty-state">
+              <strong>DCF currently voided</strong>
+              <p>Eval needs usable free cash flow, share count, growth, cash/debt, and latest-close data before it can calculate intrinsic value.</p>
+            </div>
           ) : (
             <>
               <div className="eval-dcf-result-grid eval-dcf-valuation-grid">
-                <div><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
-                <div><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
-                <div className={`dcf-margin-highlight ${mosTone}`}><span>Margin of safety</span><strong>{signedPercent(dcf.marginOfSafety)}</strong></div>
+                <div className="dcf-card"><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
+                <div className="dcf-card"><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
+                <div className={`dcf-card dcf-margin-highlight ${mosTone}`}><span>Margin of safety</span><strong>{signedPercent(dcf.marginOfSafety)}</strong></div>
               </div>
               <p className="eval-dcf-description">
                 A discounted cash flow calculation estimates what a company may be worth by projecting future free cash flow, discounting those cash flows back to today, adding a terminal value, then adjusting for cash, debt, and shares outstanding. Eval compares that intrinsic value with the latest daily close to calculate margin of safety.
@@ -12037,8 +12042,7 @@ function DcfCalculatorPanel({ data }) {
   );
 }
 
-
-function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
+unction Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = cleanEvalCategories(data?.grades?.categories || {});
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
