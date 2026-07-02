@@ -4671,6 +4671,11 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
   const evalScoreChange = portfolioEvalScoreChange(evalHistoryPoints, portfolioEvalScore);
   const prosCons = buildPortfolioProsCons(sectorGroups);
   const allPortfolioHoldings = sectorGroups.flatMap((group) => (group.holdings || []).map((holding) => ({ ...holding, sector: group.sector })));
+
+  useEffect(() => {
+    preloadStockLogos(allPortfolioHoldings);
+  }, [allPortfolioHoldings.map((holding) => `${holding.symbol || holding.ticker || ""}:${holding.domain || holding.website || holding.companyDomain || ""}`).join("|")]);
+
   const rankedPortfolioHoldings = [...allPortfolioHoldings]
     .map((holding) => ({ ...holding, evalScoreValue: score10(holding.edgeScore ?? holding.score ?? holding.evalScore) }))
     .filter((holding) => holding.symbol && holding.evalScoreValue !== null)
@@ -11180,8 +11185,8 @@ function Watchlist({
                 <button className="watch-info watch-info-new watch-info-with-logo" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <StockLogo symbol={ticker} domain={item.domain || item.website} name={item.name} className="watch-aiv-logo" />
                   <span className="watch-ticker-copy">
-                    <span className="watch-ticker-main">{item.name && item.name !== ticker ? item.name : ticker}</span>
-                    <small className="watch-company-subtitle">{ticker}</small>
+                    <span className="watch-ticker-main">{ticker}</span>
+                    <small className="watch-company-subtitle">{item.name && item.name !== ticker ? item.name : "Company"}</small>
                   </span>
                 </button>
 
@@ -11623,10 +11628,26 @@ function StockLogo({ symbol, domain, name, className = "" }) {
       <img
         src={logo}
         alt={name ? `${name} logo` : cleanSymbol ? `${cleanSymbol} logo` : "Company logo"}
+        loading="eager"
+        decoding="async"
         onError={(event) => { event.currentTarget.style.display = "none"; }}
       />
     </a>
   );
+}
+
+function preloadStockLogos(items = []) {
+  if (typeof window === "undefined") return;
+  const seen = new Set();
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const symbol = String(item?.symbol || item?.ticker || "").trim().toUpperCase();
+    const url = allInvestViewLogoUrl(item?.domain || item?.website || item?.companyDomain, symbol);
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  });
 }
 
 function AllInvestViewAttribution({ className = "" }) {
