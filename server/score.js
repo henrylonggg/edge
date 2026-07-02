@@ -2763,6 +2763,11 @@ export async function buildStockAnalysis(symbol, options = {}) {
   
   const profitabilityScore = scoreProfitability(extracted);
   const healthScore = scoreFinancialHealth(extracted);
+
+  if (options?.staggerDcfCalculation) {
+    await pauseScore(Number(process.env.EVAL_PRECOMPUTE_STAGGER_BEFORE_DCF_MS || 60_000));
+  }
+
   const latestCloseForDcf = firstNumber(latestCloseFromRows(Array.isArray(twelveMarket?.rows) ? twelveMarket.rows : []), quote?.c, quote?.pc, extracted.currentPrice);
   const dcfAnalysis = buildDcfAnalysis(extracted, latestCloseForDcf, profitabilityScore, healthScore);
   if (dcfAnalysis?.available) {
