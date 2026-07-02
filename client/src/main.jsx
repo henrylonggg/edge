@@ -12042,7 +12042,7 @@ function DcfCalculatorPanel({ data }) {
   );
 }
 
-unction Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
+function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = cleanEvalCategories(data?.grades?.categories || {});
   const metrics = data?.metrics || {};
   const edge = score10(data.grades?.edgeScore);
