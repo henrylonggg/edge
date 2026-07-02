@@ -43838,3 +43838,142 @@ body {
   .portfolio-aiv-logo { width: 26px !important; height: 26px !important; padding: 3px !important; }
   .watch-ticker-main { max-width: 118px !important; }
 }
+
+/* Final logo/ticker alignment + portfolio logo preloading display cleanup */
+.watch-panel .watch-row-with-logo,
+.watchlist-page-panel .watch-row-with-logo,
+.mobile-watch-panel .watch-row-with-logo {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) max-content 32px !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+}
+
+.watch-panel .watch-info-with-logo,
+.watchlist-page-panel .watch-info-with-logo,
+.mobile-watch-panel .watch-info-with-logo {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 9px !important;
+  overflow: hidden !important;
+  text-align: left !important;
+}
+
+.watch-panel .watch-aiv-logo,
+.watchlist-page-panel .watch-aiv-logo,
+.mobile-watch-panel .watch-aiv-logo {
+  width: 31px !important;
+  height: 31px !important;
+  min-width: 31px !important;
+  max-width: 31px !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+}
+
+.watch-panel .watch-ticker-copy,
+.watchlist-page-panel .watch-ticker-copy,
+.mobile-watch-panel .watch-ticker-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  line-height: 1.02 !important;
+}
+
+.watch-panel .watch-ticker-main,
+.watchlist-page-panel .watch-ticker-main,
+.mobile-watch-panel .watch-ticker-main {
+  display: block !important;
+  max-width: 116px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+
+.watch-panel .watch-company-subtitle,
+.watchlist-page-panel .watch-company-subtitle,
+.mobile-watch-panel .watch-company-subtitle {
+  display: block !important;
+  max-width: 116px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  margin-top: 3px !important;
+  color: rgba(255,255,255,.54) !important;
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  letter-spacing: .035em !important;
+  text-transform: none !important;
+}
+
+.watch-panel .watch-score-text,
+.watchlist-page-panel .watch-score-text,
+.mobile-watch-panel .watch-score-text {
+  justify-self: end !important;
+  min-width: 44px !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+.watch-panel .delete-btn-icon-only,
+.watchlist-page-panel .delete-btn-icon-only,
+.mobile-watch-panel .delete-btn-icon-only {
+  justify-self: end !important;
+}
+
+.portfolio-aiv-logo,
+.portfolio-symbol-with-logo .portfolio-aiv-logo,
+.portfolio-mobile-stock-main-logo .portfolio-aiv-logo,
+.portfolio-ranked-copy-with-logo .portfolio-aiv-logo {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+}
+
+.eval-stock-logo-link {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 760px) {
+  .watch-panel .watch-row-with-logo,
+  .watchlist-page-panel .watch-row-with-logo,
+  .mobile-watch-panel .watch-row-with-logo {
+    grid-template-columns: minmax(0, 1fr) max-content 28px !important;
+    column-gap: 9px !important;
+  }
+
+  .watch-panel .watch-aiv-logo,
+  .watchlist-page-panel .watch-aiv-logo,
+  .mobile-watch-panel .watch-aiv-logo {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+  }
+
+  .watch-panel .watch-ticker-main,
+  .watchlist-page-panel .watch-ticker-main,
+  .mobile-watch-panel .watch-ticker-main,
+  .watch-panel .watch-company-subtitle,
+  .watchlist-page-panel .watch-company-subtitle,
+  .mobile-watch-panel .watch-company-subtitle {
+    max-width: 92px !important;
+  }
+}
