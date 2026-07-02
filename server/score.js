@@ -1005,6 +1005,10 @@ async function fetchTwelveDataFundamentals(symbol) {
     const shareholderEquity = pickTwelveNumberFlexible(balance, [["total_equity", "shareholders_equity", "total_shareholders_equity", "total_stockholders_equity"]]);
     const cashAndEquivalents = pickTwelveNumberFlexible(balance, [["cash_and_cash_equivalents", "cash_and_equivalents", "cash", "cash_cash_equivalents_and_short_term_investments"]]);
     const operatingCashFlow = pickTwelveNumberFlexible(cash, [["operating_cash_flow", "cash_flow_from_operating_activities", "net_cash_provided_by_operating_activities"]]);
+    const depreciationAmortization = firstNumber(
+      pickTwelveNumberFlexible(cash, [["depreciation_and_amortization", "depreciation_amortization", "depreciation_depletion_and_amortization"]]),
+      pickTwelveNumberFlexible(income, [["depreciation_and_amortization", "depreciation_amortization", "depreciation"]])
+    );
     const capex = pickTwelveNumberFlexible(cash, [["capital_expenditure", "capital_expenditures", "capex"]]);
     const freeCashFlow = firstNumber(pickTwelveNumberFlexible(cash, [["free_cash_flow"]]), operatingCashFlow !== null && capex !== null ? operatingCashFlow - Math.abs(capex) : null);
     const dividendsPaid = Math.abs(firstNumber(pickTwelveNumberFlexible(cash, [["dividends_paid", "dividend_payments", "cash_dividends_paid"]])) || 0) || null;
@@ -1041,6 +1045,16 @@ async function fetchTwelveDataFundamentals(symbol) {
     metrics.ebitda = firstNumber(metrics.ebitda, ebitda);
     metrics.dilutedShares = firstNumber(metrics.dilutedShares, dilutedShares);
     metrics.capex = firstNumber(metrics.capex, capex);
+    metrics.depreciationAmortization = firstNumber(metrics.depreciationAmortization, depreciationAmortization);
+    const maintenanceCapexProxy = depreciationAmortization !== null ? Math.min(Math.abs(capex || 0), Math.abs(depreciationAmortization)) : null;
+    metrics.ownerEarnings = firstNumber(metrics.ownerEarnings,
+      operatingCashFlow !== null && depreciationAmortization !== null && maintenanceCapexProxy !== null
+        ? operatingCashFlow - maintenanceCapexProxy
+        : null,
+      netIncome !== null && depreciationAmortization !== null && maintenanceCapexProxy !== null
+        ? netIncome + depreciationAmortization - maintenanceCapexProxy
+        : null
+    );
     metrics.dividendsPaid = firstNumber(metrics.dividendsPaid, dividendsPaid);
 
     const compoundGrowth = (latest, prior, years) => {
@@ -1290,7 +1304,7 @@ function scoreMarginOfSafety(value) {
 }
 
 function scoreDcfConfidence(m = {}, profitabilityScore = null, healthScore = null) {
-  const fcf = firstNumber(m.freeCashFlow, m.operatingCashFlow !== null && m.capex !== null ? m.operatingCashFlow - Math.abs(m.capex) : null);
+  const fcf = firstNumber(m.freeCashFlow, m.ownerEarnings, m.operatingCashFlow !== null && m.capex !== null ? m.operatingCashFlow - Math.abs(m.capex) : null);
   const ocf = safeNumber(m.operatingCashFlow);
   const revenueGrowth = firstNumber(m.revenueGrowth, m.revenueGrowth3Y, m.revenueGrowth5Y);
   const fcfGrowth = safeNumber(m.freeCashFlowGrowth);
@@ -1324,7 +1338,7 @@ function scoreDcfComposite(marginOfSafety, confidenceScore) {
 
 function buildDcfAnalysis(m = {}, latestClose = null, profitabilityScore = null, healthScore = null) {
   const close = firstNumber(latestClose, m.latestClose, m.currentPrice);
-  const fcf = firstNumber(m.freeCashFlow, m.operatingCashFlow !== null && m.capex !== null ? m.operatingCashFlow - Math.abs(m.capex) : null);
+  const fcf = firstNumber(m.ownerEarnings, m.freeCashFlow, m.operatingCashFlow !== null && m.capex !== null ? m.operatingCashFlow - Math.abs(m.capex) : null);
   const shares = firstNumber(m.sharesOutstanding, m.dilutedShares);
   const cash = firstNumber(m.cashAndEquivalents, 0);
   const debt = firstNumber(m.totalDebt, 0);
@@ -1371,6 +1385,9 @@ function buildDcfAnalysis(m = {}, latestClose = null, profitabilityScore = null,
     dcfScore,
     assumptions: {
       startingFreeCashFlow: fcf,
+      ownerEarnings: safeNumber(m.ownerEarnings),
+      freeCashFlow: safeNumber(m.freeCashFlow),
+      dcfCashFlowMethod: safeNumber(m.ownerEarnings) !== null ? "Owner earnings" : "Free cash flow",
       baseGrowthPercent: Number((baseGrowth * 100).toFixed(2)),
       discountRatePercent: Number((discountRate * 100).toFixed(2)),
       terminalGrowthPercent: Number((terminalGrowth * 100).toFixed(2)),
@@ -2795,6 +2812,13 @@ export async function buildStockAnalysis(symbol, options = {}) {
     ? (extracted.nopat / extracted.investedCapital) * 100
     : firstNumber(extracted.roicCalculated);
   extracted.freeCashFlow = firstNumber(extracted.freeCashFlow, extracted.operatingCashFlow !== null && extracted.capex !== null ? extracted.operatingCashFlow - Math.abs(extracted.capex) : null);
+  const depreciationForOwnerEarnings = firstNumber(extracted.depreciationAmortization, extracted.depreciationAndAmortization);
+  const maintenanceCapexForOwnerEarnings = depreciationForOwnerEarnings !== null && extracted.capex !== null ? Math.min(Math.abs(extracted.capex), Math.abs(depreciationForOwnerEarnings)) : null;
+  extracted.ownerEarnings = firstNumber(
+    extracted.ownerEarnings,
+    extracted.operatingCashFlow !== null && maintenanceCapexForOwnerEarnings !== null ? extracted.operatingCashFlow - maintenanceCapexForOwnerEarnings : null,
+    extracted.netIncome !== null && depreciationForOwnerEarnings !== null && maintenanceCapexForOwnerEarnings !== null ? extracted.netIncome + depreciationForOwnerEarnings - maintenanceCapexForOwnerEarnings : null
+  );
   extracted.cashConversionRatio = scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? extracted.freeCashFlow / extracted.netIncome : null;
   extracted.accrualRatio = scoreInputNumber(extracted.totalAssets) !== null && scoreInputNumber(extracted.netIncome) !== null && scoreInputNumber(extracted.freeCashFlow) !== null ? (extracted.netIncome - extracted.freeCashFlow) / extracted.totalAssets : null;
 
@@ -2919,7 +2943,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     netIncomeGrowth3Y: metric(extracted.netIncomeGrowth3Y, "%", src, "3-year net income growth"),
     roe: metric(extracted.roe, "%", src, "Return on equity"), roa: metric(extracted.roa, "%", src, "Return on assets"), roi: metric(extracted.roicCalculated, "%", src, "Return on invested capital"), grossMargin: metric(extracted.grossMargin, "%", src, "Gross profit / revenue"), operatingMargin: metric(extracted.operatingMargin, "%", src, "Operating income / revenue"), pretaxMargin: metric(extracted.pretaxMargin, "%", src, "Pretax income / revenue"), netMargin: metric(extracted.netMargin, "%", src, "Net income / revenue"), fcfMargin: metric(extracted.fcfMargin, "%", src, "Free cash flow / revenue"), ocfMargin: metric(extracted.ocfMargin, "%", src, "Operating cash flow / revenue"),
     debtToEquity: metric(extracted.debtToEquity, "", src, "Total debt / equity"), longTermDebtToEquity: metric(extracted.longTermDebtToEquity, "", src, "Long-term debt / equity"), debtToAssets: metric(extracted.debtToAssets, "", src, "Total debt / assets"), equityRatio: metric(extracted.equityRatio, "", src, "Equity / assets"), currentRatio: metric(extracted.currentRatio, "", src, "Current assets / current liabilities"), quickRatio: metric(extracted.quickRatio, "", src, "Quick assets / current liabilities"), cashRatio: metric(extracted.cashRatio, "", src, "Cash / current liabilities"), assetTurnover: metric(extracted.assetTurnover, "", src, "Revenue / assets"), interestCoverage: metric(extracted.interestCoverage, "", src, "EBIT / interest expense"), cashFlowToDebt: metric(extracted.cashFlowToDebt, "", src, "Operating cash flow / total debt"), operatingCashFlowPerShare: metric(extracted.operatingCashFlowPerShare, "", src, "Operating cash flow / share"), freeCashFlowPerShare: metric(extracted.freeCashFlowPerShare, "", src, "Free cash flow / share"), totalDebtToCapital: metric(extracted.totalDebtToCapital, "", src, "Debt / total capital"), netDebtToEbitda: metric(extracted.netDebtToEbitda, "", src, "Net debt / EBITDA"),
-    latestClose: metric(extracted.latestClose, "", src, "Latest daily close used for DCF"), intrinsicValue: metric(extracted.intrinsicValue, "", src, "DCF intrinsic value per share"), marginOfSafety: metric(extracted.marginOfSafety, "%", src, "DCF margin of safety"), dcfScore: metric(extracted.dcfScore, "", src, "DCF score blends margin of safety and confidence"), dcfConfidenceScore: metric(extracted.dcfConfidenceScore, "", src, "DCF confidence score based on FCF quality, growth, debt, margins, and earnings"),
+    latestClose: metric(extracted.latestClose, "", src, "Latest daily close used for DCF"), intrinsicValue: metric(extracted.intrinsicValue, "", src, "DCF intrinsic value per share"), marginOfSafety: metric(extracted.marginOfSafety, "%", src, "DCF margin of safety"), dcfScore: metric(extracted.dcfScore, "", src, "DCF score blends margin of safety and confidence"), ownerEarnings: metric(extracted.ownerEarnings, "", src, "Owner earnings proxy used for DCF when growth capex distorts free cash flow"), dcfConfidenceScore: metric(extracted.dcfConfidenceScore, "", src, "DCF confidence score based on FCF quality, growth, debt, margins, and earnings"),
     peRatio: metric(extracted.peRatio, "", src, "Price / earnings"), forwardPe: metric(extracted.forwardPe, "", src, "Forward price / earnings"), pegRatio: metric(extracted.pegRatio, "", src, "P/E / growth"), priceToSales: metric(extracted.priceToSales, "", src, "Price / sales"), priceToBook: metric(extracted.priceToBook, "", src, "Price / book value"), priceToCashFlow: metric(extracted.priceToCashFlow, "", src, "Price / cash flow"), priceToFreeCashFlow: metric(extracted.priceToFreeCashFlow, "", src, "Price / free cash flow"), dividendYield: metric(extracted.dividendYield, "%", src, "Annual dividend yield"),
     beta: metric(extracted.beta, "", src, "Volatility compared with market"), dayChangePercent: metric(extracted.dayChangePercent, "%", src, "Current daily price change"), priceReturn4Week: metric(extracted.priceReturn4Week, "%", src, "4-week price return"), priceReturn12Week: metric(extracted.priceReturn12Week, "%", src, "12-week price return"), priceReturn13Week: metric(extracted.priceReturn13Week, "%", src, "13-week price return"), priceReturn26Week: metric(extracted.priceReturn26Week, "%", src, "26-week price return"), priceReturn52Week: metric(extracted.priceReturn52Week, "%", src, "52-week price return"), distanceFrom52WeekLow: metric(extracted.distanceFrom52WeekLow, "%", src, "(Current price - 52-week low) / 52-week low"),
     revenue: metric(extracted.revenue, "", src, "Revenue"),
