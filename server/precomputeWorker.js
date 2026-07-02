@@ -1,7 +1,7 @@
 /*
-  Replacement precomputeWorker.js behavior for one-time first-500 refresh:
-  - One-time run starts today at 11:10 AM ET.
-  - It continues until the 500-stock batch is complete, even after normal window end.
+  Replacement precomputeWorker.js behavior for one-time full-universe refresh:
+  - One-time run starts today at 12:25 PM ET.
+  - It continues until all 3,500 stocks are complete, even after normal window end.
   - Quote-first and cached-report/missing-only behavior should be handled inside buildStockAnalysis.
   - Future normal schedule remains 11:00 PM–7:30 AM ET.
 */
@@ -30,12 +30,12 @@ const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || 
   month: "2-digit",
   day: "2-digit",
 }).format(new Date());
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (11 * 60 + 35)); // 11:35 AM ET
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (12 * 60 + 25)); // 12:25 PM ET
 const ONE_TIME_RUN_UNTIL_DONE = String(process.env.EVAL_ONE_TIME_RUN_UNTIL_DONE || "true").toLowerCase() !== "false";
 
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
 const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
-const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500);
+const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 3500);
 const WEEKLY_SIZE = Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500);
 const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 180_000));
 const TICKER_TIMEOUT_MS = Math.max(60_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_TIMEOUT_MS || 180_000));
@@ -79,7 +79,7 @@ function activePrecomputeWindow() {
     return {
       startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
       endMinutes: 24 * 60,
-      label: "11:10 AM ET one-time first-500 DCF refresh until done",
+      label: "12:20 PM ET one-time full-3500 refresh until done",
       oneTime: true,
       runUntilDone: ONE_TIME_RUN_UNTIL_DONE,
     };
@@ -142,7 +142,7 @@ export function getPrecomputeUniverse() {
 function todaysBatch() {
   const universe = getPrecomputeUniverse();
   const window = activePrecomputeWindow();
-  const dateKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1135am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const dateKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-refresh` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const current = getPrecomputeState();
   let weekCursor = window.oneTime ? 0 : Number(current.weekCursor || 0);
   let dayCursor = Number(current.dayCursor || 0);
@@ -160,12 +160,12 @@ function todaysBatch() {
 function shouldRunPrecompute() {
   const window = activePrecomputeWindow();
   const state = getPrecomputeState();
-  const batchKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1135am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const batchKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-refresh` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const { minutes } = etParts();
 
   if (window.oneTime && window.runUntilDone && state.lastBatchDate === batchKey) {
     const cursor = Number(state.dayCursor || 0);
-    if (cursor > 0 && cursor < BATCH_SIZE) return true;
+    if (cursor > 0 && cursor < Math.min(BATCH_SIZE, getPrecomputeUniverse().length)) return true;
   }
 
   if (window.oneTime) return minutes >= window.startMinutes;
@@ -195,7 +195,6 @@ async function computeOne(symbol) {
     quoteFirst: true,
     refreshMissingOnly: true,
     staggerApiUsage: true,
-    staggerDcfCalculation: true,
     refreshFundamentals: true,
     refreshValuation: true,
     refreshMarket: true,
