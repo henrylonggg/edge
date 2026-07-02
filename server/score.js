@@ -175,6 +175,48 @@ function firstNumber(...values) {
   return null;
 }
 
+function mergeQuoteHistory(existing = [], quote = null) {
+  const rows = Array.isArray(existing) ? existing.filter(Boolean) : [];
+  const price = safeNumber(quote?.c);
+  if (price === null) return rows.slice(-390);
+  const entry = {
+    date: new Date().toISOString(),
+    c: price,
+    d: safeNumber(quote?.d),
+    dp: safeNumber(quote?.dp),
+    h: safeNumber(quote?.h),
+    l: safeNumber(quote?.l),
+    o: safeNumber(quote?.o),
+    pc: safeNumber(quote?.pc),
+  };
+  const prior = rows.at(-1);
+  if (prior && Math.abs(new Date(entry.date).getTime() - new Date(prior.date || prior.datetime || 0).getTime()) < 10 * 60 * 1000 && safeNumber(prior.c ?? prior.close) === price) {
+    return rows.slice(-390);
+  }
+  return [...rows, entry].slice(-390);
+}
+
+function cachedQuoteFromReport(report = {}) {
+  const direct = report?.quote || {};
+  const history = Array.isArray(report?.quoteHistory) ? report.quoteHistory : [];
+  const last = history.at(-1) || {};
+  return {
+    c: firstNumber(direct?.c, last?.c, last?.close),
+    d: firstNumber(direct?.d, last?.d),
+    dp: firstNumber(direct?.dp, last?.dp),
+    h: firstNumber(direct?.h, last?.h),
+    l: firstNumber(direct?.l, last?.l),
+    o: firstNumber(direct?.o, last?.o),
+    pc: firstNumber(direct?.pc, last?.pc),
+  };
+}
+
+async function pauseScore(ms) {
+  const n = safeNumber(ms);
+  if (!n || n <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, n));
+}
+
 function clamp(value, min = 0, max = 10) {
   const number = safeNumber(value);
   if (number === null) return null;
@@ -2541,9 +2583,19 @@ export async function buildStockAnalysis(symbol, options = {}) {
     throw new Error("Missing TWELVE_DATA_API_KEY in Render environment variables.");
   }
 
+  // Quote is the highest-priority data point. Fetch it first and keep prior quote/chart data
+  // if Twelve does not return a value, so a stored report never loses its chart/price display.
+  const cachedQuote = cachedQuoteFromReport(cachedReport);
+  const twelveQuote = refreshMarket ? await fetchTwelveDataQuote(cleanSymbol) : null;
+
+  if (options?.staggerApiUsage) {
+    await pauseScore(Number(process.env.EVAL_PRECOMPUTE_STAGGER_AFTER_QUOTE_MS || 60_000));
+  }
+
+  const shouldRefreshFundamentals = (refreshFundamentals || !hasCachedReport);
   const [twelveProfile, twelveFundamentals] = await Promise.all([
     refreshProfile ? fetchTwelveDataProfile(cleanSymbol) : (cachedReport?.profile || null),
-    (refreshFundamentals || !hasCachedReport) ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {}, source: "Cached report" },
+    shouldRefreshFundamentals ? fetchTwelveDataFundamentals(cleanSymbol) : { metrics: metricsFromCachedReport(cachedReport), raw: {}, source: "Cached report" },
   ]);
   const finnhubProfile = {};
   const finnhubFundamentals = { metrics: {}, raw: {}, source: "Finnhub disabled" };
@@ -2561,8 +2613,6 @@ export async function buildStockAnalysis(symbol, options = {}) {
   const twelveMarket = refreshMarket && existingMarketInputs < 6
     ? await fetchTwelveDataMarketData(cleanSymbol)
     : { quote: null, metrics: {}, source: existingMarketInputs >= 6 ? "Twelve Data cached technical market data" : "Market refresh disabled" };
-  const twelveQuote = null;
-
   const cachedProfile = cachedReport?.profile || {};
   const profile = {
     ...(cachedProfile || {}),
@@ -2576,7 +2626,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
     logo: `/api/company-logo/${encodeURIComponent(cleanSymbol)}`,
   };
 
-  const quote = bestQuote({ cachedQuote: {}, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
+  const quote = bestQuote({ cachedQuote, twelveQuote: twelveQuote || twelveMarket?.quote || {} });
   if (!profile || (!profile.ticker && !profile.name)) throw new Error(`No Twelve Data profile found for ${cleanSymbol}.`);
 
   const cachedMetrics = metricsFromCachedReport(cachedReport);
@@ -2731,8 +2781,9 @@ export async function buildStockAnalysis(symbol, options = {}) {
   return {
     symbol: cleanSymbol,
     profile: { ...profile, ticker: profile.ticker || cleanSymbol, name: profile.name || cleanSymbol, finnhubIndustry: profile.finnhubIndustry || "Public company" },
-    quote: quote || { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
-    chartData: buildStoredChartData(twelveMarket?.rows || []),
+    quote: quote || cachedQuote || { c: null, d: null, dp: null, h: null, l: null, o: null, pc: null },
+    quoteHistory: mergeQuoteHistory(cachedReport?.quoteHistory || [], quote || cachedQuote),
+    chartData: (Array.isArray(twelveMarket?.rows) && twelveMarket.rows.length) ? buildStoredChartData(twelveMarket.rows) : (cachedReport?.chartData || buildStoredChartData([])),
     companyDescription: `${profile.name || cleanSymbol} is a publicly traded company in the ${profile.finnhubIndustry || "market"} industry.`,
     evaluationSummary: edgeScore === null
       ? `${cleanSymbol} does not have enough usable data across the core Eval categories for an Eval Score yet.`
@@ -2756,7 +2807,7 @@ export async function buildStockAnalysis(symbol, options = {}) {
         requiredCategories: coreCategoryKeys,
         hasAllCoreCategoryScores,
         canCalculateEvalScore,
-        scoreRule: "Eval Score uses six weighted categories with automatic redistribution when a metric is missing: Profitability 22%, Valuation 20%, Growth 19%, Financial Health 18%, Momentum 13%, Pullback 8%.",
+        scoreRule: "Eval Score uses seven weighted categories with automatic redistribution when a metric is missing: Profitability 20%, Valuation 17%, Growth 16%, Financial Health 16%, News Sentiment 13%, Momentum 11%, Pullback 7%.",
         providerStatus: { twelveDataKey: Boolean(process.env.TWELVE_DATA_API_KEY), databaseOnly: true, apiMinimization: "Browser/UI reads stored Eval database reports only. Twelve Data calls run inside scheduled backend workers." },
         sources: { price: "Twelve Data quote/WebSocket", marketData: twelveMarket?.source || "Twelve Data time_series", fundamentals: [finnhubFundamentals?.source, fmpFundamentals?.source, massiveFundamentals?.source, twelveFundamentals?.source].filter(Boolean).join(" | "), profile: finnhubProfile ? "Finnhub profile2" : "Twelve Data profile" }
       }
