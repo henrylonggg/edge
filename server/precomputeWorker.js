@@ -1,3 +1,11 @@
+/*
+  Replacement precomputeWorker.js behavior for one-time first-500 refresh:
+  - One-time run starts today at 9:00 AM ET.
+  - It continues until the 500-stock batch is complete, even after normal window end.
+  - Quote-first and cached-report/missing-only behavior should be handled inside buildStockAnalysis.
+  - Future normal schedule remains 11:00 PM–7:30 AM ET.
+*/
+
 import fs from "fs";
 import path from "path";
 import { buildStockAnalysis } from "./score.js";
@@ -9,28 +17,32 @@ import {
   updatePrecomputeState,
 } from "./precomputeStore.js";
 
-const DEFAULT_UNIVERSE = ["AAPL","MSFT","NVDA","GOOGL","AMZN","META","TSLA","AVGO","JPM","LLY"];
+const DEFAULT_UNIVERSE = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO", "JPM", "LLY"];
 const DEFAULT_UNIVERSE_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), "data", "universe.json");
 
-const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET after the one-time test morning
-const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET after the one-time test morning
-const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || "2026-07-01";
+const DEFAULT_NIGHTLY_WINDOW_START_MINUTES = 23 * 60; // 11:00 PM ET
+const DEFAULT_NIGHTLY_WINDOW_END_MINUTES = 7 * 60 + 30; // 7:30 AM ET
+
 const ONE_TIME_TEST_WINDOW_ENABLED = String(process.env.EVAL_ONE_TIME_TEST_WINDOW_ENABLED || "true").toLowerCase() !== "false";
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (10 * 60 + 50)); // 10:50 AM ET today
-const ONE_TIME_TEST_WINDOW_END_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_END_MINUTES || (19 * 60 + 20)); // 7:20 PM ET today, same 8h30m test window
+const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date());
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || 9 * 60); // 9:00 AM ET
+const ONE_TIME_RUN_UNTIL_DONE = String(process.env.EVAL_ONE_TIME_RUN_UNTIL_DONE || "true").toLowerCase() !== "false";
+
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
 const NIGHTLY_WINDOW_END_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_END_MINUTES || DEFAULT_NIGHTLY_WINDOW_END_MINUTES);
-const TECH_WINDOW_START_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_START_MINUTES || 9 * 60 + 15); // 9:15 AM ET
-const TECH_WINDOW_END_MINUTES = Number(process.env.EVAL_TECH_REFRESH_WINDOW_END_MINUTES || 9 * 60 + 30); // 9:30 AM ET
 const BATCH_SIZE = Number(process.env.EVAL_PRECOMPUTE_BATCH_SIZE || 500);
 const WEEKLY_SIZE = Number(process.env.EVAL_PRECOMPUTE_WEEKLY_SIZE || 3500);
-const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 60_000));
-const TECH_TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_TECH_REFRESH_TICKER_INTERVAL_MS || 60_000));
+const TICKER_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_INTERVAL_MS || 120_000));
+const TICKER_TIMEOUT_MS = Math.max(60_000, Number(process.env.EVAL_PRECOMPUTE_TICKER_TIMEOUT_MS || 120_000));
 const LOOP_INTERVAL_MS = Math.max(15_000, Number(process.env.EVAL_PRECOMPUTE_LOOP_INTERVAL_MS || 30_000));
 const ENABLED = String(process.env.EVAL_PRECOMPUTE_ENABLED || "false").toLowerCase() === "true";
-const TECH_ENABLED = String(process.env.EVAL_TECH_REFRESH_ENABLED || "true").toLowerCase() !== "false";
+
 let running = false;
-let techRunning = false;
 let timer = null;
 
 function etParts(date = new Date()) {
@@ -50,32 +62,9 @@ function etParts(date = new Date()) {
   };
 }
 
-function getEtDateKey(date = new Date()) {
-  return etParts(date).dateKey;
-}
-
 function previousEtDateKey(date = new Date()) {
-  return getEtDateKey(new Date(date.getTime() - 24 * 60 * 60 * 1000));
-}
-
-function activePrecomputeWindow() {
-  const now = new Date();
-  const parts = etParts(now);
-  if (ONE_TIME_TEST_WINDOW_ENABLED && parts.dateKey === ONE_TIME_TEST_WINDOW_DATE) {
-    return {
-      startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
-      endMinutes: ONE_TIME_TEST_WINDOW_END_MINUTES,
-      label: "10:50 AM-7:20 PM ET one-time restart test window",
-      oneTime: true,
-    };
-  }
-
-  return {
-    startMinutes: NIGHTLY_WINDOW_START_MINUTES,
-    endMinutes: NIGHTLY_WINDOW_END_MINUTES,
-    label: "11:00 PM-7:30 AM ET",
-    oneTime: false,
-  };
+  const prior = new Date(date.getTime() - 24 * 60 * 60 * 1000);
+  return etParts(prior).dateKey;
 }
 
 function isInsideWindow(startMinutes, endMinutes) {
@@ -84,26 +73,31 @@ function isInsideWindow(startMinutes, endMinutes) {
   return minutes >= startMinutes || minutes < endMinutes;
 }
 
+function activePrecomputeWindow() {
+  const parts = etParts();
+  if (ONE_TIME_TEST_WINDOW_ENABLED && parts.dateKey === ONE_TIME_TEST_WINDOW_DATE) {
+    return {
+      startMinutes: ONE_TIME_TEST_WINDOW_START_MINUTES,
+      endMinutes: 24 * 60,
+      label: "9:00 AM ET one-time first-500 run until done",
+      oneTime: true,
+      runUntilDone: ONE_TIME_RUN_UNTIL_DONE,
+    };
+  }
+  return {
+    startMinutes: NIGHTLY_WINDOW_START_MINUTES,
+    endMinutes: NIGHTLY_WINDOW_END_MINUTES,
+    label: "11:00 PM-7:30 AM ET",
+    oneTime: false,
+    runUntilDone: false,
+  };
+}
+
 function operationalBatchDateKey(startMinutes, endMinutes) {
   const now = new Date();
   const { dateKey, minutes } = etParts(now);
-  const active = activePrecomputeWindow();
-  // Give today's manual 10:35 AM restart its own batch key so it starts again
-  // even if an earlier one-time test already wrote progress for the same date.
-  if (active.oneTime) return `${dateKey}:one-time-1050-restart`;
-  // For overnight windows such as 11:00 PM-7:30 AM, the after-midnight portion
-  // belongs to the previous evening's batch instead of accidentally starting a new batch.
   if (startMinutes > endMinutes && minutes < endMinutes) return previousEtDateKey(now);
   return dateKey;
-}
-
-function isInsidePrecomputeWindow() {
-  const window = activePrecomputeWindow();
-  return isInsideWindow(window.startMinutes, window.endMinutes);
-}
-
-function isInsideTechRefreshWindow() {
-  return isInsideWindow(TECH_WINDOW_START_MINUTES, TECH_WINDOW_END_MINUTES);
 }
 
 function normalizeUniverseEntry(entry) {
@@ -148,63 +142,58 @@ export function getPrecomputeUniverse() {
 function todaysBatch() {
   const universe = getPrecomputeUniverse();
   const window = activePrecomputeWindow();
-  const dateKey = operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const dateKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-9am` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const current = getPrecomputeState();
-  let weekCursor = Number(current.weekCursor || 0);
+  let weekCursor = window.oneTime ? 0 : Number(current.weekCursor || 0);
   let dayCursor = Number(current.dayCursor || 0);
 
   if (current.lastBatchDate !== dateKey) {
     dayCursor = 0;
-    weekCursor = weekCursor >= universe.length ? 0 : weekCursor;
+    weekCursor = window.oneTime ? 0 : (weekCursor >= universe.length ? 0 : weekCursor);
     updatePrecomputeState({ lastBatchDate: dateKey, dayCursor, weekCursor });
   }
 
   const batch = universe.slice(weekCursor, Math.min(weekCursor + BATCH_SIZE, universe.length));
-  if (batch.length < BATCH_SIZE && universe.length) batch.push(...universe.slice(0, BATCH_SIZE - batch.length));
-  return { batch, dayCursor, weekCursor, universeSize: universe.length, dateKey };
+  return { batch, dayCursor, weekCursor, universeSize: universe.length, dateKey, window };
 }
 
-function technicalRefreshCursor() {
-  const universe = getPrecomputeUniverse();
+function shouldRunPrecompute() {
   const window = activePrecomputeWindow();
-  const dateKey = operationalBatchDateKey(window.startMinutes, window.endMinutes);
-  const current = getPrecomputeState();
-  let techCursor = Number(current.techCursor || 0);
-  if (current.lastTechRefreshDate !== dateKey) {
-    techCursor = 0;
-    updatePrecomputeState({ lastTechRefreshDate: dateKey, techCursor });
+  const state = getPrecomputeState();
+  const batchKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-9am` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const { minutes } = etParts();
+
+  if (window.oneTime && window.runUntilDone && state.lastBatchDate === batchKey) {
+    const cursor = Number(state.dayCursor || 0);
+    if (cursor > 0 && cursor < BATCH_SIZE) return true;
   }
-  return { universe, techCursor, dateKey };
+
+  if (window.oneTime) return minutes >= window.startMinutes;
+  return isInsideWindow(window.startMinutes, window.endMinutes);
 }
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function computeOne(symbol) {
-  const report = await buildStockAnalysis(symbol, {
-    cachedReport: null,
-    refreshFundamentals: true,
-    refreshValuation: true,
-    refreshMarket: true,
-    refreshNews: false,
-    refreshRisk: false,
-    refreshProfile: true,
-    includeAiScoreSummary: false,
-    precomputeMode: true,
+async function withTimeout(promise, ms, label) {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(`${label || "operation"} timed out after ${ms}ms`)), ms);
   });
-  putPrecomputedReport(symbol, report);
-  return report;
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timerId);
+  }
 }
 
-async function refreshOneTechnical(symbol) {
-  // Use the same full scoring path as the overnight loader so Momentum/Pullback
-  // are produced from the same Twelve time-series/technical logic and then saved
-  // back into Supabase. The previous lightweight refresh could leave those
-  // categories voided because it did not rebuild the full category model.
-  const current = getPrecomputedReport(symbol);
+async function computeOne(symbol) {
+  const cachedReport = getPrecomputedReport(symbol);
   const report = await buildStockAnalysis(symbol, {
-    cachedReport: current || null,
+    cachedReport,
+    quoteFirst: true,
+    refreshMissingOnly: true,
     refreshFundamentals: true,
     refreshValuation: true,
     refreshMarket: true,
@@ -219,47 +208,41 @@ async function refreshOneTechnical(symbol) {
 }
 
 async function runPrecomputeLoopOnce() {
-  if (!ENABLED || running || !isInsidePrecomputeWindow()) return;
+  if (!ENABLED || running || !shouldRunPrecompute()) return;
   running = true;
   try {
-    const { batch, dayCursor, weekCursor, universeSize, dateKey } = todaysBatch();
-    if (!batch.length || dayCursor >= batch.length) return;
+    const { batch, dayCursor, weekCursor, universeSize, dateKey, window } = todaysBatch();
+    if (!batch.length || dayCursor >= batch.length) {
+      if (window.oneTime) console.log(`[precompute] one-time batch complete: ${dateKey}`);
+      return;
+    }
 
     const symbol = batch[dayCursor];
     console.log(`[precompute] ${dateKey} ${dayCursor + 1}/${batch.length}: ${symbol}`);
     try {
-      await computeOne(symbol);
+      await withTimeout(computeOne(symbol), TICKER_TIMEOUT_MS, `[precompute] ${symbol}`);
     } catch (error) {
       console.warn(`[precompute] failed ${symbol}:`, error?.message || error);
     }
 
     const nextDayCursor = dayCursor + 1;
     const finishedBatch = nextDayCursor >= batch.length;
-    const nextWeekCursor = finishedBatch ? (weekCursor + BATCH_SIZE >= universeSize ? 0 : weekCursor + BATCH_SIZE) : weekCursor;
-    updatePrecomputeState({ lastBatchDate: dateKey, dayCursor: nextDayCursor, weekCursor: nextWeekCursor, lastRunAt: new Date().toISOString(), lastSymbol: symbol });
+    const nextWeekCursor = window.oneTime
+      ? 0
+      : (finishedBatch ? (weekCursor + BATCH_SIZE >= universeSize ? 0 : weekCursor + BATCH_SIZE) : weekCursor);
+
+    updatePrecomputeState({
+      lastBatchDate: dateKey,
+      dayCursor: nextDayCursor,
+      weekCursor: nextWeekCursor,
+      lastRunAt: new Date().toISOString(),
+      lastSymbol: symbol,
+      oneTimeRunDone: window.oneTime && finishedBatch,
+    });
+
     await sleep(TICKER_INTERVAL_MS);
   } finally {
     running = false;
-  }
-}
-
-async function runTechnicalRefreshLoopOnce() {
-  if (!ENABLED || !TECH_ENABLED || techRunning || !isInsideTechRefreshWindow()) return;
-  techRunning = true;
-  try {
-    const { universe, techCursor, dateKey } = technicalRefreshCursor();
-    if (!universe.length || techCursor >= universe.length) return;
-    const symbol = universe[techCursor];
-    console.log(`[tech-refresh] ${dateKey} ${techCursor + 1}/${universe.length}: ${symbol}`);
-    try {
-      await refreshOneTechnical(symbol);
-    } catch (error) {
-      console.warn(`[tech-refresh] failed ${symbol}:`, error?.message || error);
-    }
-    updatePrecomputeState({ lastTechRefreshDate: dateKey, techCursor: techCursor + 1, lastTechRefreshAt: new Date().toISOString(), lastTechSymbol: symbol });
-    await sleep(TECH_TICKER_INTERVAL_MS);
-  } finally {
-    techRunning = false;
   }
 }
 
@@ -270,12 +253,11 @@ export function startPrecomputeWorker() {
   }
   if (timer) return timer;
   const window = activePrecomputeWindow();
-  console.log(`[precompute] enabled. Fundamentals window ${window.label}, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap. Tech refresh uses full one-stock-per-minute scoring path and saves to Supabase.`);
+  console.log(`[precompute] enabled. Fundamentals window ${window.label}, ${BATCH_SIZE}/day, ${WEEKLY_SIZE}/week cap. Interval ${TICKER_INTERVAL_MS}ms, timeout ${TICKER_TIMEOUT_MS}ms.`);
   timer = setInterval(() => {
     runPrecomputeLoopOnce();
-    runTechnicalRefreshLoopOnce();
   }, LOOP_INTERVAL_MS);
-  setTimeout(() => { runPrecomputeLoopOnce(); runTechnicalRefreshLoopOnce(); }, 5000);
+  setTimeout(() => { runPrecomputeLoopOnce(); }, 5000);
   return timer;
 }
 
@@ -284,7 +266,7 @@ export async function runPrecomputeNow(symbols = []) {
   const results = [];
   for (const symbol of cleaned) {
     try {
-      const report = await computeOne(symbol);
+      const report = await withTimeout(computeOne(symbol), TICKER_TIMEOUT_MS, `[manual-precompute] ${symbol}`);
       results.push({ symbol, ok: true, score: report?.grades?.edgeScore ?? null });
       await sleep(TICKER_INTERVAL_MS);
     } catch (error) {
@@ -295,16 +277,5 @@ export async function runPrecomputeNow(symbols = []) {
 }
 
 export async function runTechnicalRefreshNow(symbols = []) {
-  const cleaned = [...new Set(symbols.map(cleanPrecomputeTicker).filter(Boolean))];
-  const results = [];
-  for (const symbol of cleaned) {
-    try {
-      const report = await refreshOneTechnical(symbol);
-      results.push({ symbol, ok: true, score: report?.grades?.edgeScore ?? null });
-      await sleep(TECH_TICKER_INTERVAL_MS);
-    } catch (error) {
-      results.push({ symbol, ok: false, error: error?.message || "failed" });
-    }
-  }
-  return results;
+  return runPrecomputeNow(symbols);
 }
