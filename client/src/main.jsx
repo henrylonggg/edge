@@ -11993,49 +11993,41 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
 function DcfCalculatorPanel({ data }) {
   const symbol = data?.symbol;
   const [open, setOpen] = useState(false);
-  const [scenario, setScenario] = useState("average");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!open || !symbol) return undefined;
-    let cancelled = false;
-    async function loadDcf() {
-      setLoading(true);
-      try {
-        const res = await fetch(`${API}/api/dcf/${encodeURIComponent(symbol)}?scenario=${encodeURIComponent(scenario)}`);
-        const json = await res.json();
-        if (!cancelled && res.ok) setResult(json);
-      } catch {}
-      if (!cancelled) setLoading(false);
-    }
-    loadDcf();
-    return () => { cancelled = true; };
-  }, [open, symbol, scenario]);
+  const dcf = data?.dcf || {};
+  const available = Boolean(dcf?.available);
+  const mos = Number(dcf?.marginOfSafety);
+  const mosTone = Number.isFinite(mos) ? (mos >= 10 ? "green" : mos >= 0 ? "yellow" : "red") : "neutral";
 
   return (
-    <section className="eval-dcf-shell">
-      <button type="button" className="eval-dcf-toggle" onClick={() => setOpen((v) => !v)}>
+    <section className="eval-dcf-shell eval-dcf-popup-shell">
+      <button type="button" className={`eval-dcf-toggle ${mosTone}`} onClick={() => setOpen((v) => !v)}>
         <Target size={18} /> DCF Calculator
       </button>
       {open && (
-        <div className="eval-dcf-page">
+        <div className="eval-dcf-page eval-dcf-popup-page">
           <div className="eval-dcf-head">
             <div>
-              <span>6-month outlook</span>
-              <h3>{data?.profile?.name || symbol} projection</h3>
+              <span>Valuation model</span>
+              <h3>{data?.profile?.name || symbol} DCF</h3>
             </div>
-            <div className="eval-dcf-scenarios">
-              {["low", "average", "high"].map((item) => <button type="button" key={item} className={scenario === item ? "active" : ""} onClick={() => setScenario(item)}>{item}</button>)}
-            </div>
+            <button type="button" className="icon-btn" onClick={() => setOpen(false)} aria-label="Close DCF calculator">×</button>
           </div>
-          {loading ? <div className="eval-stock-chart-empty">Calculating projection...</div> : (
+          {!available ? (
+            <div className="eval-stock-chart-empty">DCF is voided because Eval does not have enough usable free-cash-flow, share-count, growth, or latest-close data yet.</div>
+          ) : (
             <>
-              <MiniSvgLineChart rows={result?.sixMonthHistory || []} projections={result?.projections || []} tone={scoreTone(data?.grades?.edgeScore)} />
-              <div className="eval-dcf-result-grid">
-                <div><span>Selected case</span><strong>{scenario}</strong></div>
-                <div><span>Expected price</span><strong>{money(result?.chosen?.expectedPrice)}</strong></div>
-                <div><span>6M growth path</span><strong>{signedPercent(result?.chosen?.sixMonthGrowth)}</strong></div>
+              <div className="eval-dcf-result-grid eval-dcf-valuation-grid">
+                <div><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
+                <div><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
+                <div className={`dcf-margin-highlight ${mosTone}`}><span>Margin of safety</span><strong>{signedPercent(dcf.marginOfSafety)}</strong></div>
+              </div>
+              <p className="eval-dcf-description">
+                A discounted cash flow calculation estimates what a company may be worth by projecting future free cash flow, discounting those cash flows back to today, adding a terminal value, then adjusting for cash, debt, and shares outstanding. Eval compares that intrinsic value with the latest daily close to calculate margin of safety.
+              </p>
+              <div className="eval-dcf-assumption-grid">
+                <div><span>Growth used</span><strong>{Number(dcf?.assumptions?.baseGrowthPercent ?? 0).toFixed(1)}%</strong></div>
+                <div><span>Discount rate</span><strong>{Number(dcf?.assumptions?.discountRatePercent ?? 0).toFixed(1)}%</strong></div>
+                <div><span>Terminal growth</span><strong>{Number(dcf?.assumptions?.terminalGrowthPercent ?? 0).toFixed(1)}%</strong></div>
               </div>
             </>
           )}
@@ -12168,6 +12160,9 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Market Cap Stability", metrics.marketCapM),
     ]),
     valuation: usableMetricLines([
+      metricLine("DCF Intrinsic Value", metrics.intrinsicValue),
+      metricLine("Latest Close", metrics.latestClose),
+      metricLine("Margin of Safety", metrics.marginOfSafety),
       metricLine("P/E Ratio", metrics.peRatio),
       metricLine("Forward P/E", metrics.forwardPe),
       metricLine("PEG Ratio", metrics.pegRatio),
@@ -12211,6 +12206,16 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       "P/E Ratio",
       metrics.peRatio,
       "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
+    ],
+    [
+      "DCF Margin of Safety",
+      metrics.marginOfSafety,
+      "Compares Eval's DCF intrinsic value with the latest daily close. Positive values suggest more margin of safety in the valuation model.",
+    ],
+    [
+      "Intrinsic Value",
+      metrics.intrinsicValue,
+      "Eval's estimated DCF value per share based on free cash flow, growth assumptions, cash, debt, and shares outstanding.",
     ],
     [
       "Revenue Growth",
@@ -12285,6 +12290,7 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
         onScoreBreakdown={openScoreBreakdownDashboard}
         scoreBreakdownOpen={scoreBreakdownOpen}
       />
+      <DcfCalculatorPanel data={data} />
 
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
