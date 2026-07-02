@@ -44435,3 +44435,15 @@ body {
     font-size: 14px !important;
   }
 }
+
+
+/* DCF fully removed from Eval UI */
+.eval-dcf-shell,
+.eval-dcf-popup-shell,
+.eval-dcf-popup-page,
+.eval-dcf-horizontal-card,
+.eval-chart-dcf-stack > .eval-dcf-shell,
+.eval-chart-dcf-stack > .eval-dcf-popup-shell,
+.eval-chart-dcf-stack > .eval-dcf-horizontal-card {
+  display: none !important;
+}
