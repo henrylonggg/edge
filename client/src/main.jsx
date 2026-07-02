@@ -1192,10 +1192,14 @@ function App() {
     const strongest = orderedCats[0];
     const weakest = orderedCats[orderedCats.length - 1];
 
+    const domain = getCompanyDomainFromReport(analyzed);
+    const companyName = getCompanyNameFromReport(analyzed, clean);
     return {
       symbol: clean,
-      name: analyzed?.profile?.name || clean,
-      logo: `${API}/api/company-logo/${encodeURIComponent(clean)}?v=logo-dev-redirect-v1`,
+      name: companyName || clean,
+      domain,
+      website: domain,
+      logo: allInvestViewLogoUrl(domain),
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -4417,7 +4421,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
 
   function renderDetailedCell(holding, column) {
     const key = column.key;
-    if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" onClick={() => onAnalyze?.(holding.symbol)}><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></button></td>;
+    if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" className="portfolio-symbol-with-logo" onClick={() => onAnalyze?.(holding.symbol)}><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></span></button></td>;
     if (key === "eval") return <td key={key}><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-detail-eval-score watch-score-plain" /></td>;
     if (["profitability", "financialHealth", "valuation", "momentum"].includes(key)) {
       const value = score10(holding?.[key]);
@@ -4802,7 +4806,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
             {ranked.map((holding, index) => (
               <button type="button" className={`portfolio-ranked-holding-card ${scoreTone(holding.evalScoreValue)}`} key={`${holding.symbol}-${index}`} onClick={() => onAnalyze?.(holding.symbol)}>
                 <MiniScoreRing value={holding.evalScoreValue} small />
-                <div><strong>{holding.symbol}</strong><span>{holding.name || holding.sector || "Holding"}</span></div>
+                <div className="portfolio-ranked-copy-with-logo"><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><strong>{holding.symbol}</strong><span>{holding.name || holding.sector || "Holding"}</span></span></div>
               </button>
             ))}
           </div>
@@ -5100,7 +5104,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
                       };
                       return (
                       <button type="button" id={holdingAnchorId(holding.symbol)} className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
-                        <span className="portfolio-mobile-stock-main" data-label="Stock"><b>{holding.symbol}</b><small>{holding.name}</small></span>
+                        <span className="portfolio-mobile-stock-main portfolio-mobile-stock-main-logo" data-label="Stock"><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><b>{holding.symbol}</b><small>{holding.name}</small></span></span>
                         {holdingColumns.map((column) => holdingCells[column.key])}
                       </button>
                     );})}
@@ -11098,6 +11102,7 @@ function Mag7DashboardPanel({ items, loading, onRefresh, onAnalyze }) {
           <strong>{leader?.weakest || "Refresh to load"}</strong>
         </div>
       </div>
+      {rankedItems.length > 0 && <AllInvestViewAttribution className="watch-logo-attribution" />}
     </aside>
   );
 }
@@ -11171,9 +11176,13 @@ function Watchlist({
           rankedItems.map((item) => {
             const ticker = String(item.symbol || "").toUpperCase();
             return (
-              <div className="watch-row watch-row-simple watch-row-ranked-format" key={item.symbol}>
-                <button className="watch-info watch-info-new watch-info-ticker-only" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
-                  <span className="watch-ticker-main">{ticker}</span>
+              <div className="watch-row watch-row-simple watch-row-ranked-format watch-row-with-logo" key={item.symbol}>
+                <button className="watch-info watch-info-new watch-info-with-logo" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
+                  <StockLogo symbol={ticker} domain={item.domain || item.website} name={item.name} className="watch-aiv-logo" />
+                  <span className="watch-ticker-copy">
+                    <span className="watch-ticker-main">{ticker}</span>
+                    <small className="watch-company-subtitle">{item.name && item.name !== ticker ? item.name : "Company"}</small>
+                  </span>
                 </button>
 
                 <EvalScoreTextBadge value={item.score} className="watch-score-text watch-score-plain" />
@@ -11548,6 +11557,84 @@ function EvalScoreTextBadge({ value, className = "" }) {
   );
 }
 
+
+function cleanCompanyDomain(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    const url = new URL(withProtocol);
+    return url.hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return raw
+      .replace(/^https?:\/\//i, "")
+      .replace(/^www\./i, "")
+      .split("/")[0]
+      .split("?")[0]
+      .toLowerCase();
+  }
+}
+
+function getCompanyDomainFromReport(report = {}) {
+  return cleanCompanyDomain(
+    report?.profile?.website ||
+    report?.profile?.weburl ||
+    report?.profile?.url ||
+    report?.profile?.domain ||
+    report?.domain ||
+    report?.companyDomain ||
+    report?.website ||
+    report?.weburl ||
+    report?.url
+  );
+}
+
+function getCompanyNameFromReport(report = {}, fallback = "") {
+  return String(
+    report?.profile?.name ||
+    report?.profile?.companyName ||
+    report?.companyName ||
+    report?.name ||
+    fallback ||
+    ""
+  ).trim();
+}
+
+function allInvestViewLogoUrl(domain) {
+  const clean = cleanCompanyDomain(domain);
+  return clean ? `https://cdn.tickerlogos.com/${encodeURIComponent(clean)}` : "";
+}
+
+function StockLogo({ symbol, domain, name, className = "" }) {
+  const cleanSymbol = String(symbol || "").trim().toUpperCase();
+  const logo = allInvestViewLogoUrl(domain);
+  if (!logo) return null;
+  return (
+    <a
+      className={`aiv-logo-link ${className}`.trim()}
+      href="https://www.allinvestview.com/tools/ticker-logos/"
+      target="_blank"
+      rel="noreferrer"
+      title="Logos by AllInvestView"
+      aria-label="Logos by AllInvestView"
+    >
+      <img
+        src={logo}
+        alt={name ? `${name} logo` : cleanSymbol ? `${cleanSymbol} logo` : "Company logo"}
+        onError={(event) => { event.currentTarget.style.display = "none"; }}
+      />
+    </a>
+  );
+}
+
+function AllInvestViewAttribution({ className = "" }) {
+  return (
+    <a className={`aiv-attribution ${className}`.trim()} href="https://www.allinvestview.com/tools/ticker-logos/" target="_blank" rel="noreferrer">
+      Logos by AllInvestView
+    </a>
+  );
+}
+
 function WatchMiniSparkline({ symbol, score = null }) {
   const clean = String(symbol || "").trim().toUpperCase();
   const chartTone = scoreTone(score);
@@ -11848,7 +11935,8 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     };
   }, [symbol, liveEnabled, activeChartRange.intraday, data?.quote?.pc]);
 
-  const logo = `${API}/api/company-logo/${encodeURIComponent(symbol || "")}?v=logo-dev-redirect-v1`;
+  const companyDomain = getCompanyDomainFromReport(data);
+  const companyName = getCompanyNameFromReport(data, symbol);
   const current = Number(live?.current ?? data?.quote?.c);
   const previousCloseForChange = Number(live?.previousClose ?? data?.quote?.pc);
   const tone = "neutral";
@@ -11857,10 +11945,11 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
     <section className="eval-stock-chart-shell eval-stock-quote-shell eval-chart-hero-card">
       <div className="eval-stock-chart-top eval-chart-hero-top">
         <div className="eval-stock-company-lockup">
-          <a className="logo-dev-link eval-stock-logo-link" href="https://www.logo.dev" target="_blank" rel="noreferrer" title="Logo by Logo.dev"><img key={symbol} src={logo} alt="" className="eval-stock-logo" onLoad={(event) => { event.currentTarget.style.display = ""; }} onError={(event) => { event.currentTarget.style.display = "none"; }} /></a>
+          <StockLogo symbol={symbol} domain={companyDomain} name={companyName} className="eval-stock-logo-link" />
           <div>
-            <h3>{data?.profile?.name || symbol}</h3>
-            <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
+            <h3>{symbol}</h3>
+            <span>{companyName || "Company"}{liveEnabled ? " · LIVE" : ""}</span>
+            {companyDomain && <AllInvestViewAttribution className="eval-chart-logo-attribution" />}
           </div>
         </div>
         <div className="eval-chart-hero-right">
