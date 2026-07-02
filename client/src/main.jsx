@@ -1199,7 +1199,7 @@ function App() {
       name: companyName || clean,
       domain,
       website: domain,
-      logo: allInvestViewLogoUrl(domain),
+      logo: allInvestViewLogoUrl(domain, clean),
       score: score10(analyzed?.grades?.edgeScore),
       rawScore: analyzed?.grades?.edgeScore ?? null,
       grade: gradeFrom10(analyzed?.grades?.edgeScore),
@@ -11180,8 +11180,8 @@ function Watchlist({
                 <button className="watch-info watch-info-new watch-info-with-logo" onClick={() => onAnalyze(item.symbol)} title={`Analyze ${ticker}`}>
                   <StockLogo symbol={ticker} domain={item.domain || item.website} name={item.name} className="watch-aiv-logo" />
                   <span className="watch-ticker-copy">
-                    <span className="watch-ticker-main">{ticker}</span>
-                    <small className="watch-company-subtitle">{item.name && item.name !== ticker ? item.name : "Company"}</small>
+                    <span className="watch-ticker-main">{item.name && item.name !== ticker ? item.name : ticker}</span>
+                    <small className="watch-company-subtitle">{ticker}</small>
                   </span>
                 </button>
 
@@ -11600,14 +11600,16 @@ function getCompanyNameFromReport(report = {}, fallback = "") {
   ).trim();
 }
 
-function allInvestViewLogoUrl(domain) {
-  const clean = cleanCompanyDomain(domain);
-  return clean ? `https://cdn.tickerlogos.com/${encodeURIComponent(clean)}` : "";
+function allInvestViewLogoUrl(domain, symbol = "") {
+  const cleanDomain = cleanCompanyDomain(domain);
+  const cleanSymbol = String(symbol || "").trim().toUpperCase();
+  const lookup = cleanDomain || cleanSymbol;
+  return lookup ? `https://cdn.tickerlogos.com/${encodeURIComponent(lookup)}` : "";
 }
 
 function StockLogo({ symbol, domain, name, className = "" }) {
   const cleanSymbol = String(symbol || "").trim().toUpperCase();
-  const logo = allInvestViewLogoUrl(domain);
+  const logo = allInvestViewLogoUrl(domain, cleanSymbol);
   if (!logo) return null;
   return (
     <a
@@ -11947,9 +11949,8 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
         <div className="eval-stock-company-lockup">
           <StockLogo symbol={symbol} domain={companyDomain} name={companyName} className="eval-stock-logo-link" />
           <div>
-            <h3>{symbol}</h3>
-            <span>{companyName || "Company"}{liveEnabled ? " · LIVE" : ""}</span>
-            {companyDomain && <AllInvestViewAttribution className="eval-chart-logo-attribution" />}
+            <h3>{companyName || symbol}</h3>
+            <span>{symbol}{liveEnabled ? " · LIVE" : ""}</span>
           </div>
         </div>
         <div className="eval-chart-hero-right">
