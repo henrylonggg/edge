@@ -43771,3 +43771,70 @@ body {
   .watch-aiv-logo { width: 30px; height: 30px; border-radius: 9px; }
   .watch-company-subtitle { max-width: 112px; font-size: 9px; }
 }
+
+
+/* Final compact circular logo treatment */
+.aiv-logo-link {
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  background: rgba(255,255,255,.96) !important;
+  padding: 3px !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,.22) !important;
+}
+.aiv-logo-link img {
+  border-radius: 999px !important;
+  object-fit: contain !important;
+}
+.eval-stock-logo-link {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 999px !important;
+  padding: 4px !important;
+}
+.watch-aiv-logo {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+}
+.portfolio-aiv-logo {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 999px !important;
+  padding: 3px !important;
+}
+.eval-chart-logo-attribution,
+.watch-logo-attribution,
+.aiv-attribution {
+  display: none !important;
+}
+.watch-row-with-logo {
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+}
+.watch-info-with-logo {
+  justify-content: flex-start !important;
+  gap: 9px !important;
+}
+.watch-ticker-copy {
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+.watch-ticker-main {
+  max-width: 145px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.watch-company-subtitle {
+  max-width: 90px !important;
+  color: rgba(255,255,255,.52) !important;
+  font-size: 9px !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+@media (max-width: 760px) {
+  .eval-stock-logo-link { width: 36px !important; height: 36px !important; padding: 3px !important; }
+  .watch-aiv-logo { width: 27px !important; height: 27px !important; padding: 3px !important; }
+  .portfolio-aiv-logo { width: 26px !important; height: 26px !important; padding: 3px !important; }
+  .watch-ticker-main { max-width: 118px !important; }
+}
