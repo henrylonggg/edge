@@ -12286,15 +12286,17 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
   return (
     <>
-      <EvalStockChartPanel
-        data={data}
-        edgeScore={edge}
-        onAdd={onAdd}
-        onMetrics={scrollToScoreMetrics}
-        onScoreBreakdown={openScoreBreakdownDashboard}
-        scoreBreakdownOpen={scoreBreakdownOpen}
-      />
-      <DcfCalculatorPanel data={data} />
+      <div className="eval-chart-dcf-stack" aria-label="Stock chart and DCF valuation">
+        <EvalStockChartPanel
+          data={data}
+          edgeScore={edge}
+          onAdd={onAdd}
+          onMetrics={scrollToScoreMetrics}
+          onScoreBreakdown={openScoreBreakdownDashboard}
+          scoreBreakdownOpen={scoreBreakdownOpen}
+        />
+        <DcfCalculatorPanel data={data} />
+      </div>
 
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
