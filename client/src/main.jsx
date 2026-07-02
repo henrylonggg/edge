@@ -11992,7 +11992,6 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
 
 function DcfCalculatorPanel({ data }) {
   const symbol = data?.symbol;
-  const [open, setOpen] = useState(false);
   const dcf = data?.dcf || {};
   const available = Boolean(dcf?.available);
   const mos = Number(dcf?.marginOfSafety);
@@ -12000,43 +11999,41 @@ function DcfCalculatorPanel({ data }) {
   const company = data?.profile?.name || data?.companyName || symbol || "Stock";
 
   return (
-    <section className="eval-dcf-shell eval-dcf-popup-shell" aria-label="DCF calculator section">
-      <button type="button" className={`eval-dcf-toggle ${mosTone}`} onClick={() => setOpen((v) => !v)}>
-        <span className="eval-dcf-toggle-left"><Target size={18} /> DCF Calculator</span>
-        {available && <span className="eval-dcf-toggle-pill">MOS {signedPercent(dcf.marginOfSafety)}</span>}
-      </button>
-      {open && (
-        <div className={`eval-dcf-page eval-dcf-popup-page ${mosTone}`}>
-          <div className="eval-dcf-head">
-            <div>
-              <span>Valuation model</span>
-              <h3>{company} DCF</h3>
-            </div>
-            <button type="button" className="icon-btn eval-dcf-close" onClick={() => setOpen(false)} aria-label="Close DCF calculator">×</button>
-          </div>
-          {!available ? (
-            <div className="eval-dcf-empty-state">
-              <strong>DCF currently voided</strong>
-              <p>Eval needs usable free cash flow, share count, growth, cash/debt, and latest-close data before it can calculate intrinsic value.</p>
-            </div>
-          ) : (
-            <>
-              <div className="eval-dcf-result-grid eval-dcf-valuation-grid">
-                <div className="dcf-card"><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
-                <div className="dcf-card"><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
-                <div className={`dcf-card dcf-margin-highlight ${mosTone}`}><span>Margin of safety</span><strong>{signedPercent(dcf.marginOfSafety)}</strong></div>
-              </div>
-              <p className="eval-dcf-description">
-                A discounted cash flow calculation estimates what a company may be worth by projecting future free cash flow, discounting those cash flows back to today, adding a terminal value, then adjusting for cash, debt, and shares outstanding. Eval compares that intrinsic value with the latest daily close to calculate margin of safety.
-              </p>
-              <div className="eval-dcf-assumption-grid">
-                <div><span>Growth used</span><strong>{Number(dcf?.assumptions?.baseGrowthPercent ?? 0).toFixed(1)}%</strong></div>
-                <div><span>Discount rate</span><strong>{Number(dcf?.assumptions?.discountRatePercent ?? 0).toFixed(1)}%</strong></div>
-                <div><span>Terminal growth</span><strong>{Number(dcf?.assumptions?.terminalGrowthPercent ?? 0).toFixed(1)}%</strong></div>
-              </div>
-            </>
-          )}
+    <section className={`eval-dcf-horizontal-card ${mosTone}`} aria-label="DCF calculator section">
+      <div className="eval-dcf-horizontal-head">
+        <div>
+          <span className="eval-dcf-eyebrow"><Target size={15} /> DCF Calculator</span>
+          <h3>{company} intrinsic value</h3>
+          <p>A DCF estimates value by projecting future free cash flow, discounting it back to today, then comparing intrinsic value with the latest close.</p>
         </div>
+        {available ? (
+          <div className={`eval-dcf-mos-pill ${mosTone}`}>
+            <span>Margin of safety</span>
+            <strong>{signedPercent(dcf.marginOfSafety)}</strong>
+          </div>
+        ) : (
+          <div className="eval-dcf-mos-pill neutral">
+            <span>Status</span>
+            <strong>Voided</strong>
+          </div>
+        )}
+      </div>
+
+      {!available ? (
+        <div className="eval-dcf-horizontal-empty">
+          Eval needs usable free cash flow, share count, growth, cash/debt, and latest-close data before it can calculate intrinsic value.
+        </div>
+      ) : (
+        <>
+          <div className="eval-dcf-horizontal-values">
+            <div><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
+            <div><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
+            <div><span>DCF score</span><strong>{formatScore99(dcf.score ?? data?.metrics?.dcfScore)}</strong></div>
+            <div><span>Growth used</span><strong>{Number(dcf?.assumptions?.baseGrowthPercent ?? 0).toFixed(1)}%</strong></div>
+            <div><span>Discount rate</span><strong>{Number(dcf?.assumptions?.discountRatePercent ?? 0).toFixed(1)}%</strong></div>
+            <div><span>Terminal growth</span><strong>{Number(dcf?.assumptions?.terminalGrowthPercent ?? 0).toFixed(1)}%</strong></div>
+          </div>
+        </>
       )}
     </section>
   );
