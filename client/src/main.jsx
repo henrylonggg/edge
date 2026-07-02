@@ -4421,7 +4421,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
 
   function renderDetailedCell(holding, column) {
     const key = column.key;
-    if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" className="portfolio-symbol-with-logo" onClick={() => onAnalyze?.(holding.symbol)}><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></span></button></td>;
+    if (key === "symbol") return <td key={key} className="portfolio-detail-symbol"><button type="button" className="portfolio-symbol-with-logo portfolio-symbol-no-logo" onClick={() => onAnalyze?.(holding.symbol)}><span><b>{holding.symbol}</b><small>{holding.name || "Holding"}</small></span></button></td>;
     if (key === "eval") return <td key={key}><EvalScoreTextBadge value={holding.edgeScore} className="portfolio-detail-eval-score watch-score-plain" /></td>;
     if (["profitability", "financialHealth", "valuation", "momentum"].includes(key)) {
       const value = score10(holding?.[key]);
@@ -4811,7 +4811,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
             {ranked.map((holding, index) => (
               <button type="button" className={`portfolio-ranked-holding-card ${scoreTone(holding.evalScoreValue)}`} key={`${holding.symbol}-${index}`} onClick={() => onAnalyze?.(holding.symbol)}>
                 <MiniScoreRing value={holding.evalScoreValue} small />
-                <div className="portfolio-ranked-copy-with-logo"><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><strong>{holding.symbol}</strong><span>{holding.name || holding.sector || "Holding"}</span></span></div>
+                <div className="portfolio-ranked-copy-with-logo portfolio-symbol-no-logo"><span><strong>{holding.symbol}</strong><span>{holding.name || holding.sector || "Holding"}</span></span></div>
               </button>
             ))}
           </div>
@@ -5109,7 +5109,7 @@ function PortfolioPage({ onBack, onAnalyze, onMorning, backLabel = "Back to dash
                       };
                       return (
                       <button type="button" id={holdingAnchorId(holding.symbol)} className={`portfolio-holding-row ${scoreTone(holding.edgeScore)}`} key={holding.symbol} onClick={() => onAnalyze?.(holding.symbol)} style={{ gridTemplateColumns: holdingsTemplate }}>
-                        <span className="portfolio-mobile-stock-main portfolio-mobile-stock-main-logo" data-label="Stock"><StockLogo symbol={holding.symbol} domain={holding.domain || holding.website} name={holding.name} className="portfolio-aiv-logo" /><span><b>{holding.symbol}</b><small>{holding.name}</small></span></span>
+                        <span className="portfolio-mobile-stock-main portfolio-mobile-stock-main-logo portfolio-symbol-no-logo" data-label="Stock"><span><b>{holding.symbol}</b><small>{holding.name}</small></span></span>
                         {holdingColumns.map((column) => holdingCells[column.key])}
                       </button>
                     );})}
