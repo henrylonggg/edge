@@ -43977,3 +43977,49 @@ body {
     max-width: 92px !important;
   }
 }
+
+
+/* Portfolio-only logo removal + industry popup score sizing */
+.portfolio-dashboard-v3 .portfolio-aiv-logo,
+.portfolio-dashboard-v3 .portfolio-symbol-with-logo > .stock-logo,
+.portfolio-dashboard-v3 .portfolio-ranked-copy-with-logo > .stock-logo,
+.portfolio-dashboard-v3 .portfolio-mobile-stock-main-logo > .stock-logo {
+  display: none !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-symbol-no-logo,
+.portfolio-dashboard-v3 .portfolio-symbol-with-logo.portfolio-symbol-no-logo,
+.portfolio-dashboard-v3 .portfolio-ranked-copy-with-logo.portfolio-symbol-no-logo,
+.portfolio-dashboard-v3 .portfolio-mobile-stock-main-logo.portfolio-symbol-no-logo {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-symbol-no-logo > span,
+.portfolio-dashboard-v3 .portfolio-symbol-with-logo.portfolio-symbol-no-logo > span,
+.portfolio-dashboard-v3 .portfolio-ranked-copy-with-logo.portfolio-symbol-no-logo > span,
+.portfolio-dashboard-v3 .portfolio-mobile-stock-main-logo.portfolio-symbol-no-logo > span {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-industry-score-panel-wrap .portfolio-metric-bar-head .score-ovr-stack,
+.portfolio-dashboard-v3 .portfolio-industry-score-dropdown-wrap .portfolio-metric-bar-head .score-ovr-stack,
+.portfolio-dashboard-v3 .portfolio-industry-score-popup .portfolio-metric-bar-head .score-ovr-stack {
+  font-size: 1.12rem !important;
+  line-height: 0.9 !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-industry-score-panel-wrap .portfolio-metric-bar-head .score-ovr-number,
+.portfolio-dashboard-v3 .portfolio-industry-score-dropdown-wrap .portfolio-metric-bar-head .score-ovr-number,
+.portfolio-dashboard-v3 .portfolio-industry-score-popup .portfolio-metric-bar-head .score-ovr-number {
+  font-size: 1.28rem !important;
+}
+
+.portfolio-dashboard-v3 .portfolio-industry-score-panel-wrap .portfolio-metric-bar-head .score-ovr-label,
+.portfolio-dashboard-v3 .portfolio-industry-score-dropdown-wrap .portfolio-metric-bar-head .score-ovr-label,
+.portfolio-dashboard-v3 .portfolio-industry-score-popup .portfolio-metric-bar-head .score-ovr-label {
+  font-size: 0.48rem !important;
+}
