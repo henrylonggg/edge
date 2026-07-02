@@ -43667,3 +43667,107 @@ body {
   letter-spacing: 0.12em !important;
   margin-top: 2px !important;
 }
+
+/* AllInvestView ticker logo integration */
+.aiv-logo-link {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+.aiv-logo-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.aiv-attribution {
+  display: inline-block;
+  width: max-content;
+  color: rgba(255,255,255,.38);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.aiv-attribution:hover { color: rgba(255,255,255,.72); }
+.eval-stock-logo-link {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.94);
+  padding: 7px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+.eval-chart-logo-attribution {
+  margin-top: 4px;
+}
+.watch-row-with-logo {
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+}
+.watch-info-with-logo {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  text-align: left !important;
+}
+.watch-aiv-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.94);
+  padding: 5px;
+  overflow: hidden;
+}
+.watch-ticker-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.05;
+}
+.watch-company-subtitle {
+  display: block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255,255,255,.48);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .03em;
+  margin-top: 4px;
+}
+.watch-logo-attribution {
+  margin: 8px 0 0 4px;
+}
+.portfolio-aiv-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.94);
+  padding: 4px;
+  overflow: hidden;
+}
+.portfolio-symbol-with-logo,
+.portfolio-mobile-stock-main-logo,
+.portfolio-ranked-copy-with-logo {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-width: 0 !important;
+}
+.portfolio-symbol-with-logo > span,
+.portfolio-mobile-stock-main-logo > span,
+.portfolio-ranked-copy-with-logo > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .eval-stock-logo-link { width: 42px; height: 42px; border-radius: 13px; padding: 6px; }
+  .watch-aiv-logo { width: 30px; height: 30px; border-radius: 9px; }
+  .watch-company-subtitle { max-width: 112px; font-size: 9px; }
+}
