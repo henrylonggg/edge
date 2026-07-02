@@ -30,7 +30,7 @@ const ONE_TIME_TEST_WINDOW_DATE = process.env.EVAL_ONE_TIME_TEST_WINDOW_DATE || 
   month: "2-digit",
   day: "2-digit",
 }).format(new Date());
-const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (11 * 60 + 10)); // 11:10 AM ET
+const ONE_TIME_TEST_WINDOW_START_MINUTES = Number(process.env.EVAL_ONE_TIME_TEST_WINDOW_START_MINUTES || (11 * 60 + 35)); // 11:35 AM ET
 const ONE_TIME_RUN_UNTIL_DONE = String(process.env.EVAL_ONE_TIME_RUN_UNTIL_DONE || "true").toLowerCase() !== "false";
 
 const NIGHTLY_WINDOW_START_MINUTES = Number(process.env.EVAL_PRECOMPUTE_WINDOW_START_MINUTES || DEFAULT_NIGHTLY_WINDOW_START_MINUTES);
@@ -142,7 +142,7 @@ export function getPrecomputeUniverse() {
 function todaysBatch() {
   const universe = getPrecomputeUniverse();
   const window = activePrecomputeWindow();
-  const dateKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1110am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const dateKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1135am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const current = getPrecomputeState();
   let weekCursor = window.oneTime ? 0 : Number(current.weekCursor || 0);
   let dayCursor = Number(current.dayCursor || 0);
@@ -160,7 +160,7 @@ function todaysBatch() {
 function shouldRunPrecompute() {
   const window = activePrecomputeWindow();
   const state = getPrecomputeState();
-  const batchKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1110am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
+  const batchKey = window.oneTime ? `${ONE_TIME_TEST_WINDOW_DATE}-one-time-1135am-dcf` : operationalBatchDateKey(window.startMinutes, window.endMinutes);
   const { minutes } = etParts();
 
   if (window.oneTime && window.runUntilDone && state.lastBatchDate === batchKey) {
