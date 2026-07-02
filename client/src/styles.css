@@ -44235,3 +44235,39 @@ body {
     border-radius: 22px !important;
   }
 }
+
+/* Force DCF calculator placement directly below the stock chart and above metrics. */
+.eval-chart-dcf-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+.eval-chart-dcf-stack > .eval-stock-chart-shell {
+  order: 1 !important;
+  margin-bottom: 0 !important;
+}
+.eval-chart-dcf-stack > .eval-dcf-shell,
+.eval-chart-dcf-stack > .eval-dcf-popup-shell {
+  order: 2 !important;
+  margin-top: 0 !important;
+  margin-bottom: 10px !important;
+}
+.eval-dcf-popup-page {
+  position: relative;
+  overflow: hidden;
+}
+.eval-dcf-popup-page::before {
+  content: "";
+  position: absolute;
+  inset: -120px -80px auto auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(21,231,255,.12), transparent 68%);
+  pointer-events: none;
+}
+.eval-dcf-description {
+  max-width: 980px;
+  line-height: 1.65 !important;
+}
