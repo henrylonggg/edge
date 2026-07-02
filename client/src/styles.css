@@ -44271,3 +44271,167 @@ body {
   max-width: 980px;
   line-height: 1.65 !important;
 }
+
+/* Horizontal DCF card below chart, above metrics */
+.eval-chart-dcf-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+.eval-chart-dcf-stack > .eval-stock-chart-shell {
+  order: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.eval-chart-dcf-stack > .eval-dcf-horizontal-card {
+  order: 2 !important;
+  position: relative !important;
+  z-index: 0 !important;
+  margin: 0 !important;
+}
+.eval-dcf-horizontal-card {
+  width: 100% !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 24px !important;
+  padding: 18px !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255,255,255,.06), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.025)) !important;
+  box-shadow: 0 16px 44px rgba(0,0,0,.24) !important;
+  display: grid !important;
+  gap: 16px !important;
+  clear: both !important;
+}
+.eval-dcf-horizontal-card.green { border-color: rgba(21,231,255,.18) !important; }
+.eval-dcf-horizontal-card.yellow { border-color: rgba(255,183,77,.20) !important; }
+.eval-dcf-horizontal-card.red { border-color: rgba(255,79,103,.20) !important; }
+.eval-dcf-horizontal-head {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+.eval-dcf-eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: var(--soft) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: .10em !important;
+  text-transform: uppercase !important;
+}
+.eval-dcf-horizontal-head h3 {
+  margin: 6px 0 6px !important;
+  font-size: clamp(20px, 2.1vw, 30px) !important;
+  line-height: 1.05 !important;
+}
+.eval-dcf-horizontal-head p {
+  margin: 0 !important;
+  color: rgba(231,238,255,.72) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  max-width: 850px !important;
+}
+.eval-dcf-mos-pill {
+  min-width: 158px !important;
+  border-radius: 20px !important;
+  padding: 13px 16px !important;
+  text-align: right !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  background: rgba(255,255,255,.045) !important;
+}
+.eval-dcf-mos-pill span {
+  display: block !important;
+  color: var(--soft) !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+.eval-dcf-mos-pill strong {
+  display: block !important;
+  margin-top: 4px !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+}
+.eval-dcf-mos-pill.green strong { color: #15e7ff !important; }
+.eval-dcf-mos-pill.yellow strong { color: #ffcf5f !important; }
+.eval-dcf-mos-pill.red strong { color: #ff5a70 !important; }
+.eval-dcf-horizontal-values {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+.eval-dcf-horizontal-values > div {
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 16px !important;
+  background: rgba(0,0,0,.16) !important;
+  padding: 12px !important;
+  min-width: 0 !important;
+}
+.eval-dcf-horizontal-values span {
+  display: block !important;
+  color: var(--soft) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.eval-dcf-horizontal-values strong {
+  display: block !important;
+  margin-top: 7px !important;
+  color: #fff !important;
+  font-size: clamp(14px, 1.5vw, 20px) !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.eval-dcf-horizontal-empty {
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 16px !important;
+  background: rgba(0,0,0,.16) !important;
+  padding: 14px !important;
+  color: rgba(231,238,255,.76) !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+/* Hide old popup/toggle styles if any remain in older DOM/cache */
+.eval-dcf-toggle,
+.eval-dcf-popup-page,
+.eval-dcf-close {
+  position: static !important;
+}
+@media (max-width: 900px) {
+  .eval-dcf-horizontal-head {
+    grid-template-columns: 1fr !important;
+  }
+  .eval-dcf-mos-pill {
+    width: 100% !important;
+    text-align: left !important;
+  }
+  .eval-dcf-horizontal-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+@media (max-width: 520px) {
+  .eval-dcf-horizontal-card {
+    padding: 14px !important;
+    border-radius: 20px !important;
+  }
+  .eval-dcf-horizontal-values {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .eval-dcf-horizontal-values strong {
+    font-size: 14px !important;
+  }
+}
