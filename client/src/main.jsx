@@ -11233,7 +11233,6 @@ function PlansPage({ onBack, backLabel = "Back to dashboard" }) {
     features: [
       "Expanded Eval Score with more fundamentals",
       "EBIT, EBITDA, cash-flow, and balance-sheet metrics",
-      "Margin of safety and percent difference from intrinsic value",
       "News sentiment score from recent company headlines",
       "AI summaries that explain what the news means",
       "More detailed metric explanations in plain English",
@@ -12009,65 +12008,6 @@ function EvalStockChartPanel({ data, edgeScore = null, onAdd, onMetrics, onScore
   );
 }
 
-function DcfCalculatorPanel({ data }) {
-  const symbol = data?.symbol;
-  const rawDcf = data?.dcf || {};
-  const metrics = data?.metrics || {};
-  const dcf = {
-    ...rawDcf,
-    latestClose: firstFiniteNumber(rawDcf.latestClose, metrics.latestClose, data?.quote?.c, data?.quote?.pc),
-    intrinsicValue: firstFiniteNumber(rawDcf.intrinsicValue, metrics.intrinsicValue),
-    marginOfSafety: firstFiniteNumber(rawDcf.marginOfSafety, metrics.marginOfSafety),
-    score: firstFiniteNumber(rawDcf.score, rawDcf.dcfScore, metrics.dcfScore),
-    confidenceScore: firstFiniteNumber(rawDcf.confidenceScore, rawDcf.dcfConfidenceScore, metrics.dcfConfidenceScore),
-  };
-  const available = Boolean(rawDcf?.available || dcf.score !== null || dcf.intrinsicValue !== null || dcf.marginOfSafety !== null);
-  const mos = Number(dcf?.marginOfSafety);
-  const mosTone = Number.isFinite(mos) ? (mos >= 10 ? "green" : mos >= 0 ? "yellow" : "red") : "neutral";
-  const company = data?.profile?.name || data?.companyName || symbol || "Stock";
-
-  return (
-    <section className={`eval-dcf-horizontal-card ${mosTone}`} aria-label="DCF calculator section">
-      <div className="eval-dcf-horizontal-head">
-        <div>
-          <span className="eval-dcf-eyebrow"><Target size={15} /> DCF Calculator</span>
-          <h3>{company} intrinsic value</h3>
-          <p>A DCF estimates value by projecting future free cash flow, discounting it back to today, then comparing intrinsic value with the latest close.</p>
-        </div>
-        {available ? (
-          <div className={`eval-dcf-mos-pill ${mosTone}`}>
-            <span>Margin of safety</span>
-            <strong>{signedPercent(dcf.marginOfSafety)}</strong>
-          </div>
-        ) : (
-          <div className="eval-dcf-mos-pill neutral">
-            <span>Status</span>
-            <strong>Voided</strong>
-          </div>
-        )}
-      </div>
-
-      {!available ? (
-        <div className="eval-dcf-horizontal-empty">
-          Eval needs usable free cash flow, share count, growth, cash/debt, and latest-close data before it can calculate intrinsic value.
-        </div>
-      ) : (
-        <>
-          <div className="eval-dcf-horizontal-values">
-            <div><span>Latest close</span><strong>{money(dcf.latestClose)}</strong></div>
-            <div><span>Intrinsic value</span><strong>{money(dcf.intrinsicValue)}</strong></div>
-            <div><span>DCF score</span><strong>{formatScore99(dcf.score)}</strong></div>
-            <div><span>Cash flow basis</span><strong>{dcf?.assumptions?.dcfCashFlowMethod || "Stored DCF"}</strong></div>
-            <div><span>Growth used</span><strong>{Number(dcf?.assumptions?.baseGrowthPercent ?? 0).toFixed(1)}%</strong></div>
-            <div><span>Discount rate</span><strong>{Number(dcf?.assumptions?.discountRatePercent ?? 0).toFixed(1)}%</strong></div>
-            <div><span>Terminal growth</span><strong>{Number(dcf?.assumptions?.terminalGrowthPercent ?? 0).toFixed(1)}%</strong></div>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
 function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
   const cats = cleanEvalCategories(data?.grades?.categories || {});
   const metrics = data?.metrics || {};
@@ -12190,9 +12130,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       metricLine("Market Cap Stability", metrics.marketCapM),
     ]),
     valuation: usableMetricLines([
-      metricLine("DCF Intrinsic Value", metrics.intrinsicValue),
-      metricLine("Latest Close", metrics.latestClose),
-      metricLine("Margin of Safety", metrics.marginOfSafety),
       metricLine("P/E Ratio", metrics.peRatio),
       metricLine("Forward P/E", metrics.forwardPe),
       metricLine("PEG Ratio", metrics.pegRatio),
@@ -12236,16 +12173,6 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
       "P/E Ratio",
       metrics.peRatio,
       "Price compared to earnings. Lower can mean cheaper, but strong growth companies often trade richer.",
-    ],
-    [
-      "DCF Margin of Safety",
-      metrics.marginOfSafety,
-      "Compares Eval's DCF intrinsic value with the latest daily close. Positive values suggest more margin of safety in the valuation model.",
-    ],
-    [
-      "Intrinsic Value",
-      metrics.intrinsicValue,
-      "Eval's estimated DCF value per share based on free cash flow, growth assumptions, cash, debt, and shares outstanding.",
     ],
     [
       "Revenue Growth",
@@ -12312,17 +12239,14 @@ function Report({ data, onAdd, onOpenIndustry, pieTheme = "pulse" }) {
 
   return (
     <>
-      <div className="eval-chart-dcf-stack" aria-label="Stock chart and DCF valuation">
-        <EvalStockChartPanel
-          data={data}
-          edgeScore={edge}
-          onAdd={onAdd}
-          onMetrics={scrollToScoreMetrics}
-          onScoreBreakdown={openScoreBreakdownDashboard}
-          scoreBreakdownOpen={scoreBreakdownOpen}
-        />
-        <DcfCalculatorPanel data={data} />
-      </div>
+      <EvalStockChartPanel
+        data={data}
+        edgeScore={edge}
+        onAdd={onAdd}
+        onMetrics={scrollToScoreMetrics}
+        onScoreBreakdown={openScoreBreakdownDashboard}
+        scoreBreakdownOpen={scoreBreakdownOpen}
+      />
 
       {scoreBreakdownOpen && (
         <section className="score-breakdown-dashboard-shell">
